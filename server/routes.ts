@@ -35,21 +35,21 @@ export interface AIValuationResponse {
   valuationMethodology: string;
 }
 
-// For production with real OpenAI API (commented out due to quota limitations)
-// import {
-//   performAutomatedValuation,
-//   analyzeMarketTrends,
-//   recommendAdjustments,
-//   generateValuationNarrative
-// } from "./lib/ai-agent";
-
-// For development/testing with mock data
+// For production with real OpenAI API
 import {
   performAutomatedValuation,
   analyzeMarketTrends,
   recommendAdjustments,
   generateValuationNarrative
-} from "./lib/ai-agent.mock";
+} from "./lib/ai-agent";
+
+// For development/testing with mock data
+// import {
+//   performAutomatedValuation,
+//   analyzeMarketTrends,
+//   recommendAdjustments,
+//   generateValuationNarrative
+// } from "./lib/ai-agent.mock";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
