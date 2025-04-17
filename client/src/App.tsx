@@ -6,6 +6,7 @@ import PhotosPage from "./pages/PhotosPage";
 import SketchesPage from "./pages/SketchesPage";
 import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
+import AIValuationPage from "./pages/AIValuationPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 

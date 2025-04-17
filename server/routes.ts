@@ -16,12 +16,22 @@ import {
   analyzeMarketAdjustments
 } from "./lib/openai";
 
+// Import AI agent implementations
+// For production, use:
+// import {
+//   performAutomatedValuation,
+//   analyzeMarketTrends,
+//   recommendAdjustments,
+//   generateValuationNarrative
+// } from "./lib/ai-agent";
+
+// For development/testing, use the mock implementations to avoid API rate limits
 import {
   performAutomatedValuation,
   analyzeMarketTrends,
   recommendAdjustments,
   generateValuationNarrative
-} from "./lib/ai-agent";
+} from "./lib/ai-agent.mock";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
