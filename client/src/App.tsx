@@ -1,5 +1,4 @@
 import { Switch, Route } from "wouter";
-import AppShell from "./components/layout/AppShell";
 import Home from "./pages/Home";
 import FormPage from "./pages/FormPage";
 import CompsPage from "./pages/CompsPage";
@@ -7,62 +6,57 @@ import PhotosPage from "./pages/PhotosPage";
 import SketchesPage from "./pages/SketchesPage";
 import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
-import NotFound from "@/pages/not-found";
-import { useAppraisal } from "./contexts/AppraisalContext";
-import { useCallback, useState } from "react";
-import { Dialog, DialogContent } from "@/components/ui/dialog";
-import AIAssistantContent from "./components/ai/AIAssistantContent";
+import NotFound from "./pages/not-found";
+import { useState } from "react";
 
+// Temporary basic app structure that doesn't use AppraisalContext
+// This will help us get the app running, then we'll gradually add more functionality
 function App() {
-  const { syncStatus, currentReport, currentUser } = useAppraisal();
-  const [showAIAssistant, setShowAIAssistant] = useState(false);
-  const [activeSidebarPath, setActiveSidebarPath] = useState('Subject');
-
-  const handleSidebarClick = useCallback((section: string, item: string) => {
-    setActiveSidebarPath(item);
-  }, []);
-
-  const handleAIAssistantClick = useCallback(() => {
-    setShowAIAssistant(true);
-  }, []);
-
   return (
-    <>
-      <AppShell
-        currentReport={currentReport ? `${currentReport.reportType} (${currentReport.id})` : undefined}
-        userName={currentUser?.fullName}
-        syncStatus={syncStatus}
-        onAIAssistantClick={handleAIAssistantClick}
-        activeSidebarPath={activeSidebarPath}
-        onSidebarItemClick={handleSidebarClick}
-      >
-        <Switch>
-          <Route path="/" component={Home} />
-          <Route path="/form" component={FormPage} />
-          <Route path="/comps" component={CompsPage} />
-          <Route path="/photos" component={PhotosPage} />
-          <Route path="/sketches" component={SketchesPage} />
-          <Route path="/reports" component={ReportsPage} />
-          <Route path="/compliance" component={CompliancePage} />
-          <Route component={NotFound} />
-        </Switch>
-      </AppShell>
-
-      {/* AI Assistant Dialog */}
-      <Dialog open={showAIAssistant} onOpenChange={setShowAIAssistant}>
-        <DialogContent className="sm:max-w-[600px]">
-          <div className="p-4">
-            <h2 className="text-xl font-bold mb-4 flex items-center">
-              <svg className="h-6 w-6 mr-2 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-              </svg>
-              AI Assistant
-            </h2>
-            <AIAssistantContent currentReport={currentReport} />
+    <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <header className="bg-primary text-primary-foreground p-4 shadow-md">
+        <div className="flex items-center justify-between container">
+          <div className="flex items-center space-x-2">
+            <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3" />
+            </svg>
+            <h1 className="text-xl font-bold">AppraisalCore</h1>
           </div>
-        </DialogContent>
-      </Dialog>
-    </>
+          <div className="flex items-center space-x-4">
+            <span>John Appraiser</span>
+            <span className="text-sm bg-green-500 text-white px-2 py-1 rounded-full">Synced</span>
+          </div>
+        </div>
+      </header>
+      <div className="flex flex-1 container">
+        <nav className="w-64 border-r p-4 space-y-4 hidden md:block">
+          <ul className="space-y-2">
+            <li><a href="/" className="block p-2 rounded hover:bg-accent">Dashboard</a></li>
+            <li><a href="/form" className="block p-2 rounded hover:bg-accent">Form</a></li>
+            <li><a href="/comps" className="block p-2 rounded hover:bg-accent">Comparables</a></li>
+            <li><a href="/photos" className="block p-2 rounded hover:bg-accent">Photos</a></li>
+            <li><a href="/sketches" className="block p-2 rounded hover:bg-accent">Sketches</a></li>
+            <li><a href="/reports" className="block p-2 rounded hover:bg-accent">Reports</a></li>
+            <li><a href="/compliance" className="block p-2 rounded hover:bg-accent">Compliance</a></li>
+          </ul>
+        </nav>
+        <main className="flex-1 p-4">
+          <Switch>
+            <Route path="/" component={Home} />
+            <Route path="/form" component={FormPage} />
+            <Route path="/comps" component={CompsPage} />
+            <Route path="/photos" component={PhotosPage} />
+            <Route path="/sketches" component={SketchesPage} />
+            <Route path="/reports" component={ReportsPage} />
+            <Route path="/compliance" component={CompliancePage} />
+            <Route component={NotFound} />
+          </Switch>
+        </main>
+      </div>
+      <footer className="bg-muted p-4 text-center text-sm">
+        &copy; 2025 AppraisalCore - Real Estate Appraisal Platform
+      </footer>
+    </div>
   );
 }
 

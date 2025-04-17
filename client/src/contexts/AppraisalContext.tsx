@@ -17,7 +17,7 @@ import {
   InsertSketch,
   InsertComplianceCheck
 } from '@shared/schema';
-import { apiRequest } from '@/lib/queryClient';
+import { apiRequest } from '../lib/queryClient';
 
 // Define Context types
 type SyncStatus = 'synced' | 'syncing' | 'error';

@@ -1,155 +1,137 @@
-import { useState, useCallback, useEffect } from 'react';
-import { useAppraisal } from '@/contexts/AppraisalContext';
-import PropertyAddressCard from '@/components/appraisal/PropertyAddressCard';
-import PropertyCharacteristicsCard from '@/components/appraisal/PropertyCharacteristicsCard';
-import MarketValueWorksheetCard from '@/components/appraisal/MarketValueWorksheetCard';
-import { Button } from '@/components/ui/button';
-import { Property, Adjustment } from '@shared/schema';
+import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
 
+// Simple placeholder form page
 export default function FormPage() {
-  const {
-    currentReport,
-    currentProperty,
-    comparables,
-    adjustments,
-    updateProperty,
-    updateReport,
-    createAdjustment,
-    updateAdjustment
-  } = useAppraisal();
-
-  const [property, setProperty] = useState<Property | null>(null);
-  const [lastSaved, setLastSaved] = useState<Date | null>(null);
-
-  // Initialize state with current property data
-  useEffect(() => {
-    if (currentProperty) {
-      setProperty(currentProperty);
-    }
-  }, [currentProperty]);
-
-  // Handle property updates
-  const handlePropertyChange = useCallback((data: Partial<Property>) => {
-    if (!property) return;
-    
-    const updatedProperty = { ...property, ...data };
-    setProperty(updatedProperty);
-  }, [property]);
-
-  // Save property changes
-  const handleSave = useCallback(async () => {
-    if (!property || !currentReport) return;
-    
-    try {
-      await updateProperty(property.id, property);
-      setLastSaved(new Date());
-    } catch (error) {
-      console.error('Error saving property:', error);
-    }
-  }, [property, currentReport, updateProperty]);
-
-  // Handle report updates
-  const handleReportChange = useCallback((data: any) => {
-    if (!currentReport) return;
-    
-    updateReport(currentReport.id, data)
-      .catch(error => console.error('Error updating report:', error));
-  }, [currentReport, updateReport]);
-
-  // Handle adjustment changes
-  const handleAdjustmentChange = useCallback((comparableId: number, type: string, value: number) => {
-    if (!currentReport) return;
-    
-    // Find if an adjustment of this type already exists for this comparable
-    const existingAdjustment = adjustments.find(
-      adj => adj.comparableId === comparableId && adj.adjustmentType === type
-    );
-    
-    if (existingAdjustment) {
-      // Update existing adjustment
-      updateAdjustment(existingAdjustment.id, { 
-        amount: value 
-      }).catch(error => console.error('Error updating adjustment:', error));
-    } else {
-      // Create new adjustment
-      createAdjustment({
-        reportId: currentReport.id,
-        comparableId,
-        adjustmentType: type,
-        description: `Adjustment for ${type}`,
-        amount: value
-      }).catch(error => console.error('Error creating adjustment:', error));
-    }
-  }, [currentReport, adjustments, createAdjustment, updateAdjustment]);
-
-  // Auto-save every 30 seconds
-  useEffect(() => {
-    const interval = setInterval(() => {
-      if (property && currentProperty && JSON.stringify(property) !== JSON.stringify(currentProperty)) {
-        handleSave();
-      }
-    }, 30000);
-    
-    return () => clearInterval(interval);
-  }, [property, currentProperty, handleSave]);
-
-  if (!currentReport || !property) {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <p>Loading property data...</p>
-      </div>
-    );
-  }
-
   return (
-    <div className="flex-1 flex flex-col overflow-hidden">
-      {/* Form Header */}
-      <div className="bg-white border-b border-neutral-medium p-4 flex justify-between items-center">
-        <h2 className="text-lg font-medium">Subject Property Details</h2>
-        <div className="flex items-center space-x-2">
-          {lastSaved && (
-            <span className="text-sm text-neutral-gray">
-              Last saved: {lastSaved.toLocaleTimeString()}
-            </span>
-          )}
-          <Button 
-            onClick={handleSave}
-            className="px-3 py-1 text-sm bg-secondary text-white rounded-md hover:bg-secondary-dark flex items-center"
-          >
-            <svg className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-            </svg>
-            Save
-          </Button>
-        </div>
+    <div className="p-6 space-y-6">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Subject Property Form</h1>
+        <Button>Save</Button>
       </div>
-      
-      {/* Subject Property Form */}
-      <div className="flex-1 overflow-auto p-6 bg-neutral-lightest">
-        <div className="max-w-5xl mx-auto">
-          {/* Property Address Card */}
-          <PropertyAddressCard 
-            property={property}
-            onPropertyChange={handlePropertyChange}
-          />
-          
-          {/* Property Characteristics Card */}
-          <PropertyCharacteristicsCard 
-            property={property}
-            onPropertyChange={handlePropertyChange}
-          />
-          
-          {/* Market Value Worksheet Card */}
-          <MarketValueWorksheetCard 
-            property={property}
-            comparables={comparables}
-            adjustments={adjustments}
-            report={currentReport}
-            onReportChange={handleReportChange}
-            onAdjustmentChange={handleAdjustmentChange}
-          />
-        </div>
-      </div>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Property Address</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2">
+          <div>
+            <label className="block text-sm font-medium mb-1">Street Address</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border rounded" 
+              placeholder="123 Main Street"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">City</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border rounded" 
+              placeholder="Springfield"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">State</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border rounded" 
+              placeholder="IL"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">ZIP Code</label>
+            <input 
+              type="text" 
+              className="w-full p-2 border rounded" 
+              placeholder="62701"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card className="mb-6">
+        <CardHeader>
+          <CardTitle>Property Characteristics</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          <div>
+            <label className="block text-sm font-medium mb-1">Property Type</label>
+            <select className="w-full p-2 border rounded">
+              <option>Single-Family Detached</option>
+              <option>Condominium</option>
+              <option>Townhouse</option>
+              <option>Multi-Family</option>
+            </select>
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Year Built</label>
+            <input 
+              type="number" 
+              className="w-full p-2 border rounded" 
+              placeholder="1995"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Square Feet</label>
+            <input 
+              type="number" 
+              className="w-full p-2 border rounded" 
+              placeholder="2200"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Bedrooms</label>
+            <input 
+              type="number" 
+              className="w-full p-2 border rounded" 
+              placeholder="3"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Bathrooms</label>
+            <input 
+              type="number" 
+              className="w-full p-2 border rounded" 
+              placeholder="2.5"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Lot Size (sq ft)</label>
+            <input 
+              type="number" 
+              className="w-full p-2 border rounded" 
+              placeholder="10000"
+            />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Valuation</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium mb-1">Sales Price</label>
+              <input 
+                type="number" 
+                className="w-full p-2 border rounded" 
+                placeholder="350000"
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium mb-1">Appraised Value</label>
+              <input 
+                type="number" 
+                className="w-full p-2 border rounded" 
+                placeholder="350000"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 }
