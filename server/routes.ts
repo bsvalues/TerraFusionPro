@@ -12,7 +12,8 @@ import {
   generateAppraisalNarrative,
   validateUADCompliance,
   smartSearch,
-  chatQuery
+  chatQuery,
+  analyzeMarketAdjustments
 } from "./lib/openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -808,6 +809,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error processing chat query with AI:", error);
       res.status(500).json({ message: "Error processing chat query with AI" });
+    }
+  });
+
+  // Market-based adjustment analysis endpoint
+  app.post("/api/ai/market-adjustments", async (req: Request, res: Response) => {
+    try {
+      const { marketArea, salesData } = req.body;
+      
+      if (!marketArea || !salesData || !Array.isArray(salesData)) {
+        return res.status(400).json({ 
+          message: "Market area and sales data array are required" 
+        });
+      }
+      
+      // Analyze market adjustments using OpenAI
+      const analysis = await analyzeMarketAdjustments(marketArea, salesData);
+      res.status(200).json(analysis);
+    } catch (error) {
+      console.error("Error analyzing market adjustments with AI:", error);
+      res.status(500).json({ 
+        message: "Error analyzing market adjustments with AI" 
+      });
     }
   });
 
