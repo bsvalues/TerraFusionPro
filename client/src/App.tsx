@@ -39,6 +39,7 @@ function App() {
             <li><a href="/sketches" className="block p-2 rounded hover:bg-accent">Sketches</a></li>
             <li><a href="/reports" className="block p-2 rounded hover:bg-accent">Reports</a></li>
             <li><a href="/compliance" className="block p-2 rounded hover:bg-accent">Compliance</a></li>
+            <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent">AI Valuation</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">
@@ -50,6 +51,7 @@ function App() {
             <Route path="/sketches" component={SketchesPage} />
             <Route path="/reports" component={ReportsPage} />
             <Route path="/compliance" component={CompliancePage} />
+            <Route path="/ai-valuation" component={AIValuationPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
