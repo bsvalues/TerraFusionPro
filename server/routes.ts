@@ -16,6 +16,13 @@ import {
   analyzeMarketAdjustments
 } from "./lib/openai";
 
+import {
+  performAutomatedValuation,
+  analyzeMarketTrends,
+  recommendAdjustments,
+  generateValuationNarrative
+} from "./lib/ai-agent";
+
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
   app.post("/api/auth/login", async (req: Request, res: Response) => {
