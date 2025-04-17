@@ -193,6 +193,45 @@ export async function smartSearch(searchQuery: string, propertyData: any): Promi
   }
 }
 
+// Market-based adjustment analysis
+export async function analyzeMarketAdjustments(marketArea: string, salesData: any[]): Promise<{
+  locationValueTrends: string;
+  timeAdjustments: Record<string, number>;
+  featureAdjustments: Record<string, number>;
+  confidenceLevel: number;
+}> {
+  try {
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: "You are an expert real estate appraiser specializing in market analysis and extracting adjustment values from paired sales data. Provide professional analysis of market-derived adjustments."
+        },
+        {
+          role: "user",
+          content: `Analyze these sales in ${marketArea} to extract market-derived adjustments. Consider time trends, location factors, and property features. Return results in JSON format.
+          Sales Data: ${JSON.stringify(salesData, null, 2)}`
+        }
+      ],
+      response_format: { type: "json_object" },
+    });
+
+    const content = response.choices[0].message.content ?? '{"locationValueTrends":"", "timeAdjustments":{}, "featureAdjustments":{}, "confidenceLevel":0}';
+    const result = JSON.parse(content);
+    
+    return {
+      locationValueTrends: result.locationValueTrends || "No location value trends available",
+      timeAdjustments: result.timeAdjustments || {},
+      featureAdjustments: result.featureAdjustments || {},
+      confidenceLevel: result.confidenceLevel !== undefined ? result.confidenceLevel : 0
+    };
+  } catch (error) {
+    console.error("Error analyzing market adjustments:", error);
+    throw new Error("Failed to analyze market adjustments with AI");
+  }
+}
+
 // Chat query for specific appraisal questions
 export async function chatQuery(question: string, contextData: any): Promise<{
   answer: string;

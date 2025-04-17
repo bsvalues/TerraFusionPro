@@ -53,6 +53,14 @@ export function useAIAssistant() {
     }
   });
 
+  // Market-based adjustment analysis
+  const marketAdjustmentsMutation = useMutation({
+    mutationFn: async ({ marketArea, salesData }: { marketArea: string; salesData: any[] }) => {
+      const res = await apiRequest('POST', '/api/ai/market-adjustments', { marketArea, salesData });
+      return await res.json();
+    }
+  });
+
   return {
     analyzeProperty: analyzePropertyMutation.mutateAsync,
     analyzeComparables: analyzeComparablesMutation.mutateAsync,
@@ -60,6 +68,7 @@ export function useAIAssistant() {
     validateUAD: validateUADMutation.mutateAsync,
     smartSearch: smartSearchMutation.mutateAsync,
     chatQuery: chatQueryMutation.mutateAsync,
+    marketAdjustments: marketAdjustmentsMutation.mutateAsync,
     
     // Loading states
     isAnalyzingProperty: analyzePropertyMutation.isPending,
@@ -68,6 +77,7 @@ export function useAIAssistant() {
     isValidatingUAD: validateUADMutation.isPending,
     isSearching: smartSearchMutation.isPending,
     isChatQuerying: chatQueryMutation.isPending,
+    isAnalyzingMarketAdjustments: marketAdjustmentsMutation.isPending,
     
     // Reset states
     resetAnalyzeProperty: analyzePropertyMutation.reset,
@@ -76,5 +86,6 @@ export function useAIAssistant() {
     resetValidateUAD: validateUADMutation.reset,
     resetSmartSearch: smartSearchMutation.reset,
     resetChatQuery: chatQueryMutation.reset,
+    resetMarketAdjustments: marketAdjustmentsMutation.reset,
   };
 }
