@@ -38,16 +38,12 @@ function SidebarSection({
         <ul className="mt-1 ml-2">
           {items.map((item) => (
             <li key={item}>
-              <a 
-                href="#" 
-                className={`block px-2 py-1 text-sm ${activePath === item ? 'text-primary' : 'text-neutral-gray hover:text-primary'}`}
-                onClick={(e) => {
-                  e.preventDefault();
-                  onItemClick?.(item);
-                }}
+              <button 
+                className={`block w-full text-left px-2 py-1 text-sm ${activePath === item ? 'text-primary' : 'text-neutral-gray hover:text-primary'}`}
+                onClick={() => onItemClick?.(item)}
               >
                 {item}
-              </a>
+              </button>
             </li>
           ))}
         </ul>

@@ -65,34 +65,34 @@ export default function Header({ currentReport = "123 Main Street", userName = "
       {/* Tab Navigation */}
       <div className="flex bg-primary-dark">
         <Link href="/form">
-          <a className={`px-4 py-2 text-white ${isActive('/form') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
+          <span className={`px-4 py-2 text-white cursor-pointer ${isActive('/form') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
             Form
-          </a>
+          </span>
         </Link>
         <Link href="/comps">
-          <a className={`px-4 py-2 text-white ${isActive('/comps') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
+          <span className={`px-4 py-2 text-white cursor-pointer ${isActive('/comps') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
             Comps
-          </a>
+          </span>
         </Link>
         <Link href="/photos">
-          <a className={`px-4 py-2 text-white ${isActive('/photos') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
+          <span className={`px-4 py-2 text-white cursor-pointer ${isActive('/photos') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
             Photos
-          </a>
+          </span>
         </Link>
         <Link href="/sketches">
-          <a className={`px-4 py-2 text-white ${isActive('/sketches') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
+          <span className={`px-4 py-2 text-white cursor-pointer ${isActive('/sketches') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
             Sketches
-          </a>
+          </span>
         </Link>
         <Link href="/reports">
-          <a className={`px-4 py-2 text-white ${isActive('/reports') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
+          <span className={`px-4 py-2 text-white cursor-pointer ${isActive('/reports') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
             Reports
-          </a>
+          </span>
         </Link>
         <Link href="/compliance">
-          <a className={`px-4 py-2 text-white ${isActive('/compliance') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
+          <span className={`px-4 py-2 text-white cursor-pointer ${isActive('/compliance') ? 'bg-primary font-medium' : 'hover:bg-primary'}`}>
             Compliance
-          </a>
+          </span>
         </Link>
       </div>
     </header>
