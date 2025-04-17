@@ -1,6 +1,7 @@
 import { pgTable, text, serial, integer, boolean, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
+import { relations } from "drizzle-orm";
 
 // User model
 export const users = pgTable("users", {
@@ -257,6 +258,76 @@ export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).
   severity: true,
   field: true,
 });
+
+// Define relations
+export const usersRelations = relations(users, ({ many }) => ({
+  properties: many(properties),
+  appraisalReports: many(appraisalReports),
+}));
+
+export const propertiesRelations = relations(properties, ({ one, many }) => ({
+  user: one(users, {
+    fields: [properties.userId],
+    references: [users.id],
+  }),
+  appraisalReports: many(appraisalReports),
+}));
+
+export const appraisalReportsRelations = relations(appraisalReports, ({ one, many }) => ({
+  user: one(users, {
+    fields: [appraisalReports.userId],
+    references: [users.id],
+  }),
+  property: one(properties, {
+    fields: [appraisalReports.propertyId],
+    references: [properties.id],
+  }),
+  comparables: many(comparables),
+  adjustments: many(adjustments),
+  photos: many(photos),
+  sketches: many(sketches),
+  complianceChecks: many(complianceChecks),
+}));
+
+export const comparablesRelations = relations(comparables, ({ one, many }) => ({
+  report: one(appraisalReports, {
+    fields: [comparables.reportId],
+    references: [appraisalReports.id],
+  }),
+  adjustments: many(adjustments),
+}));
+
+export const adjustmentsRelations = relations(adjustments, ({ one }) => ({
+  report: one(appraisalReports, {
+    fields: [adjustments.reportId],
+    references: [appraisalReports.id],
+  }),
+  comparable: one(comparables, {
+    fields: [adjustments.comparableId],
+    references: [comparables.id],
+  }),
+}));
+
+export const photosRelations = relations(photos, ({ one }) => ({
+  report: one(appraisalReports, {
+    fields: [photos.reportId],
+    references: [appraisalReports.id],
+  }),
+}));
+
+export const sketchesRelations = relations(sketches, ({ one }) => ({
+  report: one(appraisalReports, {
+    fields: [sketches.reportId],
+    references: [appraisalReports.id],
+  }),
+}));
+
+export const complianceChecksRelations = relations(complianceChecks, ({ one }) => ({
+  report: one(appraisalReports, {
+    fields: [complianceChecks.reportId],
+    references: [appraisalReports.id],
+  }),
+}));
 
 // Export all types
 export type User = typeof users.$inferSelect;
