@@ -87,10 +87,10 @@ export async function performAutomatedValuation(
         min: result.valueRange.min,
         max: result.valueRange.max
       },
-      adjustments: result.adjustments,
-      marketAnalysis: result.marketAnalysis,
-      comparableAnalysis: result.comparableAnalysis,
-      valuationMethodology: result.valuationMethodology
+      adjustments: result.adjustments || [],
+      marketAnalysis: result.marketAnalysis || "",
+      comparableAnalysis: result.comparableAnalysis || "",
+      valuationMethodology: result.valuationMethodology || ""
     };
   } catch (error) {
     console.error("Error performing automated valuation:", error);
@@ -132,7 +132,7 @@ Provide data-driven insights that would be valuable to a real estate appraiser.`
       temperature: 0.3
     });
     
-    return response.choices[0].message.content;
+    return response.choices[0].message.content || "";
   } catch (error) {
     console.error("Error analyzing market trends:", error);
     throw new Error("Failed to analyze market trends");
@@ -204,7 +204,8 @@ Provide the response in this format:
       response_format: { type: "json_object" }
     });
     
-    const result = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '[]';
+    const result = JSON.parse(content);
     return Array.isArray(result) ? result : [];
   } catch (error) {
     console.error("Error recommending adjustments:", error);
@@ -268,7 +269,7 @@ Please write a professional, detailed narrative that would be suitable for inclu
       temperature: 0.4
     });
     
-    return response.choices[0].message.content;
+    return response.choices[0].message.content || "";
   } catch (error) {
     console.error("Error generating valuation narrative:", error);
     throw new Error("Failed to generate valuation narrative");

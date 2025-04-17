@@ -631,6 +631,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // AI Assistant routes
+  
+  // Advanced AI Valuation endpoints
+  app.post("/api/ai/automated-valuation", async (req: Request, res: Response) => {
+    try {
+      const { subjectProperty, comparableProperties } = req.body;
+      
+      if (!subjectProperty || !comparableProperties || !Array.isArray(comparableProperties)) {
+        return res.status(400).json({ message: "Subject property and comparable properties array are required" });
+      }
+      
+      const valuation = await performAutomatedValuation(subjectProperty, comparableProperties);
+      res.status(200).json(valuation);
+    } catch (error) {
+      console.error("Error performing automated valuation:", error);
+      res.status(500).json({ message: "Error performing automated valuation" });
+    }
+  });
+
+  app.post("/api/ai/market-trends", async (req: Request, res: Response) => {
+    try {
+      const { location, propertyType } = req.body;
+      
+      if (!location || !propertyType) {
+        return res.status(400).json({ message: "Location and property type are required" });
+      }
+      
+      if (!location.city || !location.state || !location.zipCode) {
+        return res.status(400).json({ message: "Location must include city, state, and zipCode" });
+      }
+      
+      const analysis = await analyzeMarketTrends(location, propertyType);
+      res.status(200).json({ analysis });
+    } catch (error) {
+      console.error("Error analyzing market trends:", error);
+      res.status(500).json({ message: "Error analyzing market trends" });
+    }
+  });
+
+  app.post("/api/ai/recommend-adjustments", async (req: Request, res: Response) => {
+    try {
+      const { subjectProperty, comparableProperty } = req.body;
+      
+      if (!subjectProperty || !comparableProperty) {
+        return res.status(400).json({ message: "Subject property and comparable property are required" });
+      }
+      
+      const adjustments = await recommendAdjustments(subjectProperty, comparableProperty);
+      res.status(200).json({ adjustments });
+    } catch (error) {
+      console.error("Error recommending adjustments:", error);
+      res.status(500).json({ message: "Error recommending adjustments" });
+    }
+  });
+
+  app.post("/api/ai/valuation-narrative", async (req: Request, res: Response) => {
+    try {
+      const { property, valuation } = req.body;
+      
+      if (!property || !valuation) {
+        return res.status(400).json({ message: "Property and valuation data are required" });
+      }
+      
+      const narrative = await generateValuationNarrative(property, valuation);
+      res.status(200).json({ narrative });
+    } catch (error) {
+      console.error("Error generating valuation narrative:", error);
+      res.status(500).json({ message: "Error generating valuation narrative" });
+    }
+  });
   app.post("/api/ai/analyze-property", async (req: Request, res: Response) => {
     try {
       const { propertyId } = req.body;
