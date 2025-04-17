@@ -92,8 +92,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAppraisalReport(id: number): Promise<boolean> {
-    const result = await db.delete(appraisalReports).where(eq(appraisalReports.id, id));
-    return !!result.rowCount && result.rowCount > 0;
+    try {
+      const result = await db.delete(appraisalReports).where(eq(appraisalReports.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting appraisal report:", error);
+      return false;
+    }
   }
 
   // Comparable operations
@@ -121,8 +126,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteComparable(id: number): Promise<boolean> {
-    const result = await db.delete(comparables).where(eq(comparables.id, id));
-    return !!result.rowCount && result.rowCount > 0;
+    try {
+      await db.delete(comparables).where(eq(comparables.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting comparable:", error);
+      return false;
+    }
   }
 
   // Adjustment operations
@@ -154,8 +164,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteAdjustment(id: number): Promise<boolean> {
-    const result = await db.delete(adjustments).where(eq(adjustments.id, id));
-    return !!result.rowCount && result.rowCount > 0;
+    try {
+      await db.delete(adjustments).where(eq(adjustments.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting adjustment:", error);
+      return false;
+    }
   }
 
   // Photo operations
@@ -183,8 +198,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deletePhoto(id: number): Promise<boolean> {
-    const result = await db.delete(photos).where(eq(photos.id, id));
-    return !!result.rowCount && result.rowCount > 0;
+    try {
+      await db.delete(photos).where(eq(photos.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting photo:", error);
+      return false;
+    }
   }
 
   // Sketch operations
@@ -212,8 +232,13 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteSketch(id: number): Promise<boolean> {
-    const result = await db.delete(sketches).where(eq(sketches.id, id));
-    return !!result.rowCount && result.rowCount > 0;
+    try {
+      await db.delete(sketches).where(eq(sketches.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting sketch:", error);
+      return false;
+    }
   }
 
   // Compliance operations
@@ -232,7 +257,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteComplianceCheck(id: number): Promise<boolean> {
-    const result = await db.delete(complianceChecks).where(eq(complianceChecks.id, id));
-    return !!result.rowCount && result.rowCount > 0;
+    try {
+      await db.delete(complianceChecks).where(eq(complianceChecks.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting compliance check:", error);
+      return false;
+    }
   }
 }
