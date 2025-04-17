@@ -1,10 +1,30 @@
 import OpenAI from "openai";
 
-// Initialize OpenAI client
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-// the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
-const MODEL = "gpt-4o";
+// Define AIValuationResponse type locally to avoid circular dependency
+export interface AIValuationResponse {
+  estimatedValue: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  valueRange: {
+    min: number;
+    max: number;
+  };
+  adjustments: Array<{
+    factor: string;
+    description: string;
+    amount: number;
+    reasoning: string;
+  }>;
+  marketAnalysis: string;
+  comparableAnalysis: string;
+  valuationMethodology: string;
+}
 
+// OpenAI client initialization
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY
+});
+
+// Property data types
 export interface PropertyData {
   address: string;
   city: string;
@@ -16,9 +36,9 @@ export interface PropertyData {
   lotSize: number;
   bedrooms: number;
   bathrooms: number;
-  features?: string[];
-  condition?: string;
-  quality?: string;
+  features: string[];
+  condition: string;
+  quality: string;
 }
 
 export interface ComparableProperty extends PropertyData {
@@ -27,322 +47,282 @@ export interface ComparableProperty extends PropertyData {
   distanceFromSubject: number;
 }
 
-export interface MarketAdjustment {
-  factor: string;
-  description: string;
-  amount: number;
-  reasoning: string;
-}
-
-export interface AIValuationResponse {
-  estimatedValue: number;
-  confidenceLevel: 'high' | 'medium' | 'low';
-  valueRange: {
-    min: number;
-    max: number;
-  };
-  adjustments: MarketAdjustment[];
-  marketAnalysis: string;
-  comparableAnalysis: string;
-  valuationMethodology: string;
-}
-
 /**
- * Performs an AI-assisted automated valuation of a property based on property data 
- * and comparable properties
+ * Performs an automated valuation of a subject property based on comparable properties
+ * using AI analysis.
  */
 export async function performAutomatedValuation(
   subjectProperty: PropertyData,
   comparableProperties: ComparableProperty[]
 ): Promise<AIValuationResponse> {
   try {
-    // Create prompt for GPT-4o
-    const prompt = generateValuationPrompt(subjectProperty, comparableProperties);
+    console.log("Using OpenAI for automated valuation");
     
-    // Call OpenAI API
+    // Construct a detailed prompt
+    const prompt = `
+You are an expert real estate appraiser. You need to analyze a subject property and its comparable sales to determine a market value estimate.
+
+SUBJECT PROPERTY:
+Address: ${subjectProperty.address}
+City: ${subjectProperty.city}
+State: ${subjectProperty.state}
+Zip Code: ${subjectProperty.zipCode}
+Property Type: ${subjectProperty.propertyType}
+Year Built: ${subjectProperty.yearBuilt}
+Gross Living Area: ${subjectProperty.grossLivingArea} sq ft
+Lot Size: ${subjectProperty.lotSize} sq ft
+Bedrooms: ${subjectProperty.bedrooms}
+Bathrooms: ${subjectProperty.bathrooms}
+Features: ${subjectProperty.features.join(", ")}
+Condition: ${subjectProperty.condition}
+Quality: ${subjectProperty.quality}
+
+COMPARABLE PROPERTIES:
+${comparableProperties.map((comp, index) => `
+COMPARABLE #${index + 1}:
+Address: ${comp.address}
+City: ${comp.city}
+State: ${comp.state}
+Zip Code: ${comp.zipCode}
+Property Type: ${comp.propertyType}
+Year Built: ${comp.yearBuilt}
+Gross Living Area: ${comp.grossLivingArea} sq ft
+Lot Size: ${comp.lotSize} sq ft
+Bedrooms: ${comp.bedrooms}
+Bathrooms: ${comp.bathrooms}
+Features: ${comp.features.join(", ")}
+Condition: ${comp.condition}
+Quality: ${comp.quality}
+Sale Price: $${comp.salePrice}
+Sale Date: ${comp.saleDate}
+Distance from Subject: ${comp.distanceFromSubject} miles
+`).join("")}
+
+Based on the subject property characteristics and comparable sales, please provide the following in JSON format:
+1. Estimated value (estimatedValue) - a numeric dollar amount representing the most probable value
+2. Confidence level (confidenceLevel) - "high", "medium", or "low" based on the quality and quantity of comparables
+3. Value range (valueRange) - a range with minimum and maximum values (min, max) representing a reasonable value range
+4. Adjustments (adjustments) - an array of adjustments made to comparables, each with:
+   - factor: the characteristic being adjusted (e.g., "GLA", "Age", "Bathrooms")
+   - description: a brief description of the factor
+   - amount: dollar amount of adjustment (positive if comparable is inferior, negative if superior)
+   - reasoning: brief reasoning for the adjustment
+5. Market analysis (marketAnalysis) - a brief analysis of the current market conditions
+6. Comparable analysis (comparableAnalysis) - a brief analysis of the comparable properties
+7. Valuation methodology (valuationMethodology) - a brief description of the methodology used
+
+Your response should be in valid JSON format.
+`;
+
+    // Call OpenAI API with GPT-4o model
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        {
-          role: "system",
-          content: "You are an expert real estate appraiser AI assistant that specializes in residential property valuation. You analyze property data and comparable sales to provide accurate valuation estimates with detailed adjustments and reasoning."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: "You are an expert real estate appraiser assistant that provides detailed property valuations." },
+        { role: "user", content: prompt }
       ],
-      temperature: 0.2, // Lower temperature for more deterministic responses
+      temperature: 0.5,
       response_format: { type: "json_object" }
     });
+
+    // Parse the JSON response
+    const content = response.choices[0].message.content;
+    const result = JSON.parse(typeof content === 'string' ? content : '{}');
     
-    // Parse and return the response
-    const content = response.choices[0].message.content || '{}';
-    const result = JSON.parse(content);
-    
-    return {
-      estimatedValue: result.estimatedValue,
-      confidenceLevel: result.confidenceLevel,
-      valueRange: {
-        min: result.valueRange.min,
-        max: result.valueRange.max
-      },
+    // Ensure the response matches our expected format
+    const valuation: AIValuationResponse = {
+      estimatedValue: result.estimatedValue || 0,
+      confidenceLevel: result.confidenceLevel || 'medium',
+      valueRange: result.valueRange || { min: 0, max: 0 },
       adjustments: result.adjustments || [],
-      marketAnalysis: result.marketAnalysis || "",
-      comparableAnalysis: result.comparableAnalysis || "",
-      valuationMethodology: result.valuationMethodology || ""
+      marketAnalysis: result.marketAnalysis || '',
+      comparableAnalysis: result.comparableAnalysis || '',
+      valuationMethodology: result.valuationMethodology || ''
     };
-  } catch (error) {
-    console.error("Error performing automated valuation:", error);
-    throw new Error("Failed to perform automated valuation");
+    
+    return valuation;
+  } catch (error: any) {
+    console.error("Error in AI valuation:", error);
+    throw new Error(`AI valuation failed: ${error.message || 'Unknown error'}`);
   }
 }
 
 /**
- * Analyzes market trends using AI to provide insights about the local real estate market
+ * Analyzes market trends for a specific location and property type
  */
 export async function analyzeMarketTrends(
   location: { city: string; state: string; zipCode: string },
   propertyType: string
-): Promise<string> {
+): Promise<{ analysis: string }> {
   try {
-    const prompt = `Analyze current real estate market trends for ${propertyType} properties in ${location.city}, ${location.state} ${location.zipCode}.
+    console.log("Using OpenAI for market trends analysis");
     
-Include information about:
-1. Recent market activity (past 6 months)
-2. Price trends
-3. Days on market
-4. Supply and demand factors
-5. Forecasted market direction
+    const prompt = `
+You are an expert real estate market analyst. Please provide a detailed market analysis for:
+Location: ${location.city}, ${location.state} ${location.zipCode}
+Property Type: ${propertyType}
 
-Provide data-driven insights that would be valuable to a real estate appraiser.`;
-    
+Include the following sections in your analysis:
+1. Recent Market Activity (Past 6 Months)
+2. Price Trends
+3. Days on Market
+4. Supply and Demand Factors
+5. Forecasted Market Direction
+
+Format your response using Markdown syntax with appropriate headings and bullet points.
+`;
+
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        {
-          role: "system",
-          content: "You are an expert real estate market analyst with access to comprehensive market data. Provide concise, data-driven market analysis for specific locations and property types."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: "You are an expert real estate market analyst assistant that provides detailed market analyses." },
+        { role: "user", content: prompt }
       ],
-      temperature: 0.3
+      temperature: 0.5
     });
-    
-    return response.choices[0].message.content || "";
-  } catch (error) {
-    console.error("Error analyzing market trends:", error);
-    throw new Error("Failed to analyze market trends");
+
+    return { analysis: response.choices[0].message.content || '' };
+  } catch (error: any) {
+    console.error("Error in market trends analysis:", error);
+    throw new Error(`Market trends analysis failed: ${error.message || 'Unknown error'}`);
   }
 }
 
 /**
- * Recommends adjustments for comparable properties to better match the subject property
+ * Recommends adjustments for a comparable property relative to a subject property
  */
 export async function recommendAdjustments(
   subjectProperty: PropertyData,
   comparableProperty: ComparableProperty
-): Promise<MarketAdjustment[]> {
+): Promise<{ adjustments: any[] }> {
   try {
-    const prompt = `I need to make adjustments to a comparable property to better match my subject property for an appraisal.
-
-Subject Property:
-- Address: ${subjectProperty.address}, ${subjectProperty.city}, ${subjectProperty.state} ${subjectProperty.zipCode}
-- Type: ${subjectProperty.propertyType}
-- Year Built: ${subjectProperty.yearBuilt}
-- GLA: ${subjectProperty.grossLivingArea} sq ft
-- Lot Size: ${subjectProperty.lotSize} sq ft
-- Bedrooms: ${subjectProperty.bedrooms}
-- Bathrooms: ${subjectProperty.bathrooms}
-${subjectProperty.features ? `- Features: ${subjectProperty.features.join(', ')}` : ''}
-${subjectProperty.condition ? `- Condition: ${subjectProperty.condition}` : ''}
-${subjectProperty.quality ? `- Quality: ${subjectProperty.quality}` : ''}
-
-Comparable Property:
-- Address: ${comparableProperty.address}, ${comparableProperty.city}, ${comparableProperty.state} ${comparableProperty.zipCode}
-- Type: ${comparableProperty.propertyType}
-- Year Built: ${comparableProperty.yearBuilt}
-- GLA: ${comparableProperty.grossLivingArea} sq ft
-- Lot Size: ${comparableProperty.lotSize} sq ft
-- Bedrooms: ${comparableProperty.bedrooms}
-- Bathrooms: ${comparableProperty.bathrooms}
-- Sale Price: $${comparableProperty.salePrice}
-- Sale Date: ${comparableProperty.saleDate}
-- Distance from Subject: ${comparableProperty.distanceFromSubject} miles
-${comparableProperty.features ? `- Features: ${comparableProperty.features.join(', ')}` : ''}
-${comparableProperty.condition ? `- Condition: ${comparableProperty.condition}` : ''}
-${comparableProperty.quality ? `- Quality: ${comparableProperty.quality}` : ''}
-
-Please recommend specific adjustments to the comparable property to make it equivalent to the subject property. For each adjustment, provide the factor being adjusted, a description, the adjustment amount (positive if the comparable is inferior, negative if superior), and reasoning.
-
-Provide the response in this format:
-[
-  {
-    "factor": "GLA",
-    "description": "Gross Living Area",
-    "amount": 5000,
-    "reasoning": "The comparable is 100 sq ft smaller at $50/sq ft"
-  }
-]`;
+    console.log("Using OpenAI for adjustment recommendations");
     
+    const prompt = `
+You are an expert real estate appraiser. Your task is to recommend adjustments for a comparable property relative to a subject property.
+
+SUBJECT PROPERTY:
+Address: ${subjectProperty.address}
+City: ${subjectProperty.city}
+State: ${subjectProperty.state}
+Zip Code: ${subjectProperty.zipCode}
+Property Type: ${subjectProperty.propertyType}
+Year Built: ${subjectProperty.yearBuilt}
+Gross Living Area: ${subjectProperty.grossLivingArea} sq ft
+Lot Size: ${subjectProperty.lotSize} sq ft
+Bedrooms: ${subjectProperty.bedrooms}
+Bathrooms: ${subjectProperty.bathrooms}
+Features: ${subjectProperty.features.join(", ")}
+Condition: ${subjectProperty.condition}
+Quality: ${subjectProperty.quality}
+
+COMPARABLE PROPERTY:
+Address: ${comparableProperty.address}
+City: ${comparableProperty.city}
+State: ${comparableProperty.state}
+Zip Code: ${comparableProperty.zipCode}
+Property Type: ${comparableProperty.propertyType}
+Year Built: ${comparableProperty.yearBuilt}
+Gross Living Area: ${comparableProperty.grossLivingArea} sq ft
+Lot Size: ${comparableProperty.lotSize} sq ft
+Bedrooms: ${comparableProperty.bedrooms}
+Bathrooms: ${comparableProperty.bathrooms}
+Features: ${comparableProperty.features.join(", ")}
+Condition: ${comparableProperty.condition}
+Quality: ${comparableProperty.quality}
+Sale Price: $${comparableProperty.salePrice}
+Sale Date: ${comparableProperty.saleDate}
+Distance from Subject: ${comparableProperty.distanceFromSubject} miles
+
+Based on the differences between the subject property and the comparable property, recommend adjustments to the comparable's sale price.
+Each adjustment should include:
+1. Factor: the characteristic being adjusted (e.g., "GLA", "Age", "Bathrooms")
+2. Description: a brief description of the factor
+3. Amount: dollar amount of adjustment (positive if comparable is inferior, negative if superior)
+4. Reasoning: brief reasoning for the adjustment
+
+Provide your response as a JSON array.
+`;
+
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        {
-          role: "system",
-          content: "You are an expert real estate appraiser that specializes in making precise adjustments to comparable properties. You understand local market values and how different property features impact value."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: "You are an expert real estate appraiser assistant that provides detailed adjustment recommendations." },
+        { role: "user", content: prompt }
       ],
-      temperature: 0.2,
+      temperature: 0.5,
       response_format: { type: "json_object" }
     });
-    
-    const content = response.choices[0].message.content || '[]';
-    const result = JSON.parse(content);
-    return Array.isArray(result) ? result : [];
-  } catch (error) {
-    console.error("Error recommending adjustments:", error);
-    throw new Error("Failed to recommend adjustments");
+
+    const result = JSON.parse(response.choices[0].message.content || '{"adjustments":[]}');
+    return { adjustments: result.adjustments || [] };
+  } catch (error: any) {
+    console.error("Error in adjustment recommendations:", error);
+    throw new Error(`Adjustment recommendations failed: ${error.message || 'Unknown error'}`);
   }
 }
 
 /**
- * Generates a detailed narrative about property value, features, and market position
+ * Generates a valuation narrative for a property based on valuation results
  */
 export async function generateValuationNarrative(
   property: PropertyData,
   valuation: AIValuationResponse
-): Promise<string> {
+): Promise<{ narrative: string }> {
   try {
-    const prompt = `Generate a professional appraisal narrative for the following property:
-
-Property Details:
-- Address: ${property.address}, ${property.city}, ${property.state} ${property.zipCode}
-- Type: ${property.propertyType}
-- Year Built: ${property.yearBuilt}
-- GLA: ${property.grossLivingArea} sq ft
-- Lot Size: ${property.lotSize} sq ft
-- Bedrooms: ${property.bedrooms}
-- Bathrooms: ${property.bathrooms}
-${property.features ? `- Features: ${property.features.join(', ')}` : ''}
-${property.condition ? `- Condition: ${property.condition}` : ''}
-${property.quality ? `- Quality: ${property.quality}` : ''}
-
-Valuation Results:
-- Estimated Value: $${valuation.estimatedValue}
-- Value Range: $${valuation.valueRange.min} to $${valuation.valueRange.max}
-- Confidence Level: ${valuation.confidenceLevel}
-
-Market Analysis:
-${valuation.marketAnalysis}
-
-Comparable Analysis:
-${valuation.comparableAnalysis}
-
-Valuation Methodology:
-${valuation.valuationMethodology}
-
-Adjustments:
-${valuation.adjustments.map(adj => `- ${adj.factor}: ${adj.amount > 0 ? '+' : ''}$${adj.amount} - ${adj.description} - ${adj.reasoning}`).join('\n')}
-
-Please write a professional, detailed narrative that would be suitable for inclusion in a formal appraisal report. The narrative should explain the valuation methodology, justify the estimated value, explain significant adjustments, and provide context about the local market.`;
+    console.log("Using OpenAI for valuation narrative generation");
     
+    const prompt = `
+You are an expert real estate appraiser. Your task is to generate a professional valuation narrative for the following property:
+
+PROPERTY:
+Address: ${property.address}
+City: ${property.city}
+State: ${property.state}
+Zip Code: ${property.zipCode}
+Property Type: ${property.propertyType}
+Year Built: ${property.yearBuilt}
+Gross Living Area: ${property.grossLivingArea} sq ft
+Lot Size: ${property.lotSize} sq ft
+Bedrooms: ${property.bedrooms}
+Bathrooms: ${property.bathrooms}
+Features: ${property.features.join(", ")}
+Condition: ${property.condition}
+Quality: ${property.quality}
+
+VALUATION RESULTS:
+Estimated Value: $${valuation.estimatedValue}
+Confidence Level: ${valuation.confidenceLevel}
+Value Range: $${valuation.valueRange.min} - $${valuation.valueRange.max}
+Market Analysis: ${valuation.marketAnalysis}
+Comparable Analysis: ${valuation.comparableAnalysis}
+Valuation Methodology: ${valuation.valuationMethodology}
+
+Generate a professional, formal valuation narrative that would be suitable for inclusion in an appraisal report. 
+The narrative should include:
+1. Introduction - brief description of the property and purpose of the valuation
+2. Neighborhood Analysis - brief analysis of the neighborhood and its impact on value
+3. Property Analysis - description of the property's features and condition
+4. Market Analysis - summary of current market conditions
+5. Valuation Approach - explanation of the methodology used
+6. Comparable Sales Analysis - analysis of the comparable sales used
+7. Final Value Opinion - final value opinion with justification
+
+Format your response using Markdown syntax with appropriate headings.
+`;
+
     const response = await openai.chat.completions.create({
-      model: MODEL,
+      model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        {
-          role: "system",
-          content: "You are an expert real estate appraiser with excellent writing skills. You write clear, professional appraisal narratives that meet industry standards and USPAP guidelines."
-        },
-        {
-          role: "user",
-          content: prompt
-        }
+        { role: "system", content: "You are an expert real estate appraiser assistant that provides professional valuation narratives." },
+        { role: "user", content: prompt }
       ],
-      temperature: 0.4
+      temperature: 0.7
     });
-    
-    return response.choices[0].message.content || "";
-  } catch (error) {
-    console.error("Error generating valuation narrative:", error);
-    throw new Error("Failed to generate valuation narrative");
+
+    return { narrative: response.choices[0].message.content || '' };
+  } catch (error: any) {
+    console.error("Error in valuation narrative generation:", error);
+    throw new Error(`Valuation narrative generation failed: ${error.message || 'Unknown error'}`);
   }
-}
-
-/**
- * Helper function to generate a detailed prompt for the valuation AI
- */
-function generateValuationPrompt(
-  subjectProperty: PropertyData,
-  comparableProperties: ComparableProperty[]
-): string {
-  return `I need an automated valuation for a residential property with the following details:
-
-Subject Property:
-- Address: ${subjectProperty.address}, ${subjectProperty.city}, ${subjectProperty.state} ${subjectProperty.zipCode}
-- Type: ${subjectProperty.propertyType}
-- Year Built: ${subjectProperty.yearBuilt}
-- GLA: ${subjectProperty.grossLivingArea} sq ft
-- Lot Size: ${subjectProperty.lotSize} sq ft
-- Bedrooms: ${subjectProperty.bedrooms}
-- Bathrooms: ${subjectProperty.bathrooms}
-${subjectProperty.features ? `- Features: ${subjectProperty.features.join(', ')}` : ''}
-${subjectProperty.condition ? `- Condition: ${subjectProperty.condition}` : ''}
-${subjectProperty.quality ? `- Quality: ${subjectProperty.quality}` : ''}
-
-Comparable Properties:
-${comparableProperties.map((comp, index) => `
-Comparable #${index + 1}:
-- Address: ${comp.address}, ${comp.city}, ${comp.state} ${comp.zipCode}
-- Type: ${comp.propertyType}
-- Year Built: ${comp.yearBuilt}
-- GLA: ${comp.grossLivingArea} sq ft
-- Lot Size: ${comp.lotSize} sq ft
-- Bedrooms: ${comp.bedrooms}
-- Bathrooms: ${comp.bathrooms}
-- Sale Price: $${comp.salePrice}
-- Sale Date: ${comp.saleDate}
-- Distance from Subject: ${comp.distanceFromSubject} miles
-${comp.features ? `- Features: ${comp.features.join(', ')}` : ''}
-${comp.condition ? `- Condition: ${comp.condition}` : ''}
-${comp.quality ? `- Quality: ${comp.quality}` : ''}
-`).join('')}
-
-Based on the subject property details and the comparable properties, please provide:
-1. An estimated market value for the subject property
-2. A confidence level (high, medium, or low) for this estimate
-3. A value range (minimum and maximum)
-4. Detailed adjustments for each factor that affects the property value
-5. A brief market analysis
-6. An analysis of how the comparable properties relate to the subject
-7. A description of the valuation methodology used
-
-Format your response as a JSON object with the following structure:
-{
-  "estimatedValue": 350000,
-  "confidenceLevel": "high",
-  "valueRange": {
-    "min": 340000,
-    "max": 360000
-  },
-  "adjustments": [
-    {
-      "factor": "GLA",
-      "description": "Gross Living Area",
-      "amount": 5000,
-      "reasoning": "The comparable is 100 sq ft smaller at $50/sq ft"
-    },
-    // Additional adjustments...
-  ],
-  "marketAnalysis": "Brief analysis of the current market conditions...",
-  "comparableAnalysis": "Analysis of how the comparable properties compare to the subject...",
-  "valuationMethodology": "Explanation of the methodology used to determine the value..."
-}`;
 }

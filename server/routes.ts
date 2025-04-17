@@ -16,22 +16,40 @@ import {
   analyzeMarketAdjustments
 } from "./lib/openai";
 
-// Import AI agent implementations
-// For production, use:
-// import {
-//   performAutomatedValuation,
-//   analyzeMarketTrends,
-//   recommendAdjustments,
-//   generateValuationNarrative
-// } from "./lib/ai-agent";
+// Define the type for AI Valuation Response
+export interface AIValuationResponse {
+  estimatedValue: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  valueRange: {
+    min: number;
+    max: number;
+  };
+  adjustments: Array<{
+    factor: string;
+    description: string;
+    amount: number;
+    reasoning: string;
+  }>;
+  marketAnalysis: string;
+  comparableAnalysis: string;
+  valuationMethodology: string;
+}
 
-// For development/testing, use the mock implementations to avoid API rate limits
+// For production, import from ai-agent
 import {
   performAutomatedValuation,
   analyzeMarketTrends,
   recommendAdjustments,
   generateValuationNarrative
-} from "./lib/ai-agent.mock";
+} from "./lib/ai-agent";
+
+// For development/testing with mock data, uncomment these lines:
+// import {
+//   performAutomatedValuation,
+//   analyzeMarketTrends,
+//   recommendAdjustments,
+//   generateValuationNarrative
+// } from "./lib/ai-agent.mock";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // User routes
