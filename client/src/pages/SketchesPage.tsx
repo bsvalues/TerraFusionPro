@@ -207,7 +207,7 @@ export default function SketchesPage() {
   const sketchesQuery = useQuery({
     queryKey: ['/api/reports', selectedReportId, 'sketches'],
     queryFn: async () => {
-      if (offlineMode) return offlineSketches.filter(s => s.reportId === selectedReportId);
+      if (offlineMode) return offlineSketches.filter((s: Sketch) => s.reportId === selectedReportId);
       return apiRequest(`/api/reports/${selectedReportId}/sketches`, {
         method: 'GET',
       });
@@ -220,7 +220,7 @@ export default function SketchesPage() {
     queryKey: ['/api/sketches', selectedSketchId],
     queryFn: async () => {
       if (offlineMode) {
-        return offlineSketches.find(s => s.id === selectedSketchId) || null;
+        return offlineSketches.find((s: Sketch) => s.id === selectedSketchId) || null;
       }
       return apiRequest(`/api/sketches/${selectedSketchId}`, {
         method: 'GET',
@@ -1050,14 +1050,14 @@ export default function SketchesPage() {
   // Group sketches by type
   const getSketchesByType = () => {
     const sketches = offlineMode ? 
-      offlineSketches.filter(s => s.reportId === selectedReportId) : 
+      offlineSketches.filter((s: Sketch) => s.reportId === selectedReportId) : 
       (sketchesQuery.data || []);
     
     if (selectedType === 'all') {
       return sketches;
     }
     
-    return sketches.filter(s => s.type === selectedType);
+    return sketches.filter((s: Sketch) => s.type === selectedType);
   };
 
   // Format date
@@ -1147,7 +1147,7 @@ export default function SketchesPage() {
 
       {/* Filter by type */}
       {selectedReportId && ((sketchesQuery.data && sketchesQuery.data.length > 0) || 
-                         (offlineMode && offlineSketches.filter(s => s.reportId === selectedReportId).length > 0)) && (
+                         (offlineMode && offlineSketches.filter((s: Sketch) => s.reportId === selectedReportId).length > 0)) && (
         <Card className="border-none shadow-none">
           <CardContent className="p-0">
             <div className="flex overflow-auto pb-2">
@@ -1177,7 +1177,7 @@ export default function SketchesPage() {
 
       {/* No sketches message */}
       {selectedReportId && (sketchesQuery.data && sketchesQuery.data.length === 0 ||
-                            (offlineMode && offlineSketches.filter(s => s.reportId === selectedReportId).length === 0)) && (
+                            (offlineMode && offlineSketches.filter((s: Sketch) => s.reportId === selectedReportId).length === 0)) && (
         <Card className="p-8 text-center">
           <p className="text-muted-foreground mb-4">No sketches have been added to this report yet.</p>
           <div className="flex gap-2 justify-center">
@@ -1194,7 +1194,7 @@ export default function SketchesPage() {
       {/* Sketches Grid */}
       {filteredSketches.length > 0 && (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredSketches.map((sketch) => (
+          {filteredSketches.map((sketch: Sketch) => (
             <Card key={sketch.id} className="p-4 space-y-3">
               <div 
                 className="h-64 rounded-md bg-cover bg-center cursor-pointer border"
