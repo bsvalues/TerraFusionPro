@@ -645,14 +645,14 @@ export default function ReportsPage() {
           </div>
           
           <Select 
-            value={statusFilter || ''} 
-            onValueChange={(value) => setStatusFilter(value || null)}
+            value={statusFilter || 'all'} 
+            onValueChange={(value) => setStatusFilter(value === 'all' ? null : value)}
           >
             <SelectTrigger className="w-full md:w-40">
               <SelectValue placeholder="All Statuses" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">All Statuses</SelectItem>
+              <SelectItem value="all">All Statuses</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
               <SelectItem value="in_progress">In Progress</SelectItem>
               <SelectItem value="review">Review</SelectItem>
@@ -663,14 +663,15 @@ export default function ReportsPage() {
           
           {propertiesQuery.data && propertiesQuery.data.length > 0 && (
             <Select 
-              value={selectedPropertyId?.toString() || ''} 
+              value={selectedPropertyId?.toString() || 'all'} 
               onValueChange={(value) => {
-                const propId = value ? Number(value) : null;
-                setSelectedPropertyId(propId);
-                if (propId) {
-                  navigate(`/reports?propertyId=${propId}`);
-                } else {
+                if (value === 'all') {
+                  setSelectedPropertyId(null);
                   navigate('/reports');
+                } else {
+                  const propId = Number(value);
+                  setSelectedPropertyId(propId);
+                  navigate(`/reports?propertyId=${propId}`);
                 }
               }}
             >
@@ -678,7 +679,7 @@ export default function ReportsPage() {
                 <SelectValue placeholder="All Properties" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Properties</SelectItem>
+                <SelectItem value="all">All Properties</SelectItem>
                 {propertiesQuery.data.map((property) => (
                   <SelectItem key={property.id} value={property.id.toString()}>
                     {property.address}, {property.city}
