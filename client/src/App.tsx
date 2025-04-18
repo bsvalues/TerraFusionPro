@@ -33,15 +33,15 @@ function App() {
       <div className="flex flex-1 container">
         <nav className="w-64 border-r p-4 space-y-4 hidden md:block">
           <ul className="space-y-2">
-            <li><a href="/" className="block p-2 rounded hover:bg-accent">Dashboard</a></li>
-            <li><a href="/form" className="block p-2 rounded hover:bg-accent">Form</a></li>
-            <li><a href="/comps" className="block p-2 rounded hover:bg-accent">Comparables</a></li>
-            <li><a href="/photos" className="block p-2 rounded hover:bg-accent">Photos</a></li>
-            <li><a href="/sketches" className="block p-2 rounded hover:bg-accent">Sketches</a></li>
-            <li><a href="/reports" className="block p-2 rounded hover:bg-accent">Reports</a></li>
-            <li><a href="/compliance" className="block p-2 rounded hover:bg-accent">Compliance</a></li>
-            <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent">AI Valuation</a></li>
-            <li><a href="/email-order" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium">Import Order</a></li>
+            <li><a href="/" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Dashboard clicked")}>Dashboard</a></li>
+            <li><a href="/form" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Form clicked")}>Form</a></li>
+            <li><a href="/comps" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Comps clicked")}>Comparables</a></li>
+            <li><a href="/photos" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Photos clicked")}>Photos</a></li>
+            <li><a href="/sketches" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Sketches clicked")}>Sketches</a></li>
+            <li><a href="/reports" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Reports clicked")}>Reports</a></li>
+            <li><a href="/compliance" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Compliance clicked")}>Compliance</a></li>
+            <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("AI Valuation clicked")}>AI Valuation</a></li>
+            <li><a href="/email-order" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("Import Order clicked")}>Import Order</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">

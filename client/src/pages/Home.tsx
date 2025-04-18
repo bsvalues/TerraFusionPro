@@ -13,6 +13,35 @@ export default function Home() {
       <div className="max-w-5xl mx-auto">
         <h1 className="text-3xl font-bold mb-8">AppraisalCore - Real Estate Appraisal Platform</h1>
         
+        <button 
+          onClick={() => console.log("Native button clicked")} 
+          style={{ 
+            padding: '10px 20px', 
+            background: 'blue', 
+            color: 'white', 
+            border: 'none', 
+            borderRadius: '4px',
+            marginBottom: '20px'
+          }}
+        >
+          Test Native Button (Click Me)
+        </button>
+        
+        <a 
+          href="/form" 
+          style={{ 
+            padding: '10px 20px', 
+            background: 'green', 
+            color: 'white', 
+            textDecoration: 'none',
+            borderRadius: '4px',
+            marginBottom: '20px',
+            display: 'inline-block'
+          }}
+        >
+          Test Native Link to Form Page
+        </a>
+        
         <div className="space-y-8">
           <Card>
             <CardHeader>
@@ -26,10 +55,21 @@ export default function Home() {
                 You don't have any active appraisal reports. Create a new one to get started or load a demo report.
               </p>
               <div className="flex gap-4">
-                <Button onClick={() => setLocation('/form')}>
+                <Button
+                  onClick={() => {
+                    console.log("Load Demo Report clicked");
+                    setLocation('/form');
+                  }}
+                >
                   Load Demo Report
                 </Button>
-                <Button variant="outline" onClick={() => setLocation('/form')}>
+                <Button 
+                  variant="outline" 
+                  onClick={() => {
+                    console.log("Create New Report clicked");
+                    setLocation('/form');
+                  }}
+                >
                   Create New Report
                 </Button>
               </div>
