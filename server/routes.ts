@@ -615,7 +615,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/reports/:id/validate-compliance", async (req: Request, res: Response) => {
     try {
       const reportId = Number(req.params.id);
-      const ruleTypes = req.body.ruleTypes || ["UAD", "USPAP"]; // Default rule types
+      const { ruleTypes = ["UAD", "USPAP"], useOrchestrator = true, aiProvider = "auto" } = req.body;
       
       const report = await storage.getAppraisalReport(reportId);
       
@@ -625,38 +625,119 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Get all related data
       const property = await storage.getProperty(report.propertyId);
+      
+      if (!property) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      
       const comparables = await storage.getComparablesByReport(reportId);
       const adjustments = await Promise.all(
         comparables.map(comp => storage.getAdjustmentsByComparable(comp.id))
       );
       
-      // Validate compliance
-      const validationResults = await validateCompliance(
-        report, 
-        property, 
-        comparables, 
-        adjustments.flat(), 
-        ruleTypes
-      );
-      
-      // Save compliance check results
-      const savedResults = await Promise.all(
-        validationResults.map(result => 
-          storage.createComplianceCheck({
+      // Determine if we should use the AI Orchestrator
+      if (useOrchestrator) {
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // Prepare the report text that will be analyzed
+        const reportText = report.narrativeText || 
+          `Appraisal report for ${property.address}, ${property.city}, ${property.state} ${property.zipCode}. 
+          Property is a ${property.propertyType} built in ${property.yearBuilt}, with 
+          ${property.grossLivingArea}sqft, ${property.bedrooms} bedrooms, ${property.bathrooms} bathrooms.`;
+          
+        // Combine data for context
+        const reportData = {
+          report,
+          property,
+          comparables,
+          adjustments: adjustments.flat()
+        };
+          
+        // Use the AI Orchestrator for compliance checking
+        const complianceResults = await aiOrchestrator.checkUSPAPCompliance(
+          reportText,
+          "full_report", // Check the entire report
+          provider
+        );
+        
+        // Save the compliance check results
+        const savedResults = [];
+        
+        // Process standard compliance issues
+        if (complianceResults.issues && Array.isArray(complianceResults.issues)) {
+          for (const issue of complianceResults.issues) {
+            const savedCheck = await storage.createComplianceCheck({
+              reportId,
+              checkType: issue.type || "USPAP",
+              status: issue.severity === "high" ? "error" : (issue.severity === "medium" ? "warning" : "info"),
+              message: issue.recommendation || issue.requirement,
+              severity: issue.severity || "medium",
+              field: issue.field || "general",
+            });
+            savedResults.push(savedCheck);
+          }
+        }
+        
+        // If no specific issues but has recommendations
+        if (savedResults.length === 0 && complianceResults.recommendations) {
+          const savedCheck = await storage.createComplianceCheck({
             reportId,
-            checkType: result.checkType,
-            status: result.status,
-            message: result.message,
-            severity: result.severity,
-            field: result.field,
-          })
-        )
-      );
-      
-      res.status(200).json(savedResults);
+            checkType: "USPAP",
+            status: "info",
+            message: Array.isArray(complianceResults.recommendations) 
+              ? complianceResults.recommendations.join("; ") 
+              : complianceResults.recommendations,
+            severity: "low",
+            field: "general",
+          });
+          savedResults.push(savedCheck);
+        }
+        
+        // Return detailed response with score
+        res.status(200).json({
+          results: savedResults,
+          overallScore: complianceResults.overallCompliance || 0.8,
+          recommendations: complianceResults.recommendations || []
+        });
+      } else {
+        // Use the legacy compliance validation
+        const validationResults = await validateCompliance(
+          report, 
+          property, 
+          comparables, 
+          adjustments.flat(), 
+          ruleTypes
+        );
+        
+        // Save compliance check results
+        const savedResults = await Promise.all(
+          validationResults.map(result => 
+            storage.createComplianceCheck({
+              reportId,
+              checkType: result.checkType,
+              status: result.status,
+              message: result.message,
+              severity: result.severity,
+              field: result.field,
+            })
+          )
+        );
+        
+        res.status(200).json(savedResults);
+      }
     } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Server error validating compliance" });
+      console.error("Error validating compliance:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error validating report compliance", 
+        error: errorMessage 
+      });
     }
   });
 
@@ -1035,7 +1116,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Process email to extract property data and create a report
   app.post("/api/orders/process-email", async (req: Request, res: Response) => {
     try {
-      const { emailContent, senderEmail, subject } = req.body;
+      const { emailContent, senderEmail, subject, useOrchestrator = true, aiProvider = "auto" } = req.body;
       
       if (!emailContent) {
         return res.status(400).json({ message: "Email content is required" });
@@ -1055,11 +1136,46 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attachments: []
       };
       
-      // Import code from email-integration.ts
-      const { processOrderEmail } = await import("./lib/email-integration");
+      console.log(`Processing email order with ${useOrchestrator ? 'AI Orchestrator' : 'Legacy Processor'}...`);
       
-      // Process the email to create a property and report
-      const reportId = await processOrderEmail(emailData, userId);
+      let reportId;
+      
+      if (useOrchestrator) {
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // First extract property data using the orchestrator
+        const extractedData = await aiOrchestrator.processEmailOrder(
+          emailContent,
+          subject,
+          senderEmail,
+          provider
+        );
+        
+        // Import code from email-integration.ts
+        const { processOrderEmail } = await import("./lib/email-integration");
+        
+        // Create transformed email object with the extracted data
+        const enhancedEmail = {
+          ...emailData,
+          extractedData
+        };
+        
+        // Process the email to create a property and report
+        reportId = await processOrderEmail(enhancedEmail, userId);
+      } else {
+        // Use the legacy email processing flow
+        // Import code from email-integration.ts
+        const { processOrderEmail } = await import("./lib/email-integration");
+        
+        // Process the email to create a property and report
+        reportId = await processOrderEmail(emailData, userId);
+      }
       
       if (!reportId) {
         return res.status(500).json({ message: "Failed to process email and create report" });
@@ -1083,57 +1199,124 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Process uploaded files to extract property data and create a report
   app.post("/api/orders/process-files", async (req: Request, res: Response) => {
     try {
-      // In a real implementation, we would use multer middleware to handle file uploads
-      // For now, we'll return a simulated response
+      const { fileContent, documentType = "order", useOrchestrator = true, aiProvider = "auto" } = req.body;
       
       // Simulate the user being logged in with ID 1
       const userId = 1; // In a real app, this would come from the authenticated session
       
-      // Create a new property for demonstration
-      const property = await storage.createProperty({
-        userId,
-        address: "123 Sample St",
-        city: "Example City",
-        state: "CA",
-        zipCode: "90210",
-        propertyType: "Single Family",
-        yearBuilt: 2005,
-        grossLivingArea: 2200,
-        bedrooms: 4,
-        bathrooms: 3
-      });
+      let property;
+      let report;
       
-      // Create a new appraisal report
-      const report = await storage.createAppraisalReport({
-        propertyId: property.id,
-        userId,
-        reportType: "URAR",
-        formType: "URAR",
-        status: "in_progress",
-        purpose: "Purchase",
-        effectiveDate: new Date().toISOString(),
-        reportDate: new Date().toISOString(),
-        clientName: "Example Client",
-        clientAddress: "456 Client Ave, Business City, CA 90211",
-        lenderName: "Example Bank",
-        lenderAddress: "789 Bank St, Finance City, CA 90212",
-        borrowerName: "John Borrower",
-        occupancy: "Owner Occupied",
-        salesPrice: null,
-        marketValue: null
-      });
+      if (useOrchestrator && fileContent) {
+        console.log(`Processing document with AI Orchestrator, type: ${documentType}...`);
+        
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // Use the AI orchestrator to analyze the document
+        // In a real implementation, this would handle PDF, images, etc.
+        const documentAnalysis = await aiOrchestrator.processEmailOrder(
+          fileContent, 
+          documentType,
+          null
+        );
+        
+        // Create a new property from the extracted data
+        property = await storage.createProperty({
+          userId,
+          address: documentAnalysis.address || "123 Sample St",
+          city: documentAnalysis.city || "Example City",
+          state: documentAnalysis.state || "CA",
+          zipCode: documentAnalysis.zipCode || "90210",
+          propertyType: documentAnalysis.propertyType || "Single Family",
+          yearBuilt: documentAnalysis.yearBuilt || 2000,
+          grossLivingArea: String(documentAnalysis.squareFeet || 2000),
+          bedrooms: String(documentAnalysis.bedrooms || 3),
+          bathrooms: String(documentAnalysis.bathrooms || 2)
+        });
+        
+        // Create a new appraisal report with extracted data
+        report = await storage.createAppraisalReport({
+          propertyId: property.id,
+          userId,
+          reportType: documentAnalysis.reportType || "URAR",
+          formType: documentAnalysis.formType || "URAR",
+          status: "in_progress",
+          purpose: documentAnalysis.purpose || "Purchase",
+          effectiveDate: new Date(),
+          reportDate: new Date(),
+          clientName: documentAnalysis.clientName || "Example Client",
+          clientAddress: documentAnalysis.clientAddress || "Unknown",
+          lenderName: documentAnalysis.lenderName || "Example Bank",
+          lenderAddress: documentAnalysis.lenderAddress || "Unknown",
+          borrowerName: documentAnalysis.borrowerName || "Unknown",
+          occupancy: documentAnalysis.occupancy || "Unknown",
+          salesPrice: documentAnalysis.salesPrice || null,
+          marketValue: null
+        });
+      } else {
+        console.log("Using simulated data for document processing...");
+        
+        // In a real implementation, we would use multer middleware to handle file uploads
+        // For demonstration, we'll use simulated property and report data
+        
+        // Create a new property for demonstration
+        property = await storage.createProperty({
+          userId,
+          address: "123 Sample St",
+          city: "Example City",
+          state: "CA",
+          zipCode: "90210",
+          propertyType: "Single Family",
+          yearBuilt: 2005,
+          grossLivingArea: String(2200),
+          bedrooms: String(4),
+          bathrooms: String(3)
+        });
+        
+        // Create a new appraisal report
+        report = await storage.createAppraisalReport({
+          propertyId: property.id,
+          userId,
+          reportType: "URAR",
+          formType: "URAR",
+          status: "in_progress",
+          purpose: "Purchase",
+          effectiveDate: new Date(),
+          reportDate: new Date(),
+          clientName: "Example Client",
+          clientAddress: "456 Client Ave, Business City, CA 90211",
+          lenderName: "Example Bank",
+          lenderAddress: "789 Bank St, Finance City, CA 90212",
+          borrowerName: "John Borrower",
+          occupancy: "Owner Occupied",
+          salesPrice: null,
+          marketValue: null
+        });
+      }
       
-      // In a production implementation, we would:
-      // 1. Parse the uploaded files (PDFs, images, etc.)
-      // 2. Extract property data using OCR and AI
+      // For a production implementation, we would also:
+      // 1. Handle multiple file uploads
+      // 2. Process different file types (PDFs, images, etc.)
       // 3. Call public record APIs to get additional data
-      // 4. Create a report with all the extracted data
+      // 4. Attach the original files to the report
       
-      // For now, we simulate success with the basic report
       res.status(200).json({ 
         success: true, 
         message: "Files processed successfully", 
-        reportId: report.id 
+        reportId: report.id,
+        property: {
+          id: property.id,
+          address: property.address,
+          city: property.city,
+          state: property.state,
+          zipCode: property.zipCode
+        }
       });
     } catch (error) {
       console.error("Error processing file order:", error);
