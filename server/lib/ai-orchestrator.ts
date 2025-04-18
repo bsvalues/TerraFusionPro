@@ -178,14 +178,24 @@ export class AIOrchestrator {
    * @param emailContent - Full content of the email
    * @param emailSubject - Subject line of the email (optional)
    * @param senderEmail - Email address of the sender (optional)
+   * @param provider - AI provider to use (optional)
    * @returns Extracted property data and any additional information
    */
   async processEmailOrder(
     emailContent: string,
     emailSubject?: string,
-    senderEmail?: string
+    senderEmail?: string,
+    provider: AIProvider = AIProvider.AUTO
   ): Promise<any> {
     console.log(`[AI Orchestrator] Processing email order, subject: ${emailSubject || 'N/A'}`);
+    
+    // If provider is AUTO, determine the best provider for the task
+    const selectedProvider = this.selectBestProvider(
+      OrchestrationTaskType.PROCESS_EMAIL_ORDER,
+      provider
+    );
+    
+    console.log(`[AI Orchestrator] Using ${selectedProvider} for email processing`);
     
     // Create an extraction task
     const task: AgentTask<any> = {
@@ -197,7 +207,10 @@ export class AIOrchestrator {
         emailSubject,
         senderEmail
       },
-      requester: 'system'
+      requester: 'system',
+      metadata: {
+        provider: selectedProvider
+      }
     };
     
     // Execute the task using the agent coordinator

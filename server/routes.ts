@@ -1222,8 +1222,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // In a real implementation, this would handle PDF, images, etc.
         const documentAnalysis = await aiOrchestrator.processEmailOrder(
           fileContent, 
-          documentType,
-          null
+          documentType, // Using document type as the subject
+          undefined, // No sender email 
+          provider
         );
         
         // Create a new property from the extracted data
