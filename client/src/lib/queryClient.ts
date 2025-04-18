@@ -12,18 +12,31 @@ export async function apiRequest<T = any>(
   options: {
     method: string;
     data?: unknown;
+    body?: FormData;
     headers?: Record<string, string>;
   } = { method: 'GET' }
 ): Promise<T> {
-  const { method, data, headers = {} } = options;
+  const { method, data, body, headers = {} } = options;
+  
+  let requestBody: string | FormData | undefined;
+  let requestHeaders = { ...headers };
+  
+  // Handle different request body types
+  if (body instanceof FormData) {
+    requestBody = body;
+    // Don't set Content-Type for FormData, let the browser set it with the boundary
+  } else if (data) {
+    requestBody = JSON.stringify(data);
+    requestHeaders = {
+      "Content-Type": "application/json",
+      ...requestHeaders
+    };
+  }
   
   const res = await fetch(url, {
     method,
-    headers: {
-      ...(data ? { "Content-Type": "application/json" } : {}),
-      ...headers
-    },
-    body: data ? JSON.stringify(data) : undefined,
+    headers: requestHeaders,
+    body: requestBody,
     credentials: "include",
   });
 
