@@ -153,11 +153,13 @@ export default function AIValuationPage() {
         body: JSON.stringify({
           subjectProperty,
           comparableProperties,
+          useRealAI: true,
         }),
       });
       
       if (!response.ok) {
-        throw new Error('Failed to perform valuation');
+        const errorText = await response.text();
+        throw new Error(`Failed to perform valuation: ${errorText}`);
       }
       
       const result = await response.json();

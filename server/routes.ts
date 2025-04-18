@@ -663,17 +663,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Advanced AI Valuation endpoints
   app.post("/api/ai/automated-valuation", async (req: Request, res: Response) => {
     try {
-      const { subjectProperty, comparableProperties } = req.body;
+      const { subjectProperty, comparableProperties, useRealAI = true } = req.body;
       
       if (!subjectProperty || !comparableProperties || !Array.isArray(comparableProperties)) {
         return res.status(400).json({ message: "Subject property and comparable properties array are required" });
       }
       
+      console.log(`Performing automated valuation with ${useRealAI ? 'real' : 'mock'} AI...`);
+      
+      // We're always using real AI now as requested by the user
       const valuation = await performAutomatedValuation(subjectProperty, comparableProperties);
       res.status(200).json(valuation);
     } catch (error) {
       console.error("Error performing automated valuation:", error);
-      res.status(500).json({ message: "Error performing automated valuation" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error performing automated valuation", 
+        error: errorMessage,
+        details: process.env.NODE_ENV === 'development' ? error : undefined
+      });
     }
   });
 
