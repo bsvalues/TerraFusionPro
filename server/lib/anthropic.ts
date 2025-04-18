@@ -93,7 +93,12 @@ Do not include fields you cannot find in the document. Do not include explanatio
     });
 
     // Parse the response text to JSON
-    const responseText = message.content[0].text;
+    const content = message.content[0];
+    // Check if content has text property
+    if (!('text' in content)) {
+      throw new Error("Unexpected response format from Anthropic");
+    }
+    const responseText = content.text;
     const jsonStartIndex = responseText.indexOf('{');
     const jsonEndIndex = responseText.lastIndexOf('}') + 1;
     
@@ -149,7 +154,12 @@ Only return the JSON object with no additional text or explanation.`
     });
 
     // Parse the response text to JSON
-    const responseText = message.content[0].text;
+    const content = message.content[0];
+    // Check if content has text property
+    if (!('text' in content)) {
+      throw new Error("Unexpected response format from Anthropic");
+    }
+    const responseText = content.text;
     const jsonStartIndex = responseText.indexOf('{');
     const jsonEndIndex = responseText.lastIndexOf('}') + 1;
     
@@ -203,7 +213,12 @@ Use objective, factual language appropriate for a formal appraisal report.
 The description should be 2-3 paragraphs long and well-organized.`
     });
 
-    return message.content[0].text;
+    const content = message.content[0];
+    // Check if content has text property
+    if (!('text' in content)) {
+      throw new Error("Unexpected response format from Anthropic");
+    }
+    return content.text;
   } catch (error) {
     console.error("Error generating property description with Anthropic:", error);
     throw error;
@@ -239,7 +254,12 @@ Structure your response in 2-3 concise paragraphs that address supply/demand dyn
 Your analysis should help establish the market context for the property being appraised.`
     });
 
-    return message.content[0].text;
+    const content = message.content[0];
+    // Check if content has text property
+    if (!('text' in content)) {
+      throw new Error("Unexpected response format from Anthropic");
+    }
+    return content.text;
   } catch (error) {
     console.error("Error analyzing market conditions with Anthropic:", error);
     throw error;
@@ -289,7 +309,12 @@ Your analysis should be objective, factual, and suitable for inclusion in a form
 Structure your response as a cohesive narrative that evaluates the comparability of each property.`
     });
 
-    return message.content[0].text;
+    const content = message.content[0];
+    // Check if content has text property
+    if (!('text' in content)) {
+      throw new Error("Unexpected response format from Anthropic");
+    }
+    return content.text;
   } catch (error) {
     console.error("Error analyzing comparables with Anthropic:", error);
     throw error;
