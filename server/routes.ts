@@ -16,6 +16,8 @@ import {
   analyzeMarketAdjustments
 } from "./lib/openai";
 
+import { aiOrchestrator, AIProvider } from "./lib/ai-orchestrator";
+
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
   estimatedValue: number;
@@ -663,16 +665,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Advanced AI Valuation endpoints
   app.post("/api/ai/automated-valuation", async (req: Request, res: Response) => {
     try {
-      const { subjectProperty, comparableProperties, useRealAI = true } = req.body;
+      const { subjectProperty, comparableProperties, useOrchestrator = true, aiProvider = "auto" } = req.body;
       
-      if (!subjectProperty || !comparableProperties || !Array.isArray(comparableProperties)) {
-        return res.status(400).json({ message: "Subject property and comparable properties array are required" });
+      if (!subjectProperty) {
+        return res.status(400).json({ message: "Subject property is required" });
       }
       
-      console.log(`Performing automated valuation with ${useRealAI ? 'real' : 'mock'} AI...`);
+      console.log(`Performing automated valuation with ${useOrchestrator ? 'AI Orchestrator' : 'Legacy AI Agent'}...`);
       
-      // We're always using real AI now as requested by the user
-      const valuation = await performAutomatedValuation(subjectProperty, comparableProperties);
+      let valuation;
+      
+      // Check if we should use the new AI Orchestrator
+      if (useOrchestrator) {
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // Use the AI Orchestrator with selected provider
+        valuation = await aiOrchestrator.automatedValuation(
+          subjectProperty,
+          comparableProperties || undefined,
+          provider
+        );
+      } else {
+        // Use the legacy AI agent for backward compatibility
+        valuation = await performAutomatedValuation(subjectProperty, comparableProperties || []);
+      }
+      
       res.status(200).json(valuation);
     } catch (error) {
       console.error("Error performing automated valuation:", error);
@@ -687,21 +710,52 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.post("/api/ai/market-trends", async (req: Request, res: Response) => {
     try {
-      const { location, propertyType } = req.body;
+      const { location, propertyType, useOrchestrator = true, aiProvider = "auto" } = req.body;
       
       if (!location || !propertyType) {
         return res.status(400).json({ message: "Location and property type are required" });
       }
       
-      if (!location.city || !location.state || !location.zipCode) {
-        return res.status(400).json({ message: "Location must include city, state, and zipCode" });
+      if (typeof location === 'object' && (!location.city || !location.state)) {
+        return res.status(400).json({ message: "Location must include at least city and state" });
       }
       
-      const analysis = await analyzeMarketTrends(location, propertyType);
+      let analysis;
+      
+      // Check if we should use the new AI Orchestrator
+      if (useOrchestrator) {
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // Format the location string from an object if needed
+        const locationString = typeof location === 'object' 
+          ? `${location.city}, ${location.state}` + (location.zipCode ? ` ${location.zipCode}` : '')
+          : location;
+        
+        // Use the AI Orchestrator with the selected provider
+        analysis = await aiOrchestrator.generateMarketAnalysis(
+          locationString,
+          propertyType,
+          provider
+        );
+      } else {
+        // Use the legacy AI agent for backward compatibility
+        analysis = await analyzeMarketTrends(location, propertyType);
+      }
+      
       res.status(200).json({ analysis });
     } catch (error) {
       console.error("Error analyzing market trends:", error);
-      res.status(500).json({ message: "Error analyzing market trends" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error analyzing market trends", 
+        error: errorMessage
+      });
     }
   });
 
@@ -794,7 +848,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/ai/generate-narrative", async (req: Request, res: Response) => {
     try {
-      const { reportId } = req.body;
+      const { reportId, section, useOrchestrator = true, aiProvider = "auto" } = req.body;
       
       if (!reportId) {
         return res.status(400).json({ message: "Report ID is required" });
@@ -821,11 +875,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         comparables,
       };
       
-      const narrative = await generateAppraisalNarrative(reportData);
+      let narrative;
+      
+      // Check if we should use the new AI Orchestrator
+      if (useOrchestrator) {
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // Use the AI Orchestrator with the selected provider
+        narrative = await aiOrchestrator.generateNarrativeSection(
+          section || "property_description",
+          property,
+          {
+            report,
+            comparables,
+          },
+          provider
+        );
+      } else {
+        // Use the legacy AI approach
+        narrative = await generateAppraisalNarrative(reportData);
+      }
+      
       res.status(200).json(narrative);
     } catch (error) {
       console.error("Error generating narrative with AI:", error);
-      res.status(500).json({ message: "Error generating narrative with AI" });
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error generating narrative with AI",
+        error: errorMessage
+      });
     }
   });
   
