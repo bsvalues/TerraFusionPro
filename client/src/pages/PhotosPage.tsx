@@ -649,7 +649,7 @@ export default function PhotosPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {exterior.map((photo) => (
+              {exterior.map((photo: Photo) => (
                 <div key={photo.id} className="border rounded-md p-2 space-y-2">
                   <div 
                     className="h-48 rounded-md bg-cover bg-center cursor-pointer"
@@ -698,7 +698,7 @@ export default function PhotosPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {interior.map((photo) => (
+              {interior.map((photo: Photo) => (
                 <div key={photo.id} className="border rounded-md p-2 space-y-2">
                   <div 
                     className="h-48 rounded-md bg-cover bg-center cursor-pointer"
@@ -747,7 +747,7 @@ export default function PhotosPage() {
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-              {other.map((photo) => (
+              {other.map((photo: Photo) => (
                 <div key={photo.id} className="border rounded-md p-2 space-y-2">
                   <div 
                     className="h-48 rounded-md bg-cover bg-center cursor-pointer"
