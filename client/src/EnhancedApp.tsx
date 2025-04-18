@@ -14,7 +14,7 @@ import NotFoundPage from './pages/not-found';
 export default function EnhancedApp() {
   return (
     <>
-      <Switch>
+      <div>
         <Route path="/" component={Home} />
         <Route path="/ai-valuation" component={EnhancedAIValuationPage} />
         <Route path="/compliance/:reportId" component={EnhancedCompliancePage} />
@@ -29,8 +29,8 @@ export default function EnhancedApp() {
         <Route path="/sketches" component={EnhancedSketchesPage} />
         <Route path="/email-order" component={EmailOrderPage} />
         <Route path="/comps" component={CompsPage} />
-        <Route component={NotFoundPage} />
-      </Switch>
+        <Route path="/:rest*" component={NotFoundPage} />
+      </div>
       <Toaster />
     </>
   );
