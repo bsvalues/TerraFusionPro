@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 // Simplified version - removed AppraisalContext dependency
 export default function Home() {
   const [_, setLocation] = useLocation();
+  
+  console.log("Home component rendering");
 
   return (
     <div className="flex-1 p-8 overflow-auto">
