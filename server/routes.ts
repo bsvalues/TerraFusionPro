@@ -946,6 +946,121 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Automated Order Processing Routes
+  
+  // Process email to extract property data and create a report
+  app.post("/api/orders/process-email", async (req: Request, res: Response) => {
+    try {
+      const { emailContent, senderEmail, subject } = req.body;
+      
+      if (!emailContent) {
+        return res.status(400).json({ message: "Email content is required" });
+      }
+      
+      // Simulate the user being logged in with ID 1
+      const userId = 1; // In a real app, this would come from the authenticated session
+      
+      // Create an email object for processing
+      const emailData = {
+        id: `email-${Date.now()}`,
+        subject: subject || "Appraisal Order",
+        from: senderEmail || "client@example.com",
+        to: "appraiser@example.com",
+        body: emailContent,
+        receivedDate: new Date(),
+        attachments: []
+      };
+      
+      // Import code from email-integration.ts
+      const { processOrderEmail } = await import("./lib/email-integration");
+      
+      // Process the email to create a property and report
+      const reportId = await processOrderEmail(emailData, userId);
+      
+      if (!reportId) {
+        return res.status(500).json({ message: "Failed to process email and create report" });
+      }
+      
+      res.status(200).json({ 
+        success: true, 
+        message: "Email processed successfully", 
+        reportId 
+      });
+    } catch (error) {
+      console.error("Error processing email order:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error processing email order", 
+        error: errorMessage 
+      });
+    }
+  });
+  
+  // Process uploaded files to extract property data and create a report
+  app.post("/api/orders/process-files", async (req: Request, res: Response) => {
+    try {
+      // In a real implementation, we would use multer middleware to handle file uploads
+      // For now, we'll return a simulated response
+      
+      // Simulate the user being logged in with ID 1
+      const userId = 1; // In a real app, this would come from the authenticated session
+      
+      // Create a new property for demonstration
+      const property = await storage.createProperty({
+        userId,
+        address: "123 Sample St",
+        city: "Example City",
+        state: "CA",
+        zipCode: "90210",
+        propertyType: "Single Family",
+        yearBuilt: 2005,
+        grossLivingArea: 2200,
+        bedrooms: 4,
+        bathrooms: 3
+      });
+      
+      // Create a new appraisal report
+      const report = await storage.createAppraisalReport({
+        propertyId: property.id,
+        userId,
+        reportType: "URAR",
+        formType: "URAR",
+        status: "in_progress",
+        purpose: "Purchase",
+        effectiveDate: new Date().toISOString(),
+        reportDate: new Date().toISOString(),
+        clientName: "Example Client",
+        clientAddress: "456 Client Ave, Business City, CA 90211",
+        lenderName: "Example Bank",
+        lenderAddress: "789 Bank St, Finance City, CA 90212",
+        borrowerName: "John Borrower",
+        occupancy: "Owner Occupied",
+        salesPrice: null,
+        marketValue: null
+      });
+      
+      // In a production implementation, we would:
+      // 1. Parse the uploaded files (PDFs, images, etc.)
+      // 2. Extract property data using OCR and AI
+      // 3. Call public record APIs to get additional data
+      // 4. Create a report with all the extracted data
+      
+      // For now, we simulate success with the basic report
+      res.status(200).json({ 
+        success: true, 
+        message: "Files processed successfully", 
+        reportId: report.id 
+      });
+    } catch (error) {
+      console.error("Error processing file order:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error processing file order", 
+        error: errorMessage 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

@@ -7,6 +7,7 @@ import SketchesPage from "./pages/SketchesPage";
 import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
 import AIValuationPage from "./pages/AIValuationPage";
+import EmailOrderPage from "./pages/EmailOrderPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 
@@ -40,6 +41,7 @@ function App() {
             <li><a href="/reports" className="block p-2 rounded hover:bg-accent">Reports</a></li>
             <li><a href="/compliance" className="block p-2 rounded hover:bg-accent">Compliance</a></li>
             <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent">AI Valuation</a></li>
+            <li><a href="/email-order" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium">Import Order</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">
@@ -52,6 +54,7 @@ function App() {
             <Route path="/reports" component={ReportsPage} />
             <Route path="/compliance" component={CompliancePage} />
             <Route path="/ai-valuation" component={AIValuationPage} />
+            <Route path="/email-order" component={EmailOrderPage} />
             <Route component={NotFound} />
           </Switch>
         </main>

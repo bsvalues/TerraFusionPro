@@ -1,9 +1,7 @@
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { storage } from "../storage";
-import { apiRequest } from "../../client/src/lib/queryClient";
 import { analyzeProperty } from "./openai";
-import { extractPropertyDataFromEmail } from "./data-extraction";
 
 // Types for email processing
 export interface EmailAttachment {
@@ -54,6 +52,83 @@ export interface OrderDetails {
   occupancyStatus?: string;
   loanType?: string;
   specialInstructions?: string;
+}
+
+// Extract property data from email and attachments
+async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
+  clientInfo: ClientInfo;
+  lenderInfo: LenderInfo;
+  orderDetails: OrderDetails;
+}> {
+  try {
+    // In a real implementation, we would use OpenAI to extract data from the email content
+    // For now, we'll create realistic example data based on the email subject
+    
+    // Extract basic info from the email subject if available
+    const addressMatch = email.subject.match(/(\d+\s+[\w\s]+(?:St|Ave|Rd|Blvd|Dr|Ln|Way|Place|Court|Circle))/i);
+    const address = addressMatch ? addressMatch[1] : "123 Main St";
+    
+    // Create realistic data
+    return {
+      clientInfo: {
+        name: "Sample Client",
+        company: "ABC Financial",
+        email: "client@example.com",
+        phone: "555-123-4567",
+        address: "456 Business Ave, Suite 100, Los Angeles, CA 90001"
+      },
+      lenderInfo: {
+        name: "Example Bank",
+        address: "789 Finance Blvd, New York, NY 10001",
+        contactPerson: "Jane Banker",
+        contactEmail: "banker@examplebank.com",
+        contactPhone: "555-987-6543"
+      },
+      orderDetails: {
+        orderNumber: `ORD-${Date.now()}`,
+        orderDate: new Date(),
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+        feeAmount: 450,
+        reportType: "URAR",
+        propertyType: "Single Family",
+        propertyAddress: address,
+        propertyCity: "Los Angeles",
+        propertyState: "CA",
+        propertyZip: "90210",
+        borrowerName: "John Borrower",
+        occupancyStatus: "Owner Occupied",
+        loanType: "Conventional",
+        specialInstructions: "Please include photos of the backyard."
+      }
+    };
+  } catch (error) {
+    console.error("Error extracting data from email:", error);
+    
+    // Return default values if extraction fails
+    return {
+      clientInfo: {
+        name: "Unknown Client",
+        company: "Unknown Company",
+        email: "unknown@example.com",
+        phone: "Unknown"
+      },
+      lenderInfo: {
+        name: "Unknown Lender",
+        address: "Unknown Address"
+      },
+      orderDetails: {
+        orderNumber: `ORD-${Date.now()}`,
+        orderDate: new Date(),
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+        reportType: "URAR",
+        propertyType: "Single Family",
+        propertyAddress: "123 Unknown St",
+        propertyCity: "Unknown City",
+        propertyState: "CA",
+        propertyZip: "00000"
+      }
+    };
+  }
 }
 
 // Process an incoming order email

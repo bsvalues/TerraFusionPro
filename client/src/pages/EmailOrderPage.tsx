@@ -68,7 +68,7 @@ export default function EmailOrderPage() {
   // Mutation for processing email orders
   const processEmailMutation = useMutation({
     mutationFn: async (data: z.infer<typeof emailUploadSchema>) => {
-      return apiRequest('/api/orders/process-email', 'POST', data);
+      return apiRequest('/api/orders/process-email', data);
     },
     onSuccess: (data) => {
       // Update processing status
