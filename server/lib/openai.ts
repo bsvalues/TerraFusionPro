@@ -8,33 +8,79 @@ export async function analyzeProperty(propertyData: any): Promise<{
   marketTrends: string;
   valuationInsights: string;
   recommendedAdjustments: string;
+  propertyDetails?: {
+    yearBuilt?: number;
+    squareFeet?: number;
+    bedrooms?: number;
+    bathrooms?: number;
+    lotSize?: number;
+    propertyType?: string;
+    features?: string[];
+    condition?: string;
+    qualityRating?: string;
+  };
 }> {
   try {
+    const isDetailedRequest = propertyData.requestType === "detailed_property_data";
+    
+    // Select the appropriate system prompt based on request type
+    const systemPrompt = isDetailedRequest 
+      ? "You are an expert real estate appraiser and property data specialist with deep knowledge of housing characteristics across the United States. Your task is to estimate realistic property characteristics for the given address and location, including year built, square footage, bedrooms, bathrooms, lot size, property features, and condition. Your estimates should be based on typical properties in this location and neighborhood. Be specific with numerical values whenever possible."
+      : "You are an expert real estate appraiser with deep knowledge of valuation principles, market analysis, and property characteristics. Analyze the provided property data and provide useful insights for an appraisal report.";
+    
+    // Select the appropriate user prompt based on request type
+    const userPrompt = isDetailedRequest
+      ? `Based on this address and location information, estimate the property's characteristics as specifically as possible. Include year built, square footage, number of bedrooms and bathrooms, lot size, and any notable features typical for this neighborhood. Format your response as detailed JSON with numerical values when appropriate:\n${JSON.stringify(propertyData, null, 2)}`
+      : `Analyze this property for an appraisal report. Provide market trends, valuation insights, and recommended adjustments in JSON format:\n${JSON.stringify(propertyData, null, 2)}`;
+    
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
       messages: [
         {
           role: "system",
-          content: "You are an expert real estate appraiser with deep knowledge of valuation principles, market analysis, and property characteristics. Analyze the provided property data and provide useful insights for an appraisal report."
+          content: systemPrompt
         },
         {
           role: "user",
-          content: `Analyze this property for an appraisal report. Provide market trends, valuation insights, and recommended adjustments in JSON format: 
-          ${JSON.stringify(propertyData, null, 2)}`
+          content: userPrompt
         }
       ],
       response_format: { type: "json_object" },
     });
 
-    // Handle null content
-    const content = response.choices[0].message.content ?? '{"marketTrends":"", "valuationInsights":"", "recommendedAdjustments":""}';
+    // Handle null content with appropriate default structure based on request type
+    const defaultResponse = isDetailedRequest 
+      ? '{"propertyDetails":{"yearBuilt":null,"squareFeet":null,"bedrooms":null,"bathrooms":null,"lotSize":null,"propertyType":null,"features":[],"condition":null,"qualityRating":null},"valuationInsights":"","estimatedValue":null}' 
+      : '{"marketTrends":"", "valuationInsights":"", "recommendedAdjustments":""}';
+    
+    const content = response.choices[0].message.content ?? defaultResponse;
     const result = JSON.parse(content);
     
-    return {
-      marketTrends: result.marketTrends || "No market trend analysis available",
-      valuationInsights: result.valuationInsights || "No valuation insights available",
-      recommendedAdjustments: result.recommendedAdjustments || "No adjustment recommendations available"
-    };
+    // Create a standardized response object based on request type
+    if (isDetailedRequest) {
+      return {
+        marketTrends: result.marketTrends || "",
+        valuationInsights: result.valuationInsights || result.description || "Typical property for the area with standard features.",
+        recommendedAdjustments: result.recommendedAdjustments || "",
+        propertyDetails: {
+          yearBuilt: result.propertyDetails?.yearBuilt || result.yearBuilt,
+          squareFeet: result.propertyDetails?.squareFeet || result.squareFeet || result.grossLivingArea,
+          bedrooms: result.propertyDetails?.bedrooms || result.bedrooms,
+          bathrooms: result.propertyDetails?.bathrooms || result.bathrooms,
+          lotSize: result.propertyDetails?.lotSize || result.lotSize,
+          propertyType: result.propertyDetails?.propertyType || result.propertyType || propertyData.propertyType,
+          features: result.propertyDetails?.features || result.features || [],
+          condition: result.propertyDetails?.condition || result.condition,
+          qualityRating: result.propertyDetails?.qualityRating || result.quality
+        }
+      };
+    } else {
+      return {
+        marketTrends: result.marketTrends || "No market trend analysis available",
+        valuationInsights: result.valuationInsights || "No valuation insights available",
+        recommendedAdjustments: result.recommendedAdjustments || "No adjustment recommendations available"
+      };
+    }
   } catch (error) {
     console.error("Error analyzing property:", error);
     throw new Error("Failed to analyze property with AI");
