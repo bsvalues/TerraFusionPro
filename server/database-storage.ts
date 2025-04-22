@@ -9,7 +9,13 @@ import {
   complianceChecks, ComplianceCheck, InsertComplianceCheck,
   adjustmentModels, AdjustmentModel, InsertAdjustmentModel,
   modelAdjustments, ModelAdjustment, InsertModelAdjustment,
-  marketAnalysis, MarketAnalysis, InsertMarketAnalysis
+  marketAnalysis, MarketAnalysis, InsertMarketAnalysis,
+  userPreferences, UserPreference, InsertUserPreference,
+  adjustmentTemplates, AdjustmentTemplate, InsertAdjustmentTemplate,
+  adjustmentRules, AdjustmentRule, InsertAdjustmentRule,
+  adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
+  collaborationComments, CollaborationComment, InsertCollaborationComment,
+  marketData, MarketData, InsertMarketData
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
@@ -389,6 +395,265 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error("Error deleting market analysis:", error);
+      return false;
+    }
+  }
+  
+  // User Preference operations
+  async getUserPreference(id: number): Promise<UserPreference | undefined> {
+    const [preference] = await db.select().from(userPreferences).where(eq(userPreferences.id, id));
+    return preference;
+  }
+
+  async getUserPreferencesByUser(userId: number): Promise<UserPreference[]> {
+    return await db.select().from(userPreferences).where(eq(userPreferences.userId, userId));
+  }
+
+  async getUserPreferenceByName(userId: number, preferenceName: string): Promise<UserPreference | undefined> {
+    const [preference] = await db.select().from(userPreferences).where(
+      and(
+        eq(userPreferences.userId, userId),
+        eq(userPreferences.preferenceName, preferenceName)
+      )
+    );
+    return preference;
+  }
+
+  async createUserPreference(preference: InsertUserPreference): Promise<UserPreference> {
+    const [createdPreference] = await db.insert(userPreferences).values(preference).returning();
+    return createdPreference;
+  }
+
+  async updateUserPreference(id: number, preference: Partial<InsertUserPreference>): Promise<UserPreference | undefined> {
+    const [updatedPreference] = await db
+      .update(userPreferences)
+      .set({...preference, updatedAt: new Date()})
+      .where(eq(userPreferences.id, id))
+      .returning();
+    return updatedPreference;
+  }
+
+  async deleteUserPreference(id: number): Promise<boolean> {
+    try {
+      await db.delete(userPreferences).where(eq(userPreferences.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting user preference:", error);
+      return false;
+    }
+  }
+  
+  // Adjustment Template operations
+  async getAdjustmentTemplate(id: number): Promise<AdjustmentTemplate | undefined> {
+    const [template] = await db.select().from(adjustmentTemplates).where(eq(adjustmentTemplates.id, id));
+    return template;
+  }
+
+  async getAdjustmentTemplatesByUser(userId: number): Promise<AdjustmentTemplate[]> {
+    return await db.select().from(adjustmentTemplates).where(eq(adjustmentTemplates.userId, userId));
+  }
+
+  async getPublicAdjustmentTemplates(): Promise<AdjustmentTemplate[]> {
+    return await db.select().from(adjustmentTemplates).where(eq(adjustmentTemplates.isPublic, true));
+  }
+
+  async getAdjustmentTemplatesByPropertyType(propertyType: string): Promise<AdjustmentTemplate[]> {
+    return await db.select().from(adjustmentTemplates).where(eq(adjustmentTemplates.propertyType, propertyType));
+  }
+
+  async createAdjustmentTemplate(template: InsertAdjustmentTemplate): Promise<AdjustmentTemplate> {
+    const [createdTemplate] = await db.insert(adjustmentTemplates).values(template).returning();
+    return createdTemplate;
+  }
+
+  async updateAdjustmentTemplate(id: number, template: Partial<InsertAdjustmentTemplate>): Promise<AdjustmentTemplate | undefined> {
+    const [updatedTemplate] = await db
+      .update(adjustmentTemplates)
+      .set({...template, updatedAt: new Date()})
+      .where(eq(adjustmentTemplates.id, id))
+      .returning();
+    return updatedTemplate;
+  }
+
+  async deleteAdjustmentTemplate(id: number): Promise<boolean> {
+    try {
+      await db.delete(adjustmentTemplates).where(eq(adjustmentTemplates.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting adjustment template:", error);
+      return false;
+    }
+  }
+  
+  // Adjustment Rule operations
+  async getAdjustmentRule(id: number): Promise<AdjustmentRule | undefined> {
+    const [rule] = await db.select().from(adjustmentRules).where(eq(adjustmentRules.id, id));
+    return rule;
+  }
+
+  async getAdjustmentRulesByUser(userId: number): Promise<AdjustmentRule[]> {
+    return await db.select().from(adjustmentRules).where(eq(adjustmentRules.userId, userId));
+  }
+
+  async getAdjustmentRulesByModel(modelId: number): Promise<AdjustmentRule[]> {
+    return await db.select().from(adjustmentRules).where(eq(adjustmentRules.modelId, modelId));
+  }
+
+  async getActiveAdjustmentRules(userId: number): Promise<AdjustmentRule[]> {
+    return await db.select().from(adjustmentRules).where(
+      and(
+        eq(adjustmentRules.userId, userId),
+        eq(adjustmentRules.isActive, true)
+      )
+    );
+  }
+
+  async createAdjustmentRule(rule: InsertAdjustmentRule): Promise<AdjustmentRule> {
+    const [createdRule] = await db.insert(adjustmentRules).values(rule).returning();
+    return createdRule;
+  }
+
+  async updateAdjustmentRule(id: number, rule: Partial<InsertAdjustmentRule>): Promise<AdjustmentRule | undefined> {
+    const [updatedRule] = await db
+      .update(adjustmentRules)
+      .set({...rule, updatedAt: new Date()})
+      .where(eq(adjustmentRules.id, id))
+      .returning();
+    return updatedRule;
+  }
+
+  async deleteAdjustmentRule(id: number): Promise<boolean> {
+    try {
+      await db.delete(adjustmentRules).where(eq(adjustmentRules.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting adjustment rule:", error);
+      return false;
+    }
+  }
+  
+  // Adjustment History operations
+  async getAdjustmentHistory(id: number): Promise<AdjustmentHistory | undefined> {
+    const [history] = await db.select().from(adjustmentHistory).where(eq(adjustmentHistory.id, id));
+    return history;
+  }
+
+  async getAdjustmentHistoryByUser(userId: number): Promise<AdjustmentHistory[]> {
+    return await db.select().from(adjustmentHistory).where(eq(adjustmentHistory.userId, userId));
+  }
+
+  async getAdjustmentHistoryByAdjustment(adjustmentId: number): Promise<AdjustmentHistory[]> {
+    return await db.select().from(adjustmentHistory).where(eq(adjustmentHistory.adjustmentId, adjustmentId));
+  }
+
+  async getAdjustmentHistoryByModelAdjustment(modelAdjustmentId: number): Promise<AdjustmentHistory[]> {
+    return await db.select().from(adjustmentHistory).where(eq(adjustmentHistory.modelAdjustmentId, modelAdjustmentId));
+  }
+
+  async createAdjustmentHistory(history: InsertAdjustmentHistory): Promise<AdjustmentHistory> {
+    const [createdHistory] = await db.insert(adjustmentHistory).values(history).returning();
+    return createdHistory;
+  }
+  
+  // Collaboration Comment operations
+  async getCollaborationComment(id: number): Promise<CollaborationComment | undefined> {
+    const [comment] = await db.select().from(collaborationComments).where(eq(collaborationComments.id, id));
+    return comment;
+  }
+
+  async getCollaborationCommentsByReport(reportId: number): Promise<CollaborationComment[]> {
+    return await db.select().from(collaborationComments).where(eq(collaborationComments.reportId, reportId));
+  }
+
+  async getCollaborationCommentsByComparable(comparableId: number): Promise<CollaborationComment[]> {
+    return await db.select().from(collaborationComments).where(eq(collaborationComments.comparableId, comparableId));
+  }
+
+  async getCollaborationCommentsByAdjustment(adjustmentId: number): Promise<CollaborationComment[]> {
+    return await db.select().from(collaborationComments).where(eq(collaborationComments.adjustmentId, adjustmentId));
+  }
+
+  async getCollaborationCommentsByModel(modelId: number): Promise<CollaborationComment[]> {
+    return await db.select().from(collaborationComments).where(eq(collaborationComments.modelId, modelId));
+  }
+
+  async getCollaborationCommentsByModelAdjustment(modelAdjustmentId: number): Promise<CollaborationComment[]> {
+    return await db.select().from(collaborationComments).where(eq(collaborationComments.modelAdjustmentId, modelAdjustmentId));
+  }
+
+  async getCollaborationCommentsByStatus(status: string): Promise<CollaborationComment[]> {
+    return await db.select().from(collaborationComments).where(eq(collaborationComments.status, status));
+  }
+
+  async createCollaborationComment(comment: InsertCollaborationComment): Promise<CollaborationComment> {
+    const [createdComment] = await db.insert(collaborationComments).values(comment).returning();
+    return createdComment;
+  }
+
+  async updateCollaborationComment(id: number, comment: Partial<InsertCollaborationComment>): Promise<CollaborationComment | undefined> {
+    const [updatedComment] = await db
+      .update(collaborationComments)
+      .set({...comment, updatedAt: new Date()})
+      .where(eq(collaborationComments.id, id))
+      .returning();
+    return updatedComment;
+  }
+
+  async deleteCollaborationComment(id: number): Promise<boolean> {
+    try {
+      await db.delete(collaborationComments).where(eq(collaborationComments.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting collaboration comment:", error);
+      return false;
+    }
+  }
+  
+  // Market Data operations
+  async getMarketData(id: number): Promise<MarketData | undefined> {
+    const [data] = await db.select().from(marketData).where(eq(marketData.id, id));
+    return data;
+  }
+
+  async getMarketDataByRegion(region: string): Promise<MarketData[]> {
+    return await db.select().from(marketData).where(eq(marketData.region, region));
+  }
+
+  async getMarketDataByType(dataType: string): Promise<MarketData[]> {
+    return await db.select().from(marketData).where(eq(marketData.dataType, dataType));
+  }
+
+  async getMarketDataByRegionAndType(region: string, dataType: string): Promise<MarketData[]> {
+    return await db.select().from(marketData).where(
+      and(
+        eq(marketData.region, region),
+        eq(marketData.dataType, dataType)
+      )
+    );
+  }
+
+  async getMarketDataByDateRange(startDate: Date, endDate: Date): Promise<MarketData[]> {
+    return await db.select().from(marketData).where(
+      and(
+        // @ts-ignore - datePoint is a date column even though TypeScript thinks it's not
+        db.sql`${marketData.datePoint} >= ${startDate}`,
+        // @ts-ignore
+        db.sql`${marketData.datePoint} <= ${endDate}`
+      )
+    );
+  }
+
+  async createMarketData(data: InsertMarketData): Promise<MarketData> {
+    const [createdData] = await db.insert(marketData).values(data).returning();
+    return createdData;
+  }
+
+  async deleteMarketData(id: number): Promise<boolean> {
+    try {
+      await db.delete(marketData).where(eq(marketData.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting market data:", error);
       return false;
     }
   }

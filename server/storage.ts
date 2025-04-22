@@ -9,7 +9,13 @@ import {
   complianceChecks, ComplianceCheck, InsertComplianceCheck,
   adjustmentModels, AdjustmentModel, InsertAdjustmentModel,
   modelAdjustments, ModelAdjustment, InsertModelAdjustment,
-  marketAnalysis, MarketAnalysis, InsertMarketAnalysis
+  marketAnalysis, MarketAnalysis, InsertMarketAnalysis,
+  userPreferences, UserPreference, InsertUserPreference,
+  adjustmentTemplates, AdjustmentTemplate, InsertAdjustmentTemplate,
+  adjustmentRules, AdjustmentRule, InsertAdjustmentRule,
+  adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
+  collaborationComments, CollaborationComment, InsertCollaborationComment,
+  marketData, MarketData, InsertMarketData
 } from "@shared/schema";
 
 // Extend the storage interface to support all our models
@@ -91,6 +97,60 @@ export interface IStorage {
   createMarketAnalysis(analysis: InsertMarketAnalysis): Promise<MarketAnalysis>;
   updateMarketAnalysis(id: number, analysis: Partial<InsertMarketAnalysis>): Promise<MarketAnalysis | undefined>;
   deleteMarketAnalysis(id: number): Promise<boolean>;
+  
+  // User Preference operations
+  getUserPreference(id: number): Promise<UserPreference | undefined>;
+  getUserPreferencesByUser(userId: number): Promise<UserPreference[]>;
+  getUserPreferenceByName(userId: number, preferenceName: string): Promise<UserPreference | undefined>;
+  createUserPreference(preference: InsertUserPreference): Promise<UserPreference>;
+  updateUserPreference(id: number, preference: Partial<InsertUserPreference>): Promise<UserPreference | undefined>;
+  deleteUserPreference(id: number): Promise<boolean>;
+  
+  // Adjustment Template operations
+  getAdjustmentTemplate(id: number): Promise<AdjustmentTemplate | undefined>;
+  getAdjustmentTemplatesByUser(userId: number): Promise<AdjustmentTemplate[]>;
+  getPublicAdjustmentTemplates(): Promise<AdjustmentTemplate[]>;
+  getAdjustmentTemplatesByPropertyType(propertyType: string): Promise<AdjustmentTemplate[]>;
+  createAdjustmentTemplate(template: InsertAdjustmentTemplate): Promise<AdjustmentTemplate>;
+  updateAdjustmentTemplate(id: number, template: Partial<InsertAdjustmentTemplate>): Promise<AdjustmentTemplate | undefined>;
+  deleteAdjustmentTemplate(id: number): Promise<boolean>;
+  
+  // Adjustment Rule operations
+  getAdjustmentRule(id: number): Promise<AdjustmentRule | undefined>;
+  getAdjustmentRulesByUser(userId: number): Promise<AdjustmentRule[]>;
+  getAdjustmentRulesByModel(modelId: number): Promise<AdjustmentRule[]>;
+  getActiveAdjustmentRules(userId: number): Promise<AdjustmentRule[]>;
+  createAdjustmentRule(rule: InsertAdjustmentRule): Promise<AdjustmentRule>;
+  updateAdjustmentRule(id: number, rule: Partial<InsertAdjustmentRule>): Promise<AdjustmentRule | undefined>;
+  deleteAdjustmentRule(id: number): Promise<boolean>;
+  
+  // Adjustment History operations
+  getAdjustmentHistory(id: number): Promise<AdjustmentHistory | undefined>;
+  getAdjustmentHistoryByUser(userId: number): Promise<AdjustmentHistory[]>;
+  getAdjustmentHistoryByAdjustment(adjustmentId: number): Promise<AdjustmentHistory[]>;
+  getAdjustmentHistoryByModelAdjustment(modelAdjustmentId: number): Promise<AdjustmentHistory[]>;
+  createAdjustmentHistory(history: InsertAdjustmentHistory): Promise<AdjustmentHistory>;
+  
+  // Collaboration Comment operations
+  getCollaborationComment(id: number): Promise<CollaborationComment | undefined>;
+  getCollaborationCommentsByReport(reportId: number): Promise<CollaborationComment[]>;
+  getCollaborationCommentsByComparable(comparableId: number): Promise<CollaborationComment[]>;
+  getCollaborationCommentsByAdjustment(adjustmentId: number): Promise<CollaborationComment[]>;
+  getCollaborationCommentsByModel(modelId: number): Promise<CollaborationComment[]>;
+  getCollaborationCommentsByModelAdjustment(modelAdjustmentId: number): Promise<CollaborationComment[]>;
+  getCollaborationCommentsByStatus(status: string): Promise<CollaborationComment[]>;
+  createCollaborationComment(comment: InsertCollaborationComment): Promise<CollaborationComment>;
+  updateCollaborationComment(id: number, comment: Partial<InsertCollaborationComment>): Promise<CollaborationComment | undefined>;
+  deleteCollaborationComment(id: number): Promise<boolean>;
+  
+  // Market Data operations
+  getMarketData(id: number): Promise<MarketData | undefined>;
+  getMarketDataByRegion(region: string): Promise<MarketData[]>;
+  getMarketDataByType(dataType: string): Promise<MarketData[]>;
+  getMarketDataByRegionAndType(region: string, dataType: string): Promise<MarketData[]>;
+  getMarketDataByDateRange(startDate: Date, endDate: Date): Promise<MarketData[]>;
+  createMarketData(data: InsertMarketData): Promise<MarketData>;
+  deleteMarketData(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {

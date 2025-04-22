@@ -494,6 +494,7 @@ export const appraisalReportsRelations = relations(appraisalReports, ({ one, man
   complianceChecks: many(complianceChecks),
   adjustmentModels: many(adjustmentModels),
   marketAnalysis: many(marketAnalysis),
+  collaborationComments: many(collaborationComments),
 }));
 
 export const comparablesRelations = relations(comparables, ({ one, many }) => ({
@@ -566,6 +567,78 @@ export const marketAnalysisRelations = relations(marketAnalysis, ({ one }) => ({
   }),
 }));
 
+// Relations for user preferences
+export const userPreferencesRelations = relations(userPreferences, ({ one }) => ({
+  user: one(users, {
+    fields: [userPreferences.userId],
+    references: [users.id],
+  }),
+}));
+
+// Relations for adjustment templates
+export const adjustmentTemplatesRelations = relations(adjustmentTemplates, ({ one }) => ({
+  user: one(users, {
+    fields: [adjustmentTemplates.userId],
+    references: [users.id],
+  }),
+}));
+
+// Relations for adjustment rules
+export const adjustmentRulesRelations = relations(adjustmentRules, ({ one }) => ({
+  user: one(users, {
+    fields: [adjustmentRules.userId],
+    references: [users.id],
+  }),
+  model: one(adjustmentModels, {
+    fields: [adjustmentRules.modelId],
+    references: [adjustmentModels.id],
+  }),
+}));
+
+// Relations for adjustment history
+export const adjustmentHistoryRelations = relations(adjustmentHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [adjustmentHistory.userId],
+    references: [users.id],
+  }),
+  adjustment: one(adjustments, {
+    fields: [adjustmentHistory.adjustmentId],
+    references: [adjustments.id],
+  }),
+  modelAdjustment: one(modelAdjustments, {
+    fields: [adjustmentHistory.modelAdjustmentId],
+    references: [modelAdjustments.id],
+  }),
+}));
+
+// Relations for collaboration comments
+export const collaborationCommentsRelations = relations(collaborationComments, ({ one }) => ({
+  user: one(users, {
+    fields: [collaborationComments.userId],
+    references: [users.id],
+  }),
+  report: one(appraisalReports, {
+    fields: [collaborationComments.reportId],
+    references: [appraisalReports.id],
+  }),
+  comparable: one(comparables, {
+    fields: [collaborationComments.comparableId],
+    references: [comparables.id],
+  }),
+  adjustment: one(adjustments, {
+    fields: [collaborationComments.adjustmentId],
+    references: [adjustments.id],
+  }),
+  model: one(adjustmentModels, {
+    fields: [collaborationComments.modelId],
+    references: [adjustmentModels.id],
+  }),
+  modelAdjustment: one(modelAdjustments, {
+    fields: [collaborationComments.modelAdjustmentId],
+    references: [modelAdjustments.id],
+  }),
+}));
+
 // Export all types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -600,3 +673,22 @@ export type InsertModelAdjustment = z.infer<typeof insertModelAdjustmentSchema>;
 
 export type MarketAnalysis = typeof marketAnalysis.$inferSelect;
 export type InsertMarketAnalysis = z.infer<typeof insertMarketAnalysisSchema>;
+
+// New types for user preferences and templates
+export type UserPreference = typeof userPreferences.$inferSelect;
+export type InsertUserPreference = z.infer<typeof insertUserPreferenceSchema>;
+
+export type AdjustmentTemplate = typeof adjustmentTemplates.$inferSelect;
+export type InsertAdjustmentTemplate = z.infer<typeof insertAdjustmentTemplateSchema>;
+
+export type AdjustmentRule = typeof adjustmentRules.$inferSelect;
+export type InsertAdjustmentRule = z.infer<typeof insertAdjustmentRuleSchema>;
+
+export type AdjustmentHistory = typeof adjustmentHistory.$inferSelect;
+export type InsertAdjustmentHistory = z.infer<typeof insertAdjustmentHistorySchema>;
+
+export type CollaborationComment = typeof collaborationComments.$inferSelect;
+export type InsertCollaborationComment = z.infer<typeof insertCollaborationCommentSchema>;
+
+export type MarketData = typeof marketData.$inferSelect;
+export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
