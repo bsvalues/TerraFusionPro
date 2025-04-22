@@ -1,7 +1,7 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertUserSchema, insertPropertySchema, insertAppraisalReportSchema, insertComparableSchema, insertAdjustmentSchema, insertPhotoSchema, insertSketchSchema, insertComplianceCheckSchema, insertAdjustmentModelSchema, insertModelAdjustmentSchema, insertMarketAnalysisSchema } from "@shared/schema";
+import { insertUserSchema, insertPropertySchema, insertAppraisalReportSchema, insertComparableSchema, insertAdjustmentSchema, insertPhotoSchema, insertSketchSchema, insertComplianceCheckSchema, insertAdjustmentModelSchema, insertModelAdjustmentSchema, insertMarketAnalysisSchema, insertUserPreferenceSchema, insertAdjustmentTemplateSchema, insertAdjustmentRuleSchema, insertAdjustmentHistorySchema, insertCollaborationCommentSchema, insertMarketDataSchema } from "@shared/schema";
 import { z } from "zod";
 import { generatePDF } from "./lib/pdf-generator";
 import { generateMismoXML } from "./lib/mismo";
