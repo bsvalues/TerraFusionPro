@@ -6,13 +6,14 @@
  * as well as custom and narrative appraisal reports.
  */
 
-import * as pdfjsLib from 'pdfjs-dist';
+// Import PDF.js for Node.js environment
+// Using v2.16.105 which has proper Node.js support via the legacy build
+import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.js';
 import { identifyAppraisalData } from './index';
 import { Property, InsertProperty, Report, InsertReport, Comparable, InsertComparable } from '../types';
 
-// Initialize PDF.js
-// @ts-ignore - Path issues with PDF.js imports
-pdfjsLib.GlobalWorkerOptions.workerSrc = '../../node_modules/pdfjs-dist/build/pdf.worker.js';
+// NodeJS doesn't need worker initialization
+const pdfjsLibNodejs = pdfjsLib;
 
 /**
  * Extract data from PDF appraisal reports

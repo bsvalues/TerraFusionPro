@@ -1,154 +1,140 @@
 /**
- * File Parsers
+ * File Parser Index
  * 
- * This module contains file parsers for different appraisal report formats:
- * - PDF
- * - XML (MISMO)
- * - CSV
- * - JSON
- * - Work files
- * 
- * Each parser extracts structured data from different file formats and
- * normalizes it to match our database schema.
+ * This module provides a central interface for parsing different file formats.
+ * It identifies the file type and delegates to the appropriate parser.
  */
 
-import { extractFromPDF } from './pdf-parser';
-import { extractFromMismoXML } from './mismo-xml-parser';
-import { extractFromCSV } from './csv-parser';
-import { extractFromJSON } from './json-parser';
-import { extractFromWorkFile } from './work-file-parser';
+import { ParseResult, FileParser } from '../types';
 
-// Supported file types
-export const SUPPORTED_FILE_TYPES = [
-  'application/pdf',
-  'application/xml',
-  'text/xml',
-  'text/csv',
-  'application/vnd.ms-excel',
-  'application/json',
-  'application/octet-stream', // For various work file formats
-];
+/**
+ * Collection of file parsers
+ */
+const parsers: FileParser[] = [];
 
-// Main parser function that routes to the appropriate format-specific parser
-export async function parseAppraisalFile(
-  fileBuffer: Buffer, 
-  fileName: string, 
-  fileType: string
-): Promise<{
-  properties: any[],
-  comparables: any[],
-  reports: any[],
-  errors: string[],
-  warnings: string[],
-  format: string
-}> {
-  try {
-    console.log(`Parsing file: ${fileName} (${fileType})`);
-    
-    // Determine file format and route to appropriate parser
-    if (fileType === 'application/pdf' || fileName.toLowerCase().endsWith('.pdf')) {
-      return await extractFromPDF(fileBuffer, fileName);
-    }
-    else if (
-      fileType === 'application/xml' || 
-      fileType === 'text/xml' || 
-      fileName.toLowerCase().endsWith('.xml')
-    ) {
-      // Check if it's a MISMO XML format
-      return await extractFromMismoXML(fileBuffer, fileName);
-    }
-    else if (
-      fileType === 'text/csv' || 
-      fileType === 'application/vnd.ms-excel' || 
-      fileName.toLowerCase().endsWith('.csv')
-    ) {
-      return await extractFromCSV(fileBuffer, fileName);
-    }
-    else if (
-      fileType === 'application/json' || 
-      fileName.toLowerCase().endsWith('.json')
-    ) {
-      return await extractFromJSON(fileBuffer, fileName);
-    }
-    else if (
-      // Check for various work file extensions
-      fileName.toLowerCase().endsWith('.aci') ||
-      fileName.toLowerCase().endsWith('.zap') ||
-      fileName.toLowerCase().endsWith('.env') ||
-      fileName.toLowerCase().endsWith('.xml') ||
-      fileName.toLowerCase().endsWith('.alamode') ||
-      fileName.toLowerCase().endsWith('.formnet')
-    ) {
-      return await extractFromWorkFile(fileBuffer, fileName);
-    }
-    else {
-      throw new Error(`Unsupported file format: ${fileType}`);
-    }
-  } catch (error) {
-    console.error(`Error parsing file: ${error}`);
-    return {
-      properties: [],
-      comparables: [],
-      reports: [],
-      errors: [`Failed to parse file: ${error.message || 'Unknown error'}`],
-      warnings: [],
-      format: fileType
-    };
+/**
+ * Identifies the format of the file and delegates to the appropriate parser
+ */
+export async function identifyAppraisalData(
+  fileBuffer: Buffer,
+  fileName: string,
+  mimeType: string = ''
+): Promise<ParseResult> {
+  // If no mime type is provided, try to infer from filename
+  if (!mimeType) {
+    mimeType = inferMimeType(fileName);
   }
+
+  console.log(`Identifying file type: ${fileName} (${mimeType})`);
+  
+  // Check if we have a parser that can handle this file
+  for (const parser of parsers) {
+    if (parser.canParse(fileName, mimeType)) {
+      try {
+        // Parse using the appropriate parser
+        console.log(`Using parser for file: ${fileName}`);
+        return await parser.parse(fileBuffer, fileName);
+      } catch (error) {
+        console.error(`Error in parser: ${error}`);
+        return createErrorResult(`Parsing error: ${error instanceof Error ? error.message : 'Unknown error'}`, fileName, mimeType);
+      }
+    }
+  }
+
+  // No suitable parser found
+  console.warn(`No suitable parser found for file: ${fileName} (${mimeType})`);
+  return createErrorResult(`Unsupported file format: ${mimeType || 'unknown'}`, fileName, mimeType);
 }
 
-// Utility function to identify appraisal-related data in unstructured text
-export function identifyAppraisalData(text: string): {
-  addresses: string[],
-  propertyTypes: string[],
-  valuations: number[],
-  dates: string[]
-} {
-  const addresses: string[] = [];
-  const propertyTypes: string[] = [];
-  const valuations: number[] = [];
-  const dates: string[] = [];
-
-  // Address detection - look for patterns like street numbers followed by street names
-  // and city, state, zip combinations
-  const addressRegex = /\b\d+\s+[A-Za-z0-9\s\.,]+(?:Road|Rd|Street|St|Avenue|Ave|Lane|Ln|Drive|Dr|Circle|Cir|Boulevard|Blvd|Highway|Hwy|Court|Ct|Place|Pl|Terrace|Ter|Way)[,\s]+[A-Za-z\s]+[,\s]+[A-Z]{2}[,\s]+\d{5}(?:-\d{4})?\b/gi;
-  const addressMatches = text.match(addressRegex) || [];
-  addresses.push(...addressMatches);
-
-  // Property type detection
-  const propertyTypeRegex = /\b(?:Single Family|Condominium|Condo|Townhouse|Multi-Family|Duplex|Triplex|Fourplex|PUD|Manufactured Home|Mobile Home|Vacant Land)\b/gi;
-  const propertyTypeMatches = text.match(propertyTypeRegex) || [];
-  propertyTypes.push(...propertyTypeMatches);
-
-  // Valuation detection - look for dollar amounts, especially in contexts like "appraised value", "market value", etc.
-  const valuationRegex = /\$\s*(\d{1,3}(?:,\d{3})*(?:\.\d{2})?)/g;
-  const valuationMatches = text.match(valuationRegex) || [];
-  valuationMatches.forEach(match => {
-    // Clean up and convert to number
-    const value = Number(match.replace(/[$,]/g, ''));
-    if (!isNaN(value) && value > 10000) { // Filter out small dollar amounts
-      valuations.push(value);
-    }
-  });
-
-  // Date detection
-  const dateRegex = /\b\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4}\b|\b(?:January|February|March|April|May|June|July|August|September|October|November|December)\s+\d{1,2},\s+\d{4}\b/gi;
-  const dateMatches = text.match(dateRegex) || [];
-  dates.push(...dateMatches);
-
+/**
+ * Creates an error result when parsing fails
+ */
+function createErrorResult(errorMessage: string, fileName: string, mimeType: string): ParseResult {
   return {
-    addresses,
-    propertyTypes,
-    valuations,
-    dates
+    properties: [],
+    comparables: [],
+    reports: [],
+    adjustments: [],
+    errors: [errorMessage],
+    warnings: [],
+    format: getFormatFromMime(mimeType) || 'unknown'
   };
 }
 
-// Export all parsers for direct access if needed
-export {
-  extractFromPDF,
-  extractFromMismoXML,
-  extractFromCSV,
-  extractFromJSON,
-  extractFromWorkFile
-};
+/**
+ * Convert mime type to friendly format name
+ */
+function getFormatFromMime(mimeType: string): string {
+  if (!mimeType) return 'unknown';
+  
+  const mimeMap: Record<string, string> = {
+    'application/pdf': 'PDF',
+    'text/xml': 'XML',
+    'application/xml': 'XML',
+    'text/csv': 'CSV',
+    'application/json': 'JSON',
+    'application/vnd.mismo.residential-v2': 'MISMO XML',
+    'application/octet-stream': 'Binary'
+  };
+  
+  return mimeMap[mimeType] || mimeType;
+}
+
+/**
+ * Infer mime type from file extension
+ */
+function inferMimeType(fileName: string): string {
+  const extension = fileName.split('.').pop()?.toLowerCase() || '';
+  
+  const extensionMap: Record<string, string> = {
+    'pdf': 'application/pdf',
+    'xml': 'application/xml',
+    'csv': 'text/csv',
+    'json': 'application/json',
+    'txt': 'text/plain',
+    'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+    'doc': 'application/msword',
+    'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+    'xls': 'application/vnd.ms-excel',
+    'alf': 'application/octet-stream', // ACI appraisal file
+    'zap': 'application/octet-stream', // a.la.mode appraisal file
+  };
+  
+  return extensionMap[extension] || 'application/octet-stream';
+}
+
+/**
+ * Register all parser modules. Each parser should provide:
+ * - canParse: function to determine if the parser can handle the file
+ * - parse: function to extract data from the file
+ */
+export function registerParser(parser: FileParser): void {
+  parsers.push(parser);
+}
+
+/**
+ * Extract comparable sales data from text
+ * This is a helper function used by multiple parsers
+ */
+export function extractComparableSales(
+  text: string,
+  comparables: any[]
+): void {
+  // Implementation will depend on the specific format being parsed
+  // This will be expanded as parsers are developed
+}
+
+// Register built-in parsers
+// These lines will be uncommented and the parsers will be implemented as development progresses
+// 
+// import { pdfParser } from './pdf-parser';
+// import { xmlParser } from './mismo-xml-parser';
+// import { csvParser } from './csv-parser';
+// import { jsonParser } from './json-parser';
+// import { workFileParser } from './work-file-parser';
+// 
+// registerParser(pdfParser);
+// registerParser(xmlParser);
+// registerParser(csvParser);
+// registerParser(jsonParser);
+// registerParser(workFileParser);

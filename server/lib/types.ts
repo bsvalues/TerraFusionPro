@@ -1,60 +1,120 @@
 /**
- * Type definitions for file import module
+ * Type definitions for the file import and parser modules
  */
 
-import { Partial as PartialType } from 'utility-types';
-import { 
-  User, InsertUser,
-  Property, InsertProperty, 
-  AppraisalReport, InsertAppraisalReport, 
-  Comparable, InsertComparable,
-  Adjustment, InsertAdjustment
-} from '@shared/schema';
-
-export {
-  User, InsertUser,
-  Property, InsertProperty,
-  AppraisalReport as Report, InsertAppraisalReport as InsertReport,
-  Comparable, InsertComparable,
-  Adjustment, InsertAdjustment
-};
+import { InsertProperty, InsertComparable, InsertAppraisalReport, InsertAdjustment, Json } from "@shared/schema";
 
 /**
- * File upload results
+ * Represents the result of a file parsing operation
  */
-export interface FileUploadResult {
-  uploadId: string;
-  fileName: string;
-  fileType: string;
-  fileSize: number;
-  uploadDate: Date;
-  status: 'uploaded' | 'processing' | 'completed' | 'failed';
+export interface ParseResult {
+  properties: Partial<InsertProperty>[];
+  comparables: Partial<InsertComparable>[];
+  reports: Partial<InsertAppraisalReport>[];
+  adjustments?: Partial<InsertAdjustment>[];
+  errors: string[];
+  warnings: string[];
+  format: string;
 }
 
 /**
- * File import processing results
+ * Represents a file parser
  */
-export interface FileImportResult {
+export interface FileParser {
+  canParse: (fileName: string, mimeType: string) => boolean;
+  parse: (fileBuffer: Buffer, fileName: string) => Promise<ParseResult>;
+}
+
+/**
+ * Represents the metadata for a file upload
+ */
+export interface FileUploadMetadata {
   id: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  path: string;
+  createdAt: Date;
+}
+
+/**
+ * Represents the result of a file import operation including related entities
+ */
+export interface ImportResult {
   fileId: string;
   fileName: string;
   format: string;
+  status: 'success' | 'partial' | 'failed';
   dateProcessed: Date;
   importedEntities: {
-    properties: number;
-    comparables: number;
-    reports: number;
+    properties: number[];
+    comparables: number[];
+    reports: number[];
+    adjustments: number[];
   };
-  status: 'success' | 'partial' | 'failed';
-  errors?: string[];
-  warnings?: string[];
+  errors: string[];
+  warnings: string[];
 }
 
 /**
- * Mapping for processed entities
+ * Property data extracted from a file
  */
-export interface EntityMappings {
-  propertyIdMap: Map<number, number>; // Temporary ID -> Database ID
-  reportIdMap: Map<number, number>; // Temporary ID -> Database ID
-  comparableIdMap: Map<number, number>; // Temporary ID -> Database ID
+export interface PropertyData {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  propertyType: string;
+  yearBuilt?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  grossLivingArea?: number;
+  lotSize?: number;
+  quality?: string;
+  condition?: string;
+  features?: string[];
+  // Additional property fields can be added as needed
+}
+
+/**
+ * Report data extracted from a file
+ */
+export interface ReportData {
+  reportType: string;
+  formType: string;
+  purpose: string;
+  effectiveDate?: Date;
+  marketValue?: number;
+  // Additional report fields can be added as needed
+}
+
+/**
+ * Comparable property data extracted from a file
+ */
+export interface ComparableData {
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  propertyType: string;
+  salePrice?: number;
+  saleDate?: Date;
+  grossLivingArea?: number;
+  lotSize?: number;
+  yearBuilt?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  quality?: string;
+  condition?: string;
+  // Additional comparable fields can be added as needed
+}
+
+/**
+ * Adjustment data extracted from a file
+ */
+export interface AdjustmentData {
+  adjustmentType: string;
+  amount: string;
+  description?: string;
+  // Additional adjustment fields can be added as needed
 }
