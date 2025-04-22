@@ -232,13 +232,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/reports", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertAppraisalReportSchema.parse(req.body);
+      // Convert date strings to Date objects if they exist
+      const data = { ...req.body };
+      if (data.effectiveDate && typeof data.effectiveDate === 'string') {
+        try {
+          data.effectiveDate = new Date(data.effectiveDate);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid effectiveDate format" });
+        }
+      }
+      
+      if (data.reportDate && typeof data.reportDate === 'string') {
+        try {
+          data.reportDate = new Date(data.reportDate);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid reportDate format" });
+        }
+      }
+      
+      const validatedData = insertAppraisalReportSchema.parse(data);
       const newReport = await storage.createAppraisalReport(validatedData);
       res.status(201).json(newReport);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error("Error creating report:", error);
       res.status(500).json({ message: "Server error creating report" });
     }
   });
@@ -246,7 +265,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/reports/:id", async (req: Request, res: Response) => {
     try {
       const reportId = Number(req.params.id);
-      const validatedData = insertAppraisalReportSchema.partial().parse(req.body);
+      
+      // Convert date strings to Date objects if they exist
+      const data = { ...req.body };
+      if (data.effectiveDate && typeof data.effectiveDate === 'string') {
+        try {
+          data.effectiveDate = new Date(data.effectiveDate);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid effectiveDate format" });
+        }
+      }
+      
+      if (data.reportDate && typeof data.reportDate === 'string') {
+        try {
+          data.reportDate = new Date(data.reportDate);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid reportDate format" });
+        }
+      }
+      
+      const validatedData = insertAppraisalReportSchema.partial().parse(data);
       
       const updatedReport = await storage.updateAppraisalReport(reportId, validatedData);
       
@@ -259,6 +297,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error("Error updating report:", error);
       res.status(500).json({ message: "Server error updating report" });
     }
   });
@@ -291,13 +330,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/comparables", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertComparableSchema.parse(req.body);
+      // Convert date strings to Date objects if they exist
+      const data = { ...req.body };
+      if (data.saleDate && typeof data.saleDate === 'string') {
+        try {
+          data.saleDate = new Date(data.saleDate);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid saleDate format" });
+        }
+      }
+      
+      const validatedData = insertComparableSchema.parse(data);
       const newComparable = await storage.createComparable(validatedData);
       res.status(201).json(newComparable);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error("Error creating comparable:", error);
       res.status(500).json({ message: "Server error creating comparable" });
     }
   });
@@ -305,7 +355,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/comparables/:id", async (req: Request, res: Response) => {
     try {
       const comparableId = Number(req.params.id);
-      const validatedData = insertComparableSchema.partial().parse(req.body);
+      
+      // Convert date strings to Date objects if they exist
+      const data = { ...req.body };
+      if (data.saleDate && typeof data.saleDate === 'string') {
+        try {
+          data.saleDate = new Date(data.saleDate);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid saleDate format" });
+        }
+      }
+      
+      const validatedData = insertComparableSchema.partial().parse(data);
       
       const updatedComparable = await storage.updateComparable(comparableId, validatedData);
       
@@ -318,6 +379,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error("Error updating comparable:", error);
       res.status(500).json({ message: "Server error updating comparable" });
     }
   });
@@ -409,13 +471,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   app.post("/api/photos", async (req: Request, res: Response) => {
     try {
-      const validatedData = insertPhotoSchema.parse(req.body);
+      // Convert date strings to Date objects if they exist
+      const data = { ...req.body };
+      if (data.dateTaken && typeof data.dateTaken === 'string') {
+        try {
+          data.dateTaken = new Date(data.dateTaken);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid dateTaken format" });
+        }
+      }
+      
+      const validatedData = insertPhotoSchema.parse(data);
       const newPhoto = await storage.createPhoto(validatedData);
       res.status(201).json(newPhoto);
     } catch (error) {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error("Error creating photo:", error);
       res.status(500).json({ message: "Server error creating photo" });
     }
   });
@@ -423,7 +496,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.put("/api/photos/:id", async (req: Request, res: Response) => {
     try {
       const photoId = Number(req.params.id);
-      const validatedData = insertPhotoSchema.partial().parse(req.body);
+      
+      // Convert date strings to Date objects if they exist
+      const data = { ...req.body };
+      if (data.dateTaken && typeof data.dateTaken === 'string') {
+        try {
+          data.dateTaken = new Date(data.dateTaken);
+        } catch (e) {
+          return res.status(400).json({ message: "Invalid dateTaken format" });
+        }
+      }
+      
+      const validatedData = insertPhotoSchema.partial().parse(data);
       
       const updatedPhoto = await storage.updatePhoto(photoId, validatedData);
       
@@ -436,6 +520,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (error instanceof z.ZodError) {
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
+      console.error("Error updating photo:", error);
       res.status(500).json({ message: "Server error updating photo" });
     }
   });
