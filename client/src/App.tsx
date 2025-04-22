@@ -10,6 +10,7 @@ import AIValuationPage from "./pages/AIValuationPage";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import UADFormPage from "./pages/UADFormPage";
+import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 
@@ -39,6 +40,7 @@ function App() {
             <li><a href="/form" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Form clicked")}>Form</a></li>
             <li><a href="/uad-form" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("UAD Form clicked")}>UAD Form</a></li>
             <li><a href="/comps" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Comps clicked")}>Comparables</a></li>
+            <li><a href="/comparables/1" className="block p-2 rounded hover:bg-accent bg-blue-50 text-blue-700 font-medium" onClick={() => console.log("Comparable Properties clicked")}>Comparable Properties</a></li>
             <li><a href="/photos" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Photos clicked")}>Photos</a></li>
             <li><a href="/sketches" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Sketches clicked")}>Sketches</a></li>
             <li><a href="/reports" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Reports clicked")}>Reports</a></li>
@@ -63,6 +65,7 @@ function App() {
             <Route path="/property/:id" component={PropertyDataPage} />
             <Route path="/uad-form" component={UADFormPage} />
             <Route path="/uad-form/:id" component={UADFormPage} />
+            <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
