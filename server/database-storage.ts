@@ -782,8 +782,10 @@ export class DatabaseStorage implements IStorage {
       const [userAchievement] = await db
         .select()
         .from(userAchievements)
-        .where(eq(userAchievements.achievementId, achievementId))
-        .where(eq(userAchievements.userId, userId));
+        .where(and(
+          eq(userAchievements.achievementId, achievementId),
+          eq(userAchievements.userId, userId)
+        ));
       return userAchievement;
     } catch (error) {
       console.error("Error getting user achievement by achievement and user:", error);
@@ -797,8 +799,10 @@ export class DatabaseStorage implements IStorage {
         return await db
           .select()
           .from(userAchievements)
-          .where(eq(userAchievements.status, status))
-          .where(eq(userAchievements.userId, userId));
+          .where(and(
+            eq(userAchievements.status, status),
+            eq(userAchievements.userId, userId)
+          ));
       } else {
         return await db
           .select()
@@ -1065,10 +1069,16 @@ export class DatabaseStorage implements IStorage {
       const userProgressRecord = await this.getUserProgressByUser(userId);
       
       if (!userProgressRecord) {
-        return undefined;
+        // Create a new record with streak of 1
+        return await this.createUserProgress({
+          userId,
+          streakDays: 1,
+          lastActive: new Date(),
+        });
       }
       
-      const lastActive = new Date(userProgressRecord.lastActive);
+      // Handle the case where lastActive might be null
+      const lastActive = userProgressRecord.lastActive ? new Date(userProgressRecord.lastActive) : new Date(0);
       const today = new Date();
       
       // Check if last active was yesterday
@@ -1084,7 +1094,8 @@ export class DatabaseStorage implements IStorage {
                       lastActive.getMonth() === today.getMonth() &&
                       lastActive.getFullYear() === today.getFullYear();
       
-      let streakDays = userProgressRecord.streakDays;
+      // Initialize to 0 if null, otherwise use the existing value
+      let streakDays = userProgressRecord.streakDays || 0;
       
       if (isYesterday) {
         // Continue streak
@@ -1168,10 +1179,12 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(userChallenges)
-        .where(eq(userChallenges.userId, userId))
-        .where(eq(userChallenges.status, "active"))
-        .where(lte(userChallenges.startDate, now))
-        .where(gte(userChallenges.endDate, now));
+        .where(and(
+          eq(userChallenges.userId, userId),
+          eq(userChallenges.status, "active"),
+          lte(userChallenges.startDate, now),
+          gte(userChallenges.endDate, now)
+        ));
     } catch (error) {
       console.error("Error getting active challenges by user:", error);
       return [];
@@ -1184,8 +1197,10 @@ export class DatabaseStorage implements IStorage {
         return await db
           .select()
           .from(userChallenges)
-          .where(eq(userChallenges.type, type))
-          .where(eq(userChallenges.userId, userId));
+          .where(and(
+            eq(userChallenges.type, type),
+            eq(userChallenges.userId, userId)
+          ));
       } else {
         return await db
           .select()
@@ -1233,11 +1248,13 @@ export class DatabaseStorage implements IStorage {
         return undefined;
       }
       
-      const newProgress = challenge.progress + incrementBy;
+      // Initialize progress to 0 if null
+      const currentProgress = challenge.progress || 0;
+      const newProgress = currentProgress + incrementBy;
       let updatedStatus = challenge.status;
       
       // Check if challenge is now completed
-      if (newProgress >= challenge.goal && challenge.status === "active") {
+      if (newProgress >= (challenge.goal || 0) && challenge.status === "active") {
         updatedStatus = "completed";
       }
       

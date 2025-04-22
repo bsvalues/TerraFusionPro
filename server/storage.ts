@@ -15,7 +15,14 @@ import {
   adjustmentRules, AdjustmentRule, InsertAdjustmentRule,
   adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
   collaborationComments, CollaborationComment, InsertCollaborationComment,
-  marketData, MarketData, InsertMarketData
+  marketData, MarketData, InsertMarketData,
+  // Gamification system entities
+  achievementDefinitions, AchievementDefinition, InsertAchievementDefinition,
+  userAchievements, UserAchievement, InsertUserAchievement,
+  levels, Level, InsertLevel,
+  userProgress, UserProgress, InsertUserProgress,
+  userChallenges, UserChallenge, InsertUserChallenge,
+  userNotifications, UserNotification, InsertUserNotification
 } from "@shared/schema";
 
 // Extend the storage interface to support all our models
@@ -151,6 +158,62 @@ export interface IStorage {
   getMarketDataByDateRange(startDate: Date, endDate: Date): Promise<MarketData[]>;
   createMarketData(data: InsertMarketData): Promise<MarketData>;
   deleteMarketData(id: number): Promise<boolean>;
+  
+  // Achievement Definition operations
+  getAchievementDefinition(id: number): Promise<AchievementDefinition | undefined>;
+  getAchievementDefinitionsByCategory(category: string): Promise<AchievementDefinition[]>;
+  getAchievementDefinitionsByType(type: string): Promise<AchievementDefinition[]>;
+  getAllAchievementDefinitions(): Promise<AchievementDefinition[]>;
+  createAchievementDefinition(definition: InsertAchievementDefinition): Promise<AchievementDefinition>;
+  updateAchievementDefinition(id: number, definition: Partial<InsertAchievementDefinition>): Promise<AchievementDefinition | undefined>;
+  deleteAchievementDefinition(id: number): Promise<boolean>;
+  
+  // User Achievement operations
+  getUserAchievement(id: number): Promise<UserAchievement | undefined>;
+  getUserAchievementsByUser(userId: number): Promise<UserAchievement[]>;
+  getUserAchievementByAchievementAndUser(achievementId: number, userId: number): Promise<UserAchievement | undefined>;
+  getUserAchievementsByStatus(status: string, userId?: number): Promise<UserAchievement[]>;
+  createUserAchievement(achievement: InsertUserAchievement): Promise<UserAchievement>;
+  updateUserAchievement(id: number, achievement: Partial<InsertUserAchievement>): Promise<UserAchievement | undefined>;
+  deleteUserAchievement(id: number): Promise<boolean>;
+  
+  // Level operations
+  getLevel(id: number): Promise<Level | undefined>;
+  getLevelByPointThreshold(points: number): Promise<Level | undefined>;
+  getNextLevel(currentLevelId: number): Promise<Level | undefined>;
+  getAllLevels(): Promise<Level[]>;
+  createLevel(level: InsertLevel): Promise<Level>;
+  updateLevel(id: number, level: Partial<InsertLevel>): Promise<Level | undefined>;
+  deleteLevel(id: number): Promise<boolean>;
+  
+  // User Progress operations
+  getUserProgress(id: number): Promise<UserProgress | undefined>;
+  getUserProgressByUser(userId: number): Promise<UserProgress | undefined>;
+  createUserProgress(progress: InsertUserProgress): Promise<UserProgress>;
+  updateUserProgress(id: number, progress: Partial<InsertUserProgress>): Promise<UserProgress | undefined>;
+  addPointsToUserProgress(userId: number, points: number): Promise<UserProgress | undefined>;
+  updateStreakDays(userId: number): Promise<UserProgress | undefined>;
+  incrementUserProgressStats(userId: number, field: 'completedAchievements' | 'completedReports' | 'completedAdjustments', incrementBy?: number): Promise<UserProgress | undefined>;
+  
+  // User Challenge operations
+  getUserChallenge(id: number): Promise<UserChallenge | undefined>;
+  getUserChallengesByUser(userId: number): Promise<UserChallenge[]>;
+  getActiveChallengesByUser(userId: number): Promise<UserChallenge[]>;
+  getUserChallengesByType(type: string, userId?: number): Promise<UserChallenge[]>;
+  createUserChallenge(challenge: InsertUserChallenge): Promise<UserChallenge>;
+  updateUserChallenge(id: number, challenge: Partial<InsertUserChallenge>): Promise<UserChallenge | undefined>;
+  incrementChallengeProgress(id: number, incrementBy?: number): Promise<UserChallenge | undefined>;
+  deleteUserChallenge(id: number): Promise<boolean>;
+  
+  // User Notification operations
+  getUserNotification(id: number): Promise<UserNotification | undefined>;
+  getUserNotificationsByUser(userId: number): Promise<UserNotification[]>;
+  getUnreadNotificationsByUser(userId: number): Promise<UserNotification[]>;
+  getUserNotificationsByType(type: string, userId?: number): Promise<UserNotification[]>;
+  createUserNotification(notification: InsertUserNotification): Promise<UserNotification>;
+  markNotificationAsRead(id: number): Promise<UserNotification | undefined>;
+  markAllUserNotificationsAsRead(userId: number): Promise<boolean>;
+  deleteUserNotification(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
