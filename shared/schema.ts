@@ -1,7 +1,8 @@
-import { pgTable, text, serial, integer, boolean, numeric, timestamp, jsonb } from "drizzle-orm/pg-core";
+import { pgTable, text, serial, integer, boolean, numeric, timestamp, jsonb, date } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 import { relations } from "drizzle-orm";
+export type Json = Record<string, any>;
 
 // User model
 export const users = pgTable("users", {
@@ -300,6 +301,144 @@ export const insertMarketAnalysisSchema = createInsertSchema(marketAnalysis).pic
   data: true,
 });
 
+// User preferences
+export const userPreferences = pgTable("user_preferences", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  preferenceName: text("preference_name").notNull(),
+  preferenceValue: jsonb("preference_value").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertUserPreferenceSchema = createInsertSchema(userPreferences).pick({
+  userId: true,
+  preferenceName: true,
+  preferenceValue: true,
+});
+
+// Adjustment templates
+export const adjustmentTemplates = pgTable("adjustment_templates", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  propertyType: text("property_type").notNull(),
+  isPublic: boolean("is_public").default(false),
+  templateData: jsonb("template_data").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAdjustmentTemplateSchema = createInsertSchema(adjustmentTemplates).pick({
+  userId: true,
+  name: true,
+  description: true,
+  propertyType: true,
+  isPublic: true,
+  templateData: true,
+});
+
+// Adjustment rules (condition-based)
+export const adjustmentRules = pgTable("adjustment_rules", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  modelId: integer("model_id").references(() => adjustmentModels.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  condition: jsonb("condition").notNull(), // JSON representation of the condition
+  adjustmentType: text("adjustment_type").notNull(),
+  calculationMethod: text("calculation_method").notNull(), // fixed, percentage, formula
+  value: text("value").notNull(), // Could be a fixed amount, percentage, or formula
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAdjustmentRuleSchema = createInsertSchema(adjustmentRules).pick({
+  userId: true,
+  modelId: true,
+  name: true,
+  description: true,
+  condition: true,
+  adjustmentType: true,
+  calculationMethod: true,
+  value: true,
+  isActive: true,
+});
+
+// Historical adjustments for tracking and auditing
+export const adjustmentHistory = pgTable("adjustment_history", {
+  id: serial("id").primaryKey(),
+  adjustmentId: integer("adjustment_id").references(() => adjustments.id),
+  modelAdjustmentId: integer("model_adjustment_id").references(() => modelAdjustments.id),
+  userId: integer("user_id").notNull().references(() => users.id),
+  actionType: text("action_type").notNull(), // created, updated, deleted
+  previousValue: jsonb("previous_value"),
+  newValue: jsonb("new_value"),
+  reason: text("reason"),
+  timestamp: timestamp("timestamp").defaultNow(),
+});
+
+export const insertAdjustmentHistorySchema = createInsertSchema(adjustmentHistory).pick({
+  adjustmentId: true,
+  modelAdjustmentId: true,
+  userId: true,
+  actionType: true,
+  previousValue: true,
+  newValue: true,
+  reason: true,
+});
+
+// Collaboration and comments
+export const collaborationComments = pgTable("collaboration_comments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  reportId: integer("report_id").notNull().references(() => appraisalReports.id),
+  comparableId: integer("comparable_id").references(() => comparables.id),
+  adjustmentId: integer("adjustment_id").references(() => adjustments.id),
+  modelId: integer("model_id").references(() => adjustmentModels.id),
+  modelAdjustmentId: integer("model_adjustment_id").references(() => modelAdjustments.id),
+  commentText: text("comment_text").notNull(),
+  status: text("status").default("open"), // open, resolved, dismissed
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertCollaborationCommentSchema = createInsertSchema(collaborationComments).pick({
+  userId: true,
+  reportId: true,
+  comparableId: true,
+  adjustmentId: true,
+  modelId: true,
+  modelAdjustmentId: true,
+  commentText: true,
+  status: true,
+});
+
+// Real-time market data
+export const marketData = pgTable("market_data", {
+  id: serial("id").primaryKey(),
+  region: text("region").notNull(), // Could be city, county, zip code, etc.
+  dataType: text("data_type").notNull(), // median_price, days_on_market, inventory, etc.
+  value: numeric("value").notNull(),
+  unit: text("unit").notNull(), // $, days, count, etc.
+  datePoint: date("date_point").notNull(),
+  source: text("source").notNull(),
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertMarketDataSchema = createInsertSchema(marketData).pick({
+  region: true,
+  dataType: true,
+  value: true,
+  unit: true,
+  datePoint: true,
+  source: true,
+  metadata: true,
+});
+
 // Compliance model
 export const complianceChecks = pgTable("compliance_checks", {
   id: serial("id").primaryKey(),
@@ -325,6 +464,10 @@ export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).
 export const usersRelations = relations(users, ({ many }) => ({
   properties: many(properties),
   appraisalReports: many(appraisalReports),
+  userPreferences: many(userPreferences),
+  adjustmentTemplates: many(adjustmentTemplates),
+  adjustmentRules: many(adjustmentRules),
+  collaborationComments: many(collaborationComments),
 }));
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
