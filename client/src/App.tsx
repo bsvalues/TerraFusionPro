@@ -14,13 +14,15 @@ import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 import { TooltipProvider } from "./contexts/TooltipContext";
+import TermsPage from "./pages/TermsPage";
 
 // Temporary basic app structure that doesn't use AppraisalContext
 // This will help us get the app running, then we'll gradually add more functionality
 function App() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="bg-primary text-primary-foreground p-4 shadow-md">
+    <TooltipProvider>
+      <div className="min-h-screen bg-background text-foreground flex flex-col">
+        <header className="bg-primary text-primary-foreground p-4 shadow-md">
         <div className="flex items-center justify-between container">
           <div className="flex items-center space-x-2">
             <svg className="h-8 w-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -49,6 +51,7 @@ function App() {
             <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("AI Valuation clicked")}>AI Valuation</a></li>
             <li><a href="/email-order" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Import Order clicked")}>Import Order</a></li>
             <li><a href="/property-data" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Property Data clicked")}>Property Data</a></li>
+            <li><a href="/terms" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("Terms clicked")}>Real Estate Terms</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">
@@ -67,6 +70,7 @@ function App() {
             <Route path="/uad-form" component={UADFormPage} />
             <Route path="/uad-form/:id" component={UADFormPage} />
             <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
+            <Route path="/terms" component={TermsPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
@@ -75,6 +79,7 @@ function App() {
         &copy; 2025 AppraisalCore - Real Estate Appraisal Platform
       </footer>
     </div>
+    </TooltipProvider>
   );
 }
 
