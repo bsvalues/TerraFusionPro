@@ -19,6 +19,7 @@ import {
 
 import { aiOrchestrator, AIProvider } from "./lib/ai-orchestrator";
 import { gamificationRoutes } from './routes/gamification';
+import { tooltipRoutes } from './routes/tooltips';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {

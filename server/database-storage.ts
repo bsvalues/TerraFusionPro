@@ -28,7 +28,7 @@ import {
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
-import { eq, and, asc, desc, lte, gt, gte } from "drizzle-orm";
+import { eq, and, asc, desc, lte, gt, gte, or, sql } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User operations
