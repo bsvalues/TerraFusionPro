@@ -2281,6 +2281,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register gamification routes
   app.use('/api/gamification', gamificationRouter);
+  
+  // Register tooltips routes for real estate term explanations
+  app.use('/api/tooltips', tooltipRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

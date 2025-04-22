@@ -13,6 +13,7 @@ import UADFormPage from "./pages/UADFormPage";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
+import { TooltipProvider } from "./contexts/TooltipContext";
 
 // Temporary basic app structure that doesn't use AppraisalContext
 // This will help us get the app running, then we'll gradually add more functionality
