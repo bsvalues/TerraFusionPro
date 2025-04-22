@@ -15,11 +15,18 @@ import {
   adjustmentRules, AdjustmentRule, InsertAdjustmentRule,
   adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
   collaborationComments, CollaborationComment, InsertCollaborationComment,
-  marketData, MarketData, InsertMarketData
+  marketData, MarketData, InsertMarketData,
+  // Gamification system entities
+  achievementDefinitions, AchievementDefinition, InsertAchievementDefinition,
+  userAchievements, UserAchievement, InsertUserAchievement,
+  levels, Level, InsertLevel,
+  userProgress, UserProgress, InsertUserProgress,
+  userChallenges, UserChallenge, InsertUserChallenge,
+  userNotifications, UserNotification, InsertUserNotification
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
-import { eq, and } from "drizzle-orm";
+import { eq, and, asc, desc, lte, gt, gte } from "drizzle-orm";
 
 export class DatabaseStorage implements IStorage {
   // User operations
@@ -654,6 +661,719 @@ export class DatabaseStorage implements IStorage {
       return true;
     } catch (error) {
       console.error("Error deleting market data:", error);
+      return false;
+    }
+  }
+
+  // Gamification System: Achievement Definitions
+
+  async getAchievementDefinition(id: number): Promise<AchievementDefinition | undefined> {
+    try {
+      const [achievementDefinition] = await db
+        .select()
+        .from(achievementDefinitions)
+        .where(eq(achievementDefinitions.id, id));
+      return achievementDefinition;
+    } catch (error) {
+      console.error("Error getting achievement definition:", error);
+      return undefined;
+    }
+  }
+
+  async getAchievementDefinitionsByCategory(category: string): Promise<AchievementDefinition[]> {
+    try {
+      return await db
+        .select()
+        .from(achievementDefinitions)
+        .where(eq(achievementDefinitions.category, category));
+    } catch (error) {
+      console.error("Error getting achievement definitions by category:", error);
+      return [];
+    }
+  }
+
+  async getAchievementDefinitionsByType(type: string): Promise<AchievementDefinition[]> {
+    try {
+      return await db
+        .select()
+        .from(achievementDefinitions)
+        .where(eq(achievementDefinitions.type, type));
+    } catch (error) {
+      console.error("Error getting achievement definitions by type:", error);
+      return [];
+    }
+  }
+
+  async getAllAchievementDefinitions(): Promise<AchievementDefinition[]> {
+    try {
+      return await db.select().from(achievementDefinitions);
+    } catch (error) {
+      console.error("Error getting all achievement definitions:", error);
+      return [];
+    }
+  }
+
+  async createAchievementDefinition(definition: InsertAchievementDefinition): Promise<AchievementDefinition> {
+    try {
+      const [newDefinition] = await db
+        .insert(achievementDefinitions)
+        .values(definition)
+        .returning();
+      return newDefinition;
+    } catch (error) {
+      console.error("Error creating achievement definition:", error);
+      throw error;
+    }
+  }
+
+  async updateAchievementDefinition(id: number, definition: Partial<InsertAchievementDefinition>): Promise<AchievementDefinition | undefined> {
+    try {
+      const [updatedDefinition] = await db
+        .update(achievementDefinitions)
+        .set({ ...definition, updatedAt: new Date() })
+        .where(eq(achievementDefinitions.id, id))
+        .returning();
+      return updatedDefinition;
+    } catch (error) {
+      console.error("Error updating achievement definition:", error);
+      return undefined;
+    }
+  }
+
+  async deleteAchievementDefinition(id: number): Promise<boolean> {
+    try {
+      await db.delete(achievementDefinitions).where(eq(achievementDefinitions.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting achievement definition:", error);
+      return false;
+    }
+  }
+
+  // Gamification System: User Achievements
+
+  async getUserAchievement(id: number): Promise<UserAchievement | undefined> {
+    try {
+      const [userAchievement] = await db
+        .select()
+        .from(userAchievements)
+        .where(eq(userAchievements.id, id));
+      return userAchievement;
+    } catch (error) {
+      console.error("Error getting user achievement:", error);
+      return undefined;
+    }
+  }
+
+  async getUserAchievementsByUser(userId: number): Promise<UserAchievement[]> {
+    try {
+      return await db
+        .select()
+        .from(userAchievements)
+        .where(eq(userAchievements.userId, userId));
+    } catch (error) {
+      console.error("Error getting user achievements by user:", error);
+      return [];
+    }
+  }
+
+  async getUserAchievementByAchievementAndUser(achievementId: number, userId: number): Promise<UserAchievement | undefined> {
+    try {
+      const [userAchievement] = await db
+        .select()
+        .from(userAchievements)
+        .where(eq(userAchievements.achievementId, achievementId))
+        .where(eq(userAchievements.userId, userId));
+      return userAchievement;
+    } catch (error) {
+      console.error("Error getting user achievement by achievement and user:", error);
+      return undefined;
+    }
+  }
+
+  async getUserAchievementsByStatus(status: string, userId?: number): Promise<UserAchievement[]> {
+    try {
+      if (userId) {
+        return await db
+          .select()
+          .from(userAchievements)
+          .where(eq(userAchievements.status, status))
+          .where(eq(userAchievements.userId, userId));
+      } else {
+        return await db
+          .select()
+          .from(userAchievements)
+          .where(eq(userAchievements.status, status));
+      }
+    } catch (error) {
+      console.error("Error getting user achievements by status:", error);
+      return [];
+    }
+  }
+
+  async createUserAchievement(achievement: InsertUserAchievement): Promise<UserAchievement> {
+    try {
+      const [newAchievement] = await db
+        .insert(userAchievements)
+        .values(achievement)
+        .returning();
+      return newAchievement;
+    } catch (error) {
+      console.error("Error creating user achievement:", error);
+      throw error;
+    }
+  }
+
+  async updateUserAchievement(id: number, achievement: Partial<InsertUserAchievement>): Promise<UserAchievement | undefined> {
+    try {
+      const [updatedAchievement] = await db
+        .update(userAchievements)
+        .set(achievement)
+        .where(eq(userAchievements.id, id))
+        .returning();
+      return updatedAchievement;
+    } catch (error) {
+      console.error("Error updating user achievement:", error);
+      return undefined;
+    }
+  }
+
+  async deleteUserAchievement(id: number): Promise<boolean> {
+    try {
+      await db.delete(userAchievements).where(eq(userAchievements.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting user achievement:", error);
+      return false;
+    }
+  }
+
+  // Gamification System: Levels
+
+  async getLevel(id: number): Promise<Level | undefined> {
+    try {
+      const [level] = await db
+        .select()
+        .from(levels)
+        .where(eq(levels.id, id));
+      return level;
+    } catch (error) {
+      console.error("Error getting level:", error);
+      return undefined;
+    }
+  }
+
+  async getLevelByPointThreshold(points: number): Promise<Level | undefined> {
+    try {
+      // Get the highest level where the point threshold is less than or equal to the user's points
+      const [level] = await db
+        .select()
+        .from(levels)
+        .where(lte(levels.pointThreshold, points))
+        .orderBy(desc(levels.pointThreshold))
+        .limit(1);
+      return level;
+    } catch (error) {
+      console.error("Error getting level by point threshold:", error);
+      return undefined;
+    }
+  }
+
+  async getNextLevel(currentLevelId: number): Promise<Level | undefined> {
+    try {
+      const [currentLevel] = await db
+        .select()
+        .from(levels)
+        .where(eq(levels.id, currentLevelId));
+      
+      if (!currentLevel) return undefined;
+      
+      // Get the level with the lowest point threshold that is higher than the current level
+      const [nextLevel] = await db
+        .select()
+        .from(levels)
+        .where(gt(levels.pointThreshold, currentLevel.pointThreshold))
+        .orderBy(asc(levels.pointThreshold))
+        .limit(1);
+      
+      return nextLevel;
+    } catch (error) {
+      console.error("Error getting next level:", error);
+      return undefined;
+    }
+  }
+
+  async getAllLevels(): Promise<Level[]> {
+    try {
+      return await db
+        .select()
+        .from(levels)
+        .orderBy(asc(levels.pointThreshold));
+    } catch (error) {
+      console.error("Error getting all levels:", error);
+      return [];
+    }
+  }
+
+  async createLevel(level: InsertLevel): Promise<Level> {
+    try {
+      const [newLevel] = await db
+        .insert(levels)
+        .values(level)
+        .returning();
+      return newLevel;
+    } catch (error) {
+      console.error("Error creating level:", error);
+      throw error;
+    }
+  }
+
+  async updateLevel(id: number, level: Partial<InsertLevel>): Promise<Level | undefined> {
+    try {
+      const [updatedLevel] = await db
+        .update(levels)
+        .set({ ...level, updatedAt: new Date() })
+        .where(eq(levels.id, id))
+        .returning();
+      return updatedLevel;
+    } catch (error) {
+      console.error("Error updating level:", error);
+      return undefined;
+    }
+  }
+
+  async deleteLevel(id: number): Promise<boolean> {
+    try {
+      await db.delete(levels).where(eq(levels.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting level:", error);
+      return false;
+    }
+  }
+
+  // Gamification System: User Progress
+
+  async getUserProgress(id: number): Promise<UserProgress | undefined> {
+    try {
+      const [progress] = await db
+        .select()
+        .from(userProgress)
+        .where(eq(userProgress.id, id));
+      return progress;
+    } catch (error) {
+      console.error("Error getting user progress:", error);
+      return undefined;
+    }
+  }
+
+  async getUserProgressByUser(userId: number): Promise<UserProgress | undefined> {
+    try {
+      const [progress] = await db
+        .select()
+        .from(userProgress)
+        .where(eq(userProgress.userId, userId));
+      return progress;
+    } catch (error) {
+      console.error("Error getting user progress by user:", error);
+      return undefined;
+    }
+  }
+
+  async createUserProgress(progress: InsertUserProgress): Promise<UserProgress> {
+    try {
+      const [newProgress] = await db
+        .insert(userProgress)
+        .values(progress)
+        .returning();
+      return newProgress;
+    } catch (error) {
+      console.error("Error creating user progress:", error);
+      throw error;
+    }
+  }
+
+  async updateUserProgress(id: number, progress: Partial<InsertUserProgress>): Promise<UserProgress | undefined> {
+    try {
+      const [updatedProgress] = await db
+        .update(userProgress)
+        .set({ ...progress, updatedAt: new Date() })
+        .where(eq(userProgress.id, id))
+        .returning();
+      return updatedProgress;
+    } catch (error) {
+      console.error("Error updating user progress:", error);
+      return undefined;
+    }
+  }
+
+  async addPointsToUserProgress(userId: number, points: number): Promise<UserProgress | undefined> {
+    try {
+      let userProgressRecord = await this.getUserProgressByUser(userId);
+      
+      if (!userProgressRecord) {
+        // Create a new progress record if none exists
+        userProgressRecord = await this.createUserProgress({
+          userId,
+          totalPoints: points,
+        });
+      } else {
+        // Update existing record
+        const totalPoints = userProgressRecord.totalPoints + points;
+        
+        // Check if user needs to level up
+        const nextLevel = await this.getLevelByPointThreshold(totalPoints);
+        
+        if (nextLevel && (!userProgressRecord.currentLevel || nextLevel.id !== userProgressRecord.currentLevel)) {
+          // User has leveled up
+          const futureLevel = await this.getNextLevel(nextLevel.id);
+          
+          userProgressRecord = await this.updateUserProgress(userProgressRecord.id, {
+            totalPoints,
+            currentLevel: nextLevel.id,
+            nextLevel: futureLevel?.id,
+            pointsToNextLevel: futureLevel ? futureLevel.pointThreshold - totalPoints : 0,
+          });
+        } else {
+          // Just update points
+          const currentLevel = userProgressRecord.currentLevel 
+            ? await this.getLevel(userProgressRecord.currentLevel)
+            : await this.getLevelByPointThreshold(totalPoints);
+          
+          const futureLevel = currentLevel
+            ? await this.getNextLevel(currentLevel.id)
+            : undefined;
+          
+          userProgressRecord = await this.updateUserProgress(userProgressRecord.id, {
+            totalPoints,
+            currentLevel: currentLevel?.id,
+            nextLevel: futureLevel?.id,
+            pointsToNextLevel: futureLevel ? futureLevel.pointThreshold - totalPoints : 0,
+          });
+        }
+      }
+      
+      return userProgressRecord;
+    } catch (error) {
+      console.error("Error adding points to user progress:", error);
+      return undefined;
+    }
+  }
+
+  async updateStreakDays(userId: number): Promise<UserProgress | undefined> {
+    try {
+      const userProgressRecord = await this.getUserProgressByUser(userId);
+      
+      if (!userProgressRecord) {
+        return undefined;
+      }
+      
+      const lastActive = new Date(userProgressRecord.lastActive);
+      const today = new Date();
+      
+      // Check if last active was yesterday
+      const yesterday = new Date(today);
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      const isYesterday = lastActive.getDate() === yesterday.getDate() &&
+                          lastActive.getMonth() === yesterday.getMonth() &&
+                          lastActive.getFullYear() === yesterday.getFullYear();
+      
+      // Check if last active was today already
+      const isToday = lastActive.getDate() === today.getDate() &&
+                      lastActive.getMonth() === today.getMonth() &&
+                      lastActive.getFullYear() === today.getFullYear();
+      
+      let streakDays = userProgressRecord.streakDays;
+      
+      if (isYesterday) {
+        // Continue streak
+        streakDays += 1;
+      } else if (isToday) {
+        // Already logged in today, no change to streak
+      } else {
+        // Reset streak
+        streakDays = 1;
+      }
+      
+      const updatedProgress = await this.updateUserProgress(userProgressRecord.id, {
+        streakDays,
+        lastActive: today,
+      });
+      
+      return updatedProgress;
+    } catch (error) {
+      console.error("Error updating streak days:", error);
+      return undefined;
+    }
+  }
+
+  async incrementUserProgressStats(userId: number, field: 'completedAchievements' | 'completedReports' | 'completedAdjustments', incrementBy: number = 1): Promise<UserProgress | undefined> {
+    try {
+      let userProgressRecord = await this.getUserProgressByUser(userId);
+      
+      if (!userProgressRecord) {
+        // Create a new progress record if none exists with the incremented stat
+        const initialData = {
+          userId,
+          [field]: incrementBy,
+        };
+        userProgressRecord = await this.createUserProgress(initialData as InsertUserProgress);
+      } else {
+        // Update existing record
+        const currentValue = userProgressRecord[field] || 0;
+        const updateData = {
+          [field]: currentValue + incrementBy,
+        };
+        userProgressRecord = await this.updateUserProgress(userProgressRecord.id, updateData as Partial<InsertUserProgress>);
+      }
+      
+      return userProgressRecord;
+    } catch (error) {
+      console.error(`Error incrementing ${field}:`, error);
+      return undefined;
+    }
+  }
+
+  // Gamification System: User Challenges
+
+  async getUserChallenge(id: number): Promise<UserChallenge | undefined> {
+    try {
+      const [challenge] = await db
+        .select()
+        .from(userChallenges)
+        .where(eq(userChallenges.id, id));
+      return challenge;
+    } catch (error) {
+      console.error("Error getting user challenge:", error);
+      return undefined;
+    }
+  }
+
+  async getUserChallengesByUser(userId: number): Promise<UserChallenge[]> {
+    try {
+      return await db
+        .select()
+        .from(userChallenges)
+        .where(eq(userChallenges.userId, userId));
+    } catch (error) {
+      console.error("Error getting user challenges by user:", error);
+      return [];
+    }
+  }
+
+  async getActiveChallengesByUser(userId: number): Promise<UserChallenge[]> {
+    try {
+      const now = new Date();
+      return await db
+        .select()
+        .from(userChallenges)
+        .where(eq(userChallenges.userId, userId))
+        .where(eq(userChallenges.status, "active"))
+        .where(lte(userChallenges.startDate, now))
+        .where(gte(userChallenges.endDate, now));
+    } catch (error) {
+      console.error("Error getting active challenges by user:", error);
+      return [];
+    }
+  }
+
+  async getUserChallengesByType(type: string, userId?: number): Promise<UserChallenge[]> {
+    try {
+      if (userId) {
+        return await db
+          .select()
+          .from(userChallenges)
+          .where(eq(userChallenges.type, type))
+          .where(eq(userChallenges.userId, userId));
+      } else {
+        return await db
+          .select()
+          .from(userChallenges)
+          .where(eq(userChallenges.type, type));
+      }
+    } catch (error) {
+      console.error("Error getting user challenges by type:", error);
+      return [];
+    }
+  }
+
+  async createUserChallenge(challenge: InsertUserChallenge): Promise<UserChallenge> {
+    try {
+      const [newChallenge] = await db
+        .insert(userChallenges)
+        .values(challenge)
+        .returning();
+      return newChallenge;
+    } catch (error) {
+      console.error("Error creating user challenge:", error);
+      throw error;
+    }
+  }
+
+  async updateUserChallenge(id: number, challenge: Partial<InsertUserChallenge>): Promise<UserChallenge | undefined> {
+    try {
+      const [updatedChallenge] = await db
+        .update(userChallenges)
+        .set({ ...challenge, updatedAt: new Date() })
+        .where(eq(userChallenges.id, id))
+        .returning();
+      return updatedChallenge;
+    } catch (error) {
+      console.error("Error updating user challenge:", error);
+      return undefined;
+    }
+  }
+
+  async incrementChallengeProgress(id: number, incrementBy: number = 1): Promise<UserChallenge | undefined> {
+    try {
+      const challenge = await this.getUserChallenge(id);
+      
+      if (!challenge) {
+        return undefined;
+      }
+      
+      const newProgress = challenge.progress + incrementBy;
+      let updatedStatus = challenge.status;
+      
+      // Check if challenge is now completed
+      if (newProgress >= challenge.goal && challenge.status === "active") {
+        updatedStatus = "completed";
+      }
+      
+      const updatedChallenge = await this.updateUserChallenge(id, {
+        progress: newProgress,
+        status: updatedStatus,
+      });
+      
+      return updatedChallenge;
+    } catch (error) {
+      console.error("Error incrementing challenge progress:", error);
+      return undefined;
+    }
+  }
+
+  async deleteUserChallenge(id: number): Promise<boolean> {
+    try {
+      await db.delete(userChallenges).where(eq(userChallenges.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting user challenge:", error);
+      return false;
+    }
+  }
+
+  // Gamification System: User Notifications
+
+  async getUserNotification(id: number): Promise<UserNotification | undefined> {
+    try {
+      const [notification] = await db
+        .select()
+        .from(userNotifications)
+        .where(eq(userNotifications.id, id));
+      return notification;
+    } catch (error) {
+      console.error("Error getting user notification:", error);
+      return undefined;
+    }
+  }
+
+  async getUserNotificationsByUser(userId: number): Promise<UserNotification[]> {
+    try {
+      return await db
+        .select()
+        .from(userNotifications)
+        .where(eq(userNotifications.userId, userId))
+        .orderBy(desc(userNotifications.createdAt));
+    } catch (error) {
+      console.error("Error getting user notifications by user:", error);
+      return [];
+    }
+  }
+
+  async getUnreadNotificationsByUser(userId: number): Promise<UserNotification[]> {
+    try {
+      return await db
+        .select()
+        .from(userNotifications)
+        .where(eq(userNotifications.userId, userId))
+        .where(eq(userNotifications.read, false))
+        .orderBy(desc(userNotifications.createdAt));
+    } catch (error) {
+      console.error("Error getting unread notifications by user:", error);
+      return [];
+    }
+  }
+
+  async getUserNotificationsByType(type: string, userId?: number): Promise<UserNotification[]> {
+    try {
+      if (userId) {
+        return await db
+          .select()
+          .from(userNotifications)
+          .where(eq(userNotifications.type, type))
+          .where(eq(userNotifications.userId, userId))
+          .orderBy(desc(userNotifications.createdAt));
+      } else {
+        return await db
+          .select()
+          .from(userNotifications)
+          .where(eq(userNotifications.type, type))
+          .orderBy(desc(userNotifications.createdAt));
+      }
+    } catch (error) {
+      console.error("Error getting user notifications by type:", error);
+      return [];
+    }
+  }
+
+  async createUserNotification(notification: InsertUserNotification): Promise<UserNotification> {
+    try {
+      const [newNotification] = await db
+        .insert(userNotifications)
+        .values(notification)
+        .returning();
+      return newNotification;
+    } catch (error) {
+      console.error("Error creating user notification:", error);
+      throw error;
+    }
+  }
+
+  async markNotificationAsRead(id: number): Promise<UserNotification | undefined> {
+    try {
+      const [updatedNotification] = await db
+        .update(userNotifications)
+        .set({ read: true })
+        .where(eq(userNotifications.id, id))
+        .returning();
+      return updatedNotification;
+    } catch (error) {
+      console.error("Error marking notification as read:", error);
+      return undefined;
+    }
+  }
+
+  async markAllUserNotificationsAsRead(userId: number): Promise<boolean> {
+    try {
+      await db
+        .update(userNotifications)
+        .set({ read: true })
+        .where(eq(userNotifications.userId, userId))
+        .where(eq(userNotifications.read, false));
+      return true;
+    } catch (error) {
+      console.error("Error marking all user notifications as read:", error);
+      return false;
+    }
+  }
+
+  async deleteUserNotification(id: number): Promise<boolean> {
+    try {
+      await db.delete(userNotifications).where(eq(userNotifications.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting user notification:", error);
       return false;
     }
   }

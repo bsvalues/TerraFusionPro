@@ -461,13 +461,17 @@ export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).
 });
 
 // Define relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   properties: many(properties),
   appraisalReports: many(appraisalReports),
   userPreferences: many(userPreferences),
   adjustmentTemplates: many(adjustmentTemplates),
   adjustmentRules: many(adjustmentRules),
   collaborationComments: many(collaborationComments),
+  achievements: many(userAchievements),
+  challenges: many(userChallenges),
+  notifications: many(userNotifications),
+  progress: one(userProgress),
 }));
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
@@ -692,3 +696,218 @@ export type InsertCollaborationComment = z.infer<typeof insertCollaborationComme
 
 export type MarketData = typeof marketData.$inferSelect;
 export type InsertMarketData = z.infer<typeof insertMarketDataSchema>;
+
+// Gamification system entities
+export const achievementDefinitions = pgTable("achievement_definitions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  category: text("category").notNull(), // e.g., "appraisal", "comparable", "adjustment", "certification"
+  type: text("type").notNull(), // e.g., "count", "milestone", "accuracy", "streak"
+  pointValue: integer("point_value").notNull(),
+  icon: text("icon"),
+  requiredCount: integer("required_count"), // For count-based achievements
+  thresholdValue: numeric("threshold_value"), // For threshold-based achievements
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAchievementDefinitionSchema = createInsertSchema(achievementDefinitions).pick({
+  name: true,
+  description: true,
+  category: true,
+  type: true,
+  pointValue: true,
+  icon: true,
+  requiredCount: true,
+  thresholdValue: true,
+});
+
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  achievementId: integer("achievement_id").notNull().references(() => achievementDefinitions.id),
+  earnedAt: timestamp("earned_at").defaultNow(),
+  progress: integer("progress").default(0), // For tracking partial progress
+  completedCount: integer("completed_count").default(0), // For repeatable achievements
+  metadata: jsonb("metadata"), // For storing achievement-specific data
+  status: text("status").notNull().default("in_progress"), // "in_progress", "completed", "locked"
+});
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).pick({
+  userId: true,
+  achievementId: true,
+  progress: true,
+  completedCount: true,
+  metadata: true,
+  status: true,
+});
+
+export const levels = pgTable("levels", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  pointThreshold: integer("point_threshold").notNull(),
+  icon: text("icon"),
+  rewards: jsonb("rewards"), // JSON describing rewards unlocked at this level
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertLevelSchema = createInsertSchema(levels).pick({
+  name: true,
+  description: true,
+  pointThreshold: true,
+  icon: true,
+  rewards: true,
+});
+
+export const userProgress = pgTable("user_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id).unique(),
+  totalPoints: integer("total_points").notNull().default(0),
+  currentLevel: integer("current_level").references(() => levels.id),
+  nextLevel: integer("next_level").references(() => levels.id),
+  pointsToNextLevel: integer("points_to_next_level"),
+  streakDays: integer("streak_days").default(0),
+  lastActive: timestamp("last_active").defaultNow(),
+  completedAchievements: integer("completed_achievements").default(0),
+  completedReports: integer("completed_reports").default(0),
+  completedAdjustments: integer("completed_adjustments").default(0),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertUserProgressSchema = createInsertSchema(userProgress).pick({
+  userId: true,
+  totalPoints: true,
+  currentLevel: true,
+  nextLevel: true,
+  pointsToNextLevel: true,
+  streakDays: true,
+  lastActive: true,
+  completedAchievements: true,
+  completedReports: true,
+  completedAdjustments: true,
+});
+
+export const userChallenges = pgTable("user_challenges", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  type: text("type").notNull(), // "daily", "weekly", "monthly", "special"
+  goal: integer("goal").notNull(),
+  progress: integer("progress").default(0),
+  pointReward: integer("point_reward").notNull(),
+  startDate: timestamp("start_date").notNull(),
+  endDate: timestamp("end_date").notNull(),
+  status: text("status").notNull().default("active"), // "active", "completed", "expired", "claimed"
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertUserChallengeSchema = createInsertSchema(userChallenges).pick({
+  userId: true,
+  name: true,
+  description: true,
+  type: true,
+  goal: true,
+  progress: true,
+  pointReward: true,
+  startDate: true,
+  endDate: true,
+  status: true,
+});
+
+export const userNotifications = pgTable("user_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").notNull().references(() => users.id),
+  type: text("type").notNull(), // "achievement", "level_up", "challenge", "streak", "reminder"
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").default(false),
+  actionUrl: text("action_url"),
+  iconClass: text("icon_class"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertUserNotificationSchema = createInsertSchema(userNotifications).pick({
+  userId: true,
+  type: true,
+  title: true,
+  message: true,
+  read: true,
+  actionUrl: true,
+  iconClass: true,
+});
+
+export type AchievementDefinition = typeof achievementDefinitions.$inferSelect;
+export type InsertAchievementDefinition = z.infer<typeof insertAchievementDefinitionSchema>;
+
+export type UserAchievement = typeof userAchievements.$inferSelect;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+
+export type Level = typeof levels.$inferSelect;
+export type InsertLevel = z.infer<typeof insertLevelSchema>;
+
+export type UserProgress = typeof userProgress.$inferSelect;
+export type InsertUserProgress = z.infer<typeof insertUserProgressSchema>;
+
+export type UserChallenge = typeof userChallenges.$inferSelect;
+export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
+
+export type UserNotification = typeof userNotifications.$inferSelect;
+export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
+
+// Gamification system relations
+export const achievementDefinitionsRelations = relations(achievementDefinitions, ({ many }) => ({
+  userAchievements: many(userAchievements),
+}));
+
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id],
+  }),
+  achievement: one(achievementDefinitions, {
+    fields: [userAchievements.achievementId],
+    references: [achievementDefinitions.id],
+  }),
+}));
+
+export const levelsRelations = relations(levels, ({ many }) => ({
+  currentLevelUsers: many(userProgress, { relationName: "currentLevelRelation" }),
+  nextLevelUsers: many(userProgress, { relationName: "nextLevelRelation" }),
+}));
+
+export const userProgressRelations = relations(userProgress, ({ one }) => ({
+  user: one(users, {
+    fields: [userProgress.userId],
+    references: [users.id],
+  }),
+  currentLevelRelation: one(levels, {
+    fields: [userProgress.currentLevel],
+    references: [levels.id],
+    relationName: "currentLevelRelation",
+  }),
+  nextLevelRelation: one(levels, {
+    fields: [userProgress.nextLevel],
+    references: [levels.id],
+    relationName: "nextLevelRelation",
+  }),
+}));
+
+export const userChallengesRelations = relations(userChallenges, ({ one }) => ({
+  user: one(users, {
+    fields: [userChallenges.userId],
+    references: [users.id],
+  }),
+}));
+
+export const userNotificationsRelations = relations(userNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [userNotifications.userId],
+    references: [users.id],
+  }),
+}));

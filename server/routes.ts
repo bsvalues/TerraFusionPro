@@ -1597,6 +1597,474 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // User Preferences routes
+  app.get("/api/users/:userId/preferences", async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params.userId);
+      const preferences = await storage.getUserPreferencesByUser(userId);
+      res.status(200).json(preferences);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching user preferences" });
+    }
+  });
+  
+  app.get("/api/users/:userId/preferences/:name", async (req: Request, res: Response) => {
+    try {
+      const userId = Number(req.params.userId);
+      const preferenceName = req.params.name;
+      const preference = await storage.getUserPreferenceByName(userId, preferenceName);
+      
+      if (!preference) {
+        return res.status(404).json({ message: "User preference not found" });
+      }
+      
+      res.status(200).json(preference);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching user preference" });
+    }
+  });
+  
+  app.post("/api/user-preferences", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertUserPreferenceSchema.parse(req.body);
+      const newPreference = await storage.createUserPreference(validatedData);
+      res.status(201).json(newPreference);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error creating user preference" });
+    }
+  });
+  
+  app.put("/api/user-preferences/:id", async (req: Request, res: Response) => {
+    try {
+      const preferenceId = Number(req.params.id);
+      const validatedData = insertUserPreferenceSchema.partial().parse(req.body);
+      
+      const updatedPreference = await storage.updateUserPreference(preferenceId, validatedData);
+      
+      if (!updatedPreference) {
+        return res.status(404).json({ message: "User preference not found" });
+      }
+      
+      res.status(200).json(updatedPreference);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error updating user preference" });
+    }
+  });
+  
+  app.delete("/api/user-preferences/:id", async (req: Request, res: Response) => {
+    try {
+      const preferenceId = Number(req.params.id);
+      const success = await storage.deleteUserPreference(preferenceId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "User preference not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Server error deleting user preference" });
+    }
+  });
+  
+  // Adjustment Template routes
+  app.get("/api/adjustment-templates", async (req: Request, res: Response) => {
+    try {
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      const propertyType = req.query.propertyType as string | undefined;
+      let templates;
+      
+      if (userId) {
+        templates = await storage.getAdjustmentTemplatesByUser(userId);
+      } else if (propertyType) {
+        templates = await storage.getAdjustmentTemplatesByPropertyType(propertyType);
+      } else {
+        templates = await storage.getPublicAdjustmentTemplates();
+      }
+      
+      res.status(200).json(templates);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching adjustment templates" });
+    }
+  });
+  
+  app.get("/api/adjustment-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const templateId = Number(req.params.id);
+      const template = await storage.getAdjustmentTemplate(templateId);
+      
+      if (!template) {
+        return res.status(404).json({ message: "Adjustment template not found" });
+      }
+      
+      res.status(200).json(template);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching adjustment template" });
+    }
+  });
+  
+  app.post("/api/adjustment-templates", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertAdjustmentTemplateSchema.parse(req.body);
+      const newTemplate = await storage.createAdjustmentTemplate(validatedData);
+      res.status(201).json(newTemplate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error creating adjustment template" });
+    }
+  });
+  
+  app.put("/api/adjustment-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const templateId = Number(req.params.id);
+      const validatedData = insertAdjustmentTemplateSchema.partial().parse(req.body);
+      
+      const updatedTemplate = await storage.updateAdjustmentTemplate(templateId, validatedData);
+      
+      if (!updatedTemplate) {
+        return res.status(404).json({ message: "Adjustment template not found" });
+      }
+      
+      res.status(200).json(updatedTemplate);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error updating adjustment template" });
+    }
+  });
+  
+  app.delete("/api/adjustment-templates/:id", async (req: Request, res: Response) => {
+    try {
+      const templateId = Number(req.params.id);
+      const success = await storage.deleteAdjustmentTemplate(templateId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Adjustment template not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Server error deleting adjustment template" });
+    }
+  });
+  
+  // Adjustment Rule routes
+  app.get("/api/adjustment-rules", async (req: Request, res: Response) => {
+    try {
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      const modelId = req.query.modelId ? Number(req.query.modelId) : undefined;
+      const activeOnly = req.query.activeOnly === 'true';
+      
+      let rules;
+      
+      if (modelId) {
+        rules = await storage.getAdjustmentRulesByModel(modelId);
+      } else if (userId && activeOnly) {
+        rules = await storage.getActiveAdjustmentRules(userId);
+      } else if (userId) {
+        rules = await storage.getAdjustmentRulesByUser(userId);
+      } else {
+        return res.status(400).json({ message: "At least one query parameter is required (userId or modelId)" });
+      }
+      
+      res.status(200).json(rules);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching adjustment rules" });
+    }
+  });
+  
+  app.get("/api/adjustment-rules/:id", async (req: Request, res: Response) => {
+    try {
+      const ruleId = Number(req.params.id);
+      const rule = await storage.getAdjustmentRule(ruleId);
+      
+      if (!rule) {
+        return res.status(404).json({ message: "Adjustment rule not found" });
+      }
+      
+      res.status(200).json(rule);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching adjustment rule" });
+    }
+  });
+  
+  app.post("/api/adjustment-rules", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertAdjustmentRuleSchema.parse(req.body);
+      const newRule = await storage.createAdjustmentRule(validatedData);
+      res.status(201).json(newRule);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error creating adjustment rule" });
+    }
+  });
+  
+  app.put("/api/adjustment-rules/:id", async (req: Request, res: Response) => {
+    try {
+      const ruleId = Number(req.params.id);
+      const validatedData = insertAdjustmentRuleSchema.partial().parse(req.body);
+      
+      const updatedRule = await storage.updateAdjustmentRule(ruleId, validatedData);
+      
+      if (!updatedRule) {
+        return res.status(404).json({ message: "Adjustment rule not found" });
+      }
+      
+      res.status(200).json(updatedRule);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error updating adjustment rule" });
+    }
+  });
+  
+  app.delete("/api/adjustment-rules/:id", async (req: Request, res: Response) => {
+    try {
+      const ruleId = Number(req.params.id);
+      const success = await storage.deleteAdjustmentRule(ruleId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Adjustment rule not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Server error deleting adjustment rule" });
+    }
+  });
+  
+  // Adjustment History routes
+  app.get("/api/adjustment-history", async (req: Request, res: Response) => {
+    try {
+      const userId = req.query.userId ? Number(req.query.userId) : undefined;
+      const adjustmentId = req.query.adjustmentId ? Number(req.query.adjustmentId) : undefined;
+      const modelAdjustmentId = req.query.modelAdjustmentId ? Number(req.query.modelAdjustmentId) : undefined;
+      
+      let history;
+      
+      if (adjustmentId) {
+        history = await storage.getAdjustmentHistoryByAdjustment(adjustmentId);
+      } else if (modelAdjustmentId) {
+        history = await storage.getAdjustmentHistoryByModelAdjustment(modelAdjustmentId);
+      } else if (userId) {
+        history = await storage.getAdjustmentHistoryByUser(userId);
+      } else {
+        return res.status(400).json({ message: "At least one query parameter is required (userId, adjustmentId, or modelAdjustmentId)" });
+      }
+      
+      res.status(200).json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching adjustment history" });
+    }
+  });
+  
+  app.get("/api/adjustment-history/:id", async (req: Request, res: Response) => {
+    try {
+      const historyId = Number(req.params.id);
+      const history = await storage.getAdjustmentHistory(historyId);
+      
+      if (!history) {
+        return res.status(404).json({ message: "Adjustment history not found" });
+      }
+      
+      res.status(200).json(history);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching adjustment history" });
+    }
+  });
+  
+  app.post("/api/adjustment-history", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertAdjustmentHistorySchema.parse(req.body);
+      const newHistory = await storage.createAdjustmentHistory(validatedData);
+      res.status(201).json(newHistory);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error creating adjustment history" });
+    }
+  });
+  
+  // Collaboration Comment routes
+  app.get("/api/collaboration-comments", async (req: Request, res: Response) => {
+    try {
+      const reportId = req.query.reportId ? Number(req.query.reportId) : undefined;
+      const comparableId = req.query.comparableId ? Number(req.query.comparableId) : undefined;
+      const adjustmentId = req.query.adjustmentId ? Number(req.query.adjustmentId) : undefined;
+      const modelId = req.query.modelId ? Number(req.query.modelId) : undefined;
+      const modelAdjustmentId = req.query.modelAdjustmentId ? Number(req.query.modelAdjustmentId) : undefined;
+      const status = req.query.status as string | undefined;
+      
+      let comments;
+      
+      if (reportId) {
+        comments = await storage.getCollaborationCommentsByReport(reportId);
+      } else if (comparableId) {
+        comments = await storage.getCollaborationCommentsByComparable(comparableId);
+      } else if (adjustmentId) {
+        comments = await storage.getCollaborationCommentsByAdjustment(adjustmentId);
+      } else if (modelId) {
+        comments = await storage.getCollaborationCommentsByModel(modelId);
+      } else if (modelAdjustmentId) {
+        comments = await storage.getCollaborationCommentsByModelAdjustment(modelAdjustmentId);
+      } else if (status) {
+        comments = await storage.getCollaborationCommentsByStatus(status);
+      } else {
+        return res.status(400).json({ message: "At least one query parameter is required" });
+      }
+      
+      res.status(200).json(comments);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching collaboration comments" });
+    }
+  });
+  
+  app.get("/api/collaboration-comments/:id", async (req: Request, res: Response) => {
+    try {
+      const commentId = Number(req.params.id);
+      const comment = await storage.getCollaborationComment(commentId);
+      
+      if (!comment) {
+        return res.status(404).json({ message: "Collaboration comment not found" });
+      }
+      
+      res.status(200).json(comment);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching collaboration comment" });
+    }
+  });
+  
+  app.post("/api/collaboration-comments", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertCollaborationCommentSchema.parse(req.body);
+      const newComment = await storage.createCollaborationComment(validatedData);
+      res.status(201).json(newComment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error creating collaboration comment" });
+    }
+  });
+  
+  app.put("/api/collaboration-comments/:id", async (req: Request, res: Response) => {
+    try {
+      const commentId = Number(req.params.id);
+      const validatedData = insertCollaborationCommentSchema.partial().parse(req.body);
+      
+      const updatedComment = await storage.updateCollaborationComment(commentId, validatedData);
+      
+      if (!updatedComment) {
+        return res.status(404).json({ message: "Collaboration comment not found" });
+      }
+      
+      res.status(200).json(updatedComment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error updating collaboration comment" });
+    }
+  });
+  
+  app.delete("/api/collaboration-comments/:id", async (req: Request, res: Response) => {
+    try {
+      const commentId = Number(req.params.id);
+      const success = await storage.deleteCollaborationComment(commentId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Collaboration comment not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Server error deleting collaboration comment" });
+    }
+  });
+  
+  // Market Data routes
+  app.get("/api/market-data", async (req: Request, res: Response) => {
+    try {
+      const region = req.query.region as string | undefined;
+      const dataType = req.query.dataType as string | undefined;
+      const startDate = req.query.startDate ? new Date(req.query.startDate as string) : undefined;
+      const endDate = req.query.endDate ? new Date(req.query.endDate as string) : undefined;
+      
+      let data;
+      
+      if (region && dataType) {
+        data = await storage.getMarketDataByRegionAndType(region, dataType);
+      } else if (region) {
+        data = await storage.getMarketDataByRegion(region);
+      } else if (dataType) {
+        data = await storage.getMarketDataByType(dataType);
+      } else if (startDate && endDate) {
+        data = await storage.getMarketDataByDateRange(startDate, endDate);
+      } else {
+        return res.status(400).json({ message: "At least one query parameter is required" });
+      }
+      
+      res.status(200).json(data);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching market data" });
+    }
+  });
+  
+  app.get("/api/market-data/:id", async (req: Request, res: Response) => {
+    try {
+      const dataId = Number(req.params.id);
+      const data = await storage.getMarketData(dataId);
+      
+      if (!data) {
+        return res.status(404).json({ message: "Market data not found" });
+      }
+      
+      res.status(200).json(data);
+    } catch (error) {
+      res.status(500).json({ message: "Server error fetching market data" });
+    }
+  });
+  
+  app.post("/api/market-data", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertMarketDataSchema.parse(req.body);
+      const newData = await storage.createMarketData(validatedData);
+      res.status(201).json(newData);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      res.status(500).json({ message: "Server error creating market data" });
+    }
+  });
+  
+  app.delete("/api/market-data/:id", async (req: Request, res: Response) => {
+    try {
+      const dataId = Number(req.params.id);
+      const success = await storage.deleteMarketData(dataId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Market data not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      res.status(500).json({ message: "Server error deleting market data" });
+    }
+  });
+
   // AI-powered model routes
   app.post("/api/ai/generate-adjustment-model", async (req: Request, res: Response) => {
     try {
