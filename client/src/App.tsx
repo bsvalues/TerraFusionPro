@@ -9,6 +9,7 @@ import CompliancePage from "./pages/CompliancePage";
 import AIValuationPage from "./pages/AIValuationPage";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
+import UADFormPage from "./pages/UADFormPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 
@@ -59,6 +60,8 @@ function App() {
             <Route path="/email-order" component={EmailOrderPage} />
             <Route path="/property-data" component={PropertyDataPage} />
             <Route path="/property/:id" component={PropertyDataPage} />
+            <Route path="/uad-form" component={UADFormPage} />
+            <Route path="/uad-form/:id" component={UADFormPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
