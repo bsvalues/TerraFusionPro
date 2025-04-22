@@ -234,23 +234,78 @@ export async function retrievePublicData(propertyData: any, reportId: number): P
     // Use the AI to generate property data based on the address
     const enhancedData = await retrievePropertyPublicData(propertyData);
     
-    // Update the property with the enhanced data
-    await storage.updateProperty(property.id, {
+    console.log(`Retrieved property data with yearBuilt: ${enhancedData.yearBuilt}, sqft: ${enhancedData.grossLivingArea}`);
+    
+    // Create an update object with the enhanced data
+    const propertyUpdate: any = {
       yearBuilt: enhancedData.yearBuilt,
       grossLivingArea: String(enhancedData.grossLivingArea),
       bedrooms: String(enhancedData.bedrooms),
       bathrooms: String(enhancedData.bathrooms)
-    });
+    };
     
-    // For a complete implementation, we would also retrieve:
-    // - Ownership history
-    // - Tax assessment data
-    // - Prior sale history
-    // - Zoning information
-    // - Flood zone status
-    // - Comparable properties nearby
+    // Add optional fields if they exist
+    if (enhancedData.lotSize) {
+      propertyUpdate.lotSize = String(enhancedData.lotSize);
+    }
     
-    console.log(`Completed public data retrieval for report #${reportId}`);
+    if (enhancedData.propertyType) {
+      propertyUpdate.propertyType = enhancedData.propertyType;
+    }
+    
+    if (enhancedData.condition) {
+      propertyUpdate.condition = enhancedData.condition;
+    }
+    
+    if (enhancedData.constructionQuality) {
+      propertyUpdate.constructionQuality = enhancedData.constructionQuality;
+    }
+    
+    if (enhancedData.garageSize) {
+      propertyUpdate.garageSize = String(enhancedData.garageSize);
+    }
+    
+    if (enhancedData.floodZone) {
+      propertyUpdate.floodZone = enhancedData.floodZone;
+    }
+    
+    if (enhancedData.zoning) {
+      propertyUpdate.zoning = enhancedData.zoning;
+    }
+    
+    // Update the property with all the enhanced data
+    await storage.updateProperty(property.id, propertyUpdate);
+    
+    // If we have additional features, we could store them in a separate table
+    if (enhancedData.additionalFeatures && enhancedData.additionalFeatures.length > 0) {
+      console.log(`Property has ${enhancedData.additionalFeatures.length} additional features`);
+      // In a real implementation, we would store these in a related features table
+    }
+    
+    // If we have tax assessment or last sale information, update the report
+    const reportUpdate: any = {};
+    
+    if (enhancedData.taxAssessment) {
+      reportUpdate.assessedValue = enhancedData.taxAssessment;
+      console.log(`Updated tax assessment value: ${enhancedData.taxAssessment}`);
+    }
+    
+    if (enhancedData.lastSalePrice) {
+      reportUpdate.priorSalePrice = enhancedData.lastSalePrice;
+      console.log(`Updated prior sale price: ${enhancedData.lastSalePrice}`);
+    }
+    
+    if (enhancedData.lastSaleDate) {
+      reportUpdate.priorSaleDate = new Date(enhancedData.lastSaleDate);
+      console.log(`Updated prior sale date: ${enhancedData.lastSaleDate}`);
+    }
+    
+    // If we have report updates, apply them
+    if (Object.keys(reportUpdate).length > 0) {
+      await storage.updateAppraisalReport(report.id, reportUpdate);
+    }
+    
+    console.log(`Completed enhanced public data retrieval for report #${reportId}`);
   } catch (error) {
     console.error("Error retrieving public data:", error);
   }
@@ -379,14 +434,39 @@ async function retrievePropertyPublicData(propertyData: any): Promise<{
       
       // Additional patterns for extracting more details
       const lotSizeMatch = analysis.valuationInsights.match(/(?:lot size|lot area|land area)(?:\s+is)?(?:\s+approximately)?\s+(\d+(?:\.\d+)?)\s+(?:acre|acres|sq\.?\s*ft\.?|square\s+feet)/i);
-      const lotSize = lotSizeMatch ? parseFloat(lotSizeMatch[1]) : null;
+      const lotSize = lotSizeMatch ? parseFloat(lotSizeMatch[1]) : undefined;
+      
+      // Extract property details from the analysis if available
+      let propertyDetails = {};
+      if (analysis.propertyDetails) {
+        // Add only the properties that exist in the propertyDetails object
+        if (analysis.propertyDetails.lotSize) {
+          propertyDetails = { ...propertyDetails, lotSize: analysis.propertyDetails.lotSize };
+        }
+        if ('squareFeet' in analysis.propertyDetails) {
+          propertyDetails = { ...propertyDetails, garageSize: analysis.propertyDetails.squareFeet };
+        }
+        if (analysis.propertyDetails.propertyType) {
+          propertyDetails = { ...propertyDetails, propertyType: analysis.propertyDetails.propertyType };
+        }
+        if (analysis.propertyDetails.qualityRating) {
+          propertyDetails = { ...propertyDetails, constructionQuality: analysis.propertyDetails.qualityRating };
+        }
+        if (analysis.propertyDetails.condition) {
+          propertyDetails = { ...propertyDetails, condition: analysis.propertyDetails.condition };
+        }
+        if (analysis.propertyDetails.features) {
+          propertyDetails = { ...propertyDetails, additionalFeatures: analysis.propertyDetails.features };
+        }
+      }
       
       return {
         yearBuilt,
         grossLivingArea,
         bedrooms,
         bathrooms,
-        lotSize
+        lotSize,
+        ...propertyDetails
       };
     }
   } catch (error) {
