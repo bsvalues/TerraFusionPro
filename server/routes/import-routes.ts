@@ -1,114 +1,110 @@
 /**
  * Import Routes
  * 
- * API endpoints for handling file import operations.
+ * Provides endpoints for importing appraisal data from different file formats.
  */
 
-import { Router } from 'express';
-import multer from 'multer';
-import { processFile, saveUploadedFile, getImportResults, getImportResult } from '../lib/import-service';
+import { Router, Request, Response } from "express";
+import multer from "multer";
+import path from "path";
+import { ImportService } from "../lib/import-service";
+import { storage } from "../storage";
+import { v4 as uuidv4 } from "uuid";
+import fs from "fs";
 
-const router = Router();
-
-// Configure multer for file uploads
+// Initialize multer for file uploads
 const upload = multer({
-  storage: multer.memoryStorage(),
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => {
+      const uploadDir = path.join(process.cwd(), "uploads");
+      
+      // Create the uploads directory if it doesn't exist
+      if (!fs.existsSync(uploadDir)) {
+        fs.mkdirSync(uploadDir, { recursive: true });
+      }
+      
+      cb(null, uploadDir);
+    },
+    filename: (req, file, cb) => {
+      // Use a unique filename to prevent collisions
+      const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
+      cb(null, uniqueFilename);
+    }
+  }),
   limits: {
-    fileSize: 20 * 1024 * 1024, // Limit file size to 20MB
-  },
+    fileSize: 10 * 1024 * 1024, // 10MB limit
+  }
 });
 
-/**
- * Upload and process a file
- */
-router.post('/import/upload', upload.single('file'), async (req, res) => {
-  try {
-    const file = req.file;
-    
-    if (!file) {
-      return res.status(400).json({
-        error: 'No file uploaded',
-        message: 'Please select a file to upload',
+const importRoutes = Router();
+const importService = new ImportService();
+
+// Upload and process a file
+importRoutes.post(
+  "/upload",
+  upload.single("file"),
+  async (req: Request, res: Response) => {
+    try {
+      if (!req.file) {
+        return res.status(400).json({ error: "No file provided" });
+      }
+
+      // Get the user ID from the authenticated user or request body
+      const userId = req.body.userId || 1; // Default to user 1 for demo
+
+      // Process the uploaded file
+      const result = await importService.processFile({
+        userId,
+        filename: req.file.path,
+        originalFilename: req.file.originalname,
+        mimeType: req.file.mimetype,
+      });
+
+      res.status(200).json({
+        message: "File uploaded and processed successfully",
+        importId: result.importId,
+        warnings: result.warnings,
+      });
+    } catch (error) {
+      console.error("Error processing file:", error);
+      res.status(500).json({
+        error: "Failed to process file",
+        details: error instanceof Error ? error.message : String(error),
       });
     }
-    
-    console.log(`Received file: ${file.originalname} (${file.mimetype}, ${file.size} bytes)`);
-    
-    // Save uploaded file
-    const fileMetadata = await saveUploadedFile(file);
-    
-    // Process the file asynchronously
-    const importResult = await processFile(fileMetadata);
-    
-    return res.status(200).json({
-      success: true,
-      fileId: fileMetadata.id,
-      fileName: file.originalname,
-      message: 'File upload successful',
-      result: importResult,
-    });
+  }
+);
+
+// Get import results for a user
+importRoutes.get("/results", async (req: Request, res: Response) => {
+  try {
+    const userId = parseInt(req.query.userId as string) || 1; // Default to user 1 for demo
+    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
+    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
+
+    const results = await importService.getImportResults(userId, limit, offset);
+    res.json(results);
   } catch (error) {
-    console.error('Error processing file upload:', error);
-    
-    return res.status(500).json({
-      error: 'File upload failed',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
+    console.error("Error getting import results:", error);
+    res.status(500).json({ error: "Failed to get import results" });
   }
 });
 
-/**
- * Get import results
- */
-router.get('/import/results', async (req, res) => {
+// Get a specific import result
+importRoutes.get("/results/:id", async (req: Request, res: Response) => {
   try {
-    const limit = parseInt(req.query.limit as string) || 10;
-    const offset = parseInt(req.query.offset as string) || 0;
-    
-    const results = await getImportResults(limit, offset);
-    
-    return res.status(200).json({
-      success: true,
-      results,
-    });
-  } catch (error) {
-    console.error('Error getting import results:', error);
-    
-    return res.status(500).json({
-      error: 'Failed to get import results',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
-  }
-});
+    const importId = req.params.id;
+    const result = await importService.getImportResult(importId);
 
-/**
- * Get a specific import result
- */
-router.get('/import/results/:id', async (req, res) => {
-  try {
-    const { id } = req.params;
-    
-    const result = await getImportResult(id);
-    
     if (!result) {
-      return res.status(404).json({
-        error: 'Import result not found',
-        message: `No import result found with ID: ${id}`,
-      });
+      return res.status(404).json({ error: "Import result not found" });
     }
-    
-    return res.status(200).json({
-      success: true,
-      result,
-    });
+
+    res.json(result);
   } catch (error) {
-    console.error('Error getting import result:', error);
-    
-    return res.status(500).json({
-      error: 'Failed to get import result',
-      message: error instanceof Error ? error.message : 'Unknown error',
-    });
+    console.error("Error getting import result:", error);
+    res.status(500).json({ error: "Failed to get import result" });
   }
 });
 
-export default router;
+export { importRoutes };

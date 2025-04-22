@@ -949,26 +949,26 @@ export const userNotificationsRelations = relations(userNotifications, ({ one })
 // File Import Results model
 export const fileImportResults = pgTable("file_import_results", {
   id: varchar("id", { length: 36 }).primaryKey(),
-  fileId: varchar("file_id", { length: 36 }).notNull(),
-  fileName: text("file_name").notNull(),
-  format: text("format").notNull(),
-  dateProcessed: timestamp("date_processed").defaultNow(),
-  importedEntities: jsonb("imported_entities").notNull(),
-  status: text("status").notNull(), // 'success', 'partial', 'failed'
-  errors: jsonb("errors"),
-  warnings: jsonb("warnings"),
+  userId: integer("user_id").notNull().references(() => users.id),
+  filename: text("filename").notNull(),
+  fileType: text("file_type").notNull(),
+  status: text("status").notNull(), // 'processing', 'completed', 'failed'
+  dateImported: timestamp("date_imported").defaultNow(),
+  entitiesExtracted: integer("entities_extracted").default(0),
+  errors: jsonb("errors").default([]),
+  warnings: jsonb("warnings").default([]),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const insertFileImportResultSchema = createInsertSchema(fileImportResults).pick({
   id: true,
-  fileId: true,
-  fileName: true,
-  format: true,
-  dateProcessed: true,
-  importedEntities: true,
+  userId: true,
+  filename: true,
+  fileType: true,
   status: true,
+  dateImported: true,
+  entitiesExtracted: true,
   errors: true,
   warnings: true,
 });

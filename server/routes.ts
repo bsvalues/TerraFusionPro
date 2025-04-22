@@ -20,7 +20,7 @@ import {
 import { aiOrchestrator, AIProvider } from "./lib/ai-orchestrator";
 import { gamificationRoutes } from './routes/gamification';
 import { tooltipRoutes } from './routes/tooltips';
-import importRoutes from './routes/import-routes';
+import { importRoutes } from './routes/import-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2372,7 +2372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/tooltips', tooltipRoutes);
   
   // Register import routes for appraisal file processing
-  app.use('/api', importRoutes);
+  app.use('/api/import', importRoutes);
 
   const httpServer = createServer(app);
   return httpServer;

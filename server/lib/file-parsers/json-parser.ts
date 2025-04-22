@@ -1,544 +1,484 @@
 /**
  * JSON Parser
  * 
- * Extracts data from JSON files containing appraisal report data, comparable sales,
- * or property information.
+ * Parses JSON format appraisal data and extracts relevant entities.
+ * This parser handles various JSON structures commonly used for property data.
  */
 
-import { Partial as PartialType } from 'utility-types';
-import { Property, InsertProperty, Report, InsertReport, Comparable, InsertComparable } from '../types';
+import { DataEntity, FileParser, ParsingResult, PropertyData, ReportData, ComparableData, AdjustmentData } from "./types";
 
 /**
- * Extract data from JSON appraisal files
+ * Parser for JSON format appraisal data
  */
-export async function extractFromJSON(
-  fileBuffer: Buffer,
-  fileName: string
-): Promise<{
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  errors: string[],
-  warnings: string[],
-  format: string
-}> {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const properties: PartialType<InsertProperty>[] = [];
-  const comparables: PartialType<InsertComparable>[] = [];
-  const reports: PartialType<InsertReport>[] = [];
+export class JSONParser implements FileParser {
+  name = "JSONParser";
   
-  try {
-    console.log(`Extracting data from JSON: ${fileName}`);
-    
-    // Parse JSON content
-    const jsonString = fileBuffer.toString('utf-8');
-    const data = JSON.parse(jsonString);
-    
-    // Determine JSON format
-    const jsonFormat = determineJsonFormat(data);
-    console.log(`JSON format detected: ${jsonFormat}`);
-    
-    // Process JSON based on detected format
-    switch (jsonFormat) {
-      case 'appraisal_report':
-        extractFromAppraisalReport(data, properties, comparables, reports);
-        break;
-      case 'properties_list':
-        extractFromPropertiesList(data, properties);
-        break;
-      case 'comparables_list':
-        extractFromComparablesList(data, comparables);
-        break;
-      case 'mixed_data':
-        extractFromMixedData(data, properties, comparables, reports);
-        break;
-      default:
-        errors.push('Unable to determine JSON format structure');
-    }
-    
-    return {
-      properties,
-      comparables,
-      reports,
-      errors,
-      warnings,
-      format: `JSON - ${jsonFormat}`
-    };
-  } catch (error) {
-    console.error(`Error extracting data from JSON: ${error}`);
-    errors.push(`JSON extraction failed: ${error.message || 'Unknown error'}`);
-    
-    return {
-      properties,
-      comparables,
-      reports,
-      errors,
-      warnings,
-      format: 'JSON'
-    };
-  }
-}
-
-/**
- * Determine JSON format based on structure
- */
-function determineJsonFormat(data: any): 'appraisal_report' | 'properties_list' | 'comparables_list' | 'mixed_data' | 'unknown' {
-  // Check if data is an array
-  if (Array.isArray(data)) {
-    // Check first few items to determine type
-    if (data.length > 0) {
-      const sample = data[0];
+  /**
+   * Determines if this parser can handle the given content
+   */
+  canParse(content: string): boolean {
+    try {
+      // Try to parse as JSON
+      const parsed = JSON.parse(content);
       
-      // Check for property-specific fields
-      if (hasPropertyFields(sample)) {
-        return 'properties_list';
-      }
-      
-      // Check for comparable-specific fields
-      if (hasComparableFields(sample)) {
-        return 'comparables_list';
-      }
-      
-      // Check for mixed data
-      if (hasPropertyFields(sample) && hasComparableFields(sample)) {
-        return 'mixed_data';
-      }
-    }
-    
-    // Default to unknown for empty arrays
-    return 'unknown';
-  } else {
-    // For objects, check for typical appraisal report structure
-    if (data.property || data.subject || data.subjectProperty) {
-      return 'appraisal_report';
-    }
-    
-    // Check for properties collection
-    if (data.properties && Array.isArray(data.properties)) {
-      return 'properties_list';
-    }
-    
-    // Check for comparables collection
-    if (data.comparables && Array.isArray(data.comparables)) {
-      return 'comparables_list';
-    }
-    
-    // Check for combined data
-    if ((data.property || data.subject) && (data.comparables && Array.isArray(data.comparables))) {
-      return 'appraisal_report';
-    }
-    
-    // Check for appraisal fields
-    if (hasAppraisalFields(data)) {
-      return 'appraisal_report';
+      // Verify it's an object or array
+      return (typeof parsed === 'object' && parsed !== null);
+    } catch (error) {
+      return false;
     }
   }
   
-  return 'unknown';
-}
-
-/**
- * Check if object has property fields
- */
-function hasPropertyFields(obj: any): boolean {
-  const propertyFields = [
-    'address', 'city', 'state', 'zip', 'zipCode',
-    'bedrooms', 'bathrooms', 'squareFeet', 'grossLivingArea',
-    'lotSize', 'yearBuilt', 'propertyType'
-  ];
-  
-  return hasAnyFields(obj, propertyFields);
-}
-
-/**
- * Check if object has comparable fields
- */
-function hasComparableFields(obj: any): boolean {
-  const comparableFields = [
-    'salePrice', 'saleDate', 'proximity', 'distance',
-    'adjustments', 'comparableType', 'compType'
-  ];
-  
-  return hasAnyFields(obj, comparableFields);
-}
-
-/**
- * Check if object has appraisal report fields
- */
-function hasAppraisalFields(obj: any): boolean {
-  const appraisalFields = [
-    'marketValue', 'appraisedValue', 'effectiveDate',
-    'reportDate', 'appraisalDate', 'formType', 'reportType'
-  ];
-  
-  return hasAnyFields(obj, appraisalFields);
-}
-
-/**
- * Check if object has any of the specified fields
- */
-function hasAnyFields(obj: any, fields: string[]): boolean {
-  if (!obj || typeof obj !== 'object') {
-    return false;
+  /**
+   * Parse JSON content and extract appraisal data
+   */
+  async parse(content: string): Promise<ParsingResult> {
+    const entities: DataEntity[] = [];
+    const warnings: string[] = [];
+    const errors: string[] = [];
+    
+    try {
+      // Parse the JSON content
+      const parsed = JSON.parse(content);
+      
+      // Determine the structure and extract accordingly
+      if (Array.isArray(parsed)) {
+        // Array of items - determine what they are
+        if (parsed.length === 0) {
+          warnings.push("Empty JSON array");
+          return { entities, length: 0, warnings };
+        }
+        
+        const sample = parsed[0];
+        
+        if (this.looksLikeProperty(sample)) {
+          this.extractProperties(parsed, entities, warnings);
+        } else if (this.looksLikeComparable(sample)) {
+          this.extractComparables(parsed, entities, warnings);
+        } else if (this.looksLikeReport(sample)) {
+          this.extractReports(parsed, entities, warnings);
+        } else {
+          warnings.push("Unknown JSON array structure, attempting generic extraction");
+          this.extractGeneric(parsed, entities, warnings);
+        }
+      } else {
+        // Single object
+        if (this.looksLikeAppraisalData(parsed)) {
+          this.extractAppraisalData(parsed, entities, warnings);
+        } else if (this.looksLikeProperty(parsed)) {
+          this.extractProperty(parsed, entities, warnings);
+        } else if (this.looksLikeReport(parsed)) {
+          this.extractReport(parsed, entities, warnings);
+        } else {
+          warnings.push("Unknown JSON structure, attempting generic extraction");
+          this.extractGeneric([parsed], entities, warnings);
+        }
+      }
+      
+      return {
+        entities,
+        length: entities.length,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        errors: errors.length > 0 ? errors : undefined
+      };
+    } catch (error) {
+      errors.push(`Error parsing JSON: ${error instanceof Error ? error.message : String(error)}`);
+      return { entities, length: 0, errors };
+    }
   }
   
-  const keys = Object.keys(obj).map(k => k.toLowerCase());
+  /**
+   * Check if object looks like an appraisal data container
+   */
+  private looksLikeAppraisalData(obj: any): boolean {
+    // Check for common structures in appraisal JSON exports
+    return (
+      (obj.property || obj.subject || obj.subjectProperty) &&
+      (obj.comparables || obj.comps || obj.report || obj.appraisal)
+    );
+  }
   
-  return fields.some(field => 
-    keys.includes(field.toLowerCase()) || 
-    keys.some(k => k.includes(field.toLowerCase()))
-  );
-}
-
-/**
- * Extract data from appraisal report JSON
- */
-function extractFromAppraisalReport(
-  data: any,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[]
-): void {
-  // Find the subject property data
-  const subjectData = data.property || data.subject || data.subjectProperty || data;
+  /**
+   * Check if object looks like a property
+   */
+  private looksLikeProperty(obj: any): boolean {
+    // Look for property-related fields
+    const requiredFields = ['address', 'propertyType', 'city', 'state', 'zipCode'];
+    const optionalFields = ['yearBuilt', 'bedrooms', 'bathrooms', 'grossLivingArea', 'lotSize'];
+    
+    // Must have most of the required fields
+    let requiredCount = 0;
+    for (const field of requiredFields) {
+      if (obj[field] !== undefined) requiredCount++;
+    }
+    
+    // And some optional fields
+    let optionalCount = 0;
+    for (const field of optionalFields) {
+      if (obj[field] !== undefined) optionalCount++;
+    }
+    
+    return requiredCount >= 3 && optionalCount >= 1;
+  }
   
-  // Extract property information
-  if (subjectData) {
-    // Find address information - it might be nested
-    const addressData = subjectData.address || subjectData;
+  /**
+   * Check if object looks like a comparable
+   */
+  private looksLikeComparable(obj: any): boolean {
+    // Look for comparable-specific fields
+    const hasComparableFields = 
+      (obj.compType !== undefined || obj.comparableType !== undefined) ||
+      (obj.salePrice !== undefined || obj.price !== undefined) ||
+      (obj.saleDate !== undefined || obj.dateOfSale !== undefined);
     
-    const address = findValue(addressData, ['address', 'street', 'streetAddress']);
-    const city = findValue(addressData, ['city', 'cityName', 'municipality']);
-    const state = findValue(addressData, ['state', 'stateCode', 'province']);
-    const zipCode = findValue(addressData, ['zip', 'zipCode', 'postalCode']);
+    // It should also have address info
+    const hasAddressInfo = 
+      (obj.address !== undefined) &&
+      (obj.city !== undefined || obj.state !== undefined);
     
-    // Find property details
-    const propertyType = findValue(subjectData, ['propertyType', 'type', 'style']);
-    const yearBuilt = extractNumberValue(subjectData, ['yearBuilt', 'year', 'constructionYear']);
-    const grossLivingArea = extractNumberValue(subjectData, [
-      'grossLivingArea', 'squareFeet', 'gla', 'livingArea', 'buildingSize'
-    ]);
-    const lotSize = extractNumberValue(subjectData, ['lotSize', 'lot', 'landArea']);
-    const bedrooms = extractNumberValue(subjectData, ['bedrooms', 'beds', 'bedroomCount']);
-    const bathrooms = extractNumberValue(subjectData, ['bathrooms', 'baths', 'bathroomCount']);
+    return hasComparableFields && hasAddressInfo;
+  }
+  
+  /**
+   * Check if object looks like a report
+   */
+  private looksLikeReport(obj: any): boolean {
+    // Look for report-specific fields
+    const reportFields = [
+      'reportType', 'formType', 'effectiveDate', 'reportDate', 
+      'purpose', 'marketValue', 'status', 'appraiser'
+    ];
     
-    // Create property if we have sufficient information
-    if (address || (city && state)) {
-      properties.push({
-        userId: 1, // Default user ID
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zipCode: zipCode || '',
-        propertyType: propertyType || 'Unknown',
-        yearBuilt,
-        grossLivingArea,
-        lotSize,
-        bedrooms,
-        bathrooms
+    let fieldCount = 0;
+    for (const field of reportFields) {
+      if (obj[field] !== undefined) fieldCount++;
+    }
+    
+    return fieldCount >= 3;
+  }
+  
+  /**
+   * Extract comprehensive appraisal data from a single object
+   */
+  private extractAppraisalData(data: any, entities: DataEntity[], warnings: string[]): void {
+    // Extract property data
+    const propertyData = data.property || data.subject || data.subjectProperty;
+    if (propertyData) {
+      this.extractProperty(propertyData, entities, warnings);
+    } else {
+      warnings.push("No property data found in JSON");
+    }
+    
+    // Extract report data
+    const reportData = data.report || data.appraisal;
+    if (reportData) {
+      this.extractReport(reportData, entities, warnings);
+    } else {
+      warnings.push("No report data found in JSON");
+    }
+    
+    // Extract comparables
+    const comparablesData = data.comparables || data.comps;
+    if (comparablesData && Array.isArray(comparablesData)) {
+      this.extractComparables(comparablesData, entities, warnings);
+    } else {
+      warnings.push("No comparables data found in JSON");
+    }
+    
+    // Extract adjustments
+    const adjustmentsData = data.adjustments;
+    if (adjustmentsData && Array.isArray(adjustmentsData)) {
+      this.extractAdjustments(adjustmentsData, entities, warnings);
+    }
+  }
+  
+  /**
+   * Extract a subject property
+   */
+  private extractProperty(data: any, entities: DataEntity[], warnings: string[]): void {
+    try {
+      // Normalize property data
+      const property: Partial<PropertyData> = {
+        address: this.getStringValue(data, ['address', 'propertyAddress', 'streetAddress']),
+        city: this.getStringValue(data, ['city']),
+        state: this.getStringValue(data, ['state']),
+        zipCode: this.getStringValue(data, ['zipCode', 'zip', 'postalCode']),
+        propertyType: this.getStringValue(data, ['propertyType', 'type']),
+        county: this.getStringValue(data, ['county']),
+        legalDescription: this.getStringValue(data, ['legalDescription', 'legal']),
+        taxParcelId: this.getStringValue(data, ['taxParcelId', 'parcelId', 'apn']),
+        yearBuilt: this.getNumberValue(data, ['yearBuilt', 'year']),
+        lotSize: this.getStringValue(data, ['lotSize', 'lot']),
+        bedrooms: this.getNumberValue(data, ['bedrooms', 'beds', 'br']),
+        bathrooms: this.getNumberValue(data, ['bathrooms', 'baths', 'ba']),
+        grossLivingArea: this.getNumberValue(data, ['grossLivingArea', 'gla', 'area', 'squareFeet', 'sqft']),
+        stories: this.getNumberValue(data, ['stories', 'numStories']),
+        basement: this.getStringValue(data, ['basement', 'basementType']),
+        garage: this.getStringValue(data, ['garage', 'garageType'])
+      };
+      
+      // Verify we have required fields
+      if (!property.address || !property.city || !property.state || !property.zipCode) {
+        warnings.push("Missing required property address information");
+        return;
+      }
+      
+      entities.push({
+        type: 'property',
+        data: {
+          address: property.address,
+          city: property.city,
+          state: property.state,
+          zipCode: property.zipCode,
+          propertyType: property.propertyType || "Single Family",
+          county: property.county || null,
+          legalDescription: property.legalDescription || null,
+          taxParcelId: property.taxParcelId || null,
+          yearBuilt: property.yearBuilt,
+          lotSize: property.lotSize || null,
+          bedrooms: property.bedrooms,
+          bathrooms: property.bathrooms,
+          grossLivingArea: property.grossLivingArea,
+          stories: property.stories,
+          basement: property.basement || null,
+          garage: property.garage || null
+        } as PropertyData
       });
+    } catch (error) {
+      warnings.push(`Error extracting property: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * Extract a report
+   */
+  private extractReport(data: any, entities: DataEntity[], warnings: string[]): void {
+    try {
+      // Normalize report data
+      const report: Partial<ReportData> = {
+        reportType: this.getStringValue(data, ['reportType', 'type']),
+        formType: this.getStringValue(data, ['formType', 'form']),
+        status: this.getStringValue(data, ['status', 'reportStatus']),
+        purpose: this.getStringValue(data, ['purpose', 'appraisalPurpose']),
+        effectiveDate: this.getDateValue(data, ['effectiveDate', 'dateOfValue']),
+        reportDate: this.getDateValue(data, ['reportDate', 'date']),
+        marketValue: this.getStringValue(data, ['marketValue', 'value', 'appraisedValue']),
+      };
       
-      // Extract valuation information
-      const valuationData = data.valuation || data.appraisal || data;
+      // Set defaults for required fields
+      if (!report.reportType) report.reportType = "JSON Import";
+      if (!report.formType) report.formType = "Unknown";
+      if (!report.status) report.status = "Completed";
       
-      // Extract market value
-      const marketValue = extractNumberValue(valuationData, [
-        'marketValue', 'value', 'appraisedValue', 'estimatedValue'
-      ]);
-      
-      // Extract report information
-      const reportType = findValue(valuationData, ['reportType', 'type', 'appraisalType']) || 'Appraisal Report';
-      const formType = findValue(valuationData, ['formType', 'form', 'appraisalForm']) || 'URAR';
-      const purpose = findValue(valuationData, ['purpose', 'appraisalPurpose']) || 'Market Value';
-      
-      // Extract dates
-      const effectiveDate = parseDate(valuationData, ['effectiveDate', 'valueDate', 'asOfDate']);
-      const reportDate = parseDate(valuationData, ['reportDate', 'appraisalDate', 'dateOfReport']);
-      
-      // Create report
-      reports.push({
-        userId: 1, // Default user ID
-        propertyId: 0, // Will be set after property is inserted
-        reportType,
-        formType,
-        status: 'completed',
-        purpose,
-        effectiveDate,
-        reportDate,
-        marketValue
+      entities.push({
+        type: 'report',
+        data: {
+          reportType: report.reportType,
+          formType: report.formType,
+          status: report.status,
+          purpose: report.purpose || null,
+          effectiveDate: report.effectiveDate,
+          reportDate: report.reportDate,
+          marketValue: report.marketValue || null
+        } as ReportData
       });
-      
-      // Extract comparables
-      const comparablesData = data.comparables || data.comps || [];
-      
-      for (const comp of comparablesData) {
-        // Extract comparable address
-        const compAddressData = comp.address || comp;
+    } catch (error) {
+      warnings.push(`Error extracting report: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * Extract an array of properties
+   */
+  private extractProperties(data: any[], entities: DataEntity[], warnings: string[]): void {
+    data.forEach((item, index) => {
+      try {
+        this.extractProperty(item, entities, warnings);
+      } catch (error) {
+        warnings.push(`Error extracting property at index ${index}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+  }
+  
+  /**
+   * Extract an array of comparables
+   */
+  private extractComparables(data: any[], entities: DataEntity[], warnings: string[]): void {
+    data.forEach((item, index) => {
+      try {
+        // Normalize comparable data
+        const comp: Partial<ComparableData> = {
+          address: this.getStringValue(item, ['address', 'comparableAddress', 'streetAddress']),
+          city: this.getStringValue(item, ['city']),
+          state: this.getStringValue(item, ['state']),
+          zipCode: this.getStringValue(item, ['zipCode', 'zip', 'postalCode']),
+          compType: this.getStringValue(item, ['compType', 'comparableType']) || "Sale",
+          propertyType: this.getStringValue(item, ['propertyType', 'type']),
+          salePrice: this.getStringValue(item, ['salePrice', 'price', 'soldPrice']),
+          saleDate: this.getStringValue(item, ['saleDate', 'dateSold', 'dateOfSale']),
+          bedrooms: this.getStringValue(item, ['bedrooms', 'beds', 'br']),
+          bathrooms: this.getStringValue(item, ['bathrooms', 'baths', 'ba']),
+          grossLivingArea: this.getStringValue(item, ['grossLivingArea', 'gla', 'area', 'squareFeet', 'sqft']),
+          yearBuilt: this.getStringValue(item, ['yearBuilt', 'year']),
+          lotSize: this.getStringValue(item, ['lotSize', 'lot']),
+          condition: this.getStringValue(item, ['condition', 'cond']),
+          quality: this.getStringValue(item, ['quality', 'qual'])
+        };
         
-        const compAddress = findValue(compAddressData, ['address', 'street', 'streetAddress']);
-        const compCity = findValue(compAddressData, ['city', 'cityName', 'municipality']);
-        const compState = findValue(compAddressData, ['state', 'stateCode', 'province']);
-        const compZip = findValue(compAddressData, ['zip', 'zipCode', 'postalCode']);
+        // Verify we have required fields
+        if (!comp.address) {
+          warnings.push(`Missing address for comparable at index ${index}`);
+          return;
+        }
         
-        // Extract comparable details
-        const compType = findValue(comp, ['type', 'compType', 'comparableType', 'saleType']) || 'sale';
-        const salePrice = extractNumberValue(comp, ['salePrice', 'price', 'value', 'amount']);
-        const saleDate = parseDate(comp, ['saleDate', 'date', 'transactionDate']);
-        const proximityToSubject = findValue(comp, ['proximityToSubject', 'proximity', 'distance']);
+        entities.push({
+          type: 'comparable',
+          data: {
+            address: comp.address,
+            city: comp.city || "Unknown",
+            state: comp.state || "Unknown",
+            zipCode: comp.zipCode || "Unknown",
+            compType: comp.compType,
+            propertyType: comp.propertyType || "Single Family",
+            salePrice: comp.salePrice,
+            saleDate: comp.saleDate,
+            bedrooms: comp.bedrooms,
+            bathrooms: comp.bathrooms,
+            grossLivingArea: comp.grossLivingArea,
+            yearBuilt: comp.yearBuilt,
+            lotSize: comp.lotSize,
+            condition: comp.condition,
+            quality: comp.quality
+          } as ComparableData
+        });
+      } catch (error) {
+        warnings.push(`Error extracting comparable at index ${index}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+  }
+  
+  /**
+   * Extract an array of reports
+   */
+  private extractReports(data: any[], entities: DataEntity[], warnings: string[]): void {
+    data.forEach((item, index) => {
+      try {
+        this.extractReport(item, entities, warnings);
+      } catch (error) {
+        warnings.push(`Error extracting report at index ${index}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+  }
+  
+  /**
+   * Extract adjustment data
+   */
+  private extractAdjustments(data: any[], entities: DataEntity[], warnings: string[]): void {
+    data.forEach((item, index) => {
+      try {
+        const adjustment: Partial<AdjustmentData> = {
+          comparableId: this.getNumberValue(item, ['comparableId', 'compId']),
+          adjustmentType: this.getStringValue(item, ['adjustmentType', 'type', 'name']),
+          amount: this.getStringValue(item, ['amount', 'value']),
+          description: this.getStringValue(item, ['description', 'desc'])
+        };
         
-        // Create comparable if we have sufficient information
-        if ((compAddress || (compCity && compState)) && salePrice > 0) {
-          comparables.push({
-            reportId: 0, // Will be set after report is inserted
-            compType: compType as 'sale' | 'listing' | 'pending',
-            address: compAddress || '',
-            city: compCity || '',
-            state: compState || '',
-            zipCode: compZip || '',
-            proximityToSubject,
-            salePrice,
-            saleDate,
-            grossLivingArea: extractNumberValue(comp, ['grossLivingArea', 'squareFeet', 'gla']),
-            bedrooms: extractNumberValue(comp, ['bedrooms', 'beds', 'bedroomCount']),
-            bathrooms: extractNumberValue(comp, ['bathrooms', 'baths', 'bathroomCount']),
-            yearBuilt: extractNumberValue(comp, ['yearBuilt', 'year', 'constructionYear'])
-          });
+        // Verify we have required fields
+        if (!adjustment.adjustmentType || !adjustment.amount) {
+          warnings.push(`Missing required fields for adjustment at index ${index}`);
+          return;
+        }
+        
+        // Set a default comparable ID if missing
+        if (!adjustment.comparableId) {
+          adjustment.comparableId = index + 1;
+        }
+        
+        entities.push({
+          type: 'adjustment',
+          data: {
+            comparableId: adjustment.comparableId,
+            adjustmentType: adjustment.adjustmentType,
+            amount: adjustment.amount,
+            description: adjustment.description || null
+          } as AdjustmentData
+        });
+      } catch (error) {
+        warnings.push(`Error extracting adjustment at index ${index}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    });
+  }
+  
+  /**
+   * Attempt to extract data from generic JSON
+   */
+  private extractGeneric(data: any[], entities: DataEntity[], warnings: string[]): void {
+    // Try to intelligently handle unknown structures
+    for (const item of data) {
+      try {
+        // Check for address-like fields
+        const hasAddress = this.getStringValue(item, ['address', 'propertyAddress', 'streetAddress', 'location']);
+        
+        if (hasAddress) {
+          // Determine if it's more likely a property or comparable
+          const hasSalePrice = this.getStringValue(item, ['salePrice', 'price', 'soldPrice']);
+          const hasSaleDate = this.getStringValue(item, ['saleDate', 'dateSold', 'dateOfSale']);
+          
+          if (hasSalePrice || hasSaleDate) {
+            this.extractComparables([item], entities, warnings);
+          } else {
+            this.extractProperty(item, entities, warnings);
+          }
+        } else if (this.getStringValue(item, ['reportType', 'formType', 'appraisalType'])) {
+          this.extractReport(item, entities, warnings);
+        }
+      } catch (error) {
+        warnings.push(`Error in generic extraction: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    }
+    
+    if (entities.length === 0) {
+      warnings.push("Could not extract any meaningful data from the JSON structure");
+    }
+  }
+  
+  /**
+   * Get a string value from multiple possible keys
+   */
+  private getStringValue(obj: any, keys: string[]): string | null {
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        return String(obj[key]);
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Get a number value from multiple possible keys
+   */
+  private getNumberValue(obj: any, keys: string[]): number | null {
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        const num = Number(obj[key]);
+        return isNaN(num) ? null : num;
+      }
+    }
+    return null;
+  }
+  
+  /**
+   * Get a date value from multiple possible keys
+   */
+  private getDateValue(obj: any, keys: string[]): Date | null {
+    for (const key of keys) {
+      if (obj[key] !== undefined && obj[key] !== null) {
+        try {
+          return new Date(obj[key]);
+        } catch (error) {
+          // Invalid date format, try next key
         }
       }
     }
+    return null;
   }
-}
-
-/**
- * Extract data from properties list JSON
- */
-function extractFromPropertiesList(
-  data: any,
-  properties: PartialType<InsertProperty>[]
-): void {
-  // Handle array of properties
-  const propertiesList = Array.isArray(data) ? data : (data.properties || []);
-  
-  for (const prop of propertiesList) {
-    // Extract address information
-    const addressData = prop.address || prop;
-    
-    const address = findValue(addressData, ['address', 'street', 'streetAddress']);
-    const city = findValue(addressData, ['city', 'cityName', 'municipality']);
-    const state = findValue(addressData, ['state', 'stateCode', 'province']);
-    const zipCode = findValue(addressData, ['zip', 'zipCode', 'postalCode']);
-    
-    // Extract property details
-    const propertyType = findValue(prop, ['propertyType', 'type', 'style']);
-    const yearBuilt = extractNumberValue(prop, ['yearBuilt', 'year', 'constructionYear']);
-    const grossLivingArea = extractNumberValue(prop, [
-      'grossLivingArea', 'squareFeet', 'gla', 'livingArea', 'buildingSize'
-    ]);
-    const lotSize = extractNumberValue(prop, ['lotSize', 'lot', 'landArea']);
-    const bedrooms = extractNumberValue(prop, ['bedrooms', 'beds', 'bedroomCount']);
-    const bathrooms = extractNumberValue(prop, ['bathrooms', 'baths', 'bathroomCount']);
-    
-    // Create property if we have sufficient information
-    if (address || (city && state)) {
-      properties.push({
-        userId: 1, // Default user ID
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zipCode: zipCode || '',
-        propertyType: propertyType || 'Unknown',
-        yearBuilt,
-        grossLivingArea,
-        lotSize,
-        bedrooms,
-        bathrooms
-      });
-    }
-  }
-}
-
-/**
- * Extract data from comparables list JSON
- */
-function extractFromComparablesList(
-  data: any,
-  comparables: PartialType<InsertComparable>[]
-): void {
-  // Handle array of comparables
-  const comparablesList = Array.isArray(data) ? data : (data.comparables || []);
-  
-  for (const comp of comparablesList) {
-    // Extract address information
-    const addressData = comp.address || comp;
-    
-    const address = findValue(addressData, ['address', 'street', 'streetAddress']);
-    const city = findValue(addressData, ['city', 'cityName', 'municipality']);
-    const state = findValue(addressData, ['state', 'stateCode', 'province']);
-    const zipCode = findValue(addressData, ['zip', 'zipCode', 'postalCode']);
-    
-    // Extract comparable details
-    const compType = findValue(comp, ['type', 'compType', 'comparableType', 'saleType']) || 'sale';
-    const salePrice = extractNumberValue(comp, ['salePrice', 'price', 'value', 'amount']);
-    const saleDate = parseDate(comp, ['saleDate', 'date', 'transactionDate']);
-    const proximityToSubject = findValue(comp, ['proximityToSubject', 'proximity', 'distance']);
-    
-    // Create comparable if we have sufficient information
-    if ((address || (city && state)) && salePrice > 0) {
-      comparables.push({
-        reportId: 0, // Will be set after report is inserted
-        compType: compType as 'sale' | 'listing' | 'pending',
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zipCode: zipCode || '',
-        proximityToSubject,
-        salePrice,
-        saleDate,
-        grossLivingArea: extractNumberValue(comp, ['grossLivingArea', 'squareFeet', 'gla']),
-        bedrooms: extractNumberValue(comp, ['bedrooms', 'beds', 'bedroomCount']),
-        bathrooms: extractNumberValue(comp, ['bathrooms', 'baths', 'bathroomCount']),
-        yearBuilt: extractNumberValue(comp, ['yearBuilt', 'year', 'constructionYear'])
-      });
-    }
-  }
-}
-
-/**
- * Extract data from mixed data JSON
- */
-function extractFromMixedData(
-  data: any,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[]
-): void {
-  // Process properties
-  if (data.properties && Array.isArray(data.properties)) {
-    extractFromPropertiesList(data.properties, properties);
-  } else if (data.property || data.subject) {
-    const property = data.property || data.subject;
-    extractFromPropertiesList([property], properties);
-  }
-  
-  // Process comparables
-  if (data.comparables && Array.isArray(data.comparables)) {
-    extractFromComparablesList(data.comparables, comparables);
-  }
-  
-  // Process report information
-  if (data.report || data.appraisal || hasAppraisalFields(data)) {
-    const reportData = data.report || data.appraisal || data;
-    
-    // Extract market value
-    const marketValue = extractNumberValue(reportData, [
-      'marketValue', 'value', 'appraisedValue', 'estimatedValue'
-    ]);
-    
-    // Extract report information
-    const reportType = findValue(reportData, ['reportType', 'type', 'appraisalType']) || 'Appraisal Report';
-    const formType = findValue(reportData, ['formType', 'form', 'appraisalForm']) || 'URAR';
-    const purpose = findValue(reportData, ['purpose', 'appraisalPurpose']) || 'Market Value';
-    
-    // Extract dates
-    const effectiveDate = parseDate(reportData, ['effectiveDate', 'valueDate', 'asOfDate']);
-    const reportDate = parseDate(reportData, ['reportDate', 'appraisalDate', 'dateOfReport']);
-    
-    // Create report if we have properties
-    if (properties.length > 0) {
-      reports.push({
-        userId: 1, // Default user ID
-        propertyId: 0, // Will be set after property is inserted
-        reportType,
-        formType,
-        status: 'completed',
-        purpose,
-        effectiveDate,
-        reportDate,
-        marketValue
-      });
-    }
-  }
-}
-
-/**
- * Helper function to find value with multiple possible field names
- */
-function findValue(obj: any, fieldNames: string[]): string | undefined {
-  if (!obj || typeof obj !== 'object') {
-    return undefined;
-  }
-  
-  for (const fieldName of fieldNames) {
-    // Check for exact field name
-    if (obj[fieldName] !== undefined && obj[fieldName] !== null && obj[fieldName] !== '') {
-      return obj[fieldName].toString();
-    }
-    
-    // Check for case-insensitive match
-    const normalizedFieldName = fieldName.toLowerCase();
-    const keys = Object.keys(obj);
-    for (const key of keys) {
-      if (key.toLowerCase() === normalizedFieldName && obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
-        return obj[key].toString();
-      }
-    }
-    
-    // Check for partial match
-    for (const key of keys) {
-      if (key.toLowerCase().includes(normalizedFieldName) && obj[key] !== undefined && obj[key] !== null && obj[key] !== '') {
-        return obj[key].toString();
-      }
-    }
-  }
-  
-  return undefined;
-}
-
-/**
- * Helper function to extract numeric value
- */
-function extractNumberValue(obj: any, fieldNames: string[]): number {
-  if (!obj || typeof obj !== 'object') {
-    return 0;
-  }
-  
-  const value = findValue(obj, fieldNames);
-  
-  if (value !== undefined) {
-    // Handle different number formats
-    if (typeof value === 'string') {
-      // Remove non-numeric characters (except decimal point)
-      const cleanValue = value.replace(/[$,]/g, '');
-      const numericValue = Number(cleanValue);
-      if (!isNaN(numericValue)) {
-        return numericValue;
-      }
-    } else if (typeof value === 'number') {
-      return value;
-    }
-  }
-  
-  return 0;
-}
-
-/**
- * Helper function to parse date
- */
-function parseDate(obj: any, fieldNames: string[]): Date | undefined {
-  if (!obj || typeof obj !== 'object') {
-    return undefined;
-  }
-  
-  const dateStr = findValue(obj, fieldNames);
-  
-  if (dateStr) {
-    try {
-      return new Date(dateStr);
-    } catch (e) {
-      // Invalid date format, ignore
-    }
-  }
-  
-  return undefined;
 }

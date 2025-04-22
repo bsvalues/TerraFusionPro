@@ -1,905 +1,535 @@
 /**
  * Work File Parser
  * 
- * Extracts data from proprietary appraisal software work files like:
- * - ACI (.aci, .env files)
- * - a la mode (.xml, .alamode files)
- * - Bradford Technologies (.zap files)
- * - FormNet/Equity (.formnet files)
- * 
- * These files have different structures but contain similar appraisal data.
+ * Parses proprietary appraisal software work files (*.zap, *.aci, *.apr, etc.)
+ * and extracts standardized data entities.
  */
 
-import * as xml2js from 'xml2js';
-import { Partial as PartialType } from 'utility-types';
-import { Property, InsertProperty, Report, InsertReport, Comparable, InsertComparable } from '../types';
-import { identifyAppraisalData } from './index';
+import { DataEntity, FileParser, ParsingResult, PropertyData, ReportData, ComparableData, AdjustmentData } from "./types";
 
 /**
- * Extract data from appraisal work files
+ * Parser for proprietary appraisal software work files
  */
-export async function extractFromWorkFile(
-  fileBuffer: Buffer,
-  fileName: string
-): Promise<{
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  errors: string[],
-  warnings: string[],
-  format: string
-}> {
-  const errors: string[] = [];
-  const warnings: string[] = [];
-  const properties: PartialType<InsertProperty>[] = [];
-  const comparables: PartialType<InsertComparable>[] = [];
-  const reports: PartialType<InsertReport>[] = [];
+export class WorkFileParser implements FileParser {
+  name = "WorkFileParser";
   
-  try {
-    console.log(`Extracting data from work file: ${fileName}`);
-    
-    // Determine work file type based on file extension or content
-    const fileType = determineWorkFileType(fileName, fileBuffer);
-    console.log(`Work file type detected: ${fileType}`);
-    
-    // Process work file based on detected type
-    switch (fileType) {
-      case 'aci':
-        await extractFromACIFile(fileBuffer, fileName, properties, comparables, reports, warnings);
-        break;
-      case 'alamode':
-        await extractFromALaModeFile(fileBuffer, fileName, properties, comparables, reports, warnings);
-        break;
-      case 'bradford':
-        await extractFromBradfordFile(fileBuffer, fileName, properties, comparables, reports, warnings);
-        break;
-      case 'formnet':
-        await extractFromFormNetFile(fileBuffer, fileName, properties, comparables, reports, warnings);
-        break;
-      default:
-        // Try generic extraction if specific format can't be determined
-        await extractFromGenericWorkFile(fileBuffer, fileName, properties, comparables, reports, warnings);
-    }
-    
-    return {
-      properties,
-      comparables,
-      reports,
-      errors,
-      warnings,
-      format: `Work File - ${fileType}`
-    };
-  } catch (error) {
-    console.error(`Error extracting data from work file: ${error}`);
-    errors.push(`Work file extraction failed: ${error.message || 'Unknown error'}`);
-    
-    return {
-      properties,
-      comparables,
-      reports,
-      errors,
-      warnings,
-      format: 'Work File'
-    };
-  }
-}
-
-/**
- * Determine work file type based on file extension and content
- */
-function determineWorkFileType(fileName: string, fileBuffer: Buffer): 'aci' | 'alamode' | 'bradford' | 'formnet' | 'unknown' {
-  // Check file extension
-  const lowerFileName = fileName.toLowerCase();
-  
-  if (lowerFileName.endsWith('.aci') || lowerFileName.endsWith('.env')) {
-    return 'aci';
-  } else if (lowerFileName.endsWith('.alamode') || (lowerFileName.endsWith('.xml') && isALaModeXML(fileBuffer))) {
-    return 'alamode';
-  } else if (lowerFileName.endsWith('.zap')) {
-    return 'bradford';
-  } else if (lowerFileName.endsWith('.formnet')) {
-    return 'formnet';
+  /**
+   * Determines if this parser can handle the given content
+   */
+  canParse(content: string): boolean {
+    // Check for common proprietary file signatures
+    return (
+      content.includes("ZAPFILE") || 
+      content.includes("ACI-XML") || 
+      content.includes("ACIFORM") || 
+      content.includes("ALAMODE") || 
+      content.includes("APPRAISAL") || 
+      content.includes("FORMDATA")
+    );
   }
   
-  // If extension doesn't match, try to identify by content
-  const fileString = fileBuffer.toString('utf-8', 0, Math.min(2000, fileBuffer.length));
-  
-  if (fileString.includes('ACI') || fileString.includes('ENV_FILE')) {
-    return 'aci';
-  } else if (fileString.includes('a la mode') || fileString.includes('ALAMODE')) {
-    return 'alamode';
-  } else if (fileString.includes('Bradford') || fileString.includes('ClickFORMS')) {
-    return 'bradford';
-  } else if (fileString.includes('FormNet') || fileString.includes('EqWeb')) {
-    return 'formnet';
-  }
-  
-  return 'unknown';
-}
-
-/**
- * Check if an XML file is from a la mode software
- */
-function isALaModeXML(fileBuffer: Buffer): boolean {
-  const xmlString = fileBuffer.toString('utf-8', 0, Math.min(2000, fileBuffer.length));
-  return xmlString.includes('a la mode') || 
-         xmlString.includes('ALAMODE') || 
-         xmlString.includes('TOTAL XML') ||
-         xmlString.includes('WinTOTAL');
-}
-
-/**
- * Extract data from ACI work files (.aci, .env)
- */
-async function extractFromACIFile(
-  fileBuffer: Buffer,
-  fileName: string,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  warnings: string[]
-): Promise<void> {
-  // ACI files are typically in a proprietary format, but often contain 
-  // sections with clearly marked field names and values
-  const fileContent = fileBuffer.toString('utf-8');
-  
-  // Try to extract using pattern matching
-  // ACI files often have sections like [PROPERTY], [COMPARABLES], etc.
-  const propertySection = extractSection(fileContent, 'PROPERTY', 'SUBJECT');
-  const comparablesSection = extractSection(fileContent, 'COMPARABLES', 'COMPS');
-  const reportSection = extractSection(fileContent, 'REPORT', 'APPRAISAL');
-  
-  // Extract property data
-  if (propertySection) {
-    const address = extractField(propertySection, ['Address', 'PropertyAddress', 'Street']);
-    const city = extractField(propertySection, ['City', 'PropertyCity']);
-    const state = extractField(propertySection, ['State', 'PropertyState', 'ST']);
-    const zipCode = extractField(propertySection, ['ZipCode', 'Zip', 'ZIP']);
-    const propertyType = extractField(propertySection, ['PropertyType', 'PropType', 'Type']);
-    const yearBuilt = extractNumberField(propertySection, ['YearBuilt', 'Year', 'YrBlt']);
-    const grossLivingArea = extractNumberField(propertySection, ['GLA', 'LivingArea', 'SqFt', 'SquareFeet']);
-    const lotSize = extractNumberField(propertySection, ['LotSize', 'Lot', 'LandArea']);
-    const bedrooms = extractNumberField(propertySection, ['Beds', 'Bedrooms', 'BR']);
-    const bathrooms = extractNumberField(propertySection, ['Baths', 'Bathrooms', 'BA']);
+  /**
+   * Parse work file content and extract appraisal data
+   */
+  async parse(content: string): Promise<ParsingResult> {
+    const entities: DataEntity[] = [];
+    const warnings: string[] = [];
+    const errors: string[] = [];
     
-    if (address || (city && state)) {
-      properties.push({
-        userId: 1, // Default user ID
-        address: address || '',
-        city: city || '',
-        state: state || '',
-        zipCode: zipCode || '',
-        propertyType: propertyType || 'Unknown',
-        yearBuilt,
-        grossLivingArea,
-        lotSize,
-        bedrooms,
-        bathrooms
-      });
-    } else {
-      // If pattern matching fails, try to extract data using the utility function
-      const extractedData = identifyAppraisalData(fileContent);
+    try {
+      // Attempt to detect the format type
+      const formatType = this.detectFormatType(content);
       
-      if (extractedData.addresses.length > 0) {
-        const addressParts = parseAddress(extractedData.addresses[0]);
+      if (formatType === "unknown") {
+        warnings.push("Could not identify specific work file format. Using generic extraction.");
+        this.extractGeneric(content, entities, warnings);
+      } else {
+        warnings.push(`Detected ${formatType} format. Extracting data.`);
         
-        if (addressParts) {
-          properties.push({
-            userId: 1,
-            address: addressParts.address,
-            city: addressParts.city,
-            state: addressParts.state,
-            zipCode: addressParts.zipCode,
-            propertyType: extractedData.propertyTypes.length > 0 ? extractedData.propertyTypes[0] : 'Unknown'
+        // Extract based on format type
+        switch (formatType) {
+          case "zap":
+            this.extractZap(content, entities, warnings);
+            break;
+          case "aci":
+            this.extractAci(content, entities, warnings);
+            break;
+          case "alamode":
+            this.extractAlamode(content, entities, warnings);
+            break;
+          case "formxml":
+            this.extractFormXml(content, entities, warnings);
+            break;
+          default:
+            this.extractGeneric(content, entities, warnings);
+            break;
+        }
+      }
+      
+      return {
+        entities,
+        length: entities.length,
+        warnings: warnings.length > 0 ? warnings : undefined,
+        errors: errors.length > 0 ? errors : undefined
+      };
+    } catch (error) {
+      errors.push(`Error parsing work file: ${error instanceof Error ? error.message : String(error)}`);
+      return { entities, length: 0, errors };
+    }
+  }
+  
+  /**
+   * Detect the specific format of the work file
+   */
+  private detectFormatType(content: string): string {
+    if (content.includes("ZAPFILE") || content.includes("<ZAP>")) {
+      return "zap";
+    } else if (content.includes("ACI-XML") || content.includes("ACIFORM")) {
+      return "aci";
+    } else if (content.includes("ALAMODE") || content.includes("<ALAMODE>")) {
+      return "alamode";
+    } else if (content.includes("<FORMDATA>") || content.includes("<APPRAISAL>")) {
+      return "formxml";
+    } else {
+      return "unknown";
+    }
+  }
+  
+  /**
+   * Extract data from a.la mode work files
+   */
+  private extractAlamode(content: string, entities: DataEntity[], warnings: string[]): void {
+    // For demonstration purposes, using the generic extraction
+    // In a real implementation, this would have specialized parsing for a.la mode format
+    this.extractGeneric(content, entities, warnings);
+  }
+  
+  /**
+   * Extract data from ACI work files
+   */
+  private extractAci(content: string, entities: DataEntity[], warnings: string[]): void {
+    // For demonstration purposes, using the generic extraction
+    // In a real implementation, this would have specialized parsing for ACI format
+    this.extractGeneric(content, entities, warnings);
+  }
+  
+  /**
+   * Extract data from ZAP work files
+   */
+  private extractZap(content: string, entities: DataEntity[], warnings: string[]): void {
+    // For demonstration purposes, using the generic extraction
+    // In a real implementation, this would have specialized parsing for ZAP format
+    this.extractGeneric(content, entities, warnings);
+  }
+  
+  /**
+   * Extract data from Form XML files
+   */
+  private extractFormXml(content: string, entities: DataEntity[], warnings: string[]): void {
+    try {
+      // Extract property data
+      const propertyData = this.extractPropertyFromFormXml(content);
+      if (propertyData) {
+        entities.push({
+          type: 'property',
+          data: propertyData
+        });
+      } else {
+        warnings.push("Could not extract property data from Form XML");
+      }
+      
+      // Extract comparable data
+      const comparables = this.extractComparablesFromFormXml(content);
+      if (comparables.length > 0) {
+        comparables.forEach(comp => {
+          entities.push({
+            type: 'comparable',
+            data: comp
+          });
+        });
+      } else {
+        warnings.push("No comparable properties found in Form XML");
+      }
+      
+      // Extract report data
+      const reportData = this.extractReportFromFormXml(content);
+      if (reportData) {
+        entities.push({
+          type: 'report',
+          data: reportData
+        });
+      } else {
+        warnings.push("Could not extract report data from Form XML");
+      }
+      
+      // Extract adjustments
+      const adjustments = this.extractAdjustmentsFromFormXml(content);
+      if (adjustments.length > 0) {
+        adjustments.forEach(adj => {
+          entities.push({
+            type: 'adjustment',
+            data: adj
+          });
+        });
+      }
+    } catch (error) {
+      warnings.push(`Error extracting data from Form XML: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  
+  /**
+   * Extract property data from Form XML
+   */
+  private extractPropertyFromFormXml(content: string): PropertyData | null {
+    // Extract property address
+    const addressMatch = content.match(/<PropertyAddress>(.*?)<\/PropertyAddress>/s) ||
+                        content.match(/<SubjectAddress>(.*?)<\/SubjectAddress>/s);
+    
+    if (!addressMatch) return null;
+    
+    // Extract various address components
+    const streetMatch = content.match(/<Street>(.*?)<\/Street>/s) ||
+                       content.match(/<StreetAddress>(.*?)<\/StreetAddress>/s);
+    
+    const cityMatch = content.match(/<City>(.*?)<\/City>/s);
+    const stateMatch = content.match(/<State>(.*?)<\/State>/s);
+    const zipMatch = content.match(/<ZipCode>(.*?)<\/ZipCode>/s) ||
+                     content.match(/<PostalCode>(.*?)<\/PostalCode>/s);
+    
+    // Extract property characteristics
+    const propertyTypeMatch = content.match(/<PropertyType>(.*?)<\/PropertyType>/s) ||
+                             content.match(/<Type>(.*?)<\/Type>/s);
+    
+    const yearBuiltMatch = content.match(/<YearBuilt>(.*?)<\/YearBuilt>/s);
+    const bedroomsMatch = content.match(/<Bedrooms>(.*?)<\/Bedrooms>/s) ||
+                          content.match(/<TotalBedrooms>(.*?)<\/TotalBedrooms>/s);
+    
+    const bathroomsMatch = content.match(/<Bathrooms>(.*?)<\/Bathrooms>/s) ||
+                           content.match(/<TotalBathrooms>(.*?)<\/TotalBathrooms>/s);
+    
+    const glaMatch = content.match(/<GLA>(.*?)<\/GLA>/s) ||
+                     content.match(/<GrossLivingArea>(.*?)<\/GrossLivingArea>/s) ||
+                     content.match(/<SquareFeet>(.*?)<\/SquareFeet>/s);
+    
+    // Construct property data
+    return {
+      address: streetMatch ? streetMatch[1].trim() : addressMatch[1].trim(),
+      city: cityMatch ? cityMatch[1].trim() : "Unknown",
+      state: stateMatch ? stateMatch[1].trim() : "Unknown",
+      zipCode: zipMatch ? zipMatch[1].trim() : "Unknown",
+      propertyType: propertyTypeMatch ? propertyTypeMatch[1].trim() : "Single Family",
+      yearBuilt: yearBuiltMatch ? parseInt(yearBuiltMatch[1]) : null,
+      bedrooms: bedroomsMatch ? parseInt(bedroomsMatch[1]) : null,
+      bathrooms: bathroomsMatch ? parseFloat(bathroomsMatch[1]) : null,
+      grossLivingArea: glaMatch ? parseInt(glaMatch[1].replace(/,/g, '')) : null
+    };
+  }
+  
+  /**
+   * Extract comparable data from Form XML
+   */
+  private extractComparablesFromFormXml(content: string): ComparableData[] {
+    const comparables: ComparableData[] = [];
+    
+    // Find comparable sections
+    const compSections = content.match(/<Comparable[^>]*>(.*?)<\/Comparable>/sg) ||
+                         content.match(/<Sale[^>]*>(.*?)<\/Sale>/sg);
+    
+    if (!compSections) return [];
+    
+    // Process each comparable
+    compSections.forEach((section, index) => {
+      // Extract address info
+      const streetMatch = section.match(/<Street>(.*?)<\/Street>/s) ||
+                         section.match(/<Address>(.*?)<\/Address>/s);
+      
+      if (!streetMatch) return; // Skip if no address
+      
+      const cityMatch = section.match(/<City>(.*?)<\/City>/s);
+      const stateMatch = section.match(/<State>(.*?)<\/State>/s);
+      const zipMatch = section.match(/<ZipCode>(.*?)<\/ZipCode>/s) ||
+                       section.match(/<PostalCode>(.*?)<\/PostalCode>/s);
+      
+      // Extract sale info
+      const salePriceMatch = section.match(/<SalePrice>(.*?)<\/SalePrice>/s) ||
+                            section.match(/<Price>(.*?)<\/Price>/s);
+      
+      const saleDateMatch = section.match(/<SaleDate>(.*?)<\/SaleDate>/s) ||
+                           section.match(/<DateOfSale>(.*?)<\/DateOfSale>/s);
+      
+      // Extract property characteristics
+      const yearBuiltMatch = section.match(/<YearBuilt>(.*?)<\/YearBuilt>/s);
+      const bedroomsMatch = section.match(/<Bedrooms>(.*?)<\/Bedrooms>/s);
+      const bathroomsMatch = section.match(/<Bathrooms>(.*?)<\/Bathrooms>/s);
+      const glaMatch = section.match(/<GLA>(.*?)<\/GLA>/s) ||
+                       section.match(/<GrossLivingArea>(.*?)<\/GrossLivingArea>/s);
+      
+      // Add comparable to list
+      comparables.push({
+        address: streetMatch[1].trim(),
+        city: cityMatch ? cityMatch[1].trim() : "Unknown",
+        state: stateMatch ? stateMatch[1].trim() : "Unknown",
+        zipCode: zipMatch ? zipMatch[1].trim() : "Unknown",
+        compType: "Sale",
+        propertyType: "Single Family",
+        salePrice: salePriceMatch ? salePriceMatch[1].replace(/[$,]/g, '') : null,
+        saleDate: saleDateMatch ? saleDateMatch[1] : null,
+        bedrooms: bedroomsMatch ? bedroomsMatch[1] : null,
+        bathrooms: bathroomsMatch ? bathroomsMatch[1] : null,
+        grossLivingArea: glaMatch ? glaMatch[1].replace(/,/g, '') : null,
+        yearBuilt: yearBuiltMatch ? yearBuiltMatch[1] : null
+      });
+    });
+    
+    return comparables;
+  }
+  
+  /**
+   * Extract report data from Form XML
+   */
+  private extractReportFromFormXml(content: string): ReportData | null {
+    // Extract form type
+    const formTypeMatch = content.match(/<FormType>(.*?)<\/FormType>/s) ||
+                         content.match(/<Form>(.*?)<\/Form>/s) ||
+                         content.match(/<ReportType>(.*?)<\/ReportType>/s);
+    
+    if (!formTypeMatch) return null;
+    
+    // Extract dates
+    const effectiveDateMatch = content.match(/<EffectiveDate>(.*?)<\/EffectiveDate>/s) ||
+                              content.match(/<DateOfValue>(.*?)<\/DateOfValue>/s);
+    
+    const reportDateMatch = content.match(/<ReportDate>(.*?)<\/ReportDate>/s) ||
+                           content.match(/<DateOfReport>(.*?)<\/DateOfReport>/s);
+    
+    // Extract purpose
+    const purposeMatch = content.match(/<Purpose>(.*?)<\/Purpose>/s) ||
+                        content.match(/<AppraisalPurpose>(.*?)<\/AppraisalPurpose>/s);
+    
+    // Extract value
+    const valueMatch = content.match(/<MarketValue>(.*?)<\/MarketValue>/s) ||
+                      content.match(/<Value>(.*?)<\/Value>/s) ||
+                      content.match(/<AppraisedValue>(.*?)<\/AppraisedValue>/s);
+    
+    return {
+      reportType: "Work File",
+      formType: formTypeMatch[1].trim(),
+      status: "Completed",
+      purpose: purposeMatch ? purposeMatch[1].trim() : null,
+      effectiveDate: effectiveDateMatch ? new Date(effectiveDateMatch[1]) : null,
+      reportDate: reportDateMatch ? new Date(reportDateMatch[1]) : null,
+      marketValue: valueMatch ? valueMatch[1].replace(/[$,]/g, '') : null
+    };
+  }
+  
+  /**
+   * Extract adjustment data from Form XML
+   */
+  private extractAdjustmentsFromFormXml(content: string): AdjustmentData[] {
+    const adjustments: AdjustmentData[] = [];
+    
+    // Find adjustment sections
+    const adjSections = content.match(/<Adjustments>(.*?)<\/Adjustments>/sg) ||
+                        content.match(/<SalesAdjustments>(.*?)<\/SalesAdjustments>/sg);
+    
+    if (!adjSections) return [];
+    
+    // Process each adjustment section
+    adjSections.forEach(section => {
+      // Try to find the comparable ID
+      const compIdMatch = section.match(/<ComparableId>(.*?)<\/ComparableId>/s) ||
+                         section.match(/<CompId>(.*?)<\/CompId>/s);
+      
+      const compId = compIdMatch ? parseInt(compIdMatch[1]) : 1;
+      
+      // Extract individual adjustments
+      const adjItems = section.match(/<Adjustment[^>]*>(.*?)<\/Adjustment>/sg);
+      
+      if (adjItems) {
+        adjItems.forEach(adjItem => {
+          // Extract adjustment details
+          const typeMatch = adjItem.match(/<Type>(.*?)<\/Type>/s) ||
+                           adjItem.match(/<Name>(.*?)<\/Name>/s) ||
+                           adjItem.match(/<AdjustmentType>(.*?)<\/AdjustmentType>/s);
+          
+          const amountMatch = adjItem.match(/<Amount>(.*?)<\/Amount>/s) ||
+                             adjItem.match(/<Value>(.*?)<\/Value>/s);
+          
+          const descMatch = adjItem.match(/<Description>(.*?)<\/Description>/s) ||
+                           adjItem.match(/<Desc>(.*?)<\/Desc>/s);
+          
+          if (typeMatch && amountMatch) {
+            adjustments.push({
+              comparableId: compId,
+              adjustmentType: typeMatch[1].trim(),
+              amount: amountMatch[1].replace(/[$,]/g, ''),
+              description: descMatch ? descMatch[1].trim() : null
+            });
+          }
+        });
+      } else {
+        // Try alternative format
+        const lineItems = section.split(/\n|\r/);
+        
+        lineItems.forEach(line => {
+          const adjMatch = line.match(/([A-Za-z\s]+)\s*[:=]\s*([$-]?[\d,.]+)/);
+          
+          if (adjMatch) {
+            adjustments.push({
+              comparableId: compId,
+              adjustmentType: adjMatch[1].trim(),
+              amount: adjMatch[2].replace(/[$,]/g, ''),
+              description: `${adjMatch[1].trim()} adjustment`
+            });
+          }
+        });
+      }
+    });
+    
+    return adjustments;
+  }
+  
+  /**
+   * Extract data using generic pattern matching
+   */
+  private extractGeneric(content: string, entities: DataEntity[], warnings: string[]): void {
+    try {
+      // Look for common field patterns regardless of specific format
+      
+      // Property data
+      const addressMatch = this.findFieldValue(content, ["PropertyAddress", "SubjectAddress", "Address", "SUBJECT_ADDRESS"]);
+      const cityMatch = this.findFieldValue(content, ["City", "CITY", "PropertyCity"]);
+      const stateMatch = this.findFieldValue(content, ["State", "STATE", "PropertyState"]);
+      const zipMatch = this.findFieldValue(content, ["ZipCode", "Zip", "ZIP", "PostalCode"]);
+      
+      if (addressMatch) {
+        // Extract other property data
+        const propertyTypeMatch = this.findFieldValue(content, ["PropertyType", "Type", "PROPERTY_TYPE"]);
+        const yearBuiltMatch = this.findFieldValue(content, ["YearBuilt", "YEAR_BUILT"]);
+        const bedroomsMatch = this.findFieldValue(content, ["Bedrooms", "Beds", "BR"]);
+        const bathroomsMatch = this.findFieldValue(content, ["Bathrooms", "Baths", "BA"]);
+        const glaMatch = this.findFieldValue(content, ["GrossLivingArea", "GLA", "SqFt", "GROSS_AREA"]);
+        
+        // Create property entity
+        const property: PropertyData = {
+          address: addressMatch,
+          city: cityMatch || "Unknown",
+          state: stateMatch || "Unknown",
+          zipCode: zipMatch || "Unknown",
+          propertyType: propertyTypeMatch || "Single Family",
+          yearBuilt: yearBuiltMatch ? parseInt(yearBuiltMatch) : null,
+          bedrooms: bedroomsMatch ? parseInt(bedroomsMatch) : null,
+          bathrooms: bathroomsMatch ? parseFloat(bathroomsMatch) : null,
+          grossLivingArea: glaMatch ? parseInt(glaMatch.replace(/,/g, '')) : null
+        };
+        
+        entities.push({
+          type: 'property',
+          data: property
+        });
+        
+        // Look for report data
+        const formTypeMatch = this.findFieldValue(content, ["FormType", "Form", "ReportType", "FORM_TYPE"]);
+        const purposeMatch = this.findFieldValue(content, ["Purpose", "AppraisalPurpose", "APPRAISAL_PURPOSE"]);
+        const valueMatch = this.findFieldValue(content, ["MarketValue", "Value", "AppraisedValue", "MARKET_VALUE"]);
+        
+        if (formTypeMatch) {
+          // Create report entity
+          entities.push({
+            type: 'report',
+            data: {
+              reportType: "Work File",
+              formType: formTypeMatch,
+              status: "Completed",
+              purpose: purposeMatch || null,
+              marketValue: valueMatch ? valueMatch.replace(/[$,]/g, '') : null
+            } as ReportData
+          });
+        }
+        
+        // Look for comparables
+        const compMatches = this.findComparables(content);
+        
+        if (compMatches.length > 0) {
+          compMatches.forEach(comp => {
+            entities.push({
+              type: 'comparable',
+              data: comp
+            });
           });
         }
       } else {
-        warnings.push('Could not extract property information from ACI file');
-      }
-    }
-  }
-  
-  // Extract report data
-  if (reportSection || propertySection) {
-    const section = reportSection || propertySection;
-    
-    const marketValue = extractNumberField(section, ['MarketValue', 'Value', 'OpinionOfValue', 'AppraisedValue']);
-    const effectiveDate = extractDateField(section, ['EffectiveDate', 'AppraisalDate', 'ValueDate']);
-    const reportDate = extractDateField(section, ['ReportDate', 'DateOfReport', 'DatePrepared']);
-    const formType = extractField(section, ['FormType', 'Form', 'ReportForm']) || 'URAR';
-    
-    if (properties.length > 0) {
-      reports.push({
-        userId: 1, // Default user ID
-        propertyId: 0, // Will be set after property is inserted
-        reportType: 'Appraisal Report',
-        formType,
-        status: 'completed',
-        purpose: 'Market Value',
-        effectiveDate,
-        reportDate,
-        marketValue
-      });
-    }
-  }
-  
-  // Extract comparable data
-  if (comparablesSection) {
-    // ACI files often list comparables with numbered prefixes like "Comp1_", "Comp2_"
-    const compPrefixes = ['Comp1_', 'Comp2_', 'Comp3_', 'Comp4_', 'Comp5_', 'Comp6_'];
-    
-    for (const prefix of compPrefixes) {
-      // Try to extract comparable data with the current prefix
-      const compAddress = extractField(comparablesSection, [`${prefix}Address`, `${prefix}Street`]);
-      const compCity = extractField(comparablesSection, [`${prefix}City`]);
-      const compState = extractField(comparablesSection, [`${prefix}State`, `${prefix}ST`]);
-      const compZip = extractField(comparablesSection, [`${prefix}Zip`, `${prefix}ZipCode`]);
-      
-      // Only process if we found address information
-      if (compAddress || (compCity && compState)) {
-        const salePrice = extractNumberField(comparablesSection, [
-          `${prefix}SalePrice`, `${prefix}Price`, `${prefix}Value`
-        ]);
-        
-        const saleDate = extractDateField(comparablesSection, [
-          `${prefix}SaleDate`, `${prefix}Date`, `${prefix}TransactionDate`
-        ]);
-        
-        const proximityToSubject = extractField(comparablesSection, [
-          `${prefix}Proximity`, `${prefix}Distance`, `${prefix}ProximityToSubject`
-        ]);
-        
-        comparables.push({
-          reportId: 0, // Will be set after report is inserted
-          compType: 'sale',
-          address: compAddress || '',
-          city: compCity || '',
-          state: compState || '',
-          zipCode: compZip || '',
-          proximityToSubject,
-          salePrice,
-          saleDate,
-          grossLivingArea: extractNumberField(comparablesSection, [
-            `${prefix}GLA`, `${prefix}LivingArea`, `${prefix}SqFt`
-          ]),
-          bedrooms: extractNumberField(comparablesSection, [
-            `${prefix}Beds`, `${prefix}Bedrooms`, `${prefix}BR`
-          ]),
-          bathrooms: extractNumberField(comparablesSection, [
-            `${prefix}Baths`, `${prefix}Bathrooms`, `${prefix}BA`
-          ])
-        });
-      }
-    }
-    
-    // If we couldn't find any comparables with prefixes, try other approaches
-    if (comparables.length === 0) {
-      // Try to extract using delimiter patterns
-      const compSections = comparablesSection.split(/Comparable\s*\d+|Comp\s*\d+/gi);
-      
-      if (compSections.length > 1) {
-        // Skip the first section as it might be a header
-        for (let i = 1; i < compSections.length; i++) {
-          const section = compSections[i];
-          
-          const compAddress = extractField(section, ['Address', 'Street']);
-          const compCity = extractField(section, ['City']);
-          const compState = extractField(section, ['State', 'ST']);
-          const compZip = extractField(section, ['Zip', 'ZipCode']);
-          
-          if (compAddress || (compCity && compState)) {
-            comparables.push({
-              reportId: 0,
-              compType: 'sale',
-              address: compAddress || '',
-              city: compCity || '',
-              state: compState || '',
-              zipCode: compZip || '',
-              proximityToSubject: extractField(section, ['Proximity', 'Distance']),
-              salePrice: extractNumberField(section, ['SalePrice', 'Price', 'Value']),
-              saleDate: extractDateField(section, ['SaleDate', 'Date']),
-              grossLivingArea: extractNumberField(section, ['GLA', 'LivingArea', 'SqFt']),
-              bedrooms: extractNumberField(section, ['Beds', 'Bedrooms', 'BR']),
-              bathrooms: extractNumberField(section, ['Baths', 'Bathrooms', 'BA'])
-            });
-          }
-        }
-      }
-    }
-  }
-}
-
-/**
- * Extract data from a la mode work files (.alamode, some .xml files)
- */
-async function extractFromALaModeFile(
-  fileBuffer: Buffer,
-  fileName: string,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  warnings: string[]
-): Promise<void> {
-  // A la mode files are often in XML format
-  const fileContent = fileBuffer.toString('utf-8');
-  
-  // Check if it's an XML file
-  if (fileContent.startsWith('<?xml') || fileContent.includes('<APPRAISAL>')) {
-    try {
-      // Parse XML
-      const parser = new xml2js.Parser({ explicitArray: false });
-      const result = await parser.parseStringPromise(fileContent);
-      
-      // Find the appraisal data
-      const appraisalData = result.APPRAISAL || result.REPORT || result.ALAMODE || result;
-      
-      // Extract property data
-      const subjectData = appraisalData.SUBJECT || appraisalData.PROPERTY || {};
-      
-      const address = subjectData.ADDRESS || subjectData.STREET || '';
-      const city = subjectData.CITY || '';
-      const state = subjectData.STATE || '';
-      const zipCode = subjectData.ZIP || subjectData.ZIPCODE || '';
-      const propertyType = subjectData.PROPERTY_TYPE || subjectData.TYPE || 'Unknown';
-      const yearBuilt = parseInt(subjectData.YEAR_BUILT || subjectData.YEARBUILT || '0', 10) || 0;
-      const grossLivingArea = parseInt(subjectData.GLA || subjectData.SQUARE_FEET || '0', 10) || 0;
-      const lotSize = parseInt(subjectData.LOT_SIZE || subjectData.LOTSIZE || '0', 10) || 0;
-      const bedrooms = parseInt(subjectData.BEDROOMS || subjectData.BEDS || '0', 10) || 0;
-      const bathrooms = parseFloat(subjectData.BATHROOMS || subjectData.BATHS || '0') || 0;
-      
-      if (address || (city && state)) {
-        properties.push({
-          userId: 1, // Default user ID
-          address,
-          city,
-          state,
-          zipCode,
-          propertyType,
-          yearBuilt,
-          grossLivingArea,
-          lotSize,
-          bedrooms,
-          bathrooms
-        });
-        
-        // Extract report data
-        const valuationData = appraisalData.VALUATION || appraisalData.VALUE || {};
-        
-        const marketValue = parseInt(valuationData.MARKET_VALUE || valuationData.VALUE || '0', 10) || 0;
-        
-        // Parse dates
-        let effectiveDate: Date | undefined;
-        const effectiveDateStr = valuationData.EFFECTIVE_DATE || valuationData.VALUEDATE || appraisalData.EFFECTIVE_DATE;
-        if (effectiveDateStr) {
-          try {
-            effectiveDate = new Date(effectiveDateStr);
-          } catch (e) {
-            // Invalid date format, ignore
-          }
-        }
-        
-        let reportDate: Date | undefined;
-        const reportDateStr = valuationData.REPORT_DATE || appraisalData.REPORT_DATE || appraisalData.DATE;
-        if (reportDateStr) {
-          try {
-            reportDate = new Date(reportDateStr);
-          } catch (e) {
-            // Invalid date format, ignore
-          }
-        }
-        
-        const formType = valuationData.FORM_TYPE || appraisalData.FORM_TYPE || appraisalData.FORM || 'URAR';
-        
-        reports.push({
-          userId: 1, // Default user ID
-          propertyId: 0, // Will be set after property is inserted
-          reportType: 'Appraisal Report',
-          formType,
-          status: 'completed',
-          purpose: 'Market Value',
-          effectiveDate,
-          reportDate,
-          marketValue
-        });
-        
-        // Extract comparable data
-        const compsData = appraisalData.COMPARABLES || appraisalData.COMPARABLE_SALES || {};
-        const compsList = compsData.COMPARABLE ? 
-          (Array.isArray(compsData.COMPARABLE) ? compsData.COMPARABLE : [compsData.COMPARABLE]) : 
-          [];
-        
-        for (const comp of compsList) {
-          const compAddress = comp.ADDRESS || comp.STREET || '';
-          const compCity = comp.CITY || '';
-          const compState = comp.STATE || '';
-          const compZip = comp.ZIP || comp.ZIPCODE || '';
-          
-          if (compAddress || (compCity && compState)) {
-            // Parse sale price
-            const salePriceStr = comp.SALE_PRICE || comp.PRICE || '0';
-            const salePrice = parseInt(salePriceStr.replace(/[^\d]/g, ''), 10) || 0;
-            
-            // Parse sale date
-            let saleDate: Date | undefined;
-            const saleDateStr = comp.SALE_DATE || comp.DATE;
-            if (saleDateStr) {
-              try {
-                saleDate = new Date(saleDateStr);
-              } catch (e) {
-                // Invalid date format, ignore
-              }
-            }
-            
-            const proximityToSubject = comp.PROXIMITY || comp.DISTANCE || '';
-            
-            comparables.push({
-              reportId: 0, // Will be set after report is inserted
-              compType: 'sale',
-              address: compAddress,
-              city: compCity,
-              state: compState,
-              zipCode: compZip,
-              proximityToSubject,
-              salePrice,
-              saleDate,
-              grossLivingArea: parseInt(comp.GLA || comp.SQUARE_FEET || '0', 10) || 0,
-              bedrooms: parseInt(comp.BEDROOMS || comp.BEDS || '0', 10) || 0,
-              bathrooms: parseFloat(comp.BATHROOMS || comp.BATHS || '0') || 0,
-              yearBuilt: parseInt(comp.YEAR_BUILT || comp.YEARBUILT || '0', 10) || 0
-            });
-          }
-        }
+        warnings.push("Could not find property address in work file");
       }
     } catch (error) {
-      console.error(`Error parsing a la mode XML: ${error}`);
-      warnings.push(`Error parsing a la mode XML: ${error.message}`);
-      
-      // Fall back to text-based extraction
-      await extractFromGenericWorkFile(fileBuffer, fileName, properties, comparables, reports, warnings);
+      warnings.push(`Error in generic extraction: ${error instanceof Error ? error.message : String(error)}`);
     }
-  } else {
-    // If it's not XML, treat it as a generic text file
-    await extractFromGenericWorkFile(fileBuffer, fileName, properties, comparables, reports, warnings);
   }
-}
-
-/**
- * Extract data from Bradford Technologies work files (.zap)
- */
-async function extractFromBradfordFile(
-  fileBuffer: Buffer,
-  fileName: string,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  warnings: string[]
-): Promise<void> {
-  // Bradford files often use a proprietary binary format
-  // However, they may contain sections of plain text that we can extract
-  const fileContent = fileBuffer.toString('utf-8', 0, Math.min(fileBuffer.length, 100000));
   
-  // Try to extract using the utility function
-  const extractedData = identifyAppraisalData(fileContent);
-  
-  // Process extracted address
-  if (extractedData.addresses.length > 0) {
-    const addressParts = parseAddress(extractedData.addresses[0]);
+  /**
+   * Find field value using multiple possible field names
+   */
+  private findFieldValue(content: string, fieldNames: string[]): string | null {
+    for (const field of fieldNames) {
+      // Try XML-style tag
+      const xmlMatch = content.match(new RegExp(`<${field}>(.*?)</${field}>`, 's'));
+      if (xmlMatch) return xmlMatch[1].trim();
+      
+      // Try name-value pair
+      const nvpMatch = content.match(new RegExp(`${field}\\s*[:=]\\s*["']?(.*?)["']?(?:\\s|$|,)`, 's'));
+      if (nvpMatch) return nvpMatch[1].trim();
+      
+      // Try field name followed by value
+      const labelMatch = content.match(new RegExp(`${field}\\s+(.*?)(?:\\n|\\r|$)`, 's'));
+      if (labelMatch) return labelMatch[1].trim();
+    }
     
-    if (addressParts) {
-      properties.push({
-        userId: 1,
-        address: addressParts.address,
-        city: addressParts.city,
-        state: addressParts.state,
-        zipCode: addressParts.zipCode,
-        propertyType: extractedData.propertyTypes.length > 0 ? extractedData.propertyTypes[0] : 'Unknown'
+    return null;
+  }
+  
+  /**
+   * Find comparable properties in generic content
+   */
+  private findComparables(content: string): ComparableData[] {
+    const comparables: ComparableData[] = [];
+    
+    // Try to identify comparable sections
+    const compSections = content.match(/Comparable\s*\d+[\s\S]*?(?=Comparable\s*\d+|$)/gi) ||
+                        content.match(/Comp\s*\d+[\s\S]*?(?=Comp\s*\d+|$)/gi) ||
+                        content.match(/Sale\s*\d+[\s\S]*?(?=Sale\s*\d+|$)/gi);
+    
+    if (!compSections || compSections.length === 0) {
+      return comparables;
+    }
+    
+    // Process each comparable section
+    compSections.forEach((section, index) => {
+      const address = this.findFieldValue(section, ["Address", "CompAddress", "StreetAddress"]);
+      
+      if (!address) return; // Skip if no address
+      
+      const city = this.findFieldValue(section, ["City", "CompCity"]);
+      const state = this.findFieldValue(section, ["State", "CompState"]);
+      const zipCode = this.findFieldValue(section, ["ZipCode", "Zip", "PostalCode"]);
+      const salePrice = this.findFieldValue(section, ["SalePrice", "Price", "Value"]);
+      const saleDate = this.findFieldValue(section, ["SaleDate", "DateOfSale", "Date"]);
+      
+      comparables.push({
+        address,
+        city: city || "Unknown",
+        state: state || "Unknown",
+        zipCode: zipCode || "Unknown",
+        compType: "Sale",
+        propertyType: "Single Family",
+        salePrice: salePrice ? salePrice.replace(/[$,]/g, '') : null,
+        saleDate: saleDate || null,
+        bedrooms: this.findFieldValue(section, ["Bedrooms", "Beds", "BR"]),
+        bathrooms: this.findFieldValue(section, ["Bathrooms", "Baths", "BA"]),
+        grossLivingArea: this.findFieldValue(section, ["GrossLivingArea", "GLA", "SqFt"]),
+        yearBuilt: this.findFieldValue(section, ["YearBuilt", "Year"])
       });
-      
-      // Create a report
-      const marketValue = extractedData.valuations.length > 0 ? extractedData.valuations[0] : 0;
-      
-      let effectiveDate: Date | undefined;
-      if (extractedData.dates.length > 0) {
-        try {
-          effectiveDate = new Date(extractedData.dates[0]);
-        } catch (e) {
-          // Invalid date format, ignore
-        }
-      }
-      
-      reports.push({
-        userId: 1,
-        propertyId: 0, // Will be set after property is inserted
-        reportType: 'Appraisal Report',
-        formType: 'URAR',
-        status: 'completed',
-        purpose: 'Market Value',
-        effectiveDate,
-        marketValue
-      });
-      
-      // Process additional addresses as comparables
-      if (extractedData.addresses.length > 1) {
-        for (let i = 1; i < Math.min(extractedData.addresses.length, 6); i++) {
-          const compParts = parseAddress(extractedData.addresses[i]);
-          
-          if (compParts) {
-            // Try to find a value for this comparable
-            let salePrice = 0;
-            if (i < extractedData.valuations.length) {
-              salePrice = extractedData.valuations[i];
-            }
-            
-            // Try to find a date for this comparable
-            let saleDate: Date | undefined;
-            if (i < extractedData.dates.length) {
-              try {
-                saleDate = new Date(extractedData.dates[i]);
-              } catch (e) {
-                // Invalid date format, ignore
-              }
-            }
-            
-            comparables.push({
-              reportId: 0, // Will be set after report is inserted
-              compType: 'sale',
-              address: compParts.address,
-              city: compParts.city,
-              state: compParts.state,
-              zipCode: compParts.zipCode,
-              salePrice,
-              saleDate
-            });
-          }
-        }
-      }
-    } else {
-      warnings.push('Could not parse address components from Bradford file');
-    }
-  } else {
-    warnings.push('Could not extract property information from Bradford file');
-  }
-}
-
-/**
- * Extract data from FormNet/Equity work files (.formnet)
- */
-async function extractFromFormNetFile(
-  fileBuffer: Buffer,
-  fileName: string,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  warnings: string[]
-): Promise<void> {
-  // FormNet files might be in a proprietary format
-  // Let's try to extract data using the utility function
-  const fileContent = fileBuffer.toString('utf-8', 0, Math.min(fileBuffer.length, 100000));
-  
-  // Try to extract using the utility function
-  const extractedData = identifyAppraisalData(fileContent);
-  
-  if (extractedData.addresses.length > 0) {
-    const addressParts = parseAddress(extractedData.addresses[0]);
+    });
     
-    if (addressParts) {
-      properties.push({
-        userId: 1,
-        address: addressParts.address,
-        city: addressParts.city,
-        state: addressParts.state,
-        zipCode: addressParts.zipCode,
-        propertyType: extractedData.propertyTypes.length > 0 ? extractedData.propertyTypes[0] : 'Unknown'
-      });
-      
-      // Create a report
-      const marketValue = extractedData.valuations.length > 0 ? extractedData.valuations[0] : 0;
-      
-      let effectiveDate: Date | undefined;
-      if (extractedData.dates.length > 0) {
-        try {
-          effectiveDate = new Date(extractedData.dates[0]);
-        } catch (e) {
-          // Invalid date format, ignore
-        }
-      }
-      
-      reports.push({
-        userId: 1,
-        propertyId: 0, // Will be set after property is inserted
-        reportType: 'Appraisal Report',
-        formType: 'URAR',
-        status: 'completed',
-        purpose: 'Market Value',
-        effectiveDate,
-        marketValue
-      });
-      
-      // Process additional addresses as comparables
-      if (extractedData.addresses.length > 1) {
-        for (let i = 1; i < Math.min(extractedData.addresses.length, 6); i++) {
-          const compParts = parseAddress(extractedData.addresses[i]);
-          
-          if (compParts) {
-            // Try to find a value for this comparable
-            let salePrice = 0;
-            if (i < extractedData.valuations.length) {
-              salePrice = extractedData.valuations[i];
-            }
-            
-            // Try to find a date for this comparable
-            let saleDate: Date | undefined;
-            if (i < extractedData.dates.length) {
-              try {
-                saleDate = new Date(extractedData.dates[i]);
-              } catch (e) {
-                // Invalid date format, ignore
-              }
-            }
-            
-            comparables.push({
-              reportId: 0, // Will be set after report is inserted
-              compType: 'sale',
-              address: compParts.address,
-              city: compParts.city,
-              state: compParts.state,
-              zipCode: compParts.zipCode,
-              salePrice,
-              saleDate
-            });
-          }
-        }
-      }
-    } else {
-      warnings.push('Could not parse address components from FormNet file');
-    }
-  } else {
-    warnings.push('Could not extract property information from FormNet file');
+    return comparables;
   }
-}
-
-/**
- * Extract data from a generic work file
- */
-async function extractFromGenericWorkFile(
-  fileBuffer: Buffer,
-  fileName: string,
-  properties: PartialType<InsertProperty>[],
-  comparables: PartialType<InsertComparable>[],
-  reports: PartialType<InsertReport>[],
-  warnings: string[]
-): Promise<void> {
-  // For files that don't match known formats, try to extract data using pattern recognition
-  const fileContent = fileBuffer.toString('utf-8', 0, Math.min(fileBuffer.length, 100000));
-  
-  // Use the utility function to extract appraisal data
-  const extractedData = identifyAppraisalData(fileContent);
-  
-  if (extractedData.addresses.length > 0) {
-    const addressParts = parseAddress(extractedData.addresses[0]);
-    
-    if (addressParts) {
-      properties.push({
-        userId: 1,
-        address: addressParts.address,
-        city: addressParts.city,
-        state: addressParts.state,
-        zipCode: addressParts.zipCode,
-        propertyType: extractedData.propertyTypes.length > 0 ? extractedData.propertyTypes[0] : 'Unknown'
-      });
-      
-      // Create a report
-      const marketValue = extractedData.valuations.length > 0 ? extractedData.valuations[0] : 0;
-      
-      let effectiveDate: Date | undefined;
-      if (extractedData.dates.length > 0) {
-        try {
-          effectiveDate = new Date(extractedData.dates[0]);
-        } catch (e) {
-          // Invalid date format, ignore
-        }
-      }
-      
-      reports.push({
-        userId: 1,
-        propertyId: 0, // Will be set after property is inserted
-        reportType: 'Appraisal Report',
-        formType: 'URAR',
-        status: 'completed',
-        purpose: 'Market Value',
-        effectiveDate,
-        marketValue
-      });
-      
-      // Process additional addresses as comparables
-      if (extractedData.addresses.length > 1) {
-        for (let i = 1; i < Math.min(extractedData.addresses.length, 6); i++) {
-          const compParts = parseAddress(extractedData.addresses[i]);
-          
-          if (compParts) {
-            // Try to find a value for this comparable
-            let salePrice = 0;
-            if (i < extractedData.valuations.length) {
-              salePrice = extractedData.valuations[i];
-            }
-            
-            // Try to find a date for this comparable
-            let saleDate: Date | undefined;
-            if (i < extractedData.dates.length) {
-              try {
-                saleDate = new Date(extractedData.dates[i]);
-              } catch (e) {
-                // Invalid date format, ignore
-              }
-            }
-            
-            comparables.push({
-              reportId: 0, // Will be set after report is inserted
-              compType: 'sale',
-              address: compParts.address,
-              city: compParts.city,
-              state: compParts.state,
-              zipCode: compParts.zipCode,
-              salePrice,
-              saleDate
-            });
-          }
-        }
-      }
-    } else {
-      warnings.push('Could not parse address components from work file');
-    }
-  } else {
-    warnings.push('Could not extract property information from work file');
-  }
-}
-
-/**
- * Extract a section from file content
- */
-function extractSection(
-  content: string,
-  ...sectionNames: string[]
-): string | undefined {
-  for (const name of sectionNames) {
-    // Try common section markers
-    const markers = [
-      new RegExp(`\\[${name}\\](.*?)\\[END_${name}\\]`, 'is'),
-      new RegExp(`<${name}>(.*?)</${name}>`, 'is'),
-      new RegExp(`\\[${name}\\](.*?)\\[`, 'is'),
-      new RegExp(`BEGIN_${name}(.*?)END_${name}`, 'is'),
-      new RegExp(`\\*\\*\\*\\s*${name}\\s*\\*\\*\\*(.*?)\\*\\*\\*`, 'is')
-    ];
-    
-    for (const marker of markers) {
-      const match = content.match(marker);
-      if (match && match[1]) {
-        return match[1];
-      }
-    }
-  }
-  
-  return undefined;
-}
-
-/**
- * Extract a field value from a section
- */
-function extractField(
-  section: string,
-  fieldNames: string[]
-): string | undefined {
-  for (const name of fieldNames) {
-    // Try different field formats
-    const formats = [
-      new RegExp(`${name}\\s*[=:]\\s*([^\\r\\n]+)`, 'i'),
-      new RegExp(`"${name}"\\s*[=:]\\s*"([^"]+)"`, 'i'),
-      new RegExp(`<${name}>([^<]+)</${name}>`, 'i'),
-      new RegExp(`\\[${name}\\]([^\\[]*)\\[`, 'i'),
-      new RegExp(`${name}\\s*:([^:]+):`, 'i')
-    ];
-    
-    for (const format of formats) {
-      const match = section.match(format);
-      if (match && match[1]) {
-        return match[1].trim();
-      }
-    }
-  }
-  
-  return undefined;
-}
-
-/**
- * Extract a number field value from a section
- */
-function extractNumberField(
-  section: string,
-  fieldNames: string[]
-): number {
-  const value = extractField(section, fieldNames);
-  
-  if (value) {
-    // Remove any non-numeric characters except decimal point
-    const cleanValue = value.replace(/[^\d.]/g, '');
-    const numericValue = Number(cleanValue);
-    
-    if (!isNaN(numericValue)) {
-      return numericValue;
-    }
-  }
-  
-  return 0;
-}
-
-/**
- * Extract a date field value from a section
- */
-function extractDateField(
-  section: string,
-  fieldNames: string[]
-): Date | undefined {
-  const value = extractField(section, fieldNames);
-  
-  if (value) {
-    try {
-      return new Date(value);
-    } catch (e) {
-      // Invalid date format, ignore
-    }
-  }
-  
-  return undefined;
-}
-
-/**
- * Parse address string into components
- */
-function parseAddress(address: string): {
-  address: string,
-  city: string,
-  state: string,
-  zipCode: string
-} | null {
-  // Try to match address with city, state, zip
-  const fullAddressRegex = /^(.*?),\s*(.*?),\s*([A-Z]{2})\s*(\d{5}(?:-\d{4})?)$/;
-  const match = address.match(fullAddressRegex);
-  
-  if (match) {
-    return {
-      address: match[1].trim(),
-      city: match[2].trim(),
-      state: match[3].trim(),
-      zipCode: match[4].trim()
-    };
-  }
-  
-  // If no match, try to extract just the state and zip
-  const stateZipRegex = /(.*?)([A-Z]{2})\s*(\d{5}(?:-\d{4})?)/;
-  const partialMatch = address.match(stateZipRegex);
-  
-  if (partialMatch) {
-    // Try to extract city from the remaining text
-    const remainingText = partialMatch[1].trim();
-    const cityMatch = remainingText.match(/(.*?),\s*([^,]+)$/);
-    
-    if (cityMatch) {
-      return {
-        address: cityMatch[1].trim(),
-        city: cityMatch[2].trim(),
-        state: partialMatch[2].trim(),
-        zipCode: partialMatch[3].trim()
-      };
-    }
-    
-    // Fallback if we can't reliably extract city
-    return {
-      address: remainingText.replace(/,\s*$/, ''),
-      city: 'Unknown',
-      state: partialMatch[2].trim(),
-      zipCode: partialMatch[3].trim()
-    };
-  }
-  
-  return null;
 }

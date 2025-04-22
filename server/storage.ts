@@ -84,6 +84,11 @@ export interface IStorage {
   createComplianceCheck(check: InsertComplianceCheck): Promise<ComplianceCheck>;
   deleteComplianceCheck(id: number): Promise<boolean>;
   
+  // File import operations
+  createFileImportResult(result: InsertFileImportResult): Promise<FileImportResult>;
+  getFileImportResult(id: string): Promise<FileImportResult | undefined>;
+  getFileImportResults(limit?: number, offset?: number): Promise<FileImportResult[]>;
+  
   // Adjustment Model operations
   getAdjustmentModel(id: number): Promise<AdjustmentModel | undefined>;
   getAdjustmentModelsByReport(reportId: number): Promise<AdjustmentModel[]>;
@@ -592,4 +597,12 @@ export class MemStorage implements IStorage {
 import { DatabaseStorage } from "./database-storage";
 
 // Use DatabaseStorage instead of MemStorage
+// Type for updating file import result
+export interface FileImportResultUpdate {
+  status?: 'processing' | 'completed' | 'failed';
+  entitiesExtracted?: number;
+  errors?: string[];
+  warnings?: string[];
+}
+
 export const storage = new DatabaseStorage();

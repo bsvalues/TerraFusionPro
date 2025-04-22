@@ -1,237 +1,229 @@
 /**
- * Import Service
+ * Import Service for Appraisal Data
  * 
- * Handles the import of appraisal files in various formats and processes them
- * for data extraction and storage in the database.
+ * Handles the process of importing appraisal data from different file formats.
+ * Coordinates file parsing, data extraction, and database storage.
  */
 
-import { promises as fs } from 'fs';
-import path from 'path';
-import { v4 as uuidv4 } from 'uuid';
-import { storage } from '../storage';
-import { FileUploadMetadata, ImportResult } from './types';
-import { identifyAppraisalData } from './file-parsers';
+import { v4 as uuidv4 } from "uuid";
+import { storage, FileImportResultUpdate } from "../storage";
+import { ParserRegistry } from "./file-parsers";
+import { PropertyData, ReportData, ComparableData, AdjustmentData } from "./file-parsers/types";
+import fs from "fs";
+import path from "path";
 
 /**
- * Process an uploaded file for data extraction
+ * Import request interface
  */
-export async function processFile(fileMetadata: FileUploadMetadata): Promise<ImportResult> {
-  try {
-    console.log(`Processing file: ${fileMetadata.originalName}`);
+interface ImportRequest {
+  userId: number;
+  filename: string;
+  originalFilename: string;
+  mimeType: string;
+}
 
-    // Read the file from disk
-    const filePath = fileMetadata.path;
-    const fileBuffer = await fs.readFile(filePath);
+/**
+ * Import result interface
+ */
+interface ImportResult {
+  importId: string;
+  warnings: string[];
+}
+
+/**
+ * Service for importing and processing appraisal files
+ */
+export class ImportService {
+  private parserRegistry: ParserRegistry;
+
+  constructor() {
+    this.parserRegistry = new ParserRegistry();
+  }
+
+  /**
+   * Process a file upload request
+   */
+  async processFile(request: ImportRequest): Promise<ImportResult> {
+    const { userId, filename, originalFilename, mimeType } = request;
+    const warnings: string[] = [];
     
-    // Extract data from the file based on format
-    const { 
-      properties, 
-      comparables, 
-      reports, 
-      adjustments = [], 
-      errors, 
-      warnings, 
-      format 
-    } = await identifyAppraisalData(fileBuffer, fileMetadata.originalName, fileMetadata.mimeType);
-
-    // Initialize the import result
-    const importResult: ImportResult = {
-      fileId: fileMetadata.id,
-      fileName: fileMetadata.originalName,
-      format,
-      status: 'success',
-      dateProcessed: new Date(),
-      importedEntities: {
-        properties: [],
-        comparables: [],
-        reports: [],
-        adjustments: []
-      },
-      errors,
-      warnings
-    };
-
-    // Determine status based on errors
-    if (errors.length > 0) {
-      importResult.status = properties.length > 0 || comparables.length > 0 ? 'partial' : 'failed';
-    }
-
-    // Save extracted properties to the database
-    for (const propertyData of properties) {
-      try {
-        // Assign userId (should be provided by authentication in production)
-        propertyData.userId = propertyData.userId || 1; // Default user ID
-        
-        // Create the property
-        const property = await storage.createProperty(propertyData);
-        
-        // Save the property ID
-        if (property?.id) {
-          importResult.importedEntities.properties.push(property.id);
-        }
-      } catch (error) {
-        console.error('Error importing property:', error);
-        importResult.errors.push(`Failed to import property: ${error.message || 'Unknown error'}`);
-      }
-    }
-
-    // Save extracted reports to the database
-    for (const reportData of reports) {
-      try {
-        // Assign userId and propertyId
-        reportData.userId = reportData.userId || 1; // Default user ID
-        
-        // Link to an imported property if available
-        if (importResult.importedEntities.properties.length > 0) {
-          reportData.propertyId = importResult.importedEntities.properties[0];
-        }
-        
-        // Ensure required fields
-        reportData.status = reportData.status || 'imported';
-        
-        // Create the report
-        const report = await storage.createAppraisalReport(reportData);
-        
-        // Save the report ID
-        if (report?.id) {
-          importResult.importedEntities.reports.push(report.id);
-        }
-      } catch (error) {
-        console.error('Error importing report:', error);
-        importResult.errors.push(`Failed to import report: ${error.message || 'Unknown error'}`);
-      }
-    }
-
-    // Save extracted comparables to the database
-    for (const comparableData of comparables) {
-      try {
-        // Ensure required fields
-        comparableData.compType = comparableData.compType || 'comparable';
-        
-        // Link to a report if available
-        if (importResult.importedEntities.reports.length > 0) {
-          comparableData.reportId = importResult.importedEntities.reports[0];
-        }
-        
-        // Create the comparable
-        const comparable = await storage.createComparable(comparableData);
-        
-        // Save the comparable ID
-        if (comparable?.id) {
-          importResult.importedEntities.comparables.push(comparable.id);
-        }
-      } catch (error) {
-        console.error('Error importing comparable:', error);
-        importResult.errors.push(`Failed to import comparable: ${error.message || 'Unknown error'}`);
-      }
-    }
-
-    // Save extracted adjustments to the database
-    for (const adjustmentData of adjustments) {
-      try {
-        // Link to a report and comparable if available
-        if (importResult.importedEntities.reports.length > 0) {
-          adjustmentData.reportId = importResult.importedEntities.reports[0];
-        }
-        
-        if (importResult.importedEntities.comparables.length > 0) {
-          adjustmentData.comparableId = importResult.importedEntities.comparables[0];
-        }
-        
-        // Create the adjustment
-        const adjustment = await storage.createAdjustment(adjustmentData);
-        
-        // Save the adjustment ID
-        if (adjustment?.id) {
-          importResult.importedEntities.adjustments.push(adjustment.id);
-        }
-      } catch (error) {
-        console.error('Error importing adjustment:', error);
-        importResult.errors.push(`Failed to import adjustment: ${error.message || 'Unknown error'}`);
-      }
-    }
-
-    // Save import results to the database
-    const result = await storage.createFileImportResult({
-      id: uuidv4(),
-      fileId: importResult.fileId,
-      fileName: importResult.fileName,
-      format: importResult.format,
-      dateProcessed: importResult.dateProcessed,
-      importedEntities: importResult.importedEntities,
-      status: importResult.status,
-      errors: importResult.errors,
-      warnings: importResult.warnings
+    // Create an import record to track progress
+    const importId = uuidv4();
+    const importResult = await storage.createFileImportResult({
+      id: importId,
+      userId,
+      filename: path.basename(originalFilename),
+      status: "processing",
+      fileType: this.determineFileType(originalFilename, mimeType),
+      entitiesExtracted: 0,
+      errors: [],
+      warnings: [],
+      createdAt: new Date(),
+      updatedAt: new Date(),
     });
 
-    console.log(`File processing complete: ${fileMetadata.originalName}`);
-    return importResult;
+    try {
+      // Determine the file type and get the appropriate parser
+      const fileContent = fs.readFileSync(filename, "utf8");
+      const parser = this.parserRegistry.getParserForFile(originalFilename, fileContent);
+      
+      if (!parser) {
+        throw new Error(`Unsupported file format: ${originalFilename}`);
+      }
 
-  } catch (error) {
-    console.error(`Error processing file: ${error}`);
+      // Parse the file
+      console.log(`Parsing file ${originalFilename} with ${parser.name} parser`);
+      const parseResults = await parser.parse(fileContent);
+      
+      // Update import record with initial parsing results
+      await this.updateImportStatus(importId, {
+        entitiesExtracted: parseResults.length,
+        warnings: parseResults.warnings || []
+      });
+
+      // Process each extracted entity
+      let entitiesProcessed = 0;
+      for (const entity of parseResults.entities) {
+        try {
+          if (entity.type === "property") {
+            // Process property data
+            const propertyData = entity.data as PropertyData;
+            const property = await storage.createProperty({
+              userId,
+              ...propertyData
+            });
+            
+            entitiesProcessed++;
+            console.log(`Created property: ${property.address}`);
+          } 
+          else if (entity.type === "report") {
+            // Process report data
+            const reportData = entity.data as ReportData;
+            // Ensure we have required fields
+            if (!reportData.propertyId) {
+              warnings.push(`Report data missing propertyId, skipping: ${JSON.stringify(reportData)}`);
+              continue;
+            }
+            
+            const report = await storage.createAppraisalReport({
+              userId,
+              ...reportData
+            });
+            
+            entitiesProcessed++;
+            console.log(`Created report: ${report.id}`);
+          }
+          else if (entity.type === "comparable") {
+            // Process comparable data
+            const comparableData = entity.data as ComparableData;
+            // Ensure we have required fields
+            if (!comparableData.reportId) {
+              warnings.push(`Comparable data missing reportId, skipping: ${JSON.stringify(comparableData)}`);
+              continue;
+            }
+            
+            const comparable = await storage.createComparable({
+              ...comparableData
+            });
+            
+            entitiesProcessed++;
+            console.log(`Created comparable: ${comparable.address}`);
+          }
+          else if (entity.type === "adjustment") {
+            // Process adjustment data
+            const adjustmentData = entity.data as AdjustmentData;
+            // Ensure we have required fields
+            if (!adjustmentData.reportId || !adjustmentData.comparableId) {
+              warnings.push(`Adjustment data missing reportId or comparableId, skipping: ${JSON.stringify(adjustmentData)}`);
+              continue;
+            }
+            
+            const adjustment = await storage.createAdjustment({
+              ...adjustmentData
+            });
+            
+            entitiesProcessed++;
+            console.log(`Created adjustment: ${adjustment.adjustmentType}`);
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : String(error);
+          warnings.push(`Error processing entity: ${errorMessage}`);
+          console.error("Error processing entity:", error);
+        }
+      }
+
+      // Update the import result record
+      await this.updateImportStatus(importId, {
+        status: "completed",
+        entitiesExtracted: entitiesProcessed,
+        warnings
+      });
+
+      return {
+        importId,
+        warnings
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error("Error processing file:", error);
+      
+      // Update the import result record with the error
+      await this.updateImportStatus(importId, {
+        status: "failed",
+        errors: [errorMessage]
+      });
+      
+      // Rethrow to be caught by the caller
+      throw error;
+    } finally {
+      // Clean up the temp file
+      try {
+        fs.unlinkSync(filename);
+      } catch (error) {
+        console.error("Error removing temp file:", error);
+      }
+    }
+  }
+
+  /**
+   * Determine the file type based on the filename and MIME type
+   */
+  private determineFileType(filename: string, mimeType: string): string {
+    const extension = path.extname(filename).toLowerCase();
     
-    // Return failed import result
-    return {
-      fileId: fileMetadata.id,
-      fileName: fileMetadata.originalName,
-      format: 'unknown',
-      status: 'failed',
-      dateProcessed: new Date(),
-      importedEntities: {
-        properties: [],
-        comparables: [],
-        reports: [],
-        adjustments: []
-      },
-      errors: [`File processing failed: ${error.message || 'Unknown error'}`],
-      warnings: []
-    };
+    if (extension === ".pdf" || mimeType === "application/pdf") {
+      return "pdf";
+    } else if (extension === ".xml" || mimeType === "application/xml" || mimeType === "text/xml") {
+      return "xml";
+    } else if (extension === ".csv" || mimeType === "text/csv") {
+      return "csv";
+    } else if (extension === ".json" || mimeType === "application/json") {
+      return "json";
+    } else if (extension === ".zap" || extension === ".aci" || extension === ".apr") {
+      return "workfile";
+    } else {
+      return "unknown";
+    }
   }
-}
 
-/**
- * Save an uploaded file to disk and return metadata
- */
-export async function saveUploadedFile(file: Express.Multer.File): Promise<FileUploadMetadata> {
-  // Generate unique ID for the file
-  const fileId = uuidv4();
-  
-  // Create upload directory if it doesn't exist
-  const uploadDir = path.join(process.cwd(), 'uploads');
-  try {
-    await fs.mkdir(uploadDir, { recursive: true });
-  } catch (error) {
-    console.error(`Error creating upload directory: ${error}`);
+  /**
+   * Update the status of an import
+   */
+  private async updateImportStatus(importId: string, update: FileImportResultUpdate): Promise<void> {
+    await storage.updateFileImportResult(importId, update);
   }
-  
-  // Save the file to disk
-  const fileExtension = path.extname(file.originalname);
-  const fileName = `${fileId}${fileExtension}`;
-  const filePath = path.join(uploadDir, fileName);
-  
-  await fs.writeFile(filePath, file.buffer);
-  
-  // Return the file metadata
-  return {
-    id: fileId,
-    originalName: file.originalname,
-    mimeType: file.mimetype,
-    size: file.size,
-    path: filePath,
-    createdAt: new Date()
-  };
-}
 
-/**
- * Get a list of import results
- */
-export async function getImportResults(limit: number = 10, offset: number = 0): Promise<any[]> {
-  return storage.getFileImportResults(limit, offset);
-}
+  /**
+   * Get all import results for a user
+   */
+  async getImportResults(userId: number, limit?: number, offset?: number): Promise<any[]> {
+    return await storage.getFileImportResultsByUserId(userId);
+  }
 
-/**
- * Get a specific import result
- */
-export async function getImportResult(id: string): Promise<any> {
-  return storage.getFileImportResult(id);
+  /**
+   * Get a specific import result
+   */
+  async getImportResult(id: string): Promise<any> {
+    return await storage.getFileImportResult(id);
+  }
 }
