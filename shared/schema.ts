@@ -93,7 +93,8 @@ export const appraisalReports = pgTable("appraisal_reports", {
   updatedAt: timestamp("updated_at").defaultNow(),
 });
 
-export const insertAppraisalReportSchema = createInsertSchema(appraisalReports).pick({
+// Create base schema
+const baseAppraisalReportSchema = createInsertSchema(appraisalReports).pick({
   userId: true,
   propertyId: true,
   reportType: true,
@@ -110,6 +111,12 @@ export const insertAppraisalReportSchema = createInsertSchema(appraisalReports).
   occupancy: true,
   salesPrice: true,
   marketValue: true,
+});
+
+// Override date fields to accept string ISO dates
+export const insertAppraisalReportSchema = baseAppraisalReportSchema.extend({
+  effectiveDate: z.string().datetime().nullable().optional().or(z.date().nullable().optional()),
+  reportDate: z.string().datetime().nullable().optional().or(z.date().nullable().optional()),
 });
 
 // Comparable model
