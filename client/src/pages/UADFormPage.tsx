@@ -131,6 +131,16 @@ export default function UADFormPage() {
             {property?.address}, {property?.city}, {property?.state} {property?.zipCode}
           </p>
         </div>
+        <div className="flex space-x-2">
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => setLocation(`/property/${propertyId}`)}
+          >
+            <Home className="mr-2 h-4 w-4" />
+            Property Details
+          </Button>
+        </div>
       </div>
       
       <Tabs value={activeTab} onValueChange={setActiveTab}>

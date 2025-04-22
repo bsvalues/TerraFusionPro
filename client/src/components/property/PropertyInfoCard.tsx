@@ -135,7 +135,49 @@ export function PropertyInfoCard({ property, className }: PropertyInfoCardProps)
           </>
         )}
       </CardContent>
+      <CardFooter className="flex justify-between">
+        <ActionsSection propertyId={property.id} />
+      </CardFooter>
     </Card>
+  );
+}
+
+interface ActionsSectionProps {
+  propertyId: number;
+}
+
+function ActionsSection({ propertyId }: ActionsSectionProps) {
+  const [_, setLocation] = useLocation();
+  
+  const handleUADFormClick = () => {
+    setLocation(`/uad-form/${propertyId}`);
+  };
+  
+  return (
+    <div className="w-full flex flex-col space-y-3">
+      <h4 className="text-sm font-medium mb-1">Create Appraisal Documents</h4>
+      <div className="flex flex-wrap gap-2">
+        <Button 
+          variant="default" 
+          size="sm" 
+          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+          onClick={handleUADFormClick}
+        >
+          <ClipboardList className="mr-2 h-4 w-4" />
+          UAD Form
+        </Button>
+        
+        <Button variant="outline" size="sm">
+          <FileText className="mr-2 h-4 w-4" />
+          1004 Report
+        </Button>
+        
+        <Button variant="outline" size="sm">
+          <FileSpreadsheet className="mr-2 h-4 w-4" />
+          Grid Report
+        </Button>
+      </div>
+    </div>
   );
 }
 
