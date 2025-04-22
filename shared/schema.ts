@@ -238,6 +238,68 @@ export const insertSketchSchema = createInsertSchema(sketches).pick({
   data: true,
 });
 
+// Adjustment Models
+export const adjustmentModels = pgTable("adjustment_models", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull().references(() => appraisalReports.id),
+  name: text("name").notNull(),
+  description: text("description"),
+  modelType: text("model_type").notNull(), // manual, ai-generated, market-derived, hybrid
+  metadata: jsonb("metadata"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertAdjustmentModelSchema = createInsertSchema(adjustmentModels).pick({
+  reportId: true,
+  name: true,
+  description: true,
+  modelType: true,
+  metadata: true,
+});
+
+// Model Adjustments - adjustments that are part of specific adjustment models
+export const modelAdjustments = pgTable("model_adjustments", {
+  id: serial("id").primaryKey(),
+  modelId: integer("model_id").notNull().references(() => adjustmentModels.id),
+  comparableId: integer("comparable_id").notNull().references(() => comparables.id),
+  adjustmentType: text("adjustment_type").notNull(),
+  description: text("description"),
+  amount: numeric("amount").notNull(),
+  confidence: numeric("confidence"), // For AI-generated adjustments
+  reasoning: text("reasoning"), // Explanation for the adjustment
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertModelAdjustmentSchema = createInsertSchema(modelAdjustments).pick({
+  modelId: true,
+  comparableId: true,
+  adjustmentType: true,
+  description: true,
+  amount: true,
+  confidence: true,
+  reasoning: true,
+});
+
+// Market Analysis Data
+export const marketAnalysis = pgTable("market_analysis", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull().references(() => appraisalReports.id),
+  analysisType: text("analysis_type").notNull(), // regression, paired_sales, trend
+  description: text("description"),
+  data: jsonb("data").notNull(), // Store analysis data as JSON
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertMarketAnalysisSchema = createInsertSchema(marketAnalysis).pick({
+  reportId: true,
+  analysisType: true,
+  description: true,
+  data: true,
+});
+
 // Compliance model
 export const complianceChecks = pgTable("compliance_checks", {
   id: serial("id").primaryKey(),
@@ -287,6 +349,8 @@ export const appraisalReportsRelations = relations(appraisalReports, ({ one, man
   photos: many(photos),
   sketches: many(sketches),
   complianceChecks: many(complianceChecks),
+  adjustmentModels: many(adjustmentModels),
+  marketAnalysis: many(marketAnalysis),
 }));
 
 export const comparablesRelations = relations(comparables, ({ one, many }) => ({
@@ -295,6 +359,7 @@ export const comparablesRelations = relations(comparables, ({ one, many }) => ({
     references: [appraisalReports.id],
   }),
   adjustments: many(adjustments),
+  modelAdjustments: many(modelAdjustments),
 }));
 
 export const adjustmentsRelations = relations(adjustments, ({ one }) => ({
@@ -329,6 +394,35 @@ export const complianceChecksRelations = relations(complianceChecks, ({ one }) =
   }),
 }));
 
+// Relations for adjustment models
+export const adjustmentModelsRelations = relations(adjustmentModels, ({ one, many }) => ({
+  report: one(appraisalReports, {
+    fields: [adjustmentModels.reportId],
+    references: [appraisalReports.id],
+  }),
+  modelAdjustments: many(modelAdjustments),
+}));
+
+// Relations for model adjustments
+export const modelAdjustmentsRelations = relations(modelAdjustments, ({ one }) => ({
+  model: one(adjustmentModels, {
+    fields: [modelAdjustments.modelId],
+    references: [adjustmentModels.id],
+  }),
+  comparable: one(comparables, {
+    fields: [modelAdjustments.comparableId],
+    references: [comparables.id],
+  }),
+}));
+
+// Relations for market analysis
+export const marketAnalysisRelations = relations(marketAnalysis, ({ one }) => ({
+  report: one(appraisalReports, {
+    fields: [marketAnalysis.reportId],
+    references: [appraisalReports.id],
+  }),
+}));
+
 // Export all types
 export type User = typeof users.$inferSelect;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -353,3 +447,13 @@ export type InsertSketch = z.infer<typeof insertSketchSchema>;
 
 export type ComplianceCheck = typeof complianceChecks.$inferSelect;
 export type InsertComplianceCheck = z.infer<typeof insertComplianceCheckSchema>;
+
+// New types for adjustment models
+export type AdjustmentModel = typeof adjustmentModels.$inferSelect;
+export type InsertAdjustmentModel = z.infer<typeof insertAdjustmentModelSchema>;
+
+export type ModelAdjustment = typeof modelAdjustments.$inferSelect;
+export type InsertModelAdjustment = z.infer<typeof insertModelAdjustmentSchema>;
+
+export type MarketAnalysis = typeof marketAnalysis.$inferSelect;
+export type InsertMarketAnalysis = z.infer<typeof insertMarketAnalysisSchema>;

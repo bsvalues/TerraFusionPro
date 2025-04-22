@@ -6,7 +6,10 @@ import {
   adjustments, Adjustment, InsertAdjustment,
   photos, Photo, InsertPhoto,
   sketches, Sketch, InsertSketch,
-  complianceChecks, ComplianceCheck, InsertComplianceCheck
+  complianceChecks, ComplianceCheck, InsertComplianceCheck,
+  adjustmentModels, AdjustmentModel, InsertAdjustmentModel,
+  modelAdjustments, ModelAdjustment, InsertModelAdjustment,
+  marketAnalysis, MarketAnalysis, InsertMarketAnalysis
 } from "@shared/schema";
 
 // Extend the storage interface to support all our models
@@ -65,6 +68,29 @@ export interface IStorage {
   getComplianceChecksByReport(reportId: number): Promise<ComplianceCheck[]>;
   createComplianceCheck(check: InsertComplianceCheck): Promise<ComplianceCheck>;
   deleteComplianceCheck(id: number): Promise<boolean>;
+  
+  // Adjustment Model operations
+  getAdjustmentModel(id: number): Promise<AdjustmentModel | undefined>;
+  getAdjustmentModelsByReport(reportId: number): Promise<AdjustmentModel[]>;
+  createAdjustmentModel(model: InsertAdjustmentModel): Promise<AdjustmentModel>;
+  updateAdjustmentModel(id: number, model: Partial<InsertAdjustmentModel>): Promise<AdjustmentModel | undefined>;
+  deleteAdjustmentModel(id: number): Promise<boolean>;
+  
+  // Model Adjustment operations
+  getModelAdjustment(id: number): Promise<ModelAdjustment | undefined>;
+  getModelAdjustmentsByModel(modelId: number): Promise<ModelAdjustment[]>;
+  getModelAdjustmentsByComparable(comparableId: number, modelId?: number): Promise<ModelAdjustment[]>;
+  createModelAdjustment(adjustment: InsertModelAdjustment): Promise<ModelAdjustment>;
+  updateModelAdjustment(id: number, adjustment: Partial<InsertModelAdjustment>): Promise<ModelAdjustment | undefined>;
+  deleteModelAdjustment(id: number): Promise<boolean>;
+  
+  // Market Analysis operations
+  getMarketAnalysis(id: number): Promise<MarketAnalysis | undefined>;
+  getMarketAnalysesByReport(reportId: number): Promise<MarketAnalysis[]>;
+  getMarketAnalysisByType(reportId: number, analysisType: string): Promise<MarketAnalysis | undefined>;
+  createMarketAnalysis(analysis: InsertMarketAnalysis): Promise<MarketAnalysis>;
+  updateMarketAnalysis(id: number, analysis: Partial<InsertMarketAnalysis>): Promise<MarketAnalysis | undefined>;
+  deleteMarketAnalysis(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
