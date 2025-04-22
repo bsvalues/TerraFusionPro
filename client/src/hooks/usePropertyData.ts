@@ -11,8 +11,7 @@ export function usePropertyData() {
       queryKey: ['/api/properties', propertyId],
       queryFn: async () => {
         if (!propertyId) return null;
-        const res = await apiRequest({ method: 'GET', path: `/api/properties/${propertyId}` });
-        return res.json();
+        return await apiRequest(`/api/properties/${propertyId}`);
       },
       enabled: !!propertyId
     });
@@ -23,8 +22,7 @@ export function usePropertyData() {
     return useQuery({
       queryKey: ['/api/properties'],
       queryFn: async () => {
-        const res = await apiRequest({ method: 'GET', path: '/api/properties' });
-        return res.json();
+        return await apiRequest('/api/properties');
       }
     });
   };
@@ -32,8 +30,10 @@ export function usePropertyData() {
   // Create a new property
   const createPropertyMutation = useMutation({
     mutationFn: async (propertyData: any) => {
-      const res = await apiRequest({ method: 'POST', path: '/api/properties', data: propertyData });
-      return await res.json();
+      return await apiRequest('/api/properties', {
+        method: 'POST',
+        data: propertyData
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
@@ -43,8 +43,10 @@ export function usePropertyData() {
   // Update an existing property
   const updatePropertyMutation = useMutation({
     mutationFn: async ({ id, data }: { id: number; data: any }) => {
-      const res = await apiRequest({ method: 'PUT', path: `/api/properties/${id}`, data });
-      return await res.json();
+      return await apiRequest(`/api/properties/${id}`, {
+        method: 'PUT',
+        data
+      });
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
@@ -55,8 +57,9 @@ export function usePropertyData() {
   // Delete a property
   const deletePropertyMutation = useMutation({
     mutationFn: async (id: number) => {
-      const res = await apiRequest({ method: 'DELETE', path: `/api/properties/${id}` });
-      return await res.json();
+      return await apiRequest(`/api/properties/${id}`, {
+        method: 'DELETE'
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
@@ -67,21 +70,18 @@ export function usePropertyData() {
   const retrievePropertyDataMutation = useMutation({
     mutationFn: async ({ propertyId, reportId }: { propertyId: number, reportId?: number }) => {
       // First, get the property data
-      const propertyRes = await apiRequest({ method: 'GET', path: `/api/properties/${propertyId}` });
-      const property = await propertyRes.json();
+      const property = await apiRequest<any>(`/api/properties/${propertyId}`);
       
       // If we have a report ID, use that, otherwise get the first report for this property
       let targetReportId = reportId;
       if (!targetReportId) {
-        const reportsRes = await apiRequest({ method: 'GET', path: `/api/reports?propertyId=${propertyId}` });
-        const reports = await reportsRes.json();
+        const reports = await apiRequest<any[]>(`/api/reports?propertyId=${propertyId}`);
         if (reports && reports.length > 0) {
           targetReportId = reports[0].id;
         } else {
           // Create a new report if none exists
-          const newReportRes = await apiRequest({ 
-            method: 'POST', 
-            path: `/api/reports`, 
+          const newReport = await apiRequest<any>(`/api/reports`, {
+            method: 'POST',
             data: { 
               propertyId, 
               status: 'in_progress',
@@ -92,26 +92,22 @@ export function usePropertyData() {
               reportDate: new Date().toISOString()
             }
           });
-          const newReport = await newReportRes.json();
           targetReportId = newReport.id;
         }
       }
       
       // Trigger the data analysis via the AI
       if (targetReportId) {
-        const analyzeRes = await apiRequest({ 
-          method: 'POST', 
-          path: '/api/ai/analyze-property', 
+        await apiRequest('/api/ai/analyze-property', {
+          method: 'POST',
           data: { propertyId }
         });
-        await analyzeRes.json();
       } else {
         throw new Error('Could not find or create a report for this property');
       }
       
       // Return the updated property
-      const updatedPropertyRes = await apiRequest({ method: 'GET', path: `/api/properties/${propertyId}` });
-      return await updatedPropertyRes.json();
+      return await apiRequest<any>(`/api/properties/${propertyId}`);
     },
     onSuccess: (_, variables) => {
       queryClient.invalidateQueries({ queryKey: ['/api/properties'] });

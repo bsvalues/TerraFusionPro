@@ -3,7 +3,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { cn } from '@/lib/utils';
-import { Home, Calendar, Ruler, Bed, Bath, Map, Tree, Car, DollarSign, Hash } from 'lucide-react';
+import { Home, Calendar, Ruler, Bed, Bath, Map, Trees, Car, DollarSign, Hash } from 'lucide-react';
 
 interface PropertyInfoCardProps {
   property: any;
@@ -68,7 +68,7 @@ export function PropertyInfoCard({ property, className }: PropertyInfoCardProps)
           <div className="space-y-2">
             {property.lotSize && (
               <InfoItem 
-                icon={<Tree className="h-4 w-4 text-muted-foreground" />}
+                icon={<Trees className="h-4 w-4 text-muted-foreground" />}
                 label="Lot Size"
                 value={`${property.lotSize} ${property.lotSize < 5 ? 'acres' : 'sqft'}`}
               />

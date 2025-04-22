@@ -8,6 +8,7 @@ import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
 import AIValuationPage from "./pages/AIValuationPage";
 import EmailOrderPage from "./pages/EmailOrderPage";
+import PropertyDataPage from "./pages/PropertyDataPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 
@@ -41,7 +42,8 @@ function App() {
             <li><a href="/reports" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Reports clicked")}>Reports</a></li>
             <li><a href="/compliance" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Compliance clicked")}>Compliance</a></li>
             <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("AI Valuation clicked")}>AI Valuation</a></li>
-            <li><a href="/email-order" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("Import Order clicked")}>Import Order</a></li>
+            <li><a href="/email-order" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Import Order clicked")}>Import Order</a></li>
+            <li><a href="/property-data" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("Property Data clicked")}>Property Data</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">
@@ -55,6 +57,8 @@ function App() {
             <Route path="/compliance" component={CompliancePage} />
             <Route path="/ai-valuation" component={AIValuationPage} />
             <Route path="/email-order" component={EmailOrderPage} />
+            <Route path="/property-data" component={PropertyDataPage} />
+            <Route path="/property/:id" component={PropertyDataPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
