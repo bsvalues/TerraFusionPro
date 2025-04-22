@@ -18,6 +18,7 @@ import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
 import { 
   Save, RotateCcw, AlertTriangle, Check, RefreshCw, ExternalLink, Printer, FileUp, FileDown
 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface UADFormProps {
   propertyId?: number;
@@ -256,10 +257,10 @@ export const UADForm: React.FC<UADFormProps> = ({
       
       {/* Unsaved Changes Warning */}
       {hasUnsavedChanges && (
-        <Alert variant="warning" className="mb-6">
-          <AlertTriangle className="h-4 w-4" />
-          <AlertTitle>Unsaved Changes</AlertTitle>
-          <AlertDescription>
+        <Alert className="mb-6 bg-amber-50 border-amber-500">
+          <AlertTriangle className="h-4 w-4 text-amber-500" />
+          <AlertTitle className="text-amber-700">Unsaved Changes</AlertTitle>
+          <AlertDescription className="text-amber-600">
             You have unsaved changes. Be sure to save your work before navigating away.
           </AlertDescription>
         </Alert>

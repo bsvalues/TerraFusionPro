@@ -59,10 +59,10 @@ export default function UADFormPage() {
     return (
       <div className="container py-8">
         <h1 className="text-3xl font-bold tracking-tight mb-6">UAD Form</h1>
-        <Alert variant="info" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>No Property Selected</AlertTitle>
-          <AlertDescription>
+        <Alert className="mb-6 bg-blue-50 border-blue-200">
+          <AlertCircle className="h-4 w-4 text-blue-500" />
+          <AlertTitle className="text-blue-700">No Property Selected</AlertTitle>
+          <AlertDescription className="text-blue-600">
             Please select a property to view its UAD form. You can select a property from the properties list.
           </AlertDescription>
         </Alert>
