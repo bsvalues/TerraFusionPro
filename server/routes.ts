@@ -1,4 +1,5 @@
 import type { Express, Request, Response } from "express";
+import { Router } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { insertUserSchema, insertPropertySchema, insertAppraisalReportSchema, insertComparableSchema, insertAdjustmentSchema, insertPhotoSchema, insertSketchSchema, insertComplianceCheckSchema, insertAdjustmentModelSchema, insertModelAdjustmentSchema, insertMarketAnalysisSchema, insertUserPreferenceSchema, insertAdjustmentTemplateSchema, insertAdjustmentRuleSchema, insertAdjustmentHistorySchema, insertCollaborationCommentSchema, insertMarketDataSchema } from "@shared/schema";
@@ -17,6 +18,7 @@ import {
 } from "./lib/openai";
 
 import { aiOrchestrator, AIProvider } from "./lib/ai-orchestrator";
+import { gamificationRoutes } from './routes/gamification';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2199,6 +2201,85 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
     }
   });
+
+  // Create a gamification router for all gamification-related endpoints
+  const gamificationRouter = Router();
+  
+  // Add achievement definition routes
+  gamificationRouter.get("/achievement-definitions", async (req: Request, res: Response) => {
+    try {
+      const definitions = await storage.getAllAchievementDefinitions();
+      res.json(definitions);
+    } catch (error) {
+      console.error("Error getting achievement definitions:", error);
+      res.status(500).json({ error: "Failed to get achievement definitions" });
+    }
+  });
+  
+  // Add user achievement routes
+  gamificationRouter.get("/user-achievements/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const achievements = await storage.getUserAchievementsByUser(userId);
+      res.json(achievements);
+    } catch (error) {
+      console.error("Error getting user achievements:", error);
+      res.status(500).json({ error: "Failed to get user achievements" });
+    }
+  });
+  
+  // Add user progress routes
+  gamificationRouter.get("/user-progress/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const progress = await storage.getUserProgressByUser(userId);
+      if (!progress) {
+        return res.status(404).json({ error: "User progress not found" });
+      }
+      res.json(progress);
+    } catch (error) {
+      console.error("Error getting user progress:", error);
+      res.status(500).json({ error: "Failed to get user progress" });
+    }
+  });
+  
+  // Add level routes
+  gamificationRouter.get("/levels", async (req: Request, res: Response) => {
+    try {
+      const levels = await storage.getAllLevels();
+      res.json(levels);
+    } catch (error) {
+      console.error("Error getting levels:", error);
+      res.status(500).json({ error: "Failed to get levels" });
+    }
+  });
+  
+  // Add user challenge routes
+  gamificationRouter.get("/user-challenges/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const challenges = await storage.getUserChallengesByUser(userId);
+      res.json(challenges);
+    } catch (error) {
+      console.error("Error getting user challenges:", error);
+      res.status(500).json({ error: "Failed to get user challenges" });
+    }
+  });
+  
+  // Add user notification routes
+  gamificationRouter.get("/user-notifications/:userId", async (req: Request, res: Response) => {
+    try {
+      const userId = parseInt(req.params.userId);
+      const notifications = await storage.getUserNotificationsByUser(userId);
+      res.json(notifications);
+    } catch (error) {
+      console.error("Error getting user notifications:", error);
+      res.status(500).json({ error: "Failed to get user notifications" });
+    }
+  });
+  
+  // Register gamification routes
+  app.use('/api/gamification', gamificationRouter);
 
   const httpServer = createServer(app);
   return httpServer;

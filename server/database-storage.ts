@@ -1313,8 +1313,10 @@ export class DatabaseStorage implements IStorage {
       return await db
         .select()
         .from(userNotifications)
-        .where(eq(userNotifications.userId, userId))
-        .where(eq(userNotifications.read, false))
+        .where(and(
+          eq(userNotifications.userId, userId),
+          eq(userNotifications.read, false)
+        ))
         .orderBy(desc(userNotifications.createdAt));
     } catch (error) {
       console.error("Error getting unread notifications by user:", error);
@@ -1328,8 +1330,10 @@ export class DatabaseStorage implements IStorage {
         return await db
           .select()
           .from(userNotifications)
-          .where(eq(userNotifications.type, type))
-          .where(eq(userNotifications.userId, userId))
+          .where(and(
+            eq(userNotifications.type, type),
+            eq(userNotifications.userId, userId)
+          ))
           .orderBy(desc(userNotifications.createdAt));
       } else {
         return await db
@@ -1376,8 +1380,10 @@ export class DatabaseStorage implements IStorage {
       await db
         .update(userNotifications)
         .set({ read: true })
-        .where(eq(userNotifications.userId, userId))
-        .where(eq(userNotifications.read, false));
+        .where(and(
+          eq(userNotifications.userId, userId),
+          eq(userNotifications.read, false)
+        ));
       return true;
     } catch (error) {
       console.error("Error marking all user notifications as read:", error);
@@ -1395,3 +1401,6 @@ export class DatabaseStorage implements IStorage {
     }
   }
 }
+
+// Export an instance of the DatabaseStorage class
+export const storage = new DatabaseStorage();
