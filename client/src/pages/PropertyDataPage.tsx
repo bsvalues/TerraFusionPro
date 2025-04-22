@@ -9,7 +9,8 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter }
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Separator } from '@/components/ui/separator';
-import { useParams } from 'wouter';
+import { useParams, useLocation } from 'wouter';
+import { ClipboardList, FileText } from 'lucide-react';
 
 export default function PropertyDataPage() {
   const { id } = useParams<{ id: string }>();
@@ -71,11 +72,45 @@ export default function PropertyDataPage() {
     }
   };
   
+  const [_, setLocation] = useLocation();
+  
+  const handleUADFormClick = () => {
+    if (propertyId) {
+      setLocation(`/uad-form/${propertyId}`);
+    }
+  };
+  
   return (
     <div className="container py-8">
-      <h1 className="text-3xl font-bold tracking-tight mb-6">Property Data Retrieval</h1>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Property Data Retrieval</h1>
+          <p className="text-muted-foreground">
+            Our enhanced property data retrieval system uses AI to automatically fetch property details.
+          </p>
+        </div>
+        
+        {propertyId && property && (
+          <div className="flex space-x-2">
+            <Button 
+              variant="default" 
+              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+              onClick={handleUADFormClick}
+            >
+              <ClipboardList className="mr-2 h-4 w-4" />
+              Create UAD Form
+            </Button>
+            
+            <Button variant="outline">
+              <FileText className="mr-2 h-4 w-4" />
+              Create 1004 Report
+            </Button>
+          </div>
+        )}
+      </div>
+      
       <p className="text-muted-foreground mb-8">
-        Our enhanced property data retrieval system uses AI to automatically fetch property details from multiple sources.
+        Auto-filled data can be used to generate UAD forms and other appraisal documents.
       </p>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

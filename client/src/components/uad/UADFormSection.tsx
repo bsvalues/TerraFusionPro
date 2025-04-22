@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UADFormSection as UADFormSectionType, getFieldsBySection, getFieldsBySubsection } from './constants';
 import { UADFormField } from './UADFormField';
+import { useUADForm } from '@/contexts/UADFormContext';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 import { ChevronDown, ChevronUp, Check, AlertCircle } from 'lucide-react';
@@ -82,21 +83,21 @@ export const UADFormSection: React.FC<UADFormSectionProps> = ({
   
   // Status indicator for the section
   const SectionStatusIndicator = () => {
-    // For now, just a placeholder
-    // In a complete implementation, you would check required fields to determine completion
-    const isComplete = false;
+    // Simple status display
+    // This is a simplified version without the form data usage
+    const requiredFieldsCount = getFieldsBySection(section).filter(field => field.required).length;
     
     return (
       <div className="ml-auto flex items-center">
-        {isComplete ? (
-          <div className="flex items-center text-green-500">
+        {requiredFieldsCount === 0 ? (
+          <div className="flex items-center text-blue-500">
             <Check size={16} className="mr-1" />
-            <span className="text-sm">Complete</span>
+            <span className="text-sm">Optional</span>
           </div>
         ) : (
           <div className="flex items-center text-amber-500">
             <AlertCircle size={16} className="mr-1" />
-            <span className="text-sm">Incomplete</span>
+            <span className="text-sm">{requiredFieldsCount} Required Fields</span>
           </div>
         )}
       </div>
