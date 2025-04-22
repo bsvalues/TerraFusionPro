@@ -31,6 +31,7 @@ export enum OrchestrationTaskType {
   AUTOMATED_VALUATION = 'automated_valuation',
   COMPARABLE_SELECTION = 'comparable_selection',
   ADJUSTMENT_CALCULATION = 'adjustment_calculation',
+  GENERATE_ADJUSTMENT_MODEL = 'generate_adjustment_model',
   
   // Report generation
   GENERATE_REPORT_SECTION = 'generate_report_section',
@@ -273,6 +274,63 @@ export class AIOrchestrator {
   }
   
   /**
+   * Generate an adjustment model for a subject property and its comparables
+   * @param subjectProperty - The subject property data
+   * @param comparableProperties - Array of comparable properties
+   * @param provider - AI provider to use (optional)
+   * @returns Adjustment model data with recommendations
+   */
+  async generateAdjustmentModel(
+    subjectProperty: any,
+    comparableProperties: any[],
+    provider: AIProvider = AIProvider.AUTO
+  ): Promise<any> {
+    console.log(`[AI Orchestrator] Generating adjustment model for ${subjectProperty.address}`);
+    
+    // If provider is AUTO, determine the best provider for the task
+    const selectedProvider = this.selectBestProvider(
+      OrchestrationTaskType.GENERATE_ADJUSTMENT_MODEL,
+      provider
+    );
+    
+    console.log(`[AI Orchestrator] Using ${selectedProvider} for adjustment model generation`);
+    
+    // Create an adjustment model generation task
+    const task: AgentTask<any> = {
+      taskId: `adjustment-model-task-${Date.now()}`,
+      taskType: AgentTaskTypes.ANALYZE_COMPARABLES,
+      priority: 1,
+      data: {
+        subjectProperty,
+        comparableProperties,
+        generateModel: true,
+        includeAdjustmentRecommendations: true
+      },
+      requester: 'system',
+      metadata: {
+        provider: selectedProvider
+      }
+    };
+    
+    // Execute the task using the agent coordinator
+    const result = await this.coordinator.executeTask(task);
+    
+    if (result.status !== 'completed') {
+      throw new Error(`Failed to generate adjustment model: ${result.error}`);
+    }
+    
+    // Return the model structure
+    return {
+      modelName: `AI Generated Model - ${new Date().toLocaleDateString()}`,
+      modelDescription: "Automatically generated adjustment model based on property characteristics and market data",
+      parameters: result.result.parameters || {},
+      confidence: result.result.confidence || 0.85,
+      metadata: result.result.metadata || {},
+      adjustments: result.result.adjustments || []
+    };
+  }
+
+  /**
    * Generate a market analysis for a property location
    * @param location - Location to analyze (city, state, or zip)
    * @param propertyType - Type of property (single family, condo, etc.)
@@ -490,6 +548,7 @@ export class AIOrchestrator {
         
       case OrchestrationTaskType.AUTOMATED_VALUATION:
       case OrchestrationTaskType.ADJUSTMENT_CALCULATION:
+      case OrchestrationTaskType.GENERATE_ADJUSTMENT_MODEL:
         // OpenAI is better at numerical analysis
         return AIProvider.OPENAI;
         

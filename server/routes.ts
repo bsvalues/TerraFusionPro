@@ -1329,6 +1329,409 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Adjustment Model routes
+  app.get("/api/reports/:reportId/adjustment-models", async (req: Request, res: Response) => {
+    try {
+      const reportId = Number(req.params.reportId);
+      const models = await storage.getAdjustmentModelsByReport(reportId);
+      res.status(200).json(models);
+    } catch (error) {
+      console.error("Error fetching adjustment models:", error);
+      res.status(500).json({ message: "Server error fetching adjustment models" });
+    }
+  });
+
+  app.get("/api/adjustment-models/:id", async (req: Request, res: Response) => {
+    try {
+      const modelId = Number(req.params.id);
+      const model = await storage.getAdjustmentModel(modelId);
+      
+      if (!model) {
+        return res.status(404).json({ message: "Adjustment model not found" });
+      }
+      
+      res.status(200).json(model);
+    } catch (error) {
+      console.error("Error fetching adjustment model:", error);
+      res.status(500).json({ message: "Server error fetching adjustment model" });
+    }
+  });
+
+  app.post("/api/adjustment-models", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertAdjustmentModelSchema.parse(req.body);
+      const newModel = await storage.createAdjustmentModel(validatedData);
+      res.status(201).json(newModel);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating adjustment model:", error);
+      res.status(500).json({ message: "Server error creating adjustment model" });
+    }
+  });
+
+  app.put("/api/adjustment-models/:id", async (req: Request, res: Response) => {
+    try {
+      const modelId = Number(req.params.id);
+      const validatedData = insertAdjustmentModelSchema.partial().parse(req.body);
+      
+      const updatedModel = await storage.updateAdjustmentModel(modelId, validatedData);
+      
+      if (!updatedModel) {
+        return res.status(404).json({ message: "Adjustment model not found" });
+      }
+      
+      res.status(200).json(updatedModel);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error updating adjustment model:", error);
+      res.status(500).json({ message: "Server error updating adjustment model" });
+    }
+  });
+
+  app.delete("/api/adjustment-models/:id", async (req: Request, res: Response) => {
+    try {
+      const modelId = Number(req.params.id);
+      const success = await storage.deleteAdjustmentModel(modelId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Adjustment model not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting adjustment model:", error);
+      res.status(500).json({ message: "Server error deleting adjustment model" });
+    }
+  });
+
+  // Model Adjustment routes
+  app.get("/api/adjustment-models/:modelId/adjustments", async (req: Request, res: Response) => {
+    try {
+      const modelId = Number(req.params.modelId);
+      const adjustments = await storage.getModelAdjustmentsByModel(modelId);
+      res.status(200).json(adjustments);
+    } catch (error) {
+      console.error("Error fetching model adjustments:", error);
+      res.status(500).json({ message: "Server error fetching model adjustments" });
+    }
+  });
+
+  app.get("/api/comparables/:comparableId/model-adjustments", async (req: Request, res: Response) => {
+    try {
+      const comparableId = Number(req.params.comparableId);
+      const modelId = req.query.modelId ? Number(req.query.modelId) : undefined;
+      
+      const adjustments = await storage.getModelAdjustmentsByComparable(comparableId, modelId);
+      res.status(200).json(adjustments);
+    } catch (error) {
+      console.error("Error fetching model adjustments for comparable:", error);
+      res.status(500).json({ message: "Server error fetching model adjustments" });
+    }
+  });
+
+  app.get("/api/model-adjustments/:id", async (req: Request, res: Response) => {
+    try {
+      const adjustmentId = Number(req.params.id);
+      const adjustment = await storage.getModelAdjustment(adjustmentId);
+      
+      if (!adjustment) {
+        return res.status(404).json({ message: "Model adjustment not found" });
+      }
+      
+      res.status(200).json(adjustment);
+    } catch (error) {
+      console.error("Error fetching model adjustment:", error);
+      res.status(500).json({ message: "Server error fetching model adjustment" });
+    }
+  });
+
+  app.post("/api/model-adjustments", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertModelAdjustmentSchema.parse(req.body);
+      const newAdjustment = await storage.createModelAdjustment(validatedData);
+      res.status(201).json(newAdjustment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating model adjustment:", error);
+      res.status(500).json({ message: "Server error creating model adjustment" });
+    }
+  });
+
+  app.put("/api/model-adjustments/:id", async (req: Request, res: Response) => {
+    try {
+      const adjustmentId = Number(req.params.id);
+      const validatedData = insertModelAdjustmentSchema.partial().parse(req.body);
+      
+      const updatedAdjustment = await storage.updateModelAdjustment(adjustmentId, validatedData);
+      
+      if (!updatedAdjustment) {
+        return res.status(404).json({ message: "Model adjustment not found" });
+      }
+      
+      res.status(200).json(updatedAdjustment);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error updating model adjustment:", error);
+      res.status(500).json({ message: "Server error updating model adjustment" });
+    }
+  });
+
+  app.delete("/api/model-adjustments/:id", async (req: Request, res: Response) => {
+    try {
+      const adjustmentId = Number(req.params.id);
+      const success = await storage.deleteModelAdjustment(adjustmentId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Model adjustment not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting model adjustment:", error);
+      res.status(500).json({ message: "Server error deleting model adjustment" });
+    }
+  });
+
+  // Market Analysis routes
+  app.get("/api/reports/:reportId/market-analyses", async (req: Request, res: Response) => {
+    try {
+      const reportId = Number(req.params.reportId);
+      const analyses = await storage.getMarketAnalysesByReport(reportId);
+      res.status(200).json(analyses);
+    } catch (error) {
+      console.error("Error fetching market analyses:", error);
+      res.status(500).json({ message: "Server error fetching market analyses" });
+    }
+  });
+
+  app.get("/api/reports/:reportId/market-analysis/:type", async (req: Request, res: Response) => {
+    try {
+      const reportId = Number(req.params.reportId);
+      const analysisType = req.params.type;
+      
+      const analysis = await storage.getMarketAnalysisByType(reportId, analysisType);
+      
+      if (!analysis) {
+        return res.status(404).json({ message: "Market analysis not found" });
+      }
+      
+      res.status(200).json(analysis);
+    } catch (error) {
+      console.error("Error fetching market analysis:", error);
+      res.status(500).json({ message: "Server error fetching market analysis" });
+    }
+  });
+
+  app.get("/api/market-analyses/:id", async (req: Request, res: Response) => {
+    try {
+      const analysisId = Number(req.params.id);
+      const analysis = await storage.getMarketAnalysis(analysisId);
+      
+      if (!analysis) {
+        return res.status(404).json({ message: "Market analysis not found" });
+      }
+      
+      res.status(200).json(analysis);
+    } catch (error) {
+      console.error("Error fetching market analysis:", error);
+      res.status(500).json({ message: "Server error fetching market analysis" });
+    }
+  });
+
+  app.post("/api/market-analyses", async (req: Request, res: Response) => {
+    try {
+      const validatedData = insertMarketAnalysisSchema.parse(req.body);
+      const newAnalysis = await storage.createMarketAnalysis(validatedData);
+      res.status(201).json(newAnalysis);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error creating market analysis:", error);
+      res.status(500).json({ message: "Server error creating market analysis" });
+    }
+  });
+
+  app.put("/api/market-analyses/:id", async (req: Request, res: Response) => {
+    try {
+      const analysisId = Number(req.params.id);
+      const validatedData = insertMarketAnalysisSchema.partial().parse(req.body);
+      
+      const updatedAnalysis = await storage.updateMarketAnalysis(analysisId, validatedData);
+      
+      if (!updatedAnalysis) {
+        return res.status(404).json({ message: "Market analysis not found" });
+      }
+      
+      res.status(200).json(updatedAnalysis);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        return res.status(400).json({ message: "Validation error", errors: error.errors });
+      }
+      console.error("Error updating market analysis:", error);
+      res.status(500).json({ message: "Server error updating market analysis" });
+    }
+  });
+
+  app.delete("/api/market-analyses/:id", async (req: Request, res: Response) => {
+    try {
+      const analysisId = Number(req.params.id);
+      const success = await storage.deleteMarketAnalysis(analysisId);
+      
+      if (!success) {
+        return res.status(404).json({ message: "Market analysis not found" });
+      }
+      
+      res.status(204).end();
+    } catch (error) {
+      console.error("Error deleting market analysis:", error);
+      res.status(500).json({ message: "Server error deleting market analysis" });
+    }
+  });
+
+  // AI-powered model routes
+  app.post("/api/ai/generate-adjustment-model", async (req: Request, res: Response) => {
+    try {
+      const { reportId, propertyId, useOrchestrator = true, aiProvider = "auto" } = req.body;
+      
+      if (!reportId) {
+        return res.status(400).json({ message: "Report ID is required" });
+      }
+      
+      const report = await storage.getAppraisalReport(Number(reportId));
+      
+      if (!report) {
+        return res.status(404).json({ message: "Report not found" });
+      }
+      
+      // Get property data - either from request or from report
+      let property;
+      if (propertyId) {
+        property = await storage.getProperty(Number(propertyId));
+      } else {
+        property = await storage.getProperty(report.propertyId);
+      }
+      
+      if (!property) {
+        return res.status(404).json({ message: "Property not found" });
+      }
+      
+      // Get comparables for the report
+      const comparables = await storage.getComparablesByReport(report.id);
+      
+      if (comparables.length === 0) {
+        return res.status(400).json({ message: "No comparables found for this report" });
+      }
+      
+      // Generate adjustment recommendations
+      let modelData;
+      
+      if (useOrchestrator) {
+        // Convert the AI provider string to enum value
+        let provider = AIProvider.AUTO;
+        if (aiProvider === "openai") {
+          provider = AIProvider.OPENAI;
+        } else if (aiProvider === "anthropic") {
+          provider = AIProvider.ANTHROPIC;
+        }
+        
+        // Use the AI Orchestrator
+        const adjustmentRecommendations = await aiOrchestrator.generateAdjustmentModel(
+          property,
+          comparables,
+          provider
+        );
+        
+        // Create a new adjustment model
+        const newModel = await storage.createAdjustmentModel({
+          reportId: report.id,
+          name: adjustmentRecommendations.modelName || "AI Generated Model",
+          description: adjustmentRecommendations.modelDescription || "Model generated using AI analysis of comparables",
+          modelType: "ai_generated",
+          parameters: adjustmentRecommendations.parameters || {},
+          confidence: adjustmentRecommendations.confidence || 0.85,
+          metadata: adjustmentRecommendations.metadata || {}
+        });
+        
+        // Create model adjustments for each comparable
+        const modelAdjustments = await Promise.all(
+          comparables.map(async (comparable) => {
+            const comparableAdjustments = adjustmentRecommendations.adjustments?.find(
+              adj => adj.comparableId === comparable.id
+            );
+            
+            if (!comparableAdjustments) return null;
+            
+            return await storage.createModelAdjustment({
+              modelId: newModel.id,
+              comparableId: comparable.id,
+              adjustments: comparableAdjustments.items || [],
+              adjustedValue: comparableAdjustments.adjustedValue,
+              metadata: comparableAdjustments.metadata || {}
+            });
+          })
+        );
+        
+        // Filter out any null values from model adjustments
+        const validModelAdjustments = modelAdjustments.filter(Boolean);
+        
+        modelData = {
+          model: newModel,
+          adjustments: validModelAdjustments
+        };
+      } else {
+        // Use the legacy AI agent for backward compatibility
+        const adjustmentRecommendations = await recommendAdjustments(property, comparables[0]);
+        
+        // Create a new adjustment model with a simple structure
+        const newModel = await storage.createAdjustmentModel({
+          reportId: report.id,
+          name: "Legacy AI Model",
+          description: "Model generated using legacy AI analysis",
+          modelType: "ai_legacy",
+          parameters: {},
+          confidence: 0.75,
+          metadata: {}
+        });
+        
+        // Create a model adjustment for the first comparable only
+        const modelAdjustment = await storage.createModelAdjustment({
+          modelId: newModel.id,
+          comparableId: comparables[0].id,
+          adjustments: adjustmentRecommendations.map(adj => ({
+            factor: adj.factor,
+            description: adj.description,
+            amount: String(adj.amount),
+            reasoning: adj.reasoning
+          })),
+          adjustedValue: comparables[0].salePrice
+        });
+        
+        modelData = {
+          model: newModel,
+          adjustments: [modelAdjustment]
+        };
+      }
+      
+      res.status(200).json(modelData);
+    } catch (error) {
+      console.error("Error generating adjustment model:", error);
+      const errorMessage = error instanceof Error ? error.message : "Unknown error";
+      res.status(500).json({ 
+        message: "Error generating adjustment model", 
+        error: errorMessage 
+      });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }
