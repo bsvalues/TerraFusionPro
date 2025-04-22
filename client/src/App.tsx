@@ -11,6 +11,7 @@ import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import UADFormPage from "./pages/UADFormPage";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
+import ImportPage from "./pages/ImportPage";
 import NotFound from "./pages/not-found";
 import { useState } from "react";
 import { TooltipProvider } from "./contexts/TooltipContext";
@@ -51,6 +52,7 @@ function App() {
             <li><a href="/ai-valuation" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("AI Valuation clicked")}>AI Valuation</a></li>
             <li><a href="/email-order" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Import Order clicked")}>Import Order</a></li>
             <li><a href="/property-data" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Property Data clicked")}>Property Data</a></li>
+            <li><a href="/import" className="block p-2 rounded hover:bg-accent" onClick={() => console.log("Import clicked")}>Import Data</a></li>
             <li><a href="/terms" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("Terms clicked")}>Real Estate Terms</a></li>
           </ul>
         </nav>
@@ -71,6 +73,7 @@ function App() {
             <Route path="/uad-form/:id" component={UADFormPage} />
             <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
             <Route path="/terms" component={TermsPage} />
+            <Route path="/import" component={ImportPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
