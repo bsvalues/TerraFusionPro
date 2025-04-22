@@ -106,10 +106,10 @@ export default function UADFormPage() {
   if (errorMessage) {
     return (
       <div className="container py-8">
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>{errorMessage}</AlertDescription>
+        <Alert className="mb-6 bg-red-50 border-red-200 text-red-800">
+          <AlertCircle className="h-4 w-4 text-red-500" />
+          <AlertTitle className="text-red-700">Error</AlertTitle>
+          <AlertDescription className="text-red-600">{errorMessage}</AlertDescription>
         </Alert>
         
         <div className="flex justify-center mt-6">

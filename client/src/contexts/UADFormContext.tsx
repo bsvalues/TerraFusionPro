@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { UADField, UADFormSection } from '@/components/uad/constants';
 import { usePropertyData } from '@/hooks/usePropertyData';
+import { useUADFormData } from '@/hooks/useUADFormData';
 
 interface UADFormContextType {
   formData: Record<string, any>;
@@ -34,61 +35,44 @@ export const UADFormProvider: React.FC<UADFormProviderProps> = ({ children }) =>
   
   const propertyData = usePropertyData();
   
-  // Map property data to form fields
-  const mapPropertyToFormData = (property: any): Record<string, any> => {
-    if (!property) return {};
-    
-    return {
-      // Subject Property Section
-      property_address: property.address,
-      city: property.city,
-      state: property.state,
-      zip_code: property.zipCode,
-      county: property.county || '',
-      assessors_parcel: property.parcelNumber || '',
-      tax_year: property.taxYear || new Date().getFullYear() - 1,
-      r_e_taxes: property.annualTaxes || 0,
-      
-      // Improvements Section
-      year_built: property.yearBuilt || 0,
-      gross_living_area: property.grossLivingArea || 0,
-      bedrooms: property.bedrooms || 0,
-      bathrooms: property.bathrooms || 0,
-      condition: property.condition || '',
-      quality: property.constructionQuality || '',
-      
-      // Site Section
-      site_area: property.lotSize || 0,
-      site_view: property.view || 'N',
-      
-      // Any other property data mappings
-      ...property.formData || {} // Include any existing form data if available
-    };
-  };
+  // Use the enhanced UAD form data hook
+  const { formData: uadFormData, isLoading: isUadDataLoading } = useUADFormData(currentPropertyId || undefined);
   
   // Load data from property
   const loadFormDataFromProperty = async (propertyId: number) => {
     if (!propertyId) return;
     
     setIsLoading(true);
+    setCurrentPropertyId(propertyId);
     
     try {
-      const property = await propertyData.useProperty(propertyId).refetch();
+      // First, fetch the property to ensure we have the latest data
+      await propertyData.useProperty(propertyId).refetch();
       
-      if (property?.data) {
-        const mappedData = mapPropertyToFormData(property.data);
-        setFormData(mappedData);
-        setOriginalData(mappedData);
-        setCurrentPropertyId(propertyId);
-        setIsDataChanged(false);
-        setHasUnsavedChanges(false);
-      }
+      // Wait for the UAD form data hook to process the data
+      // The hook will handle the data conversion automatically
+      
+      // We'll update the form data in a useEffect that watches uadFormData
     } catch (error) {
       console.error('Error loading property data:', error);
-    } finally {
-      setIsLoading(false);
     }
   };
+  
+  // Update form data when the UAD form data hook updates
+  useEffect(() => {
+    if (isUadDataLoading) {
+      setIsLoading(true);
+      return;
+    }
+    
+    if (Object.keys(uadFormData).length > 0) {
+      setFormData(uadFormData);
+      setOriginalData(uadFormData);
+      setIsDataChanged(false);
+      setHasUnsavedChanges(false);
+      setIsLoading(false);
+    }
+  }, [uadFormData, isUadDataLoading]);
   
   // Update a single field
   const updateField = (fieldId: string, value: any) => {

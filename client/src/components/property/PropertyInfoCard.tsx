@@ -1,9 +1,11 @@
 import React from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
+import { useLocation } from 'wouter';
+import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Home, Calendar, Ruler, Bed, Bath, Map, Trees, Car, DollarSign, Hash } from 'lucide-react';
+import { Home, Calendar, Ruler, Bed, Bath, Map, Trees, Car, DollarSign, Hash, ClipboardList, FileSpreadsheet, FileText } from 'lucide-react';
 
 interface PropertyInfoCardProps {
   property: any;
