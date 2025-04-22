@@ -22,7 +22,9 @@ import {
   levels, Level, InsertLevel,
   userProgress, UserProgress, InsertUserProgress,
   userChallenges, UserChallenge, InsertUserChallenge,
-  userNotifications, UserNotification, InsertUserNotification
+  userNotifications, UserNotification, InsertUserNotification,
+  // AI tooltip explanations
+  realEstateTerms, RealEstateTerm, InsertRealEstateTerm
 } from "@shared/schema";
 import { IStorage } from "./storage";
 import { db } from "./db";
@@ -1398,6 +1400,167 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error("Error deleting user notification:", error);
       return false;
+    }
+  }
+
+  // Real Estate Terms methods
+  async getAllRealEstateTerms(): Promise<RealEstateTerm[]> {
+    try {
+      return await db.select().from(realEstateTerms).orderBy(realEstateTerms.term);
+    } catch (error) {
+      console.error("Error getting all real estate terms:", error);
+      return [];
+    }
+  }
+
+  async getRealEstateTerm(id: number): Promise<RealEstateTerm | undefined> {
+    try {
+      const [term] = await db.select().from(realEstateTerms).where(eq(realEstateTerms.id, id));
+      return term;
+    } catch (error) {
+      console.error("Error getting real estate term:", error);
+      return undefined;
+    }
+  }
+
+  async getRealEstateTermByName(term: string): Promise<RealEstateTerm | undefined> {
+    try {
+      const [result] = await db
+        .select()
+        .from(realEstateTerms)
+        .where(sql`LOWER(${realEstateTerms.term}) = LOWER(${term})`);
+      return result;
+    } catch (error) {
+      console.error("Error getting real estate term by name:", error);
+      return undefined;
+    }
+  }
+
+  async getRealEstateTermsByCategory(category: string): Promise<RealEstateTerm[]> {
+    try {
+      return await db
+        .select()
+        .from(realEstateTerms)
+        .where(eq(realEstateTerms.category, category))
+        .orderBy(realEstateTerms.term);
+    } catch (error) {
+      console.error("Error getting real estate terms by category:", error);
+      return [];
+    }
+  }
+
+  async searchRealEstateTerms(query: string): Promise<RealEstateTerm[]> {
+    try {
+      return await db
+        .select()
+        .from(realEstateTerms)
+        .where(
+          or(
+            sql`${realEstateTerms.term} ILIKE ${`%${query}%`}`,
+            sql`${realEstateTerms.shortDefinition} ILIKE ${`%${query}%`}`,
+            sql`${realEstateTerms.longDefinition} ILIKE ${`%${query}%`}`
+          )
+        )
+        .orderBy(realEstateTerms.term)
+        .limit(20);
+    } catch (error) {
+      console.error("Error searching real estate terms:", error);
+      return [];
+    }
+  }
+
+  async createRealEstateTerm(data: InsertRealEstateTerm): Promise<RealEstateTerm> {
+    try {
+      const [term] = await db.insert(realEstateTerms).values(data).returning();
+      return term;
+    } catch (error) {
+      console.error("Error creating real estate term:", error);
+      throw error;
+    }
+  }
+
+  async updateRealEstateTerm(id: number, data: Partial<InsertRealEstateTerm>): Promise<RealEstateTerm | undefined> {
+    try {
+      const [updatedTerm] = await db
+        .update(realEstateTerms)
+        .set({ ...data, updatedAt: new Date() })
+        .where(eq(realEstateTerms.id, id))
+        .returning();
+      return updatedTerm;
+    } catch (error) {
+      console.error("Error updating real estate term:", error);
+      return undefined;
+    }
+  }
+
+  async deleteRealEstateTerm(id: number): Promise<boolean> {
+    try {
+      await db.delete(realEstateTerms).where(eq(realEstateTerms.id, id));
+      return true;
+    } catch (error) {
+      console.error("Error deleting real estate term:", error);
+      return false;
+    }
+  }
+
+  async getRelatedTerms(termId: number): Promise<RealEstateTerm[]> {
+    try {
+      // Get the current term
+      const [currentTerm] = await db
+        .select()
+        .from(realEstateTerms)
+        .where(eq(realEstateTerms.id, termId));
+      
+      if (!currentTerm || !currentTerm.relatedTerms || currentTerm.relatedTerms.length === 0) {
+        return [];
+      }
+      
+      // Get all related terms
+      return await db
+        .select()
+        .from(realEstateTerms)
+        .where(
+          sql`${realEstateTerms.term} = ANY(${currentTerm.relatedTerms})`
+        );
+    } catch (error) {
+      console.error("Error getting related terms:", error);
+      return [];
+    }
+  }
+
+  // AI-enhanced term explanation
+  async getTermExplanation(term: string, context?: string): Promise<{ 
+    definition: string; 
+    contextualExplanation?: string;
+    examples?: string[];
+    relatedTerms?: string[];
+  } | null> {
+    try {
+      // First check if term exists in our database
+      const [realEstateTerm] = await db
+        .select()
+        .from(realEstateTerms)
+        .where(sql`LOWER(${realEstateTerms.term}) = LOWER(${term})`);
+      
+      if (realEstateTerm) {
+        return {
+          definition: context ? realEstateTerm.longDefinition : realEstateTerm.shortDefinition,
+          examples: realEstateTerm.examples,
+          relatedTerms: realEstateTerm.relatedTerms
+        };
+      }
+      
+      // If we have an OPENAI_API_KEY, we can generate an explanation on-the-fly
+      if (process.env.OPENAI_API_KEY && context) {
+        // We'll implement the AI call here
+        // For now, return null
+        return null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error("Error getting term explanation:", error);
+      return null;
     }
   }
 }

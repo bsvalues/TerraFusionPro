@@ -860,6 +860,33 @@ export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
 export type UserNotification = typeof userNotifications.$inferSelect;
 export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 
+// Real estate terms glossary for AI tooltip explanations
+export const realEstateTerms = pgTable("real_estate_terms", {
+  id: serial("id").primaryKey(),
+  term: text("term").notNull(), // The real estate term or phrase
+  category: text("category").notNull(), // Category (appraisal, finance, legal, construction, etc.)
+  shortDefinition: text("short_definition").notNull(), // Brief definition for tooltips
+  longDefinition: text("long_definition").notNull(), // Detailed explanation
+  examples: jsonb("examples").$type<string[]>().default([]), // Usage examples
+  relatedTerms: jsonb("related_terms").$type<string[]>().default([]), // Related terms
+  metadata: jsonb("metadata").$type<Json>().default({}), // Additional metadata
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow()
+});
+
+export const insertRealEstateTermSchema = createInsertSchema(realEstateTerms).pick({
+  term: true,
+  category: true,
+  shortDefinition: true,
+  longDefinition: true,
+  examples: true,
+  relatedTerms: true,
+  metadata: true
+});
+
+export type RealEstateTerm = typeof realEstateTerms.$inferSelect;
+export type InsertRealEstateTerm = z.infer<typeof insertRealEstateTermSchema>;
+
 // Gamification system relations
 export const achievementDefinitionsRelations = relations(achievementDefinitions, ({ many }) => ({
   userAchievements: many(userAchievements),
