@@ -22,7 +22,9 @@ import {
   levels, Level, InsertLevel,
   userProgress, UserProgress, InsertUserProgress,
   userChallenges, UserChallenge, InsertUserChallenge,
-  userNotifications, UserNotification, InsertUserNotification
+  userNotifications, UserNotification, InsertUserNotification,
+  // File import system
+  fileImportResults, FileImportResult, InsertFileImportResult
 } from "@shared/schema";
 
 // Extend the storage interface to support all our models
@@ -214,6 +216,18 @@ export interface IStorage {
   markNotificationAsRead(id: number): Promise<UserNotification | undefined>;
   markAllUserNotificationsAsRead(userId: number): Promise<boolean>;
   deleteUserNotification(id: number): Promise<boolean>;
+  
+  // File Import operations
+  getFileImportResult(id: string): Promise<FileImportResult | undefined>;
+  getFileImportResults(): Promise<FileImportResult[]>;
+  getFileImportResultsByStatus(status: string): Promise<FileImportResult[]>;
+  createFileImportResult(result: InsertFileImportResult): Promise<FileImportResult>;
+  updateFileImportResult(id: string, result: Partial<InsertFileImportResult>): Promise<FileImportResult | undefined>;
+  deleteFileImportResult(id: string): Promise<boolean>;
+  
+  // Property search operations for imports
+  getPropertiesByAddress(address: string, city: string, state: string): Promise<Property[]>;
+  saveImportResult(result: InsertFileImportResult): Promise<FileImportResult>;
 }
 
 export class MemStorage implements IStorage {

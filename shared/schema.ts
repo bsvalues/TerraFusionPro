@@ -945,3 +945,33 @@ export const userNotificationsRelations = relations(userNotifications, ({ one })
     references: [users.id],
   }),
 }));
+
+// File Import Results model
+export const fileImportResults = pgTable("file_import_results", {
+  id: varchar("id", { length: 36 }).primaryKey(),
+  fileId: varchar("file_id", { length: 36 }).notNull(),
+  fileName: text("file_name").notNull(),
+  format: text("format").notNull(),
+  dateProcessed: timestamp("date_processed").defaultNow(),
+  importedEntities: jsonb("imported_entities").notNull(),
+  status: text("status").notNull(), // 'success', 'partial', 'failed'
+  errors: jsonb("errors"),
+  warnings: jsonb("warnings"),
+  createdAt: timestamp("created_at").defaultNow(),
+  updatedAt: timestamp("updated_at").defaultNow(),
+});
+
+export const insertFileImportResultSchema = createInsertSchema(fileImportResults).pick({
+  id: true,
+  fileId: true,
+  fileName: true,
+  format: true,
+  dateProcessed: true,
+  importedEntities: true,
+  status: true,
+  errors: true,
+  warnings: true,
+});
+
+export type FileImportResult = typeof fileImportResults.$inferSelect;
+export type InsertFileImportResult = z.infer<typeof insertFileImportResultSchema>;
