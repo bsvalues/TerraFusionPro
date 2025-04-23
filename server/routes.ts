@@ -1,7 +1,18 @@
 import type { Express, Request, Response } from "express";
 import { Router } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import * as Y from 'yjs';
+import {
+  createParcelDoc,
+  getParcelNoteData,
+  updateParcelNoteData,
+  encodeDocUpdate,
+  applyEncodedUpdate,
+  mergeUpdates,
+  ParcelNote
+} from '../packages/crdt/src/index';
 import { insertUserSchema, insertPropertySchema, insertAppraisalReportSchema, insertComparableSchema, insertAdjustmentSchema, insertPhotoSchema, insertSketchSchema, insertComplianceCheckSchema, insertAdjustmentModelSchema, insertModelAdjustmentSchema, insertMarketAnalysisSchema, insertUserPreferenceSchema, insertAdjustmentTemplateSchema, insertAdjustmentRuleSchema, insertAdjustmentHistorySchema, insertCollaborationCommentSchema, insertMarketDataSchema } from "@shared/schema";
 import { z } from "zod";
 import { generatePDF } from "./lib/pdf-generator";
@@ -2151,6 +2162,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ message: "Server error deleting market data" });
+    }
+  });
+
+  // TerraField Mobile Integration - CRDT Sync routes
+  // Store for parcel notes, using parcelId as the key
+  const parcelDocs = new Map<string, Y.Doc>();
+
+  // Initialize a parcel document if it doesn't exist yet
+  function getOrCreateParcelDoc(parcelId: string): Y.Doc {
+    if (!parcelDocs.has(parcelId)) {
+      const doc = createParcelDoc(parcelId);
+      parcelDocs.set(parcelId, doc);
+    }
+    return parcelDocs.get(parcelId)!;
+  }
+
+  // REST API endpoint for getting the current state of a parcel note
+  app.get("/api/parcels/:parcelId/notes", async (req: Request, res: Response) => {
+    try {
+      const { parcelId } = req.params;
+      
+      if (!parcelId) {
+        return res.status(400).json({ message: "Parcel ID is required" });
+      }
+      
+      const doc = getOrCreateParcelDoc(parcelId);
+      const noteData = getParcelNoteData(doc);
+      
+      res.status(200).json(noteData);
+    } catch (error) {
+      console.error("Error fetching parcel note:", error);
+      res.status(500).json({ message: "Error fetching parcel note" });
+    }
+  });
+
+  // REST API endpoint for updating a parcel note
+  app.put("/api/parcels/:parcelId/notes", async (req: Request, res: Response) => {
+    try {
+      const { parcelId } = req.params;
+      const updateData = req.body as Partial<ParcelNote>;
+      
+      if (!parcelId) {
+        return res.status(400).json({ message: "Parcel ID is required" });
+      }
+      
+      const doc = getOrCreateParcelDoc(parcelId);
+      
+      // Update the document with the new data
+      updateParcelNoteData(doc, updateData);
+      
+      // Return the updated state
+      const updatedNoteData = getParcelNoteData(doc);
+      res.status(200).json(updatedNoteData);
+    } catch (error) {
+      console.error("Error updating parcel note:", error);
+      res.status(500).json({ message: "Error updating parcel note" });
+    }
+  });
+
+  // REST API endpoint for syncing CRDT updates
+  app.post("/api/parcels/:parcelId/sync", async (req: Request, res: Response) => {
+    try {
+      const { parcelId } = req.params;
+      const { update } = req.body;
+      
+      if (!parcelId) {
+        return res.status(400).json({ message: "Parcel ID is required" });
+      }
+      
+      if (!update) {
+        return res.status(400).json({ message: "Update data is required" });
+      }
+      
+      const doc = getOrCreateParcelDoc(parcelId);
+      
+      // Apply the received update to our document
+      const mergedState = mergeUpdates(doc, update);
+      
+      // Return the merged state to the client
+      res.status(200).json({
+        state: mergedState,
+        data: getParcelNoteData(doc)
+      });
+    } catch (error) {
+      console.error("Error syncing parcel note:", error);
+      res.status(500).json({ message: "Error syncing parcel note" });
     }
   });
 
