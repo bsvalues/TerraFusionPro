@@ -236,11 +236,12 @@ export async function saveEnhancedPhoto(req: Request, res: Response) {
     // Create a new photo record in the database
     const newPhoto = await dbStorage.createPhoto({
       reportId: Number(reportId),
-      path: enhancedPath,
-      originalPath: originalPath,
-      description: description || 'AI-enhanced property photo',
-      type: 'enhanced',
+      url: enhancedPath, // Use url field instead of path
+      photoType: 'enhanced', // Use photoType field instead of type
+      caption: description || 'AI-enhanced property photo', // Use caption field instead of description
+      // We store the original path in the metadata
       metadata: {
+        originalPath: originalPath,
         enhancedAt: new Date().toISOString(),
         enhancementMethod: 'AI-powered enhancement'
       }

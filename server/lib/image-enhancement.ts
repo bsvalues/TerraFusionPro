@@ -189,7 +189,7 @@ to structures, objects or perspectives.`;
       response_format: "b64_json"
     });
 
-    if (enhancedImage.data[0].b64_json) {
+    if (enhancedImage.data && enhancedImage.data[0] && enhancedImage.data[0].b64_json) {
       // Convert base64 to buffer and save enhanced image
       const enhancedBuffer = Buffer.from(enhancedImage.data[0].b64_json, 'base64');
       await fs.writeFile(enhancedPath, enhancedBuffer);
@@ -297,7 +297,8 @@ composition, and lighting. Format your response as JSON with the following struc
     });
 
     // Parse the JSON response
-    const analysis = JSON.parse(response.choices[0].message.content);
+    const content = response.choices[0].message.content || '{}';
+    const analysis = JSON.parse(content);
     
     return {
       success: true,

@@ -89,19 +89,25 @@ Your analysis must be factual, objective, and based solely on the photograph.`,
 
     try {
       // Parse the JSON response
-      const analysis = JSON.parse(response.content[0].text);
-      
-      return {
-        success: true,
-        analysis
-      };
+      const contentBlock = response.content[0];
+      // Check if the content is of text type
+      if ('type' in contentBlock && contentBlock.type === 'text') {
+        const analysis = JSON.parse(contentBlock.text);
+        
+        return {
+          success: true,
+          analysis
+        };
+      } else {
+        throw new Error('Unexpected response format from Anthropic API');
+      }
     } catch (error) {
       // Handle case where response wasn't proper JSON
       return {
         success: false,
         message: 'Failed to parse analysis results',
         analysis: {
-          description: response.content[0].text.slice(0, 200) + '...',
+          description: 'Analysis failed',
           propertyType: 'Unknown',
           visibleFeatures: [],
           estimatedValue: {
@@ -218,12 +224,18 @@ Be specific about what you can observe and state when something cannot be determ
 
     try {
       // Parse the JSON response
-      const inspectionReport = JSON.parse(response.content[0].text);
-      
-      return {
-        success: true,
-        inspectionReport
-      };
+      const contentBlock = response.content[0];
+      // Check if the content is of text type
+      if ('type' in contentBlock && contentBlock.type === 'text') {
+        const inspectionReport = JSON.parse(contentBlock.text);
+        
+        return {
+          success: true,
+          inspectionReport
+        };
+      } else {
+        throw new Error('Unexpected response format from Anthropic API');
+      }
     } catch (error) {
       // Handle case where response wasn't proper JSON
       return {

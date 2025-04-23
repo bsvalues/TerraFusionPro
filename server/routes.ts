@@ -2471,6 +2471,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register import routes for appraisal file processing
   app.use('/api/import', importRoutes);
+  
+  // Register photo enhancement routes for AI-powered property image processing
+  app.use('/api/photo-enhancement', photoEnhancementRoutes);
 
   const httpServer = createServer(app);
   
