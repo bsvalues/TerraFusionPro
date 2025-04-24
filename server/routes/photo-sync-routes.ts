@@ -3,6 +3,7 @@ import { storage } from '../storage';
 import * as fs from 'fs';
 import * as path from 'path';
 import multer from 'multer';
+import * as schema from '../../shared/schema';
 
 // Define PhotoMetadata interface for CRDT sync
 interface PhotoMetadata {
@@ -185,6 +186,28 @@ photoSyncRouter.post('/reports/:reportId/photo-upload', upload.single('photo'), 
     });
   } catch (error) {
     console.error('Error uploading photo:', error);
+    return res.status(500).json({
+      success: false,
+      message: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+/**
+ * Get all photos for a report
+ */
+photoSyncRouter.get('/reports/:reportId/photos', async (req: Request, res: Response) => {
+  try {
+    const { reportId } = req.params;
+    
+    const photos = await storage.getPhotosByReport(Number(reportId));
+    
+    return res.status(200).json({
+      success: true,
+      photos
+    });
+  } catch (error) {
+    console.error('Error getting photos:', error);
     return res.status(500).json({
       success: false,
       message: error instanceof Error ? error.message : 'Unknown error'
