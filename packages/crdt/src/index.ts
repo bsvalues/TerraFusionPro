@@ -1,4 +1,7 @@
 import * as Y from 'yjs';
+import { PhotoSyncManager, createPhotoSyncManager, PhotoMetadata } from './photo-sync';
+
+export { PhotoSyncManager, createPhotoSyncManager, PhotoMetadata };
 
 // Direct Yjs approach instead of syncedStore for better TypeScript compatibility
 export interface ParcelNote {
