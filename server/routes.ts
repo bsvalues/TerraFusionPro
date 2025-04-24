@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import * as Y from 'yjs';
 import * as path from 'path';
+import { NotificationService } from './services/notification-service';
 import {
   createParcelDoc,
   getParcelNoteData,
@@ -35,6 +36,7 @@ import { gamificationRoutes } from './routes/gamification';
 import { tooltipRoutes } from './routes/tooltips';
 import { importRoutes } from './routes/import-routes';
 import photoEnhancementRoutes from './routes/photo-enhancement-routes';
+import notificationRouter from './routes/notification-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2485,16 +2487,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // TerraField Mobile Integration - WebSocket server for real-time CRDT updates
-  const wss = new WebSocketServer({ 
+  // TerraField Mobile Integration - WebSocket servers for real-time updates
+  
+  // CRDT WebSocket server on /ws path
+  const crdtWss = new WebSocketServer({ 
     server: httpServer, 
     path: '/ws'  // Use a distinct path to avoid conflicts with Vite's HMR
+  });
+  
+  // Notification WebSocket server on /notifications path
+  const notificationWss = new WebSocketServer({
+    server: httpServer,
+    path: '/notifications'
   });
   
   // Keep track of clients by parcelId
   const connectedClients = new Map<string, Set<WebSocket>>();
   
-  wss.on('connection', (ws) => {
+  // Handle notification connections
+  notificationWss.on('connection', (ws) => {
+    console.log('Notification WebSocket client connected');
+    let userId: number | null = null;
+    
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        
+        if (data.type === 'register' && data.userId) {
+          userId = parseInt(data.userId, 10);
+          const notificationService = NotificationService.getInstance();
+          notificationService.registerConnection(userId, ws);
+          console.log(`Registered notification connection for user ${userId}`);
+        }
+      } catch (error) {
+        console.error('Error processing notification message:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      if (userId) {
+        const notificationService = NotificationService.getInstance();
+        notificationService.removeConnection(userId, ws);
+        console.log(`Notification WebSocket client disconnected for user ${userId}`);
+      }
+      console.log('Notification WebSocket client disconnected');
+    });
+  });
+  
+  crdtWss.on('connection', (ws) => {
     console.log('WebSocket client connected');
     let clientParcelId: string | null = null;
     

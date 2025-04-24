@@ -7,6 +7,7 @@ import {
   PhotoEnhancementService, 
   PhotoEnhancementOptions 
 } from '../services/photo-enhancement-service';
+import { NotificationService } from '../services/notification-service';
 
 const readFileAsync = promisify(fs.readFile);
 const unlinkAsync = promisify(fs.unlink);
@@ -119,20 +120,60 @@ photoEnhancementRouter.post('/enhance', upload.single('photo'), async (req: Requ
     // Convert file to base64
     const base64Image = await fileToBase64(req.file.path);
     
-    // Enhance photo
-    const result = await enhancementService.enhancePropertyPhoto(base64Image, options);
+    // Get notification service
+    const notificationService = NotificationService.getInstance();
     
-    // Clean up temporary file
-    await unlinkAsync(req.file.path);
+    // Send 'started' notification
+    const userId = parseInt(req.body.userId || '1', 10);
+    const photoId = req.file.filename.split('.')[0];
+    
+    notificationService.sendPhotoEnhancementNotification(
+      userId,
+      'started',
+      photoId,
+      { options }
+    );
+    
+    let enhancementResult;
+    
+    try {
+      // Enhance photo
+      enhancementResult = await enhancementService.enhancePropertyPhoto(base64Image, options);
+      
+      // Send 'completed' notification
+      notificationService.sendPhotoEnhancementNotification(
+        userId,
+        'completed',
+        photoId,
+        { 
+          enhancedImageUrl: `/uploads/${path.basename(enhancementResult.enhancedImagePath || '')}`,
+          detectedFeatures: enhancementResult.detectedFeatures
+        }
+      );
+      
+      // Clean up temporary file
+      await unlinkAsync(req.file.path);
+    } catch (error) {
+      // Send 'failed' notification
+      notificationService.sendPhotoEnhancementNotification(
+        userId,
+        'failed',
+        photoId,
+        { error: error instanceof Error ? error.message : String(error) }
+      );
+      
+      // Re-throw to be caught by the outer try-catch
+      throw error;
+    }
     
     // Return result
     res.status(200).json({
       success: true,
       result: {
-        ...result,
+        ...enhancementResult,
         // Convert paths to URLs
-        enhancedImageUrl: `/uploads/${path.basename(result.enhancedImagePath || '')}`,
-        originalImageUrl: `/uploads/${path.basename(result.originalImagePath || '')}`
+        enhancedImageUrl: `/uploads/${path.basename(enhancementResult.enhancedImagePath || '')}`,
+        originalImageUrl: `/uploads/${path.basename(enhancementResult.originalImagePath || '')}`
       }
     });
     
