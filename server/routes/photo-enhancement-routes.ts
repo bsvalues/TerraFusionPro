@@ -85,11 +85,12 @@ photoEnhancementRouter.post('/analyze', upload.single('photo'), async (req: Requ
     });
     
   } catch (error) {
-    console.error('Error analyzing photo:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error analyzing photo:', errorMessage);
     res.status(500).json({
       success: false,
       message: 'Error analyzing photo',
-      error: error.message
+      error: errorMessage
     });
   }
 });
@@ -130,17 +131,18 @@ photoEnhancementRouter.post('/enhance', upload.single('photo'), async (req: Requ
       result: {
         ...result,
         // Convert paths to URLs
-        enhancedImageUrl: `/uploads/${path.basename(result.enhancedImagePath)}`,
-        originalImageUrl: `/uploads/${path.basename(result.originalImagePath)}`
+        enhancedImageUrl: `/uploads/${path.basename(result.enhancedImagePath || '')}`,
+        originalImageUrl: `/uploads/${path.basename(result.originalImagePath || '')}`
       }
     });
     
   } catch (error) {
-    console.error('Error enhancing photo:', error);
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    console.error('Error enhancing photo:', errorMessage);
     res.status(500).json({
       success: false,
       message: 'Error enhancing photo',
-      error: error.message
+      error: errorMessage
     });
   }
 });

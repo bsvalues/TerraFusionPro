@@ -1,9 +1,10 @@
 import type { Express, Request, Response } from "express";
-import { Router } from "express";
+import express, { Router } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import * as Y from 'yjs';
+import * as path from 'path';
 import {
   createParcelDoc,
   getParcelNoteData,
@@ -2478,6 +2479,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register photo sync routes for offline-first CRDT synchronization
   app.use('/api/sync', photoSyncRouter);
+  
+  // Serve uploaded files (for enhanced photos)
+  app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
   const httpServer = createServer(app);
   
