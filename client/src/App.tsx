@@ -85,6 +85,7 @@ function App() {
             <Route path="/crdt-test" component={CRDTTestPage} />
             <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
             <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
+            <Route path="/notification-test" component={NotificationTestPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
