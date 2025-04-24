@@ -19,6 +19,7 @@ import TermsPage from "./pages/TermsPage";
 import CRDTTestPage from "./pages/CRDTTestPage";
 import PhotoEnhancementPage from "./pages/PhotoEnhancementPage";
 import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
+import NotificationTestPage from "./pages/NotificationTestPage";
 
 // Temporary basic app structure that doesn't use AppraisalContext
 // This will help us get the app running, then we'll gradually add more functionality
@@ -60,6 +61,7 @@ function App() {
             <li><a href="/crdt-test" className="block p-2 rounded hover:bg-accent bg-purple-50 text-purple-700 font-medium" onClick={() => console.log("CRDT Test clicked")}>TerraField CRDT Test</a></li>
             <li><a href="/photo-enhancement" className="block p-2 rounded hover:bg-accent bg-blue-50 text-blue-700 font-medium" onClick={() => console.log("Photo Enhancement clicked")}>TerraField Photo Enhancement</a></li>
             <li><a href="/photo-sync-test" className="block p-2 rounded hover:bg-accent bg-orange-50 text-orange-700 font-medium" onClick={() => console.log("Photo Sync Test clicked")}>TerraField Photo Sync</a></li>
+            <li><a href="/notification-test" className="block p-2 rounded hover:bg-accent bg-red-50 text-red-700 font-medium" onClick={() => console.log("Notification Test clicked")}>TerraField Notifications</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">

@@ -2482,6 +2482,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register photo sync routes for offline-first CRDT synchronization
   app.use('/api/sync', photoSyncRouter);
   
+  // Register notification routes for real-time status updates
+  app.use('/api/notifications', notificationRouter);
+  
   // Serve uploaded files (for enhanced photos)
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
