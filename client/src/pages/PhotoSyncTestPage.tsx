@@ -102,11 +102,10 @@ export default function PhotoSyncTestPage() {
     queryKey: ['/api/photos', reportId],
     queryFn: async () => {
       try {
-        const response = await apiRequest({ 
-          method: 'GET', 
-          url: `/api/sync/reports/${reportId}/photos` 
+        const response = await apiRequest(`/api/sync/reports/${reportId}/photos`, { 
+          method: 'GET'
         });
-        return await response.json();
+        return response;
       } catch (error) {
         console.error('Error fetching photos:', error);
         return { photos: [] };
@@ -117,12 +116,10 @@ export default function PhotoSyncTestPage() {
 
   const syncMutation = useMutation({
     mutationFn: async (photo: PhotoMetadata) => {
-      const response = await apiRequest({ 
-        method: 'POST', 
-        url: '/api/sync/photo-sync',
+      return await apiRequest('/api/sync/photo-sync', { 
+        method: 'POST',
         data: photo
       });
-      return response.json();
     },
     onSuccess: (data, variables) => {
       // Update the local photo status
@@ -291,7 +288,10 @@ export default function PhotoSyncTestPage() {
     // Sync each photo
     photosToSync.forEach(photo => {
       // Update status in Yjs
-      const updatedPhoto = { ...photo, syncStatus: 'pending' };
+      const updatedPhoto: PhotoMetadata = { 
+        ...photo, 
+        syncStatus: 'pending' as const 
+      };
       photoSyncMap.set(photo.id, updatedPhoto);
       
       // Trigger sync
