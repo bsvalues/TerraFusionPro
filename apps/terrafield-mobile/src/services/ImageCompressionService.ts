@@ -4,72 +4,118 @@ import NetInfo from '@react-native-community/netinfo';
 import { Platform } from 'react-native';
 
 /**
- * Compression quality levels
+ * Compression quality enum
  */
 export enum CompressionQuality {
-  LOW = 'low',          // High compression, lower quality (0.3)
-  MEDIUM = 'medium',    // Medium compression, medium quality (0.6)
-  HIGH = 'high',        // Low compression, high quality (0.8)
-  ORIGINAL = 'original' // No compression, original quality (1.0)
+  LOW = 0.3,
+  MEDIUM = 0.6,
+  HIGH = 0.8,
+  MAXIMUM = 0.9,
+  LOSSLESS = 1.0,
 }
 
 /**
- * Compression format
+ * Compression format enum
  */
 export enum CompressionFormat {
   JPEG = 'jpeg',
   PNG = 'png',
-  WEBP = 'webp'
+  WEBP = 'webp',
 }
 
 /**
- * Image resize mode
- */
-export enum ResizeMode {
-  COVER = 'cover',     // Maintain aspect ratio and cover target dimensions
-  CONTAIN = 'contain', // Maintain aspect ratio and fit within target dimensions
-  STRETCH = 'stretch'  // Stretch to fill target dimensions, may distort image
-}
-
-/**
- * Compression options
+ * Compression options interface
  */
 export interface CompressionOptions {
   /**
-   * Quality level for the compressed image
-   * @default CompressionQuality.MEDIUM
+   * Target quality (0-1)
    */
-  quality: CompressionQuality;
+  quality?: CompressionQuality | number;
   
   /**
-   * Format for the compressed image
-   * @default CompressionFormat.JPEG
+   * Target format
    */
-  format: CompressionFormat;
+  format?: CompressionFormat;
   
   /**
-   * Maximum width for the compressed image (in pixels)
-   * If not provided, the original width is used
+   * Max width
    */
   maxWidth?: number;
   
   /**
-   * Maximum height for the compressed image (in pixels)
-   * If not provided, the original height is used
+   * Max height
    */
   maxHeight?: number;
   
   /**
-   * Resize mode to use when resizing the image
-   * @default ResizeMode.CONTAIN
+   * Whether to preserve EXIF metadata
    */
-  resizeMode: ResizeMode;
+  preserveMetadata?: boolean;
   
   /**
-   * Whether to preserve metadata (EXIF) in the compressed image
-   * @default false
+   * Base64 output
    */
-  preserveMetadata: boolean;
+  base64?: boolean;
+  
+  /**
+   * Custom file name
+   */
+  fileName?: string;
+  
+  /**
+   * Resize mode
+   */
+  resizeMode?: 'contain' | 'cover' | 'stretch';
+  
+  /**
+   * Whether to compress based on network conditions
+   */
+  adaptiveCompression?: boolean;
+}
+
+/**
+ * Compression result interface
+ */
+export interface CompressionResult {
+  /**
+   * Compressed image URI
+   */
+  uri: string;
+  
+  /**
+   * Image width
+   */
+  width: number;
+  
+  /**
+   * Image height
+   */
+  height: number;
+  
+  /**
+   * Image format
+   */
+  format: string;
+  
+  /**
+   * Original file size in bytes
+   */
+  originalSize?: number;
+  
+  /**
+   * Compressed file size in bytes
+   */
+  compressedSize?: number;
+  
+  /**
+   * Compression ratio
+   */
+  compressionRatio?: number;
+  
+  /**
+   * Base64 encoded data
+   */
+  base64?: string;
 }
 
 /**
@@ -78,68 +124,26 @@ export interface CompressionOptions {
 const DEFAULT_OPTIONS: CompressionOptions = {
   quality: CompressionQuality.MEDIUM,
   format: CompressionFormat.JPEG,
-  resizeMode: ResizeMode.CONTAIN,
-  preserveMetadata: false
+  preserveMetadata: true,
+  base64: false,
+  adaptiveCompression: true,
 };
-
-/**
- * Compression results
- */
-export interface CompressionResult {
-  /**
-   * URI of the compressed image
-   */
-  uri: string;
-  
-  /**
-   * Original file size in bytes
-   */
-  originalSize: number;
-  
-  /**
-   * Compressed file size in bytes
-   */
-  compressedSize: number;
-  
-  /**
-   * Compression ratio (original size / compressed size)
-   */
-  compressionRatio: number;
-  
-  /**
-   * Width of the compressed image
-   */
-  width: number;
-  
-  /**
-   * Height of the compressed image
-   */
-  height: number;
-}
 
 /**
  * ImageCompressionService
  * 
- * Provides image compression and optimization for field photos
- * to reduce storage space and network usage.
+ * Service for compressing images to optimize storage and transmission
  */
 export class ImageCompressionService {
   private static instance: ImageCompressionService;
   
   /**
-   * Folder for storing compressed images
-   */
-  private readonly COMPRESSED_IMAGES_FOLDER = `${FileSystem.cacheDirectory}compressed_images/`;
-  
-  /**
    * Private constructor for singleton pattern
    */
-  private constructor() {
-    this.ensureCompressedImagesFolder();
-  }
+  private constructor() {}
   
   /**
-   * Get the singleton instance
+   * Get singleton instance
    */
   public static getInstance(): ImageCompressionService {
     if (!ImageCompressionService.instance) {
@@ -149,112 +153,71 @@ export class ImageCompressionService {
   }
   
   /**
-   * Ensure the compressed images folder exists
-   */
-  private async ensureCompressedImagesFolder(): Promise<void> {
-    try {
-      const folderInfo = await FileSystem.getInfoAsync(this.COMPRESSED_IMAGES_FOLDER);
-      
-      if (!folderInfo.exists) {
-        await FileSystem.makeDirectoryAsync(this.COMPRESSED_IMAGES_FOLDER, {
-          intermediates: true
-        });
-      }
-    } catch (error) {
-      console.error('Error creating compressed images folder:', error);
-    }
-  }
-  
-  /**
-   * Compress an image with the specified options
+   * Compress an image
    */
   public async compressImage(
-    imageUri: string,
-    options: Partial<CompressionOptions> = {}
+    uri: string,
+    options?: Partial<CompressionOptions>
   ): Promise<CompressionResult> {
     try {
-      // Ensure the folder exists
-      await this.ensureCompressedImagesFolder();
-      
       // Get file info
-      const fileInfo = await FileSystem.getInfoAsync(imageUri, { size: true });
-      if (!fileInfo.exists || !fileInfo.size) {
-        throw new Error(`Image file not found: ${imageUri}`);
+      const fileInfo = await FileSystem.getInfoAsync(uri, { size: true });
+      
+      if (!fileInfo.exists) {
+        throw new Error(`Image file not found: ${uri}`);
       }
       
       // Merge options with defaults
-      const fullOptions: CompressionOptions = { ...DEFAULT_OPTIONS, ...options };
+      const mergedOptions = this.getMergedOptions(options);
       
-      // Map quality enum to numerical value
-      const qualityValue = this.getQualityValue(fullOptions.quality);
-      
-      // Create manipulation actions
-      const actions: ImageManipulator.Action[] = [];
-      
-      // Add resize action if dimensions are specified
-      if (fullOptions.maxWidth || fullOptions.maxHeight) {
-        // Get image dimensions
-        const { width, height } = await this.getImageDimensions(imageUri);
-        
-        // Calculate new dimensions
-        const newDimensions = this.calculateNewDimensions(
-          width,
-          height,
-          fullOptions.maxWidth,
-          fullOptions.maxHeight,
-          fullOptions.resizeMode
-        );
-        
-        if (newDimensions.width !== width || newDimensions.height !== height) {
-          actions.push({
-            resize: {
-              width: newDimensions.width,
-              height: newDimensions.height,
-            },
-          });
-        }
+      // If adaptive compression is enabled, check network conditions
+      if (mergedOptions.adaptiveCompression) {
+        const adaptedOptions = await this.getAdaptiveCompressionOptions(mergedOptions);
+        Object.assign(mergedOptions, adaptedOptions);
       }
       
-      // Map format enum to string
-      const format = this.getFormatValue(fullOptions.format);
+      // Get image format
+      const format = this.getManipulatorFormat(mergedOptions.format);
       
-      // Compress the image
+      // Calculate resize actions if needed
+      const resizeActions = await this.calculateResizeActions(
+        uri,
+        mergedOptions.maxWidth,
+        mergedOptions.maxHeight,
+        mergedOptions.resizeMode
+      );
+      
+      // Apply manipulations
       const result = await ImageManipulator.manipulateAsync(
-        imageUri,
-        actions,
+        uri,
+        resizeActions,
         {
-          compress: qualityValue,
+          compress: mergedOptions.quality,
           format,
-          base64: false,
-          ...(fullOptions.preserveMetadata && Platform.OS === 'ios' ? { preserveMetadata: true } : {})
+          base64: mergedOptions.base64,
         }
       );
       
+      // Generate output path if not base64
+      let outputUri = result.uri;
+      
       // Get compressed file info
-      const compressedFileInfo = await FileSystem.getInfoAsync(result.uri, { size: true });
-      
-      // Save compressed image to the compressed images folder
-      const fileName = imageUri.split('/').pop() || `image_${Date.now()}.${format.toLowerCase()}`;
-      const compressedFileName = `compressed_${fileName}`;
-      const compressedFilePath = `${this.COMPRESSED_IMAGES_FOLDER}${compressedFileName}`;
-      
-      await FileSystem.copyAsync({
-        from: result.uri,
-        to: compressedFilePath,
-      });
+      const compressedInfo = await FileSystem.getInfoAsync(outputUri, { size: true });
       
       // Calculate compression ratio
-      const originalSize = fileInfo.size;
-      const compressedSize = compressedFileInfo.size || 0;
-      const compressionRatio = originalSize / compressedSize;
+      const originalSize = fileInfo.size || 0;
+      const compressedSize = compressedInfo.size || 0;
+      const compressionRatio = originalSize > 0 ? (1 - compressedSize / originalSize) : 0;
       
       return {
-        uri: compressedFilePath,
+        uri: outputUri,
+        width: result.width,
+        height: result.height,
+        format: mergedOptions.format || 'jpeg',
         originalSize,
         compressedSize,
         compressionRatio,
-        width: result.width,
-        height: result.height,
+        base64: result.base64,
       };
     } catch (error) {
       console.error('Error compressing image:', error);
@@ -263,241 +226,209 @@ export class ImageCompressionService {
   }
   
   /**
-   * Get the numerical quality value from the enum
+   * Merge options with defaults
    */
-  private getQualityValue(quality: CompressionQuality): number {
-    switch (quality) {
-      case CompressionQuality.LOW:
-        return 0.3;
-      case CompressionQuality.MEDIUM:
-        return 0.6;
-      case CompressionQuality.HIGH:
-        return 0.8;
-      case CompressionQuality.ORIGINAL:
-        return 1.0;
-      default:
-        return 0.6;
-    }
-  }
-  
-  /**
-   * Get the format value for ImageManipulator
-   */
-  private getFormatValue(format: CompressionFormat): ImageManipulator.SaveFormat {
-    switch (format) {
-      case CompressionFormat.JPEG:
-        return ImageManipulator.SaveFormat.JPEG;
-      case CompressionFormat.PNG:
-        return ImageManipulator.SaveFormat.PNG;
-      case CompressionFormat.WEBP:
-        return Platform.OS === 'android' ? 'webp' as ImageManipulator.SaveFormat : ImageManipulator.SaveFormat.JPEG;
-      default:
-        return ImageManipulator.SaveFormat.JPEG;
-    }
-  }
-  
-  /**
-   * Get image dimensions
-   */
-  private async getImageDimensions(imageUri: string): Promise<{ width: number; height: number }> {
-    try {
-      const result = await ImageManipulator.manipulateAsync(
-        imageUri,
-        [], // No actions
-        { base64: false }
-      );
-      
-      return {
-        width: result.width,
-        height: result.height,
-      };
-    } catch (error) {
-      console.error('Error getting image dimensions:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Calculate new dimensions based on resize mode
-   */
-  private calculateNewDimensions(
-    originalWidth: number,
-    originalHeight: number,
-    maxWidth?: number,
-    maxHeight?: number,
-    resizeMode: ResizeMode = ResizeMode.CONTAIN
-  ): { width: number; height: number } {
-    // If no max dimensions are provided, return original dimensions
-    if (!maxWidth && !maxHeight) {
-      return { width: originalWidth, height: originalHeight };
-    }
-    
-    // If only one dimension is provided, calculate the other to maintain aspect ratio
-    if (!maxWidth) {
-      maxWidth = Math.round((maxHeight! * originalWidth) / originalHeight);
-    } else if (!maxHeight) {
-      maxHeight = Math.round((maxWidth * originalHeight) / originalWidth);
-    }
-    
-    // Calculate new dimensions based on resize mode
-    switch (resizeMode) {
-      case ResizeMode.COVER:
-        // Maintain aspect ratio and cover target dimensions
-        const coverRatio = Math.max(maxWidth / originalWidth, maxHeight / originalHeight);
-        return {
-          width: Math.round(originalWidth * coverRatio),
-          height: Math.round(originalHeight * coverRatio),
-        };
-        
-      case ResizeMode.CONTAIN:
-        // Maintain aspect ratio and fit within target dimensions
-        const containRatio = Math.min(maxWidth / originalWidth, maxHeight / originalHeight);
-        return {
-          width: Math.round(originalWidth * containRatio),
-          height: Math.round(originalHeight * containRatio),
-        };
-        
-      case ResizeMode.STRETCH:
-        // Stretch to fill target dimensions
-        return {
-          width: maxWidth,
-          height: maxHeight,
-        };
-        
-      default:
-        return { width: originalWidth, height: originalHeight };
-    }
-  }
-  
-  /**
-   * Batch compress multiple images with the same options
-   */
-  public async batchCompressImages(
-    imageUris: string[],
-    options: Partial<CompressionOptions> = {}
-  ): Promise<CompressionResult[]> {
-    try {
-      const results: CompressionResult[] = [];
-      
-      for (const uri of imageUris) {
-        const result = await this.compressImage(uri, options);
-        results.push(result);
-      }
-      
-      return results;
-    } catch (error) {
-      console.error('Error batch compressing images:', error);
-      throw error;
-    }
+  private getMergedOptions(options?: Partial<CompressionOptions>): CompressionOptions {
+    return {
+      ...DEFAULT_OPTIONS,
+      ...options,
+    };
   }
   
   /**
    * Get adaptive compression options based on network conditions
    */
-  public async getAdaptiveCompressionOptions(): Promise<Partial<CompressionOptions>> {
+  private async getAdaptiveCompressionOptions(
+    currentOptions: CompressionOptions
+  ): Promise<Partial<CompressionOptions>> {
     try {
-      // Get network state
-      const networkState = await NetInfo.fetch();
+      const netInfo = await NetInfo.fetch();
       
-      // Default options
-      let options: Partial<CompressionOptions> = {
-        quality: CompressionQuality.MEDIUM,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      };
+      // Default to medium quality
+      let quality = CompressionQuality.MEDIUM;
       
-      // Adjust based on network type and connection quality
-      if (networkState.type === 'cellular') {
-        if (networkState.details?.cellularGeneration === '2g') {
-          // Very low bandwidth
-          options = {
-            quality: CompressionQuality.LOW,
-            maxWidth: 800,
-            maxHeight: 600,
-          };
-        } else if (networkState.details?.cellularGeneration === '3g') {
-          // Low bandwidth
-          options = {
-            quality: CompressionQuality.LOW,
-            maxWidth: 1280,
-            maxHeight: 720,
-          };
-        } else if (networkState.details?.cellularGeneration === '4g') {
-          // Medium bandwidth
-          options = {
-            quality: CompressionQuality.MEDIUM,
-            maxWidth: 1920,
-            maxHeight: 1080,
-          };
-        } else if (networkState.details?.cellularGeneration === '5g') {
-          // High bandwidth
-          options = {
-            quality: CompressionQuality.HIGH,
-            maxWidth: 2560,
-            maxHeight: 1440,
-          };
+      if (!netInfo.isConnected) {
+        // Offline - use higher quality as we're not transmitting
+        quality = CompressionQuality.HIGH;
+      } else if (netInfo.type === 'wifi') {
+        // WiFi - use higher quality
+        quality = CompressionQuality.HIGH;
+      } else if (netInfo.type === 'cellular') {
+        // Check connection quality for cellular
+        if (netInfo.details?.cellularGeneration === '4g') {
+          quality = CompressionQuality.MEDIUM;
+        } else {
+          // 3G or worse
+          quality = CompressionQuality.LOW;
         }
-      } else if (networkState.type === 'wifi') {
-        // Wi-Fi connection
-        options = {
-          quality: CompressionQuality.HIGH,
-          maxWidth: 2560,
-          maxHeight: 1440,
-        };
-      } else if (networkState.type === 'none' || networkState.type === 'unknown') {
-        // Offline or unknown
-        options = {
-          quality: CompressionQuality.HIGH, // store high quality locally
-          maxWidth: 2560,
-          maxHeight: 1440,
-        };
       }
       
-      return options;
+      return { quality };
     } catch (error) {
-      console.error('Error getting adaptive compression options:', error);
-      
-      // Return default options on error
-      return {
-        quality: CompressionQuality.MEDIUM,
-        maxWidth: 1920,
-        maxHeight: 1080,
-      };
+      console.error('Error determining adaptive compression:', error);
+      return {};
     }
   }
   
   /**
-   * Clean up old compressed images to free up space
+   * Convert CompressionFormat to ImageManipulator SaveFormat
    */
-  public async cleanupCompressedImages(olderThanDays: number = 7): Promise<number> {
+  private getManipulatorFormat(
+    format?: CompressionFormat
+  ): ImageManipulator.SaveFormat {
+    switch (format) {
+      case CompressionFormat.PNG:
+        return ImageManipulator.SaveFormat.PNG;
+      case CompressionFormat.WEBP:
+        // WebP only supported on Android
+        return Platform.OS === 'android'
+          ? (ImageManipulator.SaveFormat as any).WEBP
+          : ImageManipulator.SaveFormat.JPEG;
+      case CompressionFormat.JPEG:
+      default:
+        return ImageManipulator.SaveFormat.JPEG;
+    }
+  }
+  
+  /**
+   * Calculate resize actions if max dimensions are provided
+   */
+  private async calculateResizeActions(
+    uri: string,
+    maxWidth?: number,
+    maxHeight?: number,
+    resizeMode?: 'contain' | 'cover' | 'stretch'
+  ): Promise<ImageManipulator.Action[]> {
+    // If no resize needed, return empty actions
+    if (!maxWidth && !maxHeight) {
+      return [];
+    }
+    
     try {
-      // Ensure the folder exists
-      await this.ensureCompressedImagesFolder();
+      // Get current image dimensions
+      const result = await ImageManipulator.manipulateAsync(
+        uri,
+        [],
+        { format: ImageManipulator.SaveFormat.JPEG }
+      );
       
-      // Get all files in the compressed images folder
-      const files = await FileSystem.readDirectoryAsync(this.COMPRESSED_IMAGES_FOLDER);
+      const { width, height } = result;
       
-      // Calculate the cutoff date
-      const cutoffDate = new Date();
-      cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
+      // If image is already smaller than max dimensions, no resize needed
+      if (
+        (!maxWidth || width <= maxWidth) &&
+        (!maxHeight || height <= maxHeight)
+      ) {
+        return [];
+      }
       
-      let deletedCount = 0;
+      // Calculate new dimensions based on resize mode
+      let newWidth = width;
+      let newHeight = height;
       
-      // Delete files older than the cutoff date
-      for (const file of files) {
-        const filePath = `${this.COMPRESSED_IMAGES_FOLDER}${file}`;
-        const fileInfo = await FileSystem.getInfoAsync(filePath);
+      if (resizeMode === 'stretch') {
+        // Stretch: use max dimensions directly
+        newWidth = maxWidth || width;
+        newHeight = maxHeight || height;
+      } else {
+        // Default to 'contain' behavior
+        const aspectRatio = width / height;
         
-        if (fileInfo.exists && fileInfo.modificationTime && fileInfo.modificationTime < cutoffDate.getTime()) {
-          await FileSystem.deleteAsync(filePath);
-          deletedCount++;
+        if (maxWidth && maxHeight) {
+          // Both dimensions specified
+          const maxAspectRatio = maxWidth / maxHeight;
+          
+          if (
+            (resizeMode === 'contain' && aspectRatio > maxAspectRatio) ||
+            (resizeMode === 'cover' && aspectRatio < maxAspectRatio)
+          ) {
+            // Width constrained
+            newWidth = maxWidth;
+            newHeight = maxWidth / aspectRatio;
+          } else {
+            // Height constrained
+            newHeight = maxHeight;
+            newWidth = maxHeight * aspectRatio;
+          }
+        } else if (maxWidth) {
+          // Only max width specified
+          newWidth = maxWidth;
+          newHeight = maxWidth / aspectRatio;
+        } else if (maxHeight) {
+          // Only max height specified
+          newHeight = maxHeight;
+          newWidth = maxHeight * aspectRatio;
         }
       }
       
-      return deletedCount;
+      // Round dimensions to integers
+      newWidth = Math.round(newWidth);
+      newHeight = Math.round(newHeight);
+      
+      return [
+        {
+          resize: {
+            width: newWidth,
+            height: newHeight,
+          },
+        },
+      ];
     } catch (error) {
-      console.error('Error cleaning up compressed images:', error);
-      return 0;
+      console.error('Error calculating resize actions:', error);
+      return [];
+    }
+  }
+  
+  /**
+   * Batch compress multiple images
+   */
+  public async batchCompressImages(
+    uris: string[],
+    options?: Partial<CompressionOptions>
+  ): Promise<CompressionResult[]> {
+    const results: CompressionResult[] = [];
+    
+    for (const uri of uris) {
+      try {
+        const result = await this.compressImage(uri, options);
+        results.push(result);
+      } catch (error) {
+        console.error(`Error compressing image ${uri}:`, error);
+      }
+    }
+    
+    return results;
+  }
+  
+  /**
+   * Get a recommended compression quality based on file size
+   */
+  public getRecommendedQuality(fileSize: number): CompressionQuality {
+    if (fileSize < 500 * 1024) {
+      // Less than 500KB - use high quality
+      return CompressionQuality.HIGH;
+    } else if (fileSize < 2 * 1024 * 1024) {
+      // 500KB - 2MB - use medium quality
+      return CompressionQuality.MEDIUM;
+    } else if (fileSize < 5 * 1024 * 1024) {
+      // 2MB - 5MB - use low quality
+      return CompressionQuality.LOW;
+    } else {
+      // Over 5MB - use very low quality
+      return CompressionQuality.LOW;
+    }
+  }
+  
+  /**
+   * Get display size string from bytes
+   */
+  public getDisplaySize(bytes: number): string {
+    if (bytes < 1024) {
+      return `${bytes} B`;
+    } else if (bytes < 1024 * 1024) {
+      return `${(bytes / 1024).toFixed(1)} KB`;
+    } else {
+      return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
     }
   }
 }
