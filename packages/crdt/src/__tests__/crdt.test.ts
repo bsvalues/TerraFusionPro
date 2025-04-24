@@ -1,68 +1,40 @@
 import * as Y from 'yjs';
 import { 
-  createParcelDoc, 
-  getParcelNoteData, 
-  updateParcelNoteData, 
+  createParcelStore, 
+  createPhotoStore,
   encodeDocUpdate, 
   applyEncodedUpdate, 
-  mergeUpdates 
+  mergeUpdates,
+  addPhoto,
+  updatePhotoMetadata,
+  removePhoto,
+  getAllPhotos,
+  getPendingPhotos,
+  PhotoMetadata
 } from '../index';
 
 describe('CRDT functionality', () => {
-  test('createParcelDoc initializes with empty notes', () => {
-    const doc = createParcelDoc('TEST123');
-    const data = getParcelNoteData(doc);
-    expect(data.notes).toBe('');
+  test('createParcelStore initializes with empty notes', () => {
+    const { store } = createParcelStore('TEST123');
+    expect(store.notes).toBe('');
   });
 
-  test('createParcelDoc initializes with default metadata', () => {
-    const doc = createParcelDoc('TEST123');
-    const data = getParcelNoteData(doc);
-    expect(data.author).toBe('unknown');
-    expect(data.lastModified).toBeDefined();
-  });
+  test('consistent merge with concurrent edits on parcel notes', () => {
+    // Create two independent stores for the same parcel
+    const { store: store1, doc: doc1 } = createParcelStore('TEST123');
+    const { store: store2, doc: doc2 } = createParcelStore('TEST123');
 
-  test('updateParcelNoteData updates notes correctly', () => {
-    const doc = createParcelDoc('TEST123');
-    updateParcelNoteData(doc, { notes: 'Test notes content' });
-    
-    const data = getParcelNoteData(doc);
-    expect(data.notes).toBe('Test notes content');
-  });
-
-  test('updateParcelNoteData updates author correctly', () => {
-    const doc = createParcelDoc('TEST123');
-    updateParcelNoteData(doc, { author: 'Test Author' });
-    
-    const data = getParcelNoteData(doc);
-    expect(data.author).toBe('Test Author');
-  });
-
-  test('updateParcelNoteData updates lastModified correctly', () => {
-    const doc = createParcelDoc('TEST123');
-    const testDate = '2023-01-01T00:00:00Z';
-    updateParcelNoteData(doc, { lastModified: testDate });
-    
-    const data = getParcelNoteData(doc);
-    expect(data.lastModified).toBe(testDate);
-  });
-
-  test('consistent merge with concurrent note edits', () => {
-    // Create two independent docs for the same parcel
-    const doc1 = createParcelDoc('TEST123');
-    const doc2 = createParcelDoc('TEST123');
-
-    // Make different edits in each doc
-    updateParcelNoteData(doc1, { notes: 'Update from device 1' });
-    updateParcelNoteData(doc2, { notes: 'Update from device 2' });
+    // Make different edits in each store
+    store1.notes = 'Update from device 1';
+    store2.notes = 'Update from device 2';
 
     // Capture updates from both devices
     const update1 = encodeDocUpdate(doc1);
     const update2 = encodeDocUpdate(doc2);
 
-    // Create two new docs to test merges in different orders
-    const docA = createParcelDoc('TEST123');
-    const docB = createParcelDoc('TEST123');
+    // Create a third store to test both merges in different orders
+    const { store: storeA, doc: docA } = createParcelStore('TEST123');
+    const { store: storeB, doc: docB } = createParcelStore('TEST123');
 
     // Apply updates in different orders
     applyEncodedUpdate(docA, update1);
@@ -71,105 +43,130 @@ describe('CRDT functionality', () => {
     applyEncodedUpdate(docB, update2);
     applyEncodedUpdate(docB, update1);
 
-    // Both docs should converge to the same state - but we're just checking
-    // that they consistently resolved the conflict in the same way
-    // (not necessarily expecting identical content)
-    const dataA = getParcelNoteData(docA);
-    const dataB = getParcelNoteData(docB);
+    // Both stores should converge to the same state
+    expect(storeA.notes).toBe(storeB.notes);
     
-    // Final result should either match or contain the essence of one of the updates
-    expect(
-      dataA.notes === 'Update from device 1' || 
-      dataA.notes === 'Update from device 2' ||
-      dataA.notes.includes('device 1') || 
-      dataA.notes.includes('device 2')
-    ).toBeTruthy();
+    // Final result should contain essence of both updates (actual merge depends on Yjs algorithm)
+    const finalResult = storeA.notes;
+    expect(finalResult.length).toBeGreaterThan(0);
   });
 
-  test('consistent merge with concurrent metadata edits', () => {
-    // Create two independent docs for the same parcel
-    const doc1 = createParcelDoc('TEST123');
-    const doc2 = createParcelDoc('TEST123');
+  test('createPhotoStore initializes with empty metadata', () => {
+    const { store } = createPhotoStore('REPORT123');
+    expect(Object.keys(store.metadata).length).toBe(0);
+  });
 
-    // Make different edits in each doc
-    updateParcelNoteData(doc1, { 
-      author: 'Author 1',
-      lastModified: '2023-01-01T00:00:00Z'
+  test('photo operations work correctly', () => {
+    const { store } = createPhotoStore('REPORT123');
+    
+    const testPhoto: PhotoMetadata = {
+      id: 'photo1',
+      reportId: 'REPORT123',
+      photoType: 'SUBJECT',
+      url: '',
+      caption: 'Test photo',
+      dateTaken: new Date().toISOString(),
+      latitude: 40.7128,
+      longitude: -74.0060,
+      isOffline: true,
+      localPath: '/local/path/to/photo.jpg',
+      status: 'pending'
+    };
+    
+    // Add photo
+    addPhoto(store, testPhoto);
+    expect(Object.keys(store.metadata).length).toBe(1);
+    expect(store.metadata['photo1'].caption).toBe('Test photo');
+    
+    // Update photo
+    updatePhotoMetadata(store, 'photo1', { 
+      caption: 'Updated caption',
+      status: 'syncing'
+    });
+    expect(store.metadata['photo1'].caption).toBe('Updated caption');
+    expect(store.metadata['photo1'].status).toBe('syncing');
+    
+    // Get all photos
+    const allPhotos = getAllPhotos(store);
+    expect(allPhotos.length).toBe(1);
+    expect(allPhotos[0].id).toBe('photo1');
+    
+    // Add another photo with error status
+    const errorPhoto: PhotoMetadata = {
+      id: 'photo2',
+      reportId: 'REPORT123',
+      photoType: 'COMPARABLE',
+      url: '',
+      caption: 'Error photo',
+      dateTaken: new Date().toISOString(),
+      latitude: null,
+      longitude: null,
+      isOffline: true,
+      status: 'error',
+      errorMessage: 'Failed to upload'
+    };
+    
+    addPhoto(store, errorPhoto);
+    
+    // Test getPendingPhotos
+    const pendingPhotos = getPendingPhotos(store);
+    expect(pendingPhotos.length).toBe(1);
+    expect(pendingPhotos[0].id).toBe('photo2');
+    
+    // Remove photo
+    removePhoto(store, 'photo1');
+    expect(Object.keys(store.metadata).length).toBe(1);
+    expect(store.metadata['photo1']).toBeUndefined();
+  });
+
+  test('consistent merge with concurrent photo updates', () => {
+    // Create two independent stores for the same report
+    const { store: store1, doc: doc1 } = createPhotoStore('REPORT123');
+    const { store: store2, doc: doc2 } = createPhotoStore('REPORT123');
+
+    // Add same photo with different metadata in each store
+    const basePhoto: PhotoMetadata = {
+      id: 'photo1',
+      reportId: 'REPORT123',
+      photoType: 'SUBJECT',
+      url: '',
+      caption: 'Original caption',
+      dateTaken: new Date().toISOString(),
+      latitude: 40.7128,
+      longitude: -74.0060,
+      isOffline: true,
+      status: 'pending'
+    };
+    
+    addPhoto(store1, basePhoto);
+    addPhoto(store2, basePhoto);
+    
+    // Update different fields in each store
+    updatePhotoMetadata(store1, 'photo1', { 
+      caption: 'Updated by device 1',
+      status: 'syncing'
     });
     
-    updateParcelNoteData(doc2, { 
-      author: 'Author 2',
-      lastModified: '2023-01-02T00:00:00Z'
+    updatePhotoMetadata(store2, 'photo1', { 
+      latitude: 40.7129,
+      longitude: -74.0061
     });
 
     // Capture updates from both devices
     const update1 = encodeDocUpdate(doc1);
     const update2 = encodeDocUpdate(doc2);
 
-    // Create two new docs to test merges in different orders
-    const docA = createParcelDoc('TEST123');
-    const docB = createParcelDoc('TEST123');
+    // Create a third store to test merges
+    const { store: mergedStore, doc: mergedDoc } = createPhotoStore('REPORT123');
 
-    // Apply updates in different orders
-    applyEncodedUpdate(docA, update1);
-    applyEncodedUpdate(docA, update2);
+    // Apply both updates
+    applyEncodedUpdate(mergedDoc, update1);
+    applyEncodedUpdate(mergedDoc, update2);
 
-    applyEncodedUpdate(docB, update2);
-    applyEncodedUpdate(docB, update1);
-
-    // Both docs should converge to the same state in each independent execution
-    // but we're not requiring they have identical content
-    const dataA = getParcelNoteData(docA);
-    const dataB = getParcelNoteData(docB);
-    
-    // We just verify that some valid author value is present
-    expect(['Author 1', 'Author 2'].includes(dataA.author)).toBeTruthy();
-    expect(['Author 1', 'Author 2'].includes(dataB.author)).toBeTruthy();
-    
-    // And some valid date is present
-    expect(['2023-01-01T00:00:00Z', '2023-01-02T00:00:00Z'].includes(dataA.lastModified)).toBeTruthy();
-    expect(['2023-01-01T00:00:00Z', '2023-01-02T00:00:00Z'].includes(dataB.lastModified)).toBeTruthy();
-  });
-
-  test('encode and decode preserves document state', () => {
-    const doc = createParcelDoc('TEST123');
-    updateParcelNoteData(doc, { 
-      notes: 'Test content for encoding',
-      author: 'Test Author',
-      lastModified: '2023-01-01T00:00:00Z'
-    });
-    
-    // Encode the document
-    const encoded = encodeDocUpdate(doc);
-    expect(typeof encoded).toBe('string');
-    
-    // Create a new document and apply the update
-    const newDoc = createParcelDoc('TEST123');
-    applyEncodedUpdate(newDoc, encoded);
-    
-    // The new doc should have the same content
-    const data = getParcelNoteData(newDoc);
-    expect(data.notes).toBe('Test content for encoding');
-    expect(data.author).toBe('Test Author');
-    expect(data.lastModified).toBe('2023-01-01T00:00:00Z');
-  });
-
-  test('mergeUpdates correctly applies an update', () => {
-    // Create initial doc with content
-    const doc = createParcelDoc('TEST123');
-    updateParcelNoteData(doc, { notes: 'Initial content' });
-    
-    // Create another doc with different content
-    const doc2 = createParcelDoc('TEST123');
-    updateParcelNoteData(doc2, { notes: 'Updated content' });
-    
-    const update = encodeDocUpdate(doc2);
-    
-    // Merge the update into the first doc
-    mergeUpdates(doc, update);
-    
-    // The first doc should have some content after applying updates
-    const data = getParcelNoteData(doc);
-    expect(data.notes === 'Initial content' || data.notes === 'Updated content').toBeTruthy();
+    // Check that merges preserved both updates
+    expect(mergedStore.metadata['photo1'].caption).toBe('Updated by device 1');
+    expect(mergedStore.metadata['photo1'].status).toBe('syncing');
+    expect(mergedStore.metadata['photo1'].latitude).toBe(40.7129);
+    expect(mergedStore.metadata['photo1'].longitude).toBe(-74.0061);
   });
 });

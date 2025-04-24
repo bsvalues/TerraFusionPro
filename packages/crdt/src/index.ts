@@ -1,91 +1,97 @@
 import * as Y from 'yjs';
-import { PhotoSyncManager, createPhotoSyncManager, PhotoMetadata } from './photo-sync';
+import { syncedStore, getYjsDoc } from '@syncedstore/core';
 
-export { PhotoSyncManager, createPhotoSyncManager, PhotoMetadata };
-
-// Direct Yjs approach instead of syncedStore for better TypeScript compatibility
-export interface ParcelNote {
+// Define the store interfaces for our application
+export interface ParcelStore {
   notes: string;
-  author: string;
-  lastModified: string;
+}
+
+export interface PhotoStore {
+  metadata: {
+    [key: string]: PhotoMetadata;
+  };
+}
+
+// Interface for the parcel note data
+export interface ParcelNote {
+  parcelId: string;
+  text: string;
+  lastUpdated: string;
+  version: number;
+}
+
+export interface PhotoMetadata {
+  id: string;
+  reportId: string;
+  photoType: string;
+  url: string;
+  caption: string;
+  dateTaken: string;
+  latitude: number | null;
+  longitude: number | null;
+  isOffline: boolean;
+  localPath?: string;
+  status: 'pending' | 'syncing' | 'synced' | 'error';
+  errorMessage?: string;
+  lastSyncAttempt?: string;
 }
 
 /**
- * Creates a CRDT-enabled document for a parcel
+ * Creates a CRDT-enabled store for parcel notes
  * @param parcelId The unique identifier for the parcel
- * @returns A Yjs document for parcel notes
+ * @returns A synchronized store with CRDT capabilities
  */
-export function createParcelDoc(parcelId: string): Y.Doc {
-  const doc = new Y.Doc();
+export function createParcelStore(parcelId: string) {
+  // Create a synced store with a notes field
+  const store = syncedStore<ParcelStore>({ notes: '' });
   
-  // Set a deterministic client ID for consistent conflict resolution
+  // Get the underlying Yjs document
+  const doc = getYjsDoc(store);
+  
+  // Set the clientID to ensure consistent merges
   doc.clientID = generateClientId(parcelId);
   
-  // Initialize the note text
-  const notesText = doc.getText('notes');
-  
-  // Initialize metadata as a Y.Map
-  const metadata = doc.getMap('metadata');
-  metadata.set('author', 'unknown');
-  metadata.set('lastModified', new Date().toISOString());
-  
-  return doc;
-}
-
-/**
- * Generates a deterministic client ID based on parcel ID
- * This helps with consistent conflict resolution
- */
-function generateClientId(parcelId: string): number {
-  let hash = 0;
-  for (let i = 0; i < parcelId.length; i++) {
-    const char = parcelId.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return Math.abs(hash);
-}
-
-/**
- * Gets the current parcel note data from a Yjs document
- * @param doc The Yjs document
- * @returns The current parcel note data
- */
-export function getParcelNoteData(doc: Y.Doc): ParcelNote {
-  const notesText = doc.getText('notes');
-  const metadata = doc.getMap('metadata');
-  
   return {
-    notes: notesText.toString(),
-    author: metadata.get('author') as string || 'unknown',
-    lastModified: metadata.get('lastModified') as string || new Date().toISOString()
+    store,
+    doc,
   };
 }
 
 /**
- * Updates the parcel note data in a Yjs document
- * @param doc The Yjs document to update
- * @param data The parcel note data
+ * Creates a CRDT-enabled store for photos
+ * @param reportId The unique identifier for the appraisal report
+ * @returns A synchronized store with CRDT capabilities for photos
  */
-export function updateParcelNoteData(doc: Y.Doc, data: Partial<ParcelNote>): void {
-  // Update notes if provided
-  if (data.notes !== undefined) {
-    const notesText = doc.getText('notes');
-    notesText.delete(0, notesText.length);
-    notesText.insert(0, data.notes);
-  }
+export function createPhotoStore(reportId: string) {
+  // Create a synced store with a metadata map
+  const store = syncedStore<PhotoStore>({ 
+    metadata: {} 
+  });
   
-  // Update metadata if provided
-  const metadata = doc.getMap('metadata');
-  if (data.author !== undefined) {
-    metadata.set('author', data.author);
+  // Get the underlying Yjs document
+  const doc = getYjsDoc(store);
+  
+  // Set the clientID to ensure consistent merges
+  doc.clientID = generateClientId(reportId);
+  
+  return {
+    store,
+    doc,
+  };
+}
+
+/**
+ * Generates a deterministic client ID based on ID string
+ * This helps with consistent conflict resolution
+ */
+function generateClientId(id: string): number {
+  let hash = 0;
+  for (let i = 0; i < id.length; i++) {
+    const char = id.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash; // Convert to 32bit integer
   }
-  if (data.lastModified !== undefined) {
-    metadata.set('lastModified', data.lastModified);
-  } else {
-    // Always update lastModified when the document is modified
-    metadata.set('lastModified', new Date().toISOString());
-  }
+  return Math.abs(hash);
 }
 
 /**
@@ -117,4 +123,129 @@ export function applyEncodedUpdate(doc: Y.Doc, base64Update: string): void {
 export function mergeUpdates(doc: Y.Doc, base64Update: string): string {
   applyEncodedUpdate(doc, base64Update);
   return encodeDocUpdate(doc);
+}
+
+/**
+ * Adds a photo to the photo store
+ * @param store The photo store to add to
+ * @param metadata The photo metadata to add
+ */
+export function addPhoto(store: PhotoStore, metadata: PhotoMetadata): void {
+  store.metadata[metadata.id] = {
+    ...metadata,
+    status: metadata.isOffline ? 'pending' : 'synced'
+  };
+}
+
+/**
+ * Updates a photo's metadata in the store
+ * @param store The photo store to update
+ * @param id The photo ID to update
+ * @param updates Partial metadata updates
+ */
+export function updatePhotoMetadata(
+  store: PhotoStore, 
+  id: string, 
+  updates: Partial<PhotoMetadata>
+): void {
+  if (store.metadata[id]) {
+    store.metadata[id] = {
+      ...store.metadata[id],
+      ...updates
+    };
+  }
+}
+
+/**
+ * Removes a photo from the store
+ * @param store The photo store
+ * @param id The photo ID to remove
+ */
+export function removePhoto(store: PhotoStore, id: string): void {
+  if (store.metadata[id]) {
+    delete store.metadata[id];
+  }
+}
+
+/**
+ * Gets all photos from a store
+ * @param store The photo store
+ * @returns Array of photo metadata
+ */
+export function getAllPhotos(store: PhotoStore): PhotoMetadata[] {
+  return Object.values(store.metadata);
+}
+
+/**
+ * Gets all pending photos that need to be synced
+ * @param store The photo store
+ * @returns Array of pending photo metadata
+ */
+export function getPendingPhotos(store: PhotoStore): PhotoMetadata[] {
+  return Object.values(store.metadata).filter(
+    photo => photo.status === 'pending' || photo.status === 'error'
+  );
+}
+
+/**
+ * Creates a new Y.Doc for parcel notes
+ * @param parcelId The unique identifier for the parcel
+ * @returns A Y.Doc instance initialized for parcel notes
+ */
+export function createParcelDoc(parcelId: string): Y.Doc {
+  const doc = new Y.Doc();
+  
+  // Set the clientID to ensure consistent merges
+  doc.clientID = generateClientId(parcelId);
+  
+  // Initialize with empty note data
+  const noteData: ParcelNote = {
+    parcelId,
+    text: '',
+    lastUpdated: new Date().toISOString(),
+    version: 1
+  };
+  
+  // Store the note data in the Y.Doc
+  const ymap = doc.getMap('note');
+  ymap.set('parcelId', parcelId);
+  ymap.set('text', '');
+  ymap.set('lastUpdated', new Date().toISOString());
+  ymap.set('version', 1);
+  
+  return doc;
+}
+
+/**
+ * Gets the parcel note data from a Y.Doc
+ * @param doc The Y.Doc containing parcel note data
+ * @returns The parcel note data
+ */
+export function getParcelNoteData(doc: Y.Doc): ParcelNote {
+  const ymap = doc.getMap('note');
+  
+  return {
+    parcelId: ymap.get('parcelId') as string,
+    text: ymap.get('text') as string,
+    lastUpdated: ymap.get('lastUpdated') as string,
+    version: ymap.get('version') as number
+  };
+}
+
+/**
+ * Updates the parcel note data in a Y.Doc
+ * @param doc The Y.Doc to update
+ * @param updates The updates to apply
+ */
+export function updateParcelNoteData(doc: Y.Doc, updates: Partial<ParcelNote>): void {
+  const ymap = doc.getMap('note');
+  
+  // Apply updates
+  if (updates.text !== undefined) {
+    ymap.set('text', updates.text);
+  }
+  
+  // Always update these fields
+  ymap.set('lastUpdated', new Date().toISOString());
+  ymap.set('version', (ymap.get('version') as number) + 1);
 }
