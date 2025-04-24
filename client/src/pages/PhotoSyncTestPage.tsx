@@ -1,563 +1,569 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, RefreshCw, Wifi, WifiOff, Check, AlertTriangle, X } from "lucide-react";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
-import { apiRequest } from "@/lib/queryClient";
-import { v4 as uuidv4 } from 'uuid';
-import * as Y from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
+import React, { useState, useEffect, useRef } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Textarea } from '@/components/ui/textarea';
+import { Badge } from '@/components/ui/badge';
+import { Loader2, Image, Upload, CheckCircle, AlertCircle } from 'lucide-react';
+import { toast } from '@/hooks/use-toast';
 
-// Initialize Yjs document for photos
-const ydoc = new Y.Doc();
-const photoSyncMap = ydoc.getMap('photoSync');
-
-// Persist document to IndexedDB
-const persistence = new IndexeddbPersistence('terrafield-photo-sync', ydoc);
-
+// Mock types to simulate mobile app integration
 interface PhotoMetadata {
   id: string;
-  reportId: number;
-  originalUrl: string;
-  enhancedUrl?: string;
+  reportId: string;
   photoType: string;
-  caption?: string;
-  dateTaken?: Date;
-  latitude?: string;
-  longitude?: string;
-  enhancementOptions?: Record<string, boolean>;
-  analysis?: any;
-  createdAt: Date;
-  updatedAt: Date;
-  pendingSync: boolean;
-  syncStatus: 'pending' | 'synced' | 'failed';
-  syncError?: string;
-  serverId?: number;
+  url: string;
+  caption: string;
+  dateTaken: string;
+  latitude: number | null;
+  longitude: number | null;
+  isOffline: boolean;
+  status: 'pending' | 'syncing' | 'synced' | 'error';
+  localPath?: string;
+  errorMessage?: string;
+  lastSyncAttempt?: string;
+}
+
+// Mock function to encode update for simulation
+function encodeUpdate(data: any): string {
+  return btoa(JSON.stringify(data));
+}
+
+// Mock function to decode update for simulation
+function decodeUpdate(encoded: string): any {
+  return JSON.parse(atob(encoded));
 }
 
 export default function PhotoSyncTestPage() {
-  const { toast } = useToast();
-  const queryClient = useQueryClient();
-  const [reportId, setReportId] = useState(1); // Default to report ID 1
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [pendingPhotos, setPendingPhotos] = useState<PhotoMetadata[]>([]);
-  const [photoCaption, setPhotoCaption] = useState('');
-  const [photoType, setPhotoType] = useState('property');
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-
-  // Track online status
+  const [reportId, setReportId] = useState<string>('1234');
+  const [photos, setPhotos] = useState<PhotoMetadata[]>([]);
+  const [loading, setLoading] = useState<boolean>(false);
+  const [syncStatus, setSyncStatus] = useState<string>('');
+  const [activeTab, setActiveTab] = useState<string>('upload');
+  const [offlineMode, setOfflineMode] = useState<boolean>(false);
+  const [caption, setCaption] = useState<string>('');
+  const [offline, setOffline] = useState<boolean>(false);
+  const wsRef = useRef<WebSocket | null>(null);
+  const [wsStatus, setWsStatus] = useState<string>('disconnected');
+  const [pendingUpdates, setPendingUpdates] = useState<string[]>([]);
+  const [localPhotoCount, setLocalPhotoCount] = useState<number>(0);
+  
+  // Simulate fetching initial data
   useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      syncPendingPhotos();
-      toast({
-        title: "You're back online!",
-        description: "Syncing pending photos...",
-        variant: "default",
-      });
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast({
-        title: "You're offline",
-        description: "Photos will be synced when you reconnect.",
-        variant: "destructive",
-      });
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, [toast]);
-
-  // Load pending photos from Yjs
+    fetchPhotos();
+  }, [reportId]);
+  
+  // WebSocket connection for real-time updates
   useEffect(() => {
-    persistence.on('synced', () => {
-      console.log('IndexedDB synced');
-      loadPendingPhotos();
-    });
-
-    // Listen for changes to the Yjs document
-    photoSyncMap.observe(loadPendingPhotos);
-
-    return () => {
-      photoSyncMap.unobserve(loadPendingPhotos);
+    if (offlineMode) {
+      // Disconnect WebSocket in offline mode
+      if (wsRef.current) {
+        wsRef.current.close();
+        wsRef.current = null;
+        setWsStatus('offline-mode');
+      }
+      return;
+    }
+    
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
+    
+    const ws = new WebSocket(wsUrl);
+    wsRef.current = ws;
+    
+    ws.onopen = () => {
+      setWsStatus('connected');
+      ws.send(JSON.stringify({ 
+        type: 'join', 
+        reportId 
+      }));
     };
-  }, []);
-
-  // Load photos for the current report
-  const { data: reportPhotos, isLoading: isLoadingPhotos } = useQuery({
-    queryKey: ['/api/photos', reportId],
-    queryFn: async () => {
+    
+    ws.onclose = () => {
+      setWsStatus('disconnected');
+    };
+    
+    ws.onerror = () => {
+      setWsStatus('error');
+    };
+    
+    ws.onmessage = (event) => {
       try {
-        const response = await apiRequest(`/api/sync/reports/${reportId}/photos`, { 
-          method: 'GET'
-        });
-        return response;
-      } catch (error) {
-        console.error('Error fetching photos:', error);
-        return { photos: [] };
-      }
-    },
-    enabled: isOnline,
-  });
-
-  const syncMutation = useMutation({
-    mutationFn: async (photo: PhotoMetadata) => {
-      return await apiRequest('/api/sync/photo-sync', { 
-        method: 'POST',
-        data: photo
-      });
-    },
-    onSuccess: (data, variables) => {
-      // Update the local photo status
-      if (data.success) {
-        // Remove from pending queue
-        removePhotoFromPending(variables.id);
-        
-        // Invalidate photos query
-        queryClient.invalidateQueries({queryKey: ['/api/photos', reportId]});
-        
-        toast({
-          title: "Photo synced successfully",
-          description: `Photo ${variables.id.substring(0, 8)} has been synced to the server.`,
-          variant: "default",
-        });
-      }
-    },
-    onError: (error, variables) => {
-      console.error('Error syncing photo:', error);
-      
-      // Update photo status in Yjs
-      const photo = photoSyncMap.get(variables.id) as PhotoMetadata;
-      if (photo) {
-        photo.syncStatus = 'failed';
-        photo.syncError = error instanceof Error ? error.message : 'Unknown error';
-        photoSyncMap.set(variables.id, photo);
-      }
-      
-      toast({
-        title: "Failed to sync photo",
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: "destructive",
-      });
-    },
-  });
-
-  // Handle file selection
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      setSelectedFile(file);
-      
-      // Create preview URL
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setPreviewUrl(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-    }
-  };
-
-  // Add a photo to the local storage and queue for sync
-  const addPhoto = async () => {
-    if (!selectedFile) {
-      toast({
-        title: "No photo selected",
-        description: "Please select a photo to add",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      // Create a unique ID for this photo
-      const photoId = uuidv4();
-      
-      // Create a data URL from the file for local storage
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        const dataUrl = reader.result as string;
-        
-        // Create photo metadata with sync status
-        const newPhoto: PhotoMetadata = {
-          id: photoId,
-          reportId,
-          originalUrl: dataUrl,
-          photoType,
-          caption: photoCaption,
-          dateTaken: new Date(),
-          createdAt: new Date(),
-          updatedAt: new Date(),
-          pendingSync: true,
-          syncStatus: 'pending',
-        };
-        
-        // Store in Yjs
-        photoSyncMap.set(photoId, newPhoto);
-        
-        // Try to sync immediately if online
-        if (isOnline) {
-          syncMutation.mutate(newPhoto);
+        const message = JSON.parse(event.data);
+        if (message.type === 'update' && message.photos) {
+          setPhotos(message.photos);
+          toast({
+            title: 'Real-time update received',
+            description: `Received updates for ${message.photos.length} photos`,
+          });
         }
-        
-        // Reset form
-        setPhotoCaption('');
-        setSelectedFile(null);
-        setPreviewUrl(null);
-        
-        toast({
-          title: "Photo added",
-          description: isOnline 
-            ? "Photo is being synced to the server" 
-            : "Photo saved locally and will sync when you're online",
-          variant: "default",
-        });
-      };
+      } catch (error) {
+        console.error('Error processing WebSocket message:', error);
+      }
+    };
+    
+    return () => {
+      if (wsRef.current) {
+        wsRef.current.close();
+      }
+    };
+  }, [reportId, offlineMode]);
+  
+  // Fetch photos from the server
+  const fetchPhotos = async () => {
+    if (offlineMode) {
+      toast({
+        title: 'Offline Mode',
+        description: 'Using locally cached data',
+      });
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      const response = await fetch(`/api/sync/reports/${reportId}/photos`);
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
       
-      reader.readAsDataURL(selectedFile);
+      const data = await response.json();
+      setPhotos(data.photos || []);
+      setSyncStatus('Fetched photos from server');
+      
+      toast({
+        title: 'Photos Loaded',
+        description: `Successfully loaded ${data.photos.length} photos`,
+      });
     } catch (error) {
-      console.error('Error adding photo:', error);
-      toast({
-        title: "Failed to add photo",
-        description: error instanceof Error ? error.message : 'An unknown error occurred',
-        variant: "destructive",
-      });
-    }
-  };
-
-  // Load pending photos from Yjs
-  const loadPendingPhotos = () => {
-    const photos: PhotoMetadata[] = [];
-    
-    // Get all photos from Yjs map
-    photoSyncMap.forEach((value, key) => {
-      photos.push(value as PhotoMetadata);
-    });
-    
-    // Sort by creation date, newest first
-    photos.sort((a, b) => {
-      return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-    });
-    
-    setPendingPhotos(photos);
-  };
-
-  // Remove a photo from the pending queue
-  const removePhotoFromPending = (photoId: string) => {
-    photoSyncMap.delete(photoId);
-  };
-
-  // Sync all pending photos
-  const syncPendingPhotos = () => {
-    if (!isOnline) {
-      toast({
-        title: "You're offline",
-        description: "Cannot sync photos while offline",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    // Find photos that need syncing
-    const photosToSync = pendingPhotos.filter(p => 
-      p.syncStatus === 'pending' || p.syncStatus === 'failed'
-    );
-    
-    if (photosToSync.length === 0) {
-      toast({
-        title: "Nothing to sync",
-        description: "All photos are already synced",
-        variant: "default",
-      });
-      return;
-    }
-
-    // Sync each photo
-    photosToSync.forEach(photo => {
-      // Update status in Yjs
-      const updatedPhoto: PhotoMetadata = { 
-        ...photo, 
-        syncStatus: 'pending' as const 
-      };
-      photoSyncMap.set(photo.id, updatedPhoto);
+      console.error('Error fetching photos:', error);
+      setSyncStatus(`Error: ${error.message}`);
       
-      // Trigger sync
-      syncMutation.mutate(updatedPhoto);
-    });
-
+      toast({
+        title: 'Error Loading Photos',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Simulate uploading a new photo
+  const addNewPhoto = () => {
+    // Generate a unique ID
+    const newId = Math.floor(Math.random() * 1000000).toString();
+    
+    // Create a new photo metadata object
+    const newPhoto: PhotoMetadata = {
+      id: newId,
+      reportId,
+      photoType: 'SUBJECT',
+      url: offline ? '' : `https://picsum.photos/seed/${newId}/800/600`,
+      caption: caption || `Photo ${newId}`,
+      dateTaken: new Date().toISOString(),
+      latitude: 37.7749 + (Math.random() - 0.5) * 0.1,
+      longitude: -122.4194 + (Math.random() - 0.5) * 0.1,
+      isOffline: offline,
+      status: offline ? 'pending' : 'synced',
+      localPath: offline ? `/local/path/photo_${newId}.jpg` : undefined,
+    };
+    
+    // Add the new photo to the list
+    setPhotos(prev => [...prev, newPhoto]);
+    setLocalPhotoCount(prev => prev + 1);
+    
+    // If offline, store the update to be synced later
+    if (offline) {
+      const update = encodeUpdate({ type: 'add', photo: newPhoto });
+      setPendingUpdates(prev => [...prev, update]);
+      
+      toast({
+        title: 'Photo Stored Locally',
+        description: 'This photo will be synced when you go online',
+      });
+    } else {
+      syncPhoto(newPhoto);
+    }
+    
+    // Reset the caption field
+    setCaption('');
+    
     toast({
-      title: "Syncing photos",
-      description: `Attempting to sync ${photosToSync.length} photos`,
-      variant: "default",
+      title: 'Photo Added',
+      description: offline ? 'Photo saved locally (offline mode)' : 'Photo added and synced with server',
     });
   };
-
+  
+  // Simulate syncing a photo with the server
+  const syncPhoto = async (photo: PhotoMetadata) => {
+    if (offlineMode) {
+      toast({
+        title: 'Offline Mode',
+        description: 'Cannot sync in offline mode',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setLoading(true);
+    setSyncStatus(`Syncing photo ${photo.id}...`);
+    
+    try {
+      // Encode the update for transmission
+      const update = encodeUpdate({ type: 'add', photo });
+      
+      // Send the update to the server
+      const response = await fetch(`/api/sync/reports/${reportId}/photos`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ update }),
+      });
+      
+      if (!response.ok) {
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      // Update the UI with the synced result
+      setPhotos(result.photos || photos);
+      setSyncStatus(`Successfully synced photo ${photo.id}`);
+      
+      toast({
+        title: 'Photo Synced',
+        description: 'Successfully synced with the server',
+      });
+    } catch (error) {
+      console.error('Error syncing photo:', error);
+      setSyncStatus(`Error syncing photo: ${error.message}`);
+      
+      // Mark the photo as having an error
+      setPhotos(prev => 
+        prev.map(p => 
+          p.id === photo.id 
+            ? { 
+                ...p, 
+                status: 'error', 
+                errorMessage: error.message,
+                lastSyncAttempt: new Date().toISOString()
+              } 
+            : p
+        )
+      );
+      
+      toast({
+        title: 'Sync Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Simulate syncing all pending updates
+  const syncAllPendingUpdates = async () => {
+    if (pendingUpdates.length === 0) {
+      toast({
+        title: 'No Updates Pending',
+        description: 'There are no pending updates to sync',
+      });
+      return;
+    }
+    
+    setLoading(true);
+    setSyncStatus(`Syncing ${pendingUpdates.length} pending updates...`);
+    
+    try {
+      // In a real implementation, we would merge these updates
+      // and send them to the server in an optimized way
+      // For the test UI, we'll just simulate a successful sync
+      
+      // Update status of photos from pending to synced
+      setPhotos(prev => 
+        prev.map(p => 
+          p.status === 'pending' 
+            ? { ...p, status: 'synced', isOffline: false } 
+            : p
+        )
+      );
+      
+      // Clear pending updates
+      setPendingUpdates([]);
+      setLocalPhotoCount(0);
+      
+      setSyncStatus(`Successfully synced ${pendingUpdates.length} updates`);
+      
+      toast({
+        title: 'Sync Complete',
+        description: 'All pending updates have been synced',
+      });
+    } catch (error) {
+      console.error('Error syncing updates:', error);
+      setSyncStatus(`Error syncing updates: ${error.message}`);
+      
+      toast({
+        title: 'Sync Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  // Toggle offline mode
+  const toggleOfflineMode = () => {
+    setOfflineMode(!offlineMode);
+    
+    toast({
+      title: offlineMode ? 'Online Mode' : 'Offline Mode',
+      description: offlineMode 
+        ? 'Connected to server. Changes will sync immediately.' 
+        : 'Disconnected from server. Changes will be saved locally.',
+    });
+  };
+  
   return (
-    <div className="container mx-auto p-4">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold">TerraField Photo Sync Test</h1>
-          <p className="text-muted-foreground">
-            Test the offline-first photo synchronization using CRDT
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          {isOnline ? (
-            <Badge variant="outline" className="bg-green-50 text-green-700 flex items-center gap-2">
-              <Wifi className="h-4 w-4" />
-              Online
-            </Badge>
-          ) : (
-            <Badge variant="outline" className="bg-amber-50 text-amber-700 flex items-center gap-2">
-              <WifiOff className="h-4 w-4" />
-              Offline
-            </Badge>
-          )}
-        </div>
-      </div>
-
-      {/* Add Photo Form */}
-      <Card className="mb-6">
-        <CardHeader>
-          <CardTitle>Add New Photo</CardTitle>
-          <CardDescription>
-            Add a photo to be synchronized with the server
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-4">
-              <div>
-                <Label htmlFor="report-id">Report ID</Label>
-                <Input
-                  id="report-id"
-                  type="number"
-                  value={reportId}
-                  onChange={(e) => setReportId(Number(e.target.value))}
-                  className="mt-1"
-                />
-              </div>
-              <div>
-                <Label htmlFor="photo-type">Photo Type</Label>
-                <Select value={photoType} onValueChange={setPhotoType}>
-                  <SelectTrigger id="photo-type" className="mt-1">
-                    <SelectValue placeholder="Select photo type" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="property">Property</SelectItem>
-                    <SelectItem value="exterior">Exterior</SelectItem>
-                    <SelectItem value="interior">Interior</SelectItem>
-                    <SelectItem value="damage">Damage</SelectItem>
-                    <SelectItem value="street">Street</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="photo-caption">Caption</Label>
-                <Textarea
-                  id="photo-caption"
-                  value={photoCaption}
-                  onChange={(e) => setPhotoCaption(e.target.value)}
-                  className="mt-1"
-                  placeholder="Enter a caption for the photo"
-                />
-              </div>
-              <div>
-                <Label htmlFor="photo-file">Select Photo</Label>
-                <Input
-                  id="photo-file"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="mt-1"
-                />
-              </div>
-            </div>
-            <div className="flex flex-col items-center justify-center">
-              {previewUrl ? (
-                <div className="relative w-full">
-                  <img
-                    src={previewUrl}
-                    alt="Preview"
-                    className="rounded-md max-h-64 max-w-full object-contain mx-auto"
-                  />
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="absolute top-2 right-2 h-8 w-8 p-0"
-                    onClick={() => {
-                      setPreviewUrl(null);
-                      setSelectedFile(null);
-                    }}
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">TerraField Mobile Integration Test</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <span>Photo Sync Test</span>
+                <div>
+                  <Badge 
+                    className={`ml-2 ${
+                      wsStatus === 'connected' ? 'bg-green-500' :
+                      wsStatus === 'disconnected' ? 'bg-gray-500' :
+                      wsStatus === 'error' ? 'bg-red-500' :
+                      wsStatus === 'offline-mode' ? 'bg-amber-500' : ''
+                    }`}
                   >
-                    <X className="h-4 w-4" />
-                  </Button>
+                    {wsStatus}
+                  </Badge>
+                  
+                  <Badge 
+                    variant={offlineMode ? "destructive" : "default"}
+                    className="ml-2 cursor-pointer"
+                    onClick={toggleOfflineMode}
+                  >
+                    {offlineMode ? 'Offline' : 'Online'}
+                  </Badge>
+                  
+                  {localPhotoCount > 0 && (
+                    <Badge variant="outline" className="ml-2">
+                      {localPhotoCount} local changes
+                    </Badge>
+                  )}
+                </div>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid gap-4 mb-4">
+                <div className="grid grid-cols-4 gap-4">
+                  <div className="col-span-3">
+                    <Label htmlFor="reportId">Report ID</Label>
+                    <Input
+                      id="reportId"
+                      value={reportId}
+                      onChange={(e) => setReportId(e.target.value)}
+                      placeholder="Enter Report ID"
+                    />
+                  </div>
+                  <div className="flex items-end">
+                    <Button
+                      onClick={fetchPhotos}
+                      disabled={loading || offlineMode}
+                      className="w-full"
+                    >
+                      {loading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Loading
+                        </>
+                      ) : (
+                        'Load Photos'
+                      )}
+                    </Button>
+                  </div>
+                </div>
+                
+                <div className="mt-2">
+                  <Tabs 
+                    defaultValue="upload" 
+                    value={activeTab} 
+                    onValueChange={setActiveTab}
+                  >
+                    <TabsList className="grid w-full grid-cols-2">
+                      <TabsTrigger value="upload">Add New Photo</TabsTrigger>
+                      <TabsTrigger value="sync">Sync Status</TabsTrigger>
+                    </TabsList>
+                    
+                    <TabsContent value="upload">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Add New Photo</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <Label htmlFor="caption">Photo Caption</Label>
+                              <Input
+                                id="caption"
+                                value={caption}
+                                onChange={(e) => setCaption(e.target.value)}
+                                placeholder="Enter photo caption"
+                              />
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <input
+                                id="saveOffline"
+                                type="checkbox"
+                                checked={offline}
+                                onChange={() => setOffline(!offline)}
+                                className="rounded border-gray-300"
+                              />
+                              <Label htmlFor="saveOffline">Save offline (simulate no connectivity)</Label>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button onClick={addNewPhoto} className="w-full">
+                            <Upload className="mr-2 h-4 w-4" />
+                            Add New Photo
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </TabsContent>
+                    
+                    <TabsContent value="sync">
+                      <Card>
+                        <CardHeader>
+                          <CardTitle>Sync Status</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          <div className="space-y-4">
+                            <div>
+                              <Label>Status</Label>
+                              <div className="p-2 border rounded bg-muted">
+                                {syncStatus || 'No sync activity yet'}
+                              </div>
+                            </div>
+                            
+                            <div>
+                              <Label>Pending Updates</Label>
+                              <div className="p-2 border rounded bg-muted">
+                                {pendingUpdates.length > 0 ? (
+                                  <div>
+                                    {pendingUpdates.length} update(s) pending
+                                  </div>
+                                ) : (
+                                  'No pending updates'
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                        <CardFooter>
+                          <Button 
+                            onClick={syncAllPendingUpdates}
+                            disabled={pendingUpdates.length === 0 || loading}
+                            className="w-full"
+                          >
+                            <CheckCircle className="mr-2 h-4 w-4" />
+                            Sync All Pending Updates
+                          </Button>
+                        </CardFooter>
+                      </Card>
+                    </TabsContent>
+                  </Tabs>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+        
+        <div>
+          <Card className="h-full">
+            <CardHeader>
+              <CardTitle>
+                Photos
+                <Badge className="ml-2">{photos.length}</Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="flex justify-center items-center h-40">
+                  <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+                </div>
+              ) : photos.length > 0 ? (
+                <div className="space-y-4">
+                  {photos.map((photo) => (
+                    <div 
+                      key={photo.id} 
+                      className="border rounded-lg p-4"
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <h3 className="font-semibold">{photo.caption}</h3>
+                        <Badge 
+                          variant={
+                            photo.status === 'synced' ? "default" :
+                            photo.status === 'pending' ? "outline" :
+                            photo.status === 'syncing' ? "secondary" :
+                            "destructive"
+                          }
+                        >
+                          {photo.status}
+                        </Badge>
+                      </div>
+                      
+                      <div className="mb-2">
+                        {photo.url ? (
+                          <img 
+                            src={photo.url} 
+                            alt={photo.caption} 
+                            className="w-full h-32 object-cover rounded"
+                          />
+                        ) : (
+                          <div className="w-full h-32 bg-muted flex items-center justify-center rounded">
+                            <Image className="h-8 w-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      
+                      <div className="text-xs text-muted-foreground">
+                        <div>ID: {photo.id}</div>
+                        <div>Date: {new Date(photo.dateTaken).toLocaleString()}</div>
+                        {photo.latitude && photo.longitude && (
+                          <div>Location: {photo.latitude.toFixed(4)}, {photo.longitude.toFixed(4)}</div>
+                        )}
+                        {photo.status === 'error' && (
+                          <div className="text-red-500">{photo.errorMessage}</div>
+                        )}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               ) : (
-                <div className="border-2 border-dashed border-muted-foreground/20 rounded-md p-8 text-center">
-                  <Upload className="mx-auto h-12 w-12 text-muted-foreground/50" />
-                  <p className="mt-2 text-sm text-muted-foreground">
-                    Select a photo to preview
-                  </p>
+                <div className="flex flex-col items-center justify-center h-40 text-center text-muted-foreground">
+                  <Image className="h-10 w-10 mb-2" />
+                  <p>No photos found</p>
+                  <p className="text-xs">Add a photo or load from server</p>
                 </div>
               )}
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter className="justify-between">
-          <Button
-            variant="outline"
-            onClick={() => {
-              setPhotoCaption('');
-              setSelectedFile(null);
-              setPreviewUrl(null);
-            }}
-          >
-            Reset
-          </Button>
-          <Button onClick={addPhoto} disabled={!selectedFile}>
-            {syncMutation.isPending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Adding...
-              </>
-            ) : (
-              'Add Photo'
-            )}
-          </Button>
-        </CardFooter>
-      </Card>
-
-      {/* Pending Photos */}
-      <Card className="mb-6">
-        <CardHeader className="flex flex-row items-center justify-between">
-          <div>
-            <CardTitle>Pending Photos</CardTitle>
-            <CardDescription>
-              Photos waiting to be synchronized with the server
-            </CardDescription>
-          </div>
-          <Button
-            variant="outline"
-            onClick={syncPendingPhotos}
-            disabled={!isOnline || pendingPhotos.length === 0}
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            Sync Now
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {pendingPhotos.length === 0 ? (
-            <div className="text-center py-8 text-muted-foreground">
-              No pending photos to sync
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pendingPhotos.map((photo) => (
-                <Card key={photo.id} className="overflow-hidden">
-                  <div className="aspect-video w-full relative">
-                    <img
-                      src={photo.originalUrl}
-                      alt={photo.caption || 'Photo'}
-                      className="object-cover w-full h-full"
-                    />
-                    <div className="absolute top-2 right-2">
-                      {photo.syncStatus === 'synced' ? (
-                        <Badge className="bg-green-500">
-                          <Check className="h-3 w-3 mr-1" />
-                          Synced
-                        </Badge>
-                      ) : photo.syncStatus === 'failed' ? (
-                        <Badge variant="destructive">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Failed
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="bg-amber-50 text-amber-700">
-                          <Loader2 className="h-3 w-3 mr-1 animate-spin" />
-                          Pending
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                  <CardContent className="p-3">
-                    <div className="text-sm font-medium line-clamp-1">
-                      {photo.caption || 'No caption'}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {photo.photoType} • ID: {photo.id.substring(0, 8)}
-                      {photo.serverId && ` • Server ID: ${photo.serverId}`}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Synced Photos from Server */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Server Photos</CardTitle>
-          <CardDescription>
-            Photos retrieved from the server for Report ID: {reportId}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          {!isOnline ? (
-            <div className="text-center py-8 text-muted-foreground">
-              <WifiOff className="mx-auto h-8 w-8 mb-2" />
-              You're offline. Cannot fetch server photos.
-            </div>
-          ) : isLoadingPhotos ? (
-            <div className="text-center py-8">
-              <Loader2 className="mx-auto h-8 w-8 animate-spin" />
-              <p className="mt-2 text-muted-foreground">Loading photos...</p>
-            </div>
-          ) : reportPhotos?.photos?.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {reportPhotos.photos.map((photo: any) => (
-                <Card key={photo.id} className="overflow-hidden">
-                  <div className="aspect-video w-full">
-                    <img
-                      src={photo.url.startsWith('data:') ? photo.url : photo.url.startsWith('http') ? photo.url : `${window.location.origin}${photo.url}`}
-                      alt={photo.caption || 'Photo'}
-                      className="object-cover w-full h-full"
-                    />
-                  </div>
-                  <CardContent className="p-3">
-                    <div className="text-sm font-medium line-clamp-1">
-                      {photo.caption || 'No caption'}
-                    </div>
-                    <div className="text-xs text-muted-foreground mt-1">
-                      {photo.photoType} • ID: {photo.id}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-8 text-muted-foreground">
-              No photos found for this report
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
     </div>
   );
 }
