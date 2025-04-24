@@ -217,6 +217,7 @@ export const photos = pgTable("photos", {
   dateTaken: timestamp("date_taken"),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
+  metadata: jsonb("metadata"), // Added metadata field for CRDT synchronization
   createdAt: timestamp("created_at").defaultNow(),
 });
 
@@ -228,6 +229,7 @@ export const insertPhotoSchema = createInsertSchema(photos).pick({
   dateTaken: true,
   latitude: true,
   longitude: true,
+  metadata: true,
 });
 
 // Sketches model
