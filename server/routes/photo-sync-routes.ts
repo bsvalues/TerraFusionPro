@@ -67,7 +67,7 @@ photoSyncRouter.post('/photo-sync', async (req: Request, res: Response) => {
     // Check if the photo exists in our database by client-generated ID
     const existingPhotos = await storage.getPhotosByReport(photoData.reportId);
     // We need to handle the case where photos might not have metadata in storage
-    const existingPhoto = existingPhotos.find(p => {
+    const existingPhoto = existingPhotos.find((p: schema.Photo) => {
       if (!p.metadata) return false;
       try {
         const meta = typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata;
@@ -87,7 +87,7 @@ photoSyncRouter.post('/photo-sync', async (req: Request, res: Response) => {
         latitude: photoData.latitude,
         longitude: photoData.longitude,
         metadata: {
-          ...existingPhoto.metadata,
+          ...(existingPhoto.metadata ? (typeof existingPhoto.metadata === 'string' ? JSON.parse(existingPhoto.metadata) : existingPhoto.metadata) : {}),
           clientId: photoData.id,
           enhancementOptions: photoData.enhancementOptions,
           analysis: photoData.analysis,

@@ -163,6 +163,21 @@ export class DatabaseStorage implements IStorage {
   async getPhotosByReportId(reportId: number) {
     return await db.select().from(schema.photos).where(eq(schema.photos.reportId, reportId));
   }
+  
+  // Alias for getPhotosByReportId to match storage interface
+  async getPhotosByReport(reportId: number) {
+    return this.getPhotosByReportId(reportId);
+  }
+  
+  // Add updatePhoto method
+  async updatePhoto(id: number, photoData: Partial<schema.InsertPhoto>) {
+    const [updatedPhoto] = await db
+      .update(schema.photos)
+      .set(photoData)
+      .where(eq(schema.photos.id, id))
+      .returning();
+    return updatedPhoto;
+  }
 
   // Sketch methods
   async createSketch(sketchData: schema.InsertSketch) {

@@ -18,6 +18,7 @@ import { TooltipProvider } from "./contexts/TooltipContext";
 import TermsPage from "./pages/TermsPage";
 import CRDTTestPage from "./pages/CRDTTestPage";
 import PhotoEnhancementPage from "./pages/PhotoEnhancementPage";
+import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 
 // Temporary basic app structure that doesn't use AppraisalContext
 // This will help us get the app running, then we'll gradually add more functionality
@@ -58,6 +59,7 @@ function App() {
             <li><a href="/terms" className="block p-2 rounded hover:bg-accent bg-green-50 text-green-700 font-medium" onClick={() => console.log("Terms clicked")}>Real Estate Terms</a></li>
             <li><a href="/crdt-test" className="block p-2 rounded hover:bg-accent bg-purple-50 text-purple-700 font-medium" onClick={() => console.log("CRDT Test clicked")}>TerraField CRDT Test</a></li>
             <li><a href="/photo-enhancement" className="block p-2 rounded hover:bg-accent bg-blue-50 text-blue-700 font-medium" onClick={() => console.log("Photo Enhancement clicked")}>TerraField Photo Enhancement</a></li>
+            <li><a href="/photo-sync-test" className="block p-2 rounded hover:bg-accent bg-orange-50 text-orange-700 font-medium" onClick={() => console.log("Photo Sync Test clicked")}>TerraField Photo Sync</a></li>
           </ul>
         </nav>
         <main className="flex-1 p-4">
@@ -80,6 +82,7 @@ function App() {
             <Route path="/import" component={ImportPage} />
             <Route path="/crdt-test" component={CRDTTestPage} />
             <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
+            <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
