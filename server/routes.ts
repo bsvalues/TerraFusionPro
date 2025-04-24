@@ -13,6 +13,7 @@ import {
   mergeUpdates,
   ParcelNote
 } from '../packages/crdt/src/index';
+import { photoSyncRouter } from './routes/photo-sync-routes';
 import { insertUserSchema, insertPropertySchema, insertAppraisalReportSchema, insertComparableSchema, insertAdjustmentSchema, insertPhotoSchema, insertSketchSchema, insertComplianceCheckSchema, insertAdjustmentModelSchema, insertModelAdjustmentSchema, insertMarketAnalysisSchema, insertUserPreferenceSchema, insertAdjustmentTemplateSchema, insertAdjustmentRuleSchema, insertAdjustmentHistorySchema, insertCollaborationCommentSchema, insertMarketDataSchema } from "@shared/schema";
 import { z } from "zod";
 import { generatePDF } from "./lib/pdf-generator";
@@ -33,7 +34,6 @@ import { gamificationRoutes } from './routes/gamification';
 import { tooltipRoutes } from './routes/tooltips';
 import { importRoutes } from './routes/import-routes';
 import photoEnhancementRoutes from './routes/photo-enhancement-routes';
-import photoSyncRoutes from './routes/photo-sync-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2477,7 +2477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/photo-enhancement', photoEnhancementRoutes);
   
   // Register photo sync routes for offline-first CRDT synchronization
-  app.use('/api/sync', photoSyncRoutes);
+  app.use('/api/sync', photoSyncRouter);
 
   const httpServer = createServer(app);
   

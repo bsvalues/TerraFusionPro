@@ -10,6 +10,7 @@ import {
   getPendingPhotos
 } from '@terrafield/crdt';
 import { v4 as uuidv4 } from 'uuid';
+import { ApiService } from './ApiService';
 
 /**
  * Service responsible for managing photo synchronization between
@@ -131,6 +132,7 @@ export class PhotoSyncService {
     }
     
     this.syncInProgress = true;
+    const apiService = ApiService.getInstance();
     
     try {
       const { store, doc } = this.getPhotoStore(reportId);
@@ -138,21 +140,8 @@ export class PhotoSyncService {
       // Encode the current state for transmission
       const encodedUpdate = encodeDocUpdate(doc);
       
-      // Send the encoded update to the server
-      const response = await fetch(`${this.serverUrl}/api/sync/reports/${reportId}/photos`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ update: encodedUpdate }),
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      // Get the merged result from the server
-      const { mergedUpdate } = await response.json();
+      // Send the encoded update to the server using ApiService
+      const { mergedUpdate } = await apiService.syncReportPhotos(reportId, encodedUpdate);
       
       // Apply the merged update to our local document
       applyEncodedUpdate(doc, mergedUpdate);
@@ -195,15 +184,11 @@ export class PhotoSyncService {
    * @param reportId The ID of the report to initialize
    */
   public async initializeFromServer(reportId: string): Promise<void> {
+    const apiService = ApiService.getInstance();
+    
     try {
-      // Fetch the current state from the server
-      const response = await fetch(`${this.serverUrl}/api/sync/reports/${reportId}/photos`);
-      
-      if (!response.ok) {
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-      
-      const { update } = await response.json();
+      // Fetch the current state from the server using ApiService
+      const { update } = await apiService.getReportPhotos(reportId);
       
       if (update) {
         const { doc } = this.getPhotoStore(reportId);
