@@ -1,50 +1,60 @@
 /**
- * Root stack parameter list
+ * Navigation types for the TerraField Mobile app
  */
+
 export type RootStackParamList = {
-  // Auth
-  Auth: undefined;
-  
-  // Main
+  Login: undefined;
   Main: undefined;
-  
-  // Home stack
-  Dashboard: undefined;
-  PropertyList: undefined;
-  PropertyDetail: { propertyId: string };
-  
-  // Inspection stack
-  Inspection: undefined;
-  FormCapture: { propertyId?: string };
-  VoiceForm: { propertyId?: string };
-  PhotoEnhancement: { propertyId?: string; photos?: any[] };
-  ARMeasurement: { propertyId?: string };
-  
-  // Analysis stack
-  ComparableSearch: { property?: any };
-  AdjustmentModel: { propertyId?: string; comparableIds?: string[] };
-  
-  // Reports stack
-  ReportGeneration: { propertyId?: string };
-  ComplianceDocument: { reportId?: string; documentType?: string };
-  
-  // Collaboration stack
-  Collaboration: { projectId?: string; projectName?: string };
-  SyncStatus: undefined;
-  
-  // Profile stack
-  Profile: undefined;
-  SecuritySettings: undefined;
 };
 
-/**
- * Main tab parameter list
- */
 export type MainTabParamList = {
-  Home: undefined;
-  Inspection: undefined;
-  Analysis: undefined;
+  Dashboard: undefined;
+  Properties: undefined;
   Reports: undefined;
-  Collaborate: undefined;
+  Inspection: undefined;
+  Settings: undefined;
+};
+
+export type DashboardStackParamList = {
+  DashboardHome: undefined;
+  Notifications: undefined;
+  Tasks: undefined;
+};
+
+export type PropertiesStackParamList = {
+  PropertiesList: undefined;
+  PropertyDetail: { propertyId: string };
+  PropertyEdit: { propertyId: string };
+  AddProperty: undefined;
+  PropertySearch: undefined;
+  ComparableSearch: { propertyId: string };
+  PropertyMapView: undefined;
+};
+
+export type InspectionStackParamList = {
+  InspectionList: undefined;
+  InspectionDetail: { inspectionId: string };
+  PhotoCapture: { inspectionId: string };
+  ARMeasurement: { inspectionId: string; roomId?: string };
+  VoiceNotes: { inspectionId: string };
+  SketchPad: { inspectionId: string };
+  FieldDataVerification: { propertyId: string };
+};
+
+export type ReportsStackParamList = {
+  ReportsList: undefined;
+  ReportDetail: { reportId: string };
+  ReportGeneration: { propertyId: string };
+  ComplianceDocuments: { propertyId: string };
+};
+
+export type SettingsStackParamList = {
+  SettingsHome: undefined;
   Profile: undefined;
+  AccountSettings: undefined;
+  AppSettings: undefined;
+  Offline: undefined;
+  Collaboration: undefined;
+  ExternalData: undefined;
+  Support: undefined;
 };
