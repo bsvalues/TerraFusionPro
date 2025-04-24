@@ -33,6 +33,7 @@ import { gamificationRoutes } from './routes/gamification';
 import { tooltipRoutes } from './routes/tooltips';
 import { importRoutes } from './routes/import-routes';
 import photoEnhancementRoutes from './routes/photo-enhancement-routes';
+import photoSyncRoutes from './routes/photo-sync-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2474,6 +2475,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register photo enhancement routes for AI-powered property image processing
   app.use('/api/photo-enhancement', photoEnhancementRoutes);
+  
+  // Register photo sync routes for offline-first CRDT synchronization
+  app.use('/api/sync', photoSyncRoutes);
 
   const httpServer = createServer(app);
   

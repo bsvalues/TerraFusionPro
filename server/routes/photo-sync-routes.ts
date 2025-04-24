@@ -1,9 +1,28 @@
 import { Router, Request, Response } from 'express';
-import { dbStorage } from '../database-storage';
+import { storage } from '../storage';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as CRDT from '@packages/crdt';
 import multer from 'multer';
+
+// Define PhotoMetadata interface for CRDT sync
+interface PhotoMetadata {
+  id: string;
+  reportId: number;
+  originalUrl: string;
+  enhancedUrl?: string;
+  photoType: string;
+  caption?: string;
+  dateTaken?: Date;
+  latitude?: string;
+  longitude?: string;
+  enhancementOptions?: Record<string, boolean>;
+  analysis?: any;
+  createdAt: Date;
+  updatedAt: Date;
+  pendingSync: boolean;
+  syncStatus: 'pending' | 'synced' | 'failed';
+  syncError?: string;
+}
 
 // Set up multer for file uploads
 const uploadsDir = path.join(process.cwd(), 'uploads');
@@ -13,7 +32,7 @@ if (!fs.existsSync(uploadsDir)) {
   fs.mkdirSync(uploadsDir, { recursive: true });
 }
 
-const storage = multer.diskStorage({
+const multerStorage = multer.diskStorage({
   destination: (req, file, cb) => {
     cb(null, uploadsDir);
   },
@@ -24,7 +43,7 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ storage });
+const upload = multer({ storage: multerStorage });
 
 // Create router
 const photoSyncRouter = Router();
@@ -35,7 +54,7 @@ const photoSyncRouter = Router();
  */
 photoSyncRouter.post('/photo-sync', async (req: Request, res: Response) => {
   try {
-    const photoData = req.body as CRDT.PhotoMetadata;
+    const photoData = req.body as PhotoMetadata;
     
     // Validate the incoming data
     if (!photoData || !photoData.reportId || !photoData.photoType) {
@@ -46,14 +65,21 @@ photoSyncRouter.post('/photo-sync', async (req: Request, res: Response) => {
     }
 
     // Check if the photo exists in our database by client-generated ID
-    const existingPhotos = await dbStorage.getPhotosByReportId(photoData.reportId);
-    const existingPhoto = existingPhotos.find(p => p.metadata && 
-      typeof p.metadata === 'object' && 
-      p.metadata.clientId === photoData.id);
+    const existingPhotos = await storage.getPhotosByReportId(photoData.reportId);
+    // We need to handle the case where photos might not have metadata in storage
+    const existingPhoto = existingPhotos.find(p => {
+      if (!p.metadata) return false;
+      try {
+        const meta = typeof p.metadata === 'string' ? JSON.parse(p.metadata) : p.metadata;
+        return meta && meta.clientId === photoData.id;
+      } catch (e) {
+        return false;
+      }
+    });
 
     if (existingPhoto) {
       // Update existing photo
-      const updatedPhoto = await dbStorage.updatePhoto(existingPhoto.id, {
+      const updatedPhoto = await storage.updatePhoto(existingPhoto.id, {
         caption: photoData.caption,
         photoType: photoData.photoType,
         url: photoData.enhancedUrl || photoData.originalUrl,
@@ -80,7 +106,7 @@ photoSyncRouter.post('/photo-sync', async (req: Request, res: Response) => {
       });
     } else {
       // Create new photo record
-      const newPhoto = await dbStorage.createPhoto({
+      const newPhoto = await storage.createPhoto({
         reportId: photoData.reportId,
         photoType: photoData.photoType,
         url: photoData.enhancedUrl || photoData.originalUrl,
@@ -138,7 +164,7 @@ photoSyncRouter.post('/reports/:reportId/photo-upload', upload.single('photo'), 
     const photoUrl = `/uploads/${req.file.filename}`;
     
     // Store in database
-    const photo = await dbStorage.createPhoto({
+    const photo = await storage.createPhoto({
       reportId: Number(reportId),
       photoType,
       url: photoUrl,
@@ -173,7 +199,7 @@ photoSyncRouter.get('/reports/:reportId/photos/:photoId', async (req: Request, r
   try {
     const { photoId } = req.params;
     
-    const photo = await dbStorage.getPhoto(Number(photoId));
+    const photo = await storage.getPhoto(Number(photoId));
     
     if (!photo) {
       return res.status(404).json({
@@ -203,7 +229,7 @@ photoSyncRouter.delete('/reports/:reportId/photos/:photoId', async (req: Request
     const { photoId } = req.params;
     
     // Get the photo to check if we need to delete the file
-    const photo = await dbStorage.getPhoto(Number(photoId));
+    const photo = await storage.getPhoto(Number(photoId));
     
     if (!photo) {
       return res.status(404).json({
@@ -213,7 +239,7 @@ photoSyncRouter.delete('/reports/:reportId/photos/:photoId', async (req: Request
     }
 
     // Delete from database
-    await dbStorage.deletePhoto(Number(photoId));
+    await storage.deletePhoto(Number(photoId));
 
     // Delete the file if it's stored locally
     if (photo.url && photo.url.startsWith('/uploads/')) {
