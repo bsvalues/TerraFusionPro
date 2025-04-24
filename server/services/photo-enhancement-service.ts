@@ -1,5 +1,6 @@
 import { Anthropic } from '@anthropic-ai/sdk';
 import OpenAI from 'openai';
+import { type Uploadable } from 'openai/uploads';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as crypto from 'crypto';
@@ -131,10 +132,13 @@ export class PhotoEnhancementService {
       });
       
       // Parse the response to extract features
-      const content = response.content[0].text;
+      const content = response.content[0];
+      if (content.type !== 'text') {
+        throw new Error('Unexpected response format from Anthropic API');
+      }
       
       // Try to find a JSON array in the response
-      const jsonMatch = content.match(/\[[\s\S]*\]/);
+      const jsonMatch = content.text.match(/\[[\s\S]*\]/);
       if (jsonMatch) {
         try {
           return JSON.parse(jsonMatch[0]);
@@ -144,13 +148,13 @@ export class PhotoEnhancementService {
       }
       
       // Fallback: split by lines and clean up
-      return content
+      return content.text
         .split('\n')
-        .filter(line => line.trim().startsWith('-') || line.trim().startsWith('*'))
-        .map(line => line.replace(/^[-*]\s+/, '').trim());
+        .filter((line: string) => line.trim().startsWith('-') || line.trim().startsWith('*'))
+        .map((line: string) => line.replace(/^[-*]\s+/, '').trim());
       
     } catch (error) {
-      console.error('Error analyzing photo with Anthropic:', error);
+      console.error('Error analyzing photo with Anthropic:', error instanceof Error ? error.message : String(error));
       return [];
     }
   }
@@ -184,10 +188,14 @@ export class PhotoEnhancementService {
       
       prompt += '. Make it look professional while maintaining photorealistic quality. Do not add or remove major elements.';
       
+      // Convert buffer to uploadable format
+      const imageBuffer = Buffer.from(base64Image, 'base64');
+      const uploadableImage = new Blob([imageBuffer]) as unknown as Uploadable;
+      
       // Make API call to OpenAI
       const response = await openai.images.edit({
         model: 'dall-e-3',
-        image: Buffer.from(base64Image, 'base64'),
+        image: uploadableImage,
         prompt,
         n: 1,
         size: '1024x1024',
@@ -196,11 +204,16 @@ export class PhotoEnhancementService {
       });
       
       // Return the enhanced image
-      return response.data[0].b64_json || '';
+      if (!response.data || response.data.length === 0 || !response.data[0].b64_json) {
+        throw new Error('Invalid response from OpenAI API');
+      }
+      
+      return response.data[0].b64_json;
       
     } catch (error) {
-      console.error('Error enhancing photo with OpenAI:', error);
-      throw new Error('Failed to enhance photo: ' + error.message);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error enhancing photo with OpenAI:', errorMessage);
+      throw new Error('Failed to enhance photo: ' + errorMessage);
     }
   }
   
@@ -285,8 +298,12 @@ export class PhotoEnhancementService {
       });
       
       // Parse the JSON from the response
-      const content = response.content[0].text;
-      const jsonMatch = content.match(/\{[\s\S]*\}/);
+      const contentBlock = response.content[0];
+      if (contentBlock.type !== 'text') {
+        throw new Error('Unexpected response format from Anthropic API');
+      }
+      
+      const jsonMatch = contentBlock.text.match(/\{[\s\S]*\}/);
       
       if (jsonMatch) {
         try {
@@ -306,7 +323,8 @@ export class PhotoEnhancementService {
       };
       
     } catch (error) {
-      console.error('Error getting recommended enhancements:', error);
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      console.error('Error getting recommended enhancements:', errorMessage);
       
       // Default recommendations on error
       return {

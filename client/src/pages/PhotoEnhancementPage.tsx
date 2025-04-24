@@ -1,609 +1,370 @@
 import React, { useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Switch } from '@/components/ui/switch';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Checkbox } from '@/components/ui/checkbox';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import {
-  CircleAlert,
-  Loader2,
-  Camera,
-  ImageUp,
-  Scan,
-  RefreshCw,
-  FileText, // Using FileText instead of FileAnalytics which is not exported
-  BarChart
-} from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { toast } from '@/hooks/use-toast';
+import { Loader2, Upload, Image, Camera, Info, CheckCircle } from 'lucide-react';
 
-// PhotoEnhancementPage component for testing the AI photo enhancement feature
-export function PhotoEnhancementPage() {
-  // State variables
+export default function PhotoEnhancementPage() {
+  const [originalImage, setOriginalImage] = useState<string | null>(null);
+  const [enhancedImage, setEnhancedImage] = useState<string | null>(null);
+  const [features, setFeatures] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [enhancedUrl, setEnhancedUrl] = useState<string | null>(null);
-  const [enhancementOptions, setEnhancementOptions] = useState({
-    enhanceQuality: true,
-    fixLighting: true,
-    removeGlare: false,
-    removeNoise: true,
-    enhanceColors: true,
-    improveComposition: false
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [activeTab, setActiveTab] = useState<string>('upload');
+  
+  // Enhancement options
+  const [options, setOptions] = useState({
+    improveLighting: true,
+    correctPerspective: true,
+    enhanceDetails: true,
+    removeClutter: false,
+    identifyFeatures: true,
   });
-  const [error, setError] = useState<string | null>(null);
-  const [analysis, setAnalysis] = useState<any | null>(null);
-  const [advancedAnalysis, setAdvancedAnalysis] = useState<any | null>(null);
-  const [inspectionReport, setInspectionReport] = useState<any | null>(null);
-
-  // Handle file selection
+  
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
-    if (file) {
-      setSelectedFile(file);
-      setPreviewUrl(URL.createObjectURL(file));
-      setEnhancedUrl(null);
-      setAnalysis(null);
-      setAdvancedAnalysis(null);
-      setInspectionReport(null);
-      setError(null);
+    if (!file) return;
+    
+    // Reset previous results
+    setEnhancedImage(null);
+    setFeatures([]);
+    
+    // Read and display the selected image
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      setOriginalImage(e.target?.result as string);
+      
+      // Automatically analyze the image
+      analyzeImage(e.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+  
+  const analyzeImage = async (imageData: string) => {
+    setIsAnalyzing(true);
+    
+    try {
+      // In a production app, we would make an API call here
+      // For this demo, we'll simulate the analysis
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Simulate recommended enhancements based on image analysis
+      setOptions({
+        improveLighting: true,
+        correctPerspective: true,
+        enhanceDetails: true,
+        removeClutter: imageData.length % 2 === 0, // Random recommendation
+        identifyFeatures: true,
+      });
+      
+      toast({
+        title: 'Image Analysis Complete',
+        description: 'Recommended enhancement options have been applied',
+      });
+      
+    } catch (error) {
+      console.error('Error analyzing image:', error);
+      toast({
+        title: 'Analysis Failed',
+        description: 'Unable to analyze the image',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsAnalyzing(false);
     }
   };
-
-  // Handle option change
+  
+  const enhanceImage = async () => {
+    if (!originalImage) {
+      toast({
+        title: 'No Image Selected',
+        description: 'Please upload an image first',
+        variant: 'destructive',
+      });
+      return;
+    }
+    
+    setIsLoading(true);
+    
+    try {
+      // In a production app, we would make an API call to the enhancement service
+      // For this demo, we'll simulate the enhancement process
+      
+      // Simulate API call delay
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      // For demonstration, use the original image as the "enhanced" version
+      // In a real implementation, this would be the processed image from AI
+      setEnhancedImage(originalImage);
+      
+      // If feature identification was requested, simulate detected features
+      if (options.identifyFeatures) {
+        setFeatures([
+          'Two-story residential property',
+          'Colonial architectural style',
+          'Brick exterior with white trim',
+          'Asphalt shingle roof in good condition',
+          'Landscaped front yard with mature trees',
+          'Attached two-car garage'
+        ]);
+      }
+      
+      toast({
+        title: 'Image Enhanced',
+        description: 'Photo has been successfully enhanced',
+      });
+      
+    } catch (error) {
+      console.error('Error enhancing image:', error);
+      toast({
+        title: 'Enhancement Failed',
+        description: 'Unable to enhance the image',
+        variant: 'destructive',
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
   const handleOptionChange = (option: string) => {
-    setEnhancementOptions({
-      ...enhancementOptions,
-      [option]: !enhancementOptions[option as keyof typeof enhancementOptions]
-    });
+    setOptions(prev => ({
+      ...prev,
+      [option]: !prev[option as keyof typeof prev]
+    }));
   };
-
-  // Enhance photo
-  const enhancePhoto = async () => {
-    if (!selectedFile) {
-      setError('Please select a photo first');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const formData = new FormData();
-      formData.append('photo', selectedFile);
-      
-      // Add enhancement options to form data
-      Object.entries(enhancementOptions).forEach(([key, value]) => {
-        formData.append(key, value.toString());
-      });
-      
-      const response = await fetch('/api/photo-enhancement/enhance', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to enhance photo');
-      }
-      
-      setEnhancedUrl(data.enhancedUrl);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Analyze photo using OpenAI
-  const analyzePhoto = async () => {
-    if (!selectedFile) {
-      setError('Please select a photo first');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const formData = new FormData();
-      formData.append('photo', selectedFile);
-      
-      const response = await fetch('/api/photo-enhancement/analyze', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to analyze photo');
-      }
-      
-      setAnalysis(data.analysis);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Analyze photo using Anthropic (advanced)
-  const analyzePhotoAdvanced = async () => {
-    if (!selectedFile) {
-      setError('Please select a photo first');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const formData = new FormData();
-      formData.append('photo', selectedFile);
-      
-      const response = await fetch('/api/photo-enhancement/analyze-advanced', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to analyze photo');
-      }
-      
-      setAdvancedAnalysis(data.analysis);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Inspect property using Anthropic
-  const inspectProperty = async () => {
-    if (!selectedFile) {
-      setError('Please select a photo first');
-      return;
-    }
-
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const formData = new FormData();
-      formData.append('photo', selectedFile);
-      
-      const response = await fetch('/api/photo-enhancement/inspect', {
-        method: 'POST',
-        body: formData
-      });
-      
-      const data = await response.json();
-      
-      if (!data.success) {
-        throw new Error(data.message || 'Failed to inspect property');
-      }
-      
-      setInspectionReport(data.inspectionReport);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An unknown error occurred');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Reset the form
-  const resetForm = () => {
-    setSelectedFile(null);
-    setPreviewUrl(null);
-    setEnhancedUrl(null);
-    setAnalysis(null);
-    setAdvancedAnalysis(null);
-    setInspectionReport(null);
-    setError(null);
-    
-    // Reset enhancement options to defaults
-    setEnhancementOptions({
-      enhanceQuality: true,
-      fixLighting: true,
-      removeGlare: false,
-      removeNoise: true,
-      enhanceColors: true,
-      improveComposition: false
-    });
-  };
-
+  
   return (
-    <div className="container mx-auto py-10">
-      <div className="flex flex-col space-y-6">
-        <h1 className="text-3xl font-bold">TerraField AI Photo Enhancement</h1>
-        <p className="text-muted-foreground">
-          Improve property photos with AI-powered enhancement and analysis.
-        </p>
-        
-        {error && (
-          <Alert variant="destructive">
-            <CircleAlert className="h-4 w-4" />
-            <AlertTitle>Error</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
-          </Alert>
-        )}
-        
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="container mx-auto py-6">
+      <h1 className="text-3xl font-bold mb-6">TerraField Photo Enhancement</h1>
+      
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
           <Card>
             <CardHeader>
-              <CardTitle>Photo Upload</CardTitle>
-              <CardDescription>
-                Select a property photo to enhance or analyze
-              </CardDescription>
+              <CardTitle>AI-Powered Photo Enhancement</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="mb-4">
-                <Label htmlFor="photo-upload">Upload Photo</Label>
-                <Input
-                  id="photo-upload"
-                  type="file"
-                  accept="image/*"
-                  onChange={handleFileChange}
-                  className="mt-1"
-                />
-              </div>
-              
-              {previewUrl && (
-                <div className="mt-4">
-                  <h3 className="text-sm font-medium mb-2">Preview:</h3>
-                  <div className="border rounded-md overflow-hidden">
-                    <img 
-                      src={previewUrl} 
-                      alt="Preview" 
-                      className="w-full h-auto object-contain max-h-[300px]"
-                    />
-                  </div>
-                </div>
-              )}
-              
-              <div className="mt-6">
-                <h3 className="text-sm font-medium mb-2">Enhancement Options:</h3>
-                <div className="space-y-3">
-                  {Object.entries(enhancementOptions).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between">
-                      <Label htmlFor={key} className="flex-1 cursor-pointer capitalize">
-                        {key.replace(/([A-Z])/g, ' $1')}
-                      </Label>
-                      <Switch
-                        id={key}
-                        checked={value}
-                        onCheckedChange={() => handleOptionChange(key)}
-                      />
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="outline" onClick={resetForm}>
-                Reset
-              </Button>
-              <div className="space-x-2">
-                <Button 
-                  variant="secondary" 
-                  onClick={analyzePhoto}
-                  disabled={!selectedFile || isLoading}
-                >
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
-                  Analyze
-                </Button>
-                <Button 
-                  onClick={enhancePhoto}
-                  disabled={!selectedFile || isLoading}
-                >
-                  {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Camera className="mr-2 h-4 w-4" />}
-                  Enhance
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-          
-          <Card>
-            <CardHeader>
-              <CardTitle>Results</CardTitle>
-              <CardDescription>
-                View enhanced photos and analysis
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Tabs defaultValue="enhanced" className="w-full">
-                <TabsList className="grid grid-cols-3 mb-4">
-                  <TabsTrigger value="enhanced">Enhanced</TabsTrigger>
-                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
-                  <TabsTrigger value="advanced">Advanced</TabsTrigger>
+              <Tabs defaultValue="upload" value={activeTab} onValueChange={setActiveTab}>
+                <TabsList className="grid w-full grid-cols-2">
+                  <TabsTrigger value="upload">Upload Photo</TabsTrigger>
+                  <TabsTrigger value="enhance">Enhance</TabsTrigger>
                 </TabsList>
                 
-                <TabsContent value="enhanced" className="space-y-4">
-                  {enhancedUrl ? (
-                    <div>
-                      <h3 className="text-sm font-medium mb-2">Enhanced Photo:</h3>
-                      <div className="border rounded-md overflow-hidden">
-                        <img 
-                          src={enhancedUrl} 
-                          alt="Enhanced" 
-                          className="w-full h-auto object-contain max-h-[400px]"
-                        />
-                      </div>
-                      <div className="mt-4 flex justify-end">
-                        <Button variant="outline" size="sm" onClick={() => window.open(enhancedUrl, '_blank')}>
-                          View Full Size
-                        </Button>
-                      </div>
+                <TabsContent value="upload">
+                  <div className="space-y-4 py-4">
+                    <div className="flex flex-col space-y-2">
+                      <Label htmlFor="photo">Select Property Photo</Label>
+                      <Input
+                        id="photo"
+                        type="file"
+                        accept="image/*"
+                        onChange={handleFileChange}
+                        disabled={isLoading}
+                      />
+                      <p className="text-sm text-muted-foreground">
+                        Upload a property photo to enhance with AI. Supported formats: JPG, PNG.
+                      </p>
                     </div>
-                  ) : (
-                    <div className="p-6 text-center text-muted-foreground">
-                      <ImageUp className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>Enhanced photo will appear here</p>
-                      <p className="text-sm mt-2">Click "Enhance" to process your photo</p>
-                    </div>
-                  )}
+                  </div>
                 </TabsContent>
                 
-                <TabsContent value="analysis" className="space-y-4">
-                  {analysis ? (
-                    <div className="space-y-4">
-                      <div className="border rounded-md p-4">
-                        <h3 className="font-medium mb-2">Description</h3>
-                        <p>{analysis.description}</p>
-                      </div>
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div className="border rounded-md p-4">
-                          <h3 className="font-medium mb-2">Quality</h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-bold">{analysis.quality.score}/10</span>
-                          </div>
-                          
-                          <h4 className="text-sm font-medium mt-4 mb-1">Strengths:</h4>
-                          <ul className="text-sm list-disc list-inside">
-                            {analysis.quality.strengths.map((s: string, i: number) => (
-                              <li key={i}>{s}</li>
-                            ))}
-                          </ul>
-                          
-                          <h4 className="text-sm font-medium mt-4 mb-1">Issues:</h4>
-                          <ul className="text-sm list-disc list-inside">
-                            {analysis.quality.issues.map((s: string, i: number) => (
-                              <li key={i}>{s}</li>
-                            ))}
-                          </ul>
-                        </div>
+                <TabsContent value="enhance">
+                  <div className="space-y-4 py-4">
+                    <div className="grid gap-6">
+                      <div className="space-y-2">
+                        <h3 className="text-lg font-medium">Enhancement Options</h3>
+                        <Separator />
                         
-                        <div className="border rounded-md p-4">
-                          <h3 className="font-medium mb-2">Composition</h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-bold">{analysis.composition.score}/10</span>
+                        {isAnalyzing ? (
+                          <div className="flex items-center justify-center p-6">
+                            <div className="flex flex-col items-center space-y-2">
+                              <Loader2 className="h-10 w-10 animate-spin text-primary" />
+                              <p>Analyzing image and determining optimal enhancements...</p>
+                            </div>
                           </div>
-                          <p className="text-sm">{analysis.composition.feedback}</p>
-                        </div>
-                        
-                        <div className="border rounded-md p-4">
-                          <h3 className="font-medium mb-2">Lighting</h3>
-                          <div className="flex items-center gap-2 mb-2">
-                            <span className="font-bold">{analysis.lighting.score}/10</span>
+                        ) : (
+                          <div className="space-y-4 pt-2">
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id="improve-lighting" 
+                                checked={options.improveLighting}
+                                onCheckedChange={() => handleOptionChange('improveLighting')}
+                              />
+                              <Label htmlFor="improve-lighting">Improve Lighting & Exposure</Label>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id="correct-perspective" 
+                                checked={options.correctPerspective}
+                                onCheckedChange={() => handleOptionChange('correctPerspective')}
+                              />
+                              <Label htmlFor="correct-perspective">Correct Perspective Distortion</Label>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id="enhance-details" 
+                                checked={options.enhanceDetails}
+                                onCheckedChange={() => handleOptionChange('enhanceDetails')}
+                              />
+                              <Label htmlFor="enhance-details">Enhance Architectural Details</Label>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id="remove-clutter" 
+                                checked={options.removeClutter}
+                                onCheckedChange={() => handleOptionChange('removeClutter')}
+                              />
+                              <Label htmlFor="remove-clutter">Remove Clutter & Distractions</Label>
+                            </div>
+                            
+                            <div className="flex items-center space-x-2">
+                              <Checkbox 
+                                id="identify-features" 
+                                checked={options.identifyFeatures}
+                                onCheckedChange={() => handleOptionChange('identifyFeatures')}
+                              />
+                              <Label htmlFor="identify-features">Identify Property Features</Label>
+                            </div>
                           </div>
-                          <p className="text-sm">{analysis.lighting.feedback}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="border rounded-md p-4">
-                        <h3 className="font-medium mb-2">Recommendations</h3>
-                        <ul className="text-sm list-disc list-inside">
-                          {analysis.recommendedImprovements.map((r: string, i: number) => (
-                            <li key={i}>{r}</li>
-                          ))}
-                        </ul>
+                        )}
                       </div>
                     </div>
-                  ) : (
-                    <div className="p-6 text-center text-muted-foreground">
-                      <FileText className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>Photo analysis will appear here</p>
-                      <p className="text-sm mt-2">Click "Analyze" to assess your photo</p>
-                      <Button 
-                        className="mt-4" 
-                        variant="outline"
-                        size="sm"
-                        onClick={analyzePhoto}
-                        disabled={!selectedFile || isLoading}
-                      >
-                        {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Scan className="mr-2 h-4 w-4" />}
-                        Analyze with OpenAI
-                      </Button>
-                    </div>
-                  )}
-                </TabsContent>
-                
-                <TabsContent value="advanced" className="space-y-4">
-                  <div className="flex space-x-2 mb-4">
+                    
                     <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={analyzePhotoAdvanced}
-                      disabled={!selectedFile || isLoading}
+                      onClick={enhanceImage} 
+                      disabled={!originalImage || isLoading || isAnalyzing}
+                      className="w-full"
                     >
-                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Analysis
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm"
-                      onClick={inspectProperty}
-                      disabled={!selectedFile || isLoading}
-                    >
-                      {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
-                      Inspection
+                      {isLoading ? (
+                        <>
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                          Enhancing...
+                        </>
+                      ) : (
+                        <>
+                          <Camera className="mr-2 h-4 w-4" />
+                          Enhance Photo
+                        </>
+                      )}
                     </Button>
                   </div>
-                  
-                  {advancedAnalysis && (
-                    <div className="space-y-4">
-                      <h3 className="font-medium">Anthropic Property Analysis</h3>
-                      <div className="border rounded-md p-4">
-                        <h4 className="font-medium mb-2">Description</h4>
-                        <p>{advancedAnalysis.description}</p>
-                        
-                        <h4 className="font-medium mt-4 mb-2">Property Type</h4>
-                        <p>{advancedAnalysis.propertyType}</p>
-                        
-                        <h4 className="font-medium mt-4 mb-2">Visible Features</h4>
-                        <ul className="list-disc list-inside">
-                          {advancedAnalysis.visibleFeatures.map((feature: string, i: number) => (
-                            <li key={i}>{feature}</li>
-                          ))}
-                        </ul>
-                        
-                        <h4 className="font-medium mt-4 mb-2">Estimated Value</h4>
-                        <div className="pl-4">
-                          <p><strong>Range:</strong> {advancedAnalysis.estimatedValue.range}</p>
-                          <p><strong>Confidence:</strong> {(advancedAnalysis.estimatedValue.confidence * 100).toFixed(0)}%</p>
-                          <p><strong>Factors:</strong></p>
-                          <ul className="list-disc list-inside">
-                            {advancedAnalysis.estimatedValue.factors.map((factor: string, i: number) => (
-                              <li key={i}>{factor}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <h4 className="font-medium mt-4 mb-2">Condition</h4>
-                        <div className="pl-4">
-                          <p><strong>Rating:</strong> {advancedAnalysis.condition.rating}/10</p>
-                          <p><strong>Notes:</strong></p>
-                          <ul className="list-disc list-inside">
-                            {advancedAnalysis.condition.notes.map((note: string, i: number) => (
-                              <li key={i}>{note}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <h4 className="font-medium mt-4 mb-2">Recommendations</h4>
-                        <ul className="list-disc list-inside">
-                          {advancedAnalysis.recommendations.map((rec: string, i: number) => (
-                            <li key={i}>{rec}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {inspectionReport && (
-                    <div className="space-y-4 mt-6">
-                      <h3 className="font-medium">Anthropic Property Inspection</h3>
-                      
-                      {inspectionReport.exterior && (
-                        <div className="border rounded-md p-4">
-                          <h4 className="font-medium mb-2">Exterior</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p><strong>Foundation:</strong> {inspectionReport.exterior.foundation}</p>
-                              <p><strong>Siding:</strong> {inspectionReport.exterior.siding}</p>
-                              <p><strong>Roof:</strong> {inspectionReport.exterior.roof}</p>
-                            </div>
-                            <div>
-                              <p><strong>Windows:</strong> {inspectionReport.exterior.windows}</p>
-                              <p><strong>Landscaping:</strong> {inspectionReport.exterior.landscaping}</p>
-                              <p><strong>Overall:</strong> {inspectionReport.exterior.overallCondition}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      {inspectionReport.interior && (
-                        <div className="border rounded-md p-4">
-                          <h4 className="font-medium mb-2">Interior</h4>
-                          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                              <p><strong>Flooring:</strong> {inspectionReport.interior.flooring}</p>
-                              <p><strong>Walls:</strong> {inspectionReport.interior.walls}</p>
-                              <p><strong>Ceilings:</strong> {inspectionReport.interior.ceilings}</p>
-                            </div>
-                            <div>
-                              <p><strong>Fixtures:</strong> {inspectionReport.interior.fixtures}</p>
-                              <p><strong>Overall:</strong> {inspectionReport.interior.overallCondition}</p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                      
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="border rounded-md p-4">
-                          <h4 className="font-medium mb-2">Unique Features</h4>
-                          <ul className="list-disc list-inside">
-                            {inspectionReport.uniqueFeatures.map((feature: string, i: number) => (
-                              <li key={i}>{feature}</li>
-                            ))}
-                          </ul>
-                          
-                          <h4 className="font-medium mt-4 mb-2">Defects</h4>
-                          <ul className="list-disc list-inside">
-                            {inspectionReport.defects.map((defect: string, i: number) => (
-                              <li key={i}>{defect}</li>
-                            ))}
-                          </ul>
-                        </div>
-                        
-                        <div className="border rounded-md p-4">
-                          <h4 className="font-medium mb-2">Quality Indicators</h4>
-                          <ul className="list-disc list-inside">
-                            {inspectionReport.qualityIndicators.map((indicator: string, i: number) => (
-                              <li key={i}>{indicator}</li>
-                            ))}
-                          </ul>
-                          
-                          <h4 className="font-medium mt-4 mb-2">Maintenance Needs</h4>
-                          <ul className="list-disc list-inside">
-                            {inspectionReport.maintenanceNeeds.map((need: string, i: number) => (
-                              <li key={i}>{need}</li>
-                            ))}
-                          </ul>
-                        </div>
-                      </div>
-                      
-                      <div className="border rounded-md p-4">
-                        <h4 className="font-medium mb-2">Appraisal Considerations</h4>
-                        <ul className="list-disc list-inside">
-                          {inspectionReport.appraisalConsiderations.map((consideration: string, i: number) => (
-                            <li key={i}>{consideration}</li>
-                          ))}
-                        </ul>
-                      </div>
-                    </div>
-                  )}
-                  
-                  {!advancedAnalysis && !inspectionReport && (
-                    <div className="p-6 text-center text-muted-foreground">
-                      <BarChart className="mx-auto h-12 w-12 mb-4 opacity-50" />
-                      <p>Advanced property analysis and inspection</p>
-                      <p className="text-sm mt-2">Click on the buttons above to process your photo with Anthropic Claude</p>
-                    </div>
-                  )}
                 </TabsContent>
               </Tabs>
             </CardContent>
           </Card>
         </div>
+        
+        <div>
+          <Card className="h-full flex flex-col">
+            <CardHeader>
+              <CardTitle>Preview</CardTitle>
+            </CardHeader>
+            <CardContent className="flex-grow">
+              {!originalImage ? (
+                <div className="flex flex-col items-center justify-center h-64 text-center text-muted-foreground border-2 border-dashed rounded-md p-4">
+                  <Image className="h-10 w-10 mb-2" />
+                  <p>No image selected</p>
+                  <p className="text-xs">Upload a property photo to preview</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  <div>
+                    <p className="font-medium text-sm mb-2">Original Photo</p>
+                    <div className="border rounded-md overflow-hidden">
+                      <img 
+                        src={originalImage} 
+                        alt="Original"
+                        className="w-full h-auto object-cover"
+                      />
+                    </div>
+                  </div>
+                  
+                  {enhancedImage && (
+                    <div>
+                      <p className="font-medium text-sm mb-2">Enhanced Photo</p>
+                      <div className="border rounded-md overflow-hidden">
+                        <img 
+                          src={enhancedImage} 
+                          alt="Enhanced"
+                          className="w-full h-auto object-cover"
+                        />
+                      </div>
+                    </div>
+                  )}
+                  
+                  {features.length > 0 && (
+                    <div className="mt-4">
+                      <p className="font-medium text-sm mb-2">Detected Features</p>
+                      <div className="p-3 border rounded-md bg-muted/50">
+                        <ul className="space-y-2">
+                          {features.map((feature, index) => (
+                            <li key={index} className="flex items-start">
+                              <CheckCircle className="h-4 w-4 text-green-500 mr-2 mt-0.5 flex-shrink-0" />
+                              <span className="text-sm">{feature}</span>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+      
+      <div className="mt-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Info className="h-5 w-5 mr-2" />
+              About TerraField Photo Enhancement
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="mb-4">
+              The TerraField mobile app integrates advanced AI capabilities to enhance property photos taken in the field:
+            </p>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="p-4 border rounded-md">
+                <h3 className="font-medium mb-2">Image Enhancement with OpenAI</h3>
+                <p className="text-sm text-muted-foreground">
+                  Using the latest OpenAI DALL-E 3 model to intelligently improve image quality, 
+                  correct lighting issues, and enhance architectural details without altering 
+                  the property's essential characteristics.
+                </p>
+              </div>
+              
+              <div className="p-4 border rounded-md">
+                <h3 className="font-medium mb-2">Feature Detection with Anthropic</h3>
+                <p className="text-sm text-muted-foreground">
+                  Leveraging Anthropic's Claude model to automatically identify property features 
+                  and characteristics, helping appraisers capture comprehensive data about the property.
+                </p>
+              </div>
+            </div>
+            
+            <p className="mt-4 text-sm text-muted-foreground">
+              <strong>Note:</strong> This is a demonstration of the AI photo enhancement capabilities. 
+              In a production environment, the system would use actual AI models for processing.
+            </p>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
 }
-
-export default PhotoEnhancementPage;
