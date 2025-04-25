@@ -1,170 +1,136 @@
 import React, { useState } from 'react';
 import {
+  StyleSheet,
   View,
   Text,
-  StyleSheet,
   TextInput,
   TouchableOpacity,
-  Image,
-  ScrollView,
-  ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  Alert
+  ScrollView,
+  Image,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { useAuth } from '../hooks/useAuth';
 import * as Colors from '../constants/Colors';
 
-const LoginScreen: React.FC = () => {
-  const navigation = useNavigation();
-  const { login } = useAuth();
-
-  // State
+const LoginScreen = () => {
+  const navigation = useNavigation<any>();
+  const { signIn, isLoading, error } = useAuth();
+  
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [showPassword, setShowPassword] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
-
-  // Handle login
+  const [secureTextEntry, setSecureTextEntry] = useState(true);
+  
+  // Login handler
   const handleLogin = async () => {
-    if (!username || !password) {
+    if (!username.trim() || !password.trim()) {
       Alert.alert('Error', 'Please enter both username and password');
       return;
     }
-
-    setIsLoading(true);
-    try {
-      const success = await login(username, password);
-      
-      if (!success) {
-        Alert.alert('Login Failed', 'Invalid username or password');
-      }
-    } catch (error) {
-      console.error('Login error:', error);
-      Alert.alert('Login Error', 'An error occurred during login. Please try again.');
-    } finally {
-      setIsLoading(false);
+    
+    const success = await signIn(username, password);
+    
+    if (!success && !error) {
+      Alert.alert('Error', 'Login failed. Please try again.');
     }
   };
-
-  // Navigate to signup
-  const navigateToSignup = () => {
-    navigation.navigate('Signup' as never);
+  
+  // Toggle password visibility
+  const toggleSecureEntry = () => {
+    setSecureTextEntry(!secureTextEntry);
   };
-
+  
+  // Navigation to signup screen
+  const goToSignup = () => {
+    navigation.navigate('Signup');
+  };
+  
   return (
     <KeyboardAvoidingView
       style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={10}
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View style={styles.leftPanel}>
-          <View style={styles.logoContainer}>
-            <Feather name="map" size={40} color={Colors.primary} />
-            <Text style={styles.logoText}>TerraField</Text>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
+        <View style={styles.logoContainer}>
+          <Text style={styles.logoText}>TerraField</Text>
+          <Text style={styles.tagline}>Real Estate Appraisal Platform</Text>
+        </View>
+        
+        <View style={styles.formContainer}>
+          <Text style={styles.title}>Welcome Back</Text>
+          <Text style={styles.subtitle}>Sign in to continue</Text>
+          
+          {error && (
+            <View style={styles.errorContainer}>
+              <Text style={styles.errorText}>{error}</Text>
+            </View>
+          )}
+          
+          <View style={styles.inputContainer}>
+            <Ionicons name="person-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Username"
+              placeholderTextColor={Colors.textLight}
+              value={username}
+              onChangeText={setUsername}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
           </View>
-
-          <Text style={styles.heading}>Welcome Back</Text>
-          <Text style={styles.subheading}>
-            Sign in to continue to your account
-          </Text>
-
-          <View style={styles.form}>
-            <View style={styles.inputContainer}>
-              <Feather name="user" size={20} color={Colors.textLight} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Username"
-                placeholderTextColor={Colors.textLight}
-                value={username}
-                onChangeText={setUsername}
-                autoCapitalize="none"
-                autoCorrect={false}
+          
+          <View style={styles.inputContainer}>
+            <Ionicons name="lock-closed-outline" size={20} color={Colors.textLight} style={styles.inputIcon} />
+            <TextInput
+              style={styles.input}
+              placeholder="Password"
+              placeholderTextColor={Colors.textLight}
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry={secureTextEntry}
+              autoCapitalize="none"
+              autoCorrect={false}
+            />
+            <TouchableOpacity onPress={toggleSecureEntry} style={styles.eyeIcon}>
+              <Ionicons
+                name={secureTextEntry ? 'eye-outline' : 'eye-off-outline'}
+                size={20}
+                color={Colors.textLight}
               />
-            </View>
-
-            <View style={styles.inputContainer}>
-              <Feather name="lock" size={20} color={Colors.textLight} style={styles.inputIcon} />
-              <TextInput
-                style={styles.input}
-                placeholder="Password"
-                placeholderTextColor={Colors.textLight}
-                value={password}
-                onChangeText={setPassword}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <TouchableOpacity
-                style={styles.passwordToggle}
-                onPress={() => setShowPassword(!showPassword)}
-              >
-                <Feather
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color={Colors.textLight}
-                />
-              </TouchableOpacity>
-            </View>
-
-            <TouchableOpacity style={styles.forgotPassword}>
-              <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.loginButton, (!username || !password) && styles.loginButtonDisabled]}
-              onPress={handleLogin}
-              disabled={!username || !password || isLoading}
-            >
-              {isLoading ? (
-                <ActivityIndicator size="small" color={Colors.white} />
-              ) : (
-                <Text style={styles.loginButtonText}>Sign In</Text>
-              )}
+          </View>
+          
+          <TouchableOpacity style={styles.forgotPasswordContainer}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
+          
+          <TouchableOpacity
+            style={styles.loginButton}
+            onPress={handleLogin}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <Text style={styles.loginButtonText}>Sign In</Text>
+            )}
+          </TouchableOpacity>
+          
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
+            <TouchableOpacity onPress={goToSignup}>
+              <Text style={styles.signupLink}>Sign Up</Text>
             </TouchableOpacity>
-
-            <View style={styles.signupContainer}>
-              <Text style={styles.signupText}>Don't have an account?</Text>
-              <TouchableOpacity onPress={navigateToSignup}>
-                <Text style={styles.signupLink}>Sign Up</Text>
-              </TouchableOpacity>
-            </View>
           </View>
         </View>
-
-        <View style={styles.rightPanel}>
-          <View style={styles.heroContent}>
-            <Text style={styles.heroTitle}>AppraisalCore</Text>
-            <Text style={styles.heroSubtitle}>TerraField Mobile</Text>
-            <Text style={styles.heroDescription}>
-              The all-in-one platform for property appraisers with advanced AI capabilities, offline support, and seamless collaboration.
-            </Text>
-
-            <View style={styles.featuresContainer}>
-              <View style={styles.featureItem}>
-                <Feather name="file-text" size={20} color={Colors.white} />
-                <Text style={styles.featureText}>Collaborative Field Notes</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Feather name="image" size={20} color={Colors.white} />
-                <Text style={styles.featureText}>AI Photo Enhancement</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Feather name="wifi-off" size={20} color={Colors.white} />
-                <Text style={styles.featureText}>Offline-First Experience</Text>
-              </View>
-              <View style={styles.featureItem}>
-                <Feather name="bar-chart-2" size={20} color={Colors.white} />
-                <Text style={styles.featureText}>One-Click Comparison</Text>
-              </View>
-            </View>
-          </View>
+        
+        <View style={styles.footer}>
+          <Text style={styles.footerText}>© 2025 TerraField. All rights reserved.</Text>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -178,71 +144,78 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     flexGrow: 1,
-    flexDirection: 'row',
-  },
-  leftPanel: {
-    flex: 1,
-    padding: 32,
-    justifyContent: 'center',
-  },
-  rightPanel: {
-    flex: 1,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 32,
+    padding: 20,
   },
   logoContainer: {
-    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 32,
+    marginTop: 80,
+    marginBottom: 40,
   },
   logoText: {
-    fontSize: 24,
-    fontWeight: '700',
+    fontSize: 32,
+    fontWeight: 'bold',
     color: Colors.primary,
-    marginLeft: 12,
   },
-  heading: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: Colors.text,
-    marginBottom: 8,
-  },
-  subheading: {
+  tagline: {
     fontSize: 16,
     color: Colors.textLight,
-    marginBottom: 32,
+    marginTop: 5,
   },
-  form: {
-    width: '100%',
+  formContainer: {
+    backgroundColor: Colors.white,
+    borderRadius: 12,
+    padding: 20,
+    shadowColor: Colors.black,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  title: {
+    fontSize: 24,
+    fontWeight: '600',
+    color: Colors.text,
+    marginBottom: 5,
+  },
+  subtitle: {
+    fontSize: 16,
+    color: Colors.textLight,
+    marginBottom: 20,
+  },
+  errorContainer: {
+    backgroundColor: Colors.error + '20', // 20% opacity
+    borderRadius: 4,
+    padding: 10,
+    marginBottom: 15,
+  },
+  errorText: {
+    color: Colors.error,
+    fontSize: 14,
   },
   inputContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.white,
-    borderRadius: 8,
     borderWidth: 1,
     borderColor: Colors.border,
-    marginBottom: 16,
+    borderRadius: 8,
     height: 50,
+    marginBottom: 15,
+    paddingHorizontal: 10,
+  },
+  inputIcon: {
+    marginRight: 10,
   },
   input: {
     flex: 1,
-    height: 50,
-    paddingLeft: 8,
     color: Colors.text,
-    fontSize: 16,
+    height: '100%',
   },
-  inputIcon: {
-    marginHorizontal: 12,
+  eyeIcon: {
+    padding: 8,
   },
-  passwordToggle: {
-    padding: 12,
-  },
-  forgotPassword: {
-    alignSelf: 'flex-end',
-    marginBottom: 24,
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    marginBottom: 20,
   },
   forgotPasswordText: {
     color: Colors.primary,
@@ -250,14 +223,11 @@ const styles = StyleSheet.create({
   },
   loginButton: {
     backgroundColor: Colors.primary,
-    height: 50,
     borderRadius: 8,
+    height: 50,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 24,
-  },
-  loginButtonDisabled: {
-    backgroundColor: Colors.disabledButton,
+    marginBottom: 20,
   },
   loginButtonText: {
     color: Colors.white,
@@ -267,51 +237,24 @@ const styles = StyleSheet.create({
   signupContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
-    alignItems: 'center',
+    marginTop: 10,
   },
   signupText: {
     color: Colors.textLight,
-    marginRight: 4,
+    fontSize: 14,
   },
   signupLink: {
     color: Colors.primary,
+    fontSize: 14,
     fontWeight: '600',
   },
-  heroContent: {
-    maxWidth: 400,
-  },
-  heroTitle: {
-    fontSize: 32,
-    fontWeight: '700',
-    color: Colors.white,
-    marginBottom: 8,
-  },
-  heroSubtitle: {
-    fontSize: 20,
-    fontWeight: '600',
-    color: Colors.white,
-    opacity: 0.9,
-    marginBottom: 16,
-  },
-  heroDescription: {
-    fontSize: 16,
-    color: Colors.white,
-    opacity: 0.8,
-    lineHeight: 24,
-    marginBottom: 32,
-  },
-  featuresContainer: {
-    marginTop: 16,
-  },
-  featureItem: {
-    flexDirection: 'row',
+  footer: {
+    marginTop: 40,
     alignItems: 'center',
-    marginBottom: 16,
   },
-  featureText: {
-    marginLeft: 12,
-    color: Colors.white,
-    fontSize: 16,
+  footerText: {
+    fontSize: 12,
+    color: Colors.textLight,
   },
 });
 

@@ -1,40 +1,42 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as Y from 'yjs';
 
-// Define the types of conflicts that can be detected
-export enum ConflictType {
-  CONCURRENT_EDIT = 'concurrent_edit',
-  MISSING_DATA = 'missing_data',
-  VERSION_MISMATCH = 'version_mismatch',
-  MERGE_CONFLICT = 'merge_conflict'
+// Types of merge strategies
+enum MergeStrategy {
+  TIMESTAMP = 'timestamp',
+  CLIENT_WINS = 'client_wins',
+  SERVER_WINS = 'server_wins',
+  FIELD_BY_FIELD = 'field_by_field',
+  MANUAL = 'manual',
 }
 
-// Structure for conflict information
-export interface Conflict {
-  id: string;
-  docId: string;
-  type: ConflictType;
-  timestamp: number;
-  localData: any;
-  remoteData: any;
-  resolved: boolean;
-  resolution?: 'local' | 'remote' | 'merged';
-  mergedData?: any;
+// Interface for merge settings
+interface MergeSettings {
+  strategy: MergeStrategy;
+  customFields?: {
+    [fieldName: string]: MergeStrategy;
+  };
+  manualPreference?: MergeStrategy;
 }
+
+// Default merge settings
+const DEFAULT_MERGE_SETTINGS: MergeSettings = {
+  strategy: MergeStrategy.TIMESTAMP,
+  customFields: {},
+  manualPreference: MergeStrategy.CLIENT_WINS,
+};
 
 /**
- * Service to handle CRDT synchronization conflicts
+ * Service to resolve conflicts between client and server data
  */
 export class ConflictResolutionService {
   private static instance: ConflictResolutionService;
-  private conflicts: Map<string, Conflict> = new Map();
-  private readonly storageKey = 'crdt_conflicts';
+  private mergeSettings: MergeSettings = DEFAULT_MERGE_SETTINGS;
 
   /**
-   * Private constructor for singleton pattern
+   * Private constructor to implement singleton pattern
    */
   private constructor() {
-    this.loadConflicts();
+    this.loadSettings();
   }
 
   /**
@@ -48,251 +50,245 @@ export class ConflictResolutionService {
   }
 
   /**
-   * Load conflicts from persistent storage
+   * Load settings from AsyncStorage
    */
-  private async loadConflicts(): Promise<void> {
+  private async loadSettings(): Promise<void> {
     try {
-      const conflictsData = await AsyncStorage.getItem(this.storageKey);
-      if (conflictsData) {
-        const conflicts = JSON.parse(conflictsData);
-        
-        // Convert back to Map
-        this.conflicts = new Map(Object.entries(conflicts));
+      const settingsJson = await AsyncStorage.getItem('terrafield_merge_settings');
+      if (settingsJson) {
+        this.mergeSettings = { ...DEFAULT_MERGE_SETTINGS, ...JSON.parse(settingsJson) };
       }
     } catch (error) {
-      console.error('Error loading conflicts:', error);
+      console.error('Error loading merge settings:', error);
+      this.mergeSettings = DEFAULT_MERGE_SETTINGS;
     }
   }
 
   /**
-   * Save conflicts to persistent storage
+   * Save settings to AsyncStorage
    */
-  private async saveConflicts(): Promise<void> {
+  private async saveSettings(): Promise<void> {
     try {
-      // Convert Map to object for storage
-      const conflicts = Object.fromEntries(this.conflicts);
-      await AsyncStorage.setItem(this.storageKey, JSON.stringify(conflicts));
+      await AsyncStorage.setItem('terrafield_merge_settings', JSON.stringify(this.mergeSettings));
     } catch (error) {
-      console.error('Error saving conflicts:', error);
+      console.error('Error saving merge settings:', error);
     }
   }
 
   /**
-   * Get all conflicts
+   * Set merge strategy
    */
-  public getConflicts(): Conflict[] {
-    return Array.from(this.conflicts.values());
+  public async setMergeStrategy(strategy: MergeStrategy): Promise<void> {
+    this.mergeSettings.strategy = strategy;
+    await this.saveSettings();
   }
 
   /**
-   * Get conflicts for a specific document
+   * Set custom field merge strategy
    */
-  public getConflictsForDocument(docId: string): Conflict[] {
-    return Array.from(this.conflicts.values()).filter(
-      conflict => conflict.docId === docId && !conflict.resolved
-    );
+  public async setFieldMergeStrategy(fieldName: string, strategy: MergeStrategy): Promise<void> {
+    if (!this.mergeSettings.customFields) {
+      this.mergeSettings.customFields = {};
+    }
+    this.mergeSettings.customFields[fieldName] = strategy;
+    await this.saveSettings();
   }
 
   /**
-   * Register a new conflict
+   * Set manual preference
    */
-  public async registerConflict(
-    docId: string,
-    type: ConflictType,
-    localData: any,
-    remoteData: any
-  ): Promise<Conflict> {
-    const conflict: Conflict = {
-      id: `conflict_${docId}_${Date.now()}`,
-      docId,
-      type,
-      timestamp: Date.now(),
-      localData,
-      remoteData,
-      resolved: false
-    };
-
-    this.conflicts.set(conflict.id, conflict);
-    await this.saveConflicts();
-
-    return conflict;
+  public async setManualPreference(preference: MergeStrategy): Promise<void> {
+    this.mergeSettings.manualPreference = preference;
+    await this.saveSettings();
   }
 
   /**
-   * Resolve a conflict
+   * Get merge settings
    */
-  public async resolveConflict(
-    conflictId: string,
-    resolution: 'local' | 'remote' | 'merged',
-    mergedData?: any
-  ): Promise<Conflict | null> {
-    const conflict = this.conflicts.get(conflictId);
-    
-    if (!conflict) {
-      return null;
+  public getMergeSettings(): MergeSettings {
+    return { ...this.mergeSettings };
+  }
+
+  /**
+   * Resolve conflicts between client field notes and server field notes
+   */
+  public async resolveFieldNoteConflicts(
+    clientNotes: any[],
+    serverNotes: any[],
+  ): Promise<any[]> {
+    // Create maps for easier lookup
+    const clientNotesMap = new Map<string, any>();
+    clientNotes.forEach(note => {
+      clientNotesMap.set(note.id, note);
+    });
+
+    const serverNotesMap = new Map<string, any>();
+    serverNotes.forEach(note => {
+      serverNotesMap.set(note.id, note);
+    });
+
+    // Find notes that exist in both client and server (potential conflicts)
+    const conflictNotes = Array.from(clientNotesMap.keys())
+      .filter(id => serverNotesMap.has(id))
+      .map(id => ({
+        id,
+        clientNote: clientNotesMap.get(id),
+        serverNote: serverNotesMap.get(id),
+      }));
+
+    // Resolve each conflict
+    for (const { id, clientNote, serverNote } of conflictNotes) {
+      const resolvedNote = this.resolveNoteConflict(clientNote, serverNote);
+      // Update both maps with the resolved note
+      clientNotesMap.set(id, resolvedNote);
+      serverNotesMap.set(id, resolvedNote);
     }
 
-    conflict.resolved = true;
-    conflict.resolution = resolution;
-    
-    if (resolution === 'merged' && mergedData) {
-      conflict.mergedData = mergedData;
-    }
+    // Merge all notes from both client and server
+    const allNoteIds = new Set([
+      ...Array.from(clientNotesMap.keys()),
+      ...Array.from(serverNotesMap.keys()),
+    ]);
 
-    this.conflicts.set(conflictId, conflict);
-    await this.saveConflicts();
+    // Create final array of resolved notes
+    const resolvedNotes = Array.from(allNoteIds).map(id => {
+      // If it exists in client map, use that (which includes any resolved conflicts)
+      // Otherwise, use the server version
+      return clientNotesMap.get(id) || serverNotesMap.get(id);
+    });
 
-    return conflict;
+    return resolvedNotes;
   }
 
   /**
-   * Apply resolution to a document
+   * Resolve conflict between a single client note and server note
    */
-  public applyResolution(doc: Y.Doc, conflict: Conflict): void {
-    if (!conflict.resolved) {
-      throw new Error('Cannot apply unresolved conflict');
+  private resolveNoteConflict(clientNote: any, serverNote: any): any {
+    // If they're exactly the same, no conflict
+    if (JSON.stringify(clientNote) === JSON.stringify(serverNote)) {
+      return clientNote;
     }
 
-    switch (conflict.resolution) {
-      case 'local':
-        // Keep local changes, do nothing
-        break;
-      case 'remote':
-        // Apply remote data
-        this.applyRemoteChanges(doc, conflict.remoteData);
-        break;
-      case 'merged':
-        // Apply merged data
-        if (conflict.mergedData) {
-          this.applyMergedChanges(doc, conflict.mergedData);
+    // Get the strategy for this field
+    const strategy = this.mergeSettings.customFields?.['fieldNotes'] 
+      || this.mergeSettings.strategy;
+
+    switch (strategy) {
+      case MergeStrategy.TIMESTAMP: {
+        const clientTime = new Date(clientNote.createdAt).getTime();
+        const serverTime = new Date(serverNote.createdAt).getTime();
+        return clientTime > serverTime ? clientNote : serverNote;
+      }
+
+      case MergeStrategy.CLIENT_WINS:
+        return clientNote;
+
+      case MergeStrategy.SERVER_WINS:
+        return serverNote;
+
+      case MergeStrategy.FIELD_BY_FIELD:
+        return this.mergeFieldByField(clientNote, serverNote);
+
+      case MergeStrategy.MANUAL:
+        // For automated syncing, use the manual preference
+        if (this.mergeSettings.manualPreference === MergeStrategy.CLIENT_WINS) {
+          return clientNote;
+        } else if (this.mergeSettings.manualPreference === MergeStrategy.SERVER_WINS) {
+          return serverNote;
+        } else {
+          // Default to timestamp if no preference
+          const clientTime = new Date(clientNote.createdAt).getTime();
+          const serverTime = new Date(serverNote.createdAt).getTime();
+          return clientTime > serverTime ? clientNote : serverNote;
         }
-        break;
+
+      default:
+        // Default to client wins
+        return clientNote;
     }
   }
 
   /**
-   * Apply remote changes to a document
+   * Merge two objects field by field
    */
-  private applyRemoteChanges(doc: Y.Doc, remoteData: any): void {
-    // Implementation would depend on the structure of remoteData
-    // For text-based CRDTs:
-    if (remoteData.content && typeof remoteData.content === 'string') {
-      const ytext = doc.getText('notes');
-      doc.transact(() => {
-        ytext.delete(0, ytext.length);
-        ytext.insert(0, remoteData.content);
-      });
-    }
-  }
+  private mergeFieldByField(clientObj: any, serverObj: any): any {
+    const result = { ...clientObj };
 
-  /**
-   * Apply merged changes to a document
-   */
-  private applyMergedChanges(doc: Y.Doc, mergedData: any): void {
-    // Implementation would depend on the structure of mergedData
-    // Similar to applyRemoteChanges but with merged data
-    if (mergedData.content && typeof mergedData.content === 'string') {
-      const ytext = doc.getText('notes');
-      doc.transact(() => {
-        ytext.delete(0, ytext.length);
-        ytext.insert(0, mergedData.content);
-      });
-    }
-  }
+    // For each field in the server object
+    for (const [key, serverValue] of Object.entries(serverObj)) {
+      // Skip the id field
+      if (key === 'id') continue;
 
-  /**
-   * Detect conflicts between local and remote data
-   */
-  public detectConflicts(
-    doc: Y.Doc,
-    remoteData: any,
-    vectorClockLocal: any,
-    vectorClockRemote: any
-  ): ConflictType | null {
-    // This is a simplified conflict detection
-    // In a real implementation, you would use vector clocks or other CRDT-specific
-    // mechanisms to detect conflicts
+      const clientValue = clientObj[key];
 
-    // Example: Check if both local and remote have changes since last sync
-    if (this.hasLocalChanges(doc) && this.hasRemoteChanges(remoteData)) {
-      return ConflictType.CONCURRENT_EDIT;
-    }
+      // If the field doesn't exist in client, use server value
+      if (clientValue === undefined) {
+        result[key] = serverValue;
+        continue;
+      }
 
-    // Example: Check for version mismatch using vector clocks
-    if (this.isVersionMismatch(vectorClockLocal, vectorClockRemote)) {
-      return ConflictType.VERSION_MISMATCH;
-    }
+      // If the field has a custom merge strategy, use it
+      const fieldStrategy = this.mergeSettings.customFields?.[key];
+      if (fieldStrategy) {
+        switch (fieldStrategy) {
+          case MergeStrategy.TIMESTAMP:
+            // For timestamp field, prefer the latest
+            if (key === 'createdAt' || key === 'updatedAt') {
+              const clientTime = new Date(clientValue).getTime();
+              const serverTime = new Date(serverValue).getTime();
+              result[key] = clientTime > serverTime ? clientValue : serverValue;
+            } else {
+              // For non-timestamp fields, timestamp strategy doesn't make sense
+              // Default to client wins
+              result[key] = clientValue;
+            }
+            break;
 
-    return null;
-  }
+          case MergeStrategy.CLIENT_WINS:
+            result[key] = clientValue;
+            break;
 
-  /**
-   * Check if local document has changes since last sync
-   */
-  private hasLocalChanges(doc: Y.Doc): boolean {
-    // This is a placeholder. In a real implementation,
-    // you would compare with the last synced state
-    return true;
-  }
+          case MergeStrategy.SERVER_WINS:
+            result[key] = serverValue;
+            break;
 
-  /**
-   * Check if remote data has changes since last sync
-   */
-  private hasRemoteChanges(remoteData: any): boolean {
-    // This is a placeholder. In a real implementation,
-    // you would compare with the last synced state
-    return true;
-  }
+          case MergeStrategy.FIELD_BY_FIELD:
+            // For nested objects
+            if (typeof clientValue === 'object' && typeof serverValue === 'object') {
+              result[key] = this.mergeFieldByField(clientValue, serverValue);
+            } else {
+              // Default to client for non-objects
+              result[key] = clientValue;
+            }
+            break;
 
-  /**
-   * Check for version mismatch using vector clocks
-   */
-  private isVersionMismatch(vectorClockLocal: any, vectorClockRemote: any): boolean {
-    // This is a simplified version. In a real implementation,
-    // you would use proper vector clock comparison
-    
-    // Example: Check if any client has more recent updates
-    for (const client in vectorClockRemote) {
-      if (!vectorClockLocal[client] || vectorClockLocal[client] < vectorClockRemote[client]) {
-        return true;
+          case MergeStrategy.MANUAL:
+            // For automated syncing, use manual preference
+            if (this.mergeSettings.manualPreference === MergeStrategy.CLIENT_WINS) {
+              result[key] = clientValue;
+            } else if (this.mergeSettings.manualPreference === MergeStrategy.SERVER_WINS) {
+              result[key] = serverValue;
+            } else {
+              // Default to client wins
+              result[key] = clientValue;
+            }
+            break;
+
+          default:
+            result[key] = clientValue;
+        }
+      } else {
+        // No custom strategy, use the default field-by-field behavior
+        if (typeof clientValue === 'object' && typeof serverValue === 'object') {
+          // Recursively merge objects
+          result[key] = this.mergeFieldByField(clientValue, serverValue);
+        } else {
+          // For simple values, client wins
+          result[key] = clientValue;
+        }
       }
     }
-    
-    for (const client in vectorClockLocal) {
-      if (!vectorClockRemote[client] || vectorClockRemote[client] < vectorClockLocal[client]) {
-        return true;
-      }
-    }
-    
-    return false;
-  }
 
-  /**
-   * Clear resolved conflicts
-   */
-  public async clearResolvedConflicts(): Promise<void> {
-    for (const [id, conflict] of this.conflicts.entries()) {
-      if (conflict.resolved) {
-        this.conflicts.delete(id);
-      }
-    }
-    
-    await this.saveConflicts();
-  }
-
-  /**
-   * Merge text content with a basic three-way merge
-   */
-  public mergeTextContent(base: string, local: string, remote: string): string {
-    // This is a very basic merge strategy
-    // In a real implementation, you might use a more sophisticated
-    // diff/merge algorithm or leverage CRDT properties
-    
-    // If either local or remote matches base, return the other one
-    if (local === base) return remote;
-    if (remote === base) return local;
-    
-    // For conflicting changes, append remote after local with a marker
-    return `${local}\n\n=== MERGED CHANGES ===\n\n${remote}`;
+    return result;
   }
 }

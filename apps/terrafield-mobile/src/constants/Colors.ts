@@ -1,40 +1,59 @@
-// Primary brand colors
-export const primary = '#3498db';
-export const secondary = '#2ecc71';
-export const accent = '#e74c3c';
+// Primary colors
+export const primary = '#4C6AFF'; // Primary brand color
+export const secondary = '#FF753A'; // Secondary accent color
+export const tertiary = '#00C689'; // Tertiary accent color
 
-// Text colors
-export const text = '#2c3e50';
-export const textLight = '#7f8c8d';
-export const placeholderText = '#bdc3c7';
-export const white = '#ffffff';
-export const black = '#000000';
-
-// Background colors
-export const background = '#f5f5f5';
-export const backgroundDark = '#ecf0f1';
-export const card = '#ffffff';
-
-// UI feedback colors
-export const error = '#e74c3c';
-export const success = '#2ecc71';
-export const warning = '#f39c12';
-export const info = '#3498db';
+// Neutrals
+export const white = '#FFFFFF';
+export const background = '#F7F9FC';
+export const backgroundDark = '#EDF1F7';
+export const border = '#E4E9F2';
+export const text = '#1A2138';
+export const textLight = '#8F9BB3';
+export const textMuted = '#C5CEE0';
+export const black = '#151A30';
 
 // Status colors
-export const online = '#27ae60';
-export const offline = '#e74c3c';
-export const syncing = '#f39c12';
+export const success = '#00E096';
+export const warning = '#FFAA00';
+export const error = '#FF3D71';
+export const info = '#0095FF';
 
-// UI component colors
-export const border = '#dfe4ea';
-export const divider = '#ecf0f1';
-export const disabledButton = '#ecf0f1';
-export const disabledText = '#95a5a6';
+// UI element colors
+export const card = white;
+export const disabledButton = '#C5CEE0';
+export const disabledText = '#8F9BB3';
+export const ripple = 'rgba(76, 106, 255, 0.2)';
+export const overlay = 'rgba(26, 33, 56, 0.7)';
+export const shadow = 'rgba(76, 106, 255, 0.15)';
 
-// Dark mode colors (for future implementation)
-export const darkBackground = '#2c3e50';
-export const darkCard = '#34495e';
-export const darkText = '#ecf0f1';
-export const darkBorder = '#7f8c8d';
-export const darkPlaceholderText = '#95a5a6';
+// Field specific colors
+export const fieldBorder = '#E4E9F2';
+export const fieldBackground = white;
+export const fieldPlaceholder = textLight;
+export const fieldLabel = text;
+export const fieldFocus = primary;
+export const fieldError = error;
+
+// Tag and badge colors
+export const tagBackground = '#F0F4FF';
+export const tagText = primary;
+export const badgeBackground = primary;
+export const badgeText = white;
+
+// Navigation colors
+export const navBackground = white;
+export const navActive = primary;
+export const navInactive = textLight;
+export const navBorder = border;
+
+// Theme specific colors
+export const darkMode = {
+  background: '#151A30',
+  backgroundDark: '#222B45',
+  text: '#F7F9FC',
+  textLight: '#C5CEE0',
+  border: '#2E3A59',
+  card: '#222B45',
+  shadow: 'rgba(0, 0, 0, 0.2)',
+};

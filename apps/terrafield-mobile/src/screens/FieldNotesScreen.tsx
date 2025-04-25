@@ -1,506 +1,405 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
+  StyleSheet,
   View,
   Text,
-  StyleSheet,
+  FlatList,
   TextInput,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Alert,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
-import * as Y from 'yjs';
+import { Ionicons } from '@expo/vector-icons';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import { format } from 'date-fns';
 import { useAuth } from '../hooks/useAuth';
+import { DataSyncService } from '../services/DataSyncService';
 import { ApiService } from '../services/ApiService';
 import * as Colors from '../constants/Colors';
-import NetInfo from '@react-native-community/netinfo';
 
-// Route params interface
-interface FieldNotesRouteParams {
+// Field note interface (matching the one in DataSyncService)
+interface FieldNote {
+  id: string;
   parcelId: string;
-  propertyAddress?: string;
+  text: string;
+  createdAt: string;
+  createdBy: string;
+  userId: number;
 }
 
-const FieldNotesScreen: React.FC = () => {
+// Route params interface
+interface RouteParams {
+  propertyId?: string;
+  parcelId?: string;
+}
+
+const FieldNotesScreen = () => {
+  const navigation = useNavigation<any>();
   const route = useRoute();
-  const navigation = useNavigation();
-  const params = route.params as FieldNotesRouteParams;
+  const params = route.params as RouteParams;
   const { user } = useAuth();
+  
+  const [notes, setNotes] = useState<FieldNote[]>([]);
+  const [newNote, setNewNote] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [propertyDetails, setPropertyDetails] = useState<any>(null);
+  const [offline, setOffline] = useState(false);
+  
+  const flatListRef = useRef<FlatList>(null);
+  const dataSyncService = DataSyncService.getInstance();
   const apiService = ApiService.getInstance();
-
-  // References and state
-  const ydoc = useRef<Y.Doc>(new Y.Doc());
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [isConnected, setIsConnected] = useState(true);
-  const [lastSynced, setLastSynced] = useState<Date | null>(null);
-  const [notesText, setNotesText] = useState('');
-  const [collaborators, setCollaborators] = useState<string[]>([]);
-  const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'error'>('synced');
-
-  // Initialize the CRDT document
+  
+  // Generate a document ID for the field notes
+  const docId = `field_notes_${params.parcelId || 'unknown'}`;
+  const parcelId = params.parcelId || 'unknown';
+  
+  // Load property details
   useEffect(() => {
-    const doc = ydoc.current;
-    const ytext = doc.getText('notes');
-
-    // Observer for text changes
-    const observer = () => {
-      const updatedText = ytext.toString();
-      setNotes(updatedText);
-    };
-
-    // Listen for text updates
-    ytext.observe(observer);
-
-    // Load notes from server
-    loadNotes();
-
-    // Set up network connectivity listener
-    const unsubscribe = NetInfo.addEventListener(state => {
-      setIsConnected(state.isConnected ?? false);
-      
-      // If we're back online and have pending changes, trigger sync
-      if (state.isConnected && syncStatus === 'pending') {
-        syncNotes(true);
-      }
-    });
-
-    // Set header title
-    navigation.setOptions({
-      title: params.propertyAddress ? `Notes: ${params.propertyAddress}` : 'Field Notes',
-    });
-
-    // Cleanup
-    return () => {
-      ytext.unobserve(observer);
-      unsubscribe();
-      doc.destroy();
-    };
-  }, []);
-
-  // Update CRDT document when notes text changes
-  useEffect(() => {
-    if (!loading) {
-      const ytext = ydoc.current.getText('notes');
-      if (notesText !== ytext.toString()) {
-        setSyncStatus('pending');
-        
-        // Apply changes to Yjs document
-        ydoc.current.transact(() => {
-          ytext.delete(0, ytext.length);
-          ytext.insert(0, notesText);
-        });
-      }
-    }
-  }, [notesText]);
-
-  // Load notes from server
-  const loadNotes = async () => {
-    setLoading(true);
-    try {
-      // Get notes from server
-      const response = await apiService.get(`/api/parcels/${params.parcelId}/notes`);
-      
-      if (response) {
-        // Parse collaborators
-        if (response.collaborators) {
-          setCollaborators(response.collaborators);
-        }
-        
-        // Update last synced time
-        setLastSynced(new Date());
-        
-        // Update sync status
-        setSyncStatus('synced');
-        
-        // Apply updates to the document
-        if (response.content) {
-          const ytext = ydoc.current.getText('notes');
-          ydoc.current.transact(() => {
-            ytext.delete(0, ytext.length);
-            ytext.insert(0, response.content);
+    const loadPropertyDetails = async () => {
+      if (params.propertyId) {
+        try {
+          const details = await apiService.get(`/api/properties/${params.propertyId}`);
+          setPropertyDetails(details);
+        } catch (error) {
+          console.error('Error loading property details:', error);
+          // Set some minimal details based on the parcel ID if we're offline
+          setPropertyDetails({ 
+            address: `Parcel ${params.parcelId}`,
+            city: 'Unknown',
+            state: 'Unknown'
           });
-          
-          // Update the text input
-          setNotesText(response.content);
         }
       }
-    } catch (error) {
-      console.error('Error loading field notes:', error);
       
-      // Attempt to load from local storage
-      loadOfflineNotes();
-      
-      // Update sync status
-      setSyncStatus('error');
-      
-      // Alert user
-      if (isConnected) {
+      // Check network status
+      setOffline(!apiService.isConnected());
+    };
+    
+    loadPropertyDetails();
+  }, [params.propertyId, params.parcelId]);
+  
+  // Load field notes
+  useEffect(() => {
+    const loadFieldNotes = async () => {
+      try {
+        setIsLoading(true);
+        const fieldNotes = await dataSyncService.getFieldNotes(docId, parcelId);
+        
+        // Sort notes by creation date (newest first)
+        const sortedNotes = [...fieldNotes].sort((a, b) => {
+          return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+        });
+        
+        setNotes(sortedNotes);
+      } catch (error) {
+        console.error('Error loading field notes:', error);
         Alert.alert(
-          'Error Loading Notes',
-          'There was an issue loading the field notes from the server. Falling back to local version.',
+          'Error',
+          'Failed to load field notes. Please try again.',
           [{ text: 'OK' }]
         );
+      } finally {
+        setIsLoading(false);
       }
+    };
+    
+    loadFieldNotes();
+    
+    // Setup an interval to check for changes
+    const interval = setInterval(loadFieldNotes, 30000); // Every 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [docId, parcelId]);
+  
+  // Handle sync button press
+  const handleSync = async () => {
+    try {
+      setIsSyncing(true);
+      const success = await dataSyncService.syncDoc(docId, parcelId);
+      
+      if (success) {
+        Alert.alert('Success', 'Field notes synchronized successfully');
+      } else if (!apiService.isConnected()) {
+        Alert.alert('Offline', 'You are currently offline. Notes will sync automatically when you reconnect.');
+      } else {
+        Alert.alert('Sync Failed', 'Failed to synchronize field notes. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Error syncing field notes:', error);
+      Alert.alert(
+        'Sync Error',
+        'An error occurred while syncing field notes. Please try again later.'
+      );
     } finally {
-      setLoading(false);
+      setIsSyncing(false);
     }
   };
-
-  // Load notes from local storage
-  const loadOfflineNotes = async () => {
-    // In a real app, this would load from AsyncStorage or other local storage
-    // For simplicity, we're not implementing the full offline storage here
-    console.log('Loading notes from offline storage');
-  };
-
-  // Sync notes to server
-  const syncNotes = async (silent = false) => {
-    if (!isConnected) {
-      setSyncStatus('pending');
+  
+  // Handle adding a new note
+  const handleAddNote = async () => {
+    if (!newNote.trim()) {
       return;
     }
     
-    if (!silent) {
-      setSaving(true);
+    if (!user) {
+      Alert.alert('Error', 'You must be logged in to add notes');
+      return;
     }
-
+    
     try {
-      const ytext = ydoc.current.getText('notes');
-      const content = ytext.toString();
+      setIsSubmitting(true);
       
-      // Send updates to server
-      await apiService.put(`/api/parcels/${params.parcelId}/notes`, {
-        content,
-        userId: user?.id,
-        username: user?.name,
+      // Add the note
+      await dataSyncService.addFieldNote(
+        docId,
+        parcelId,
+        newNote,
+        user.id,
+        user.name
+      );
+      
+      // Clear the input
+      setNewNote('');
+      
+      // Refresh the notes
+      const fieldNotes = await dataSyncService.getFieldNotes(docId, parcelId);
+      
+      // Sort notes by creation date (newest first)
+      const sortedNotes = [...fieldNotes].sort((a, b) => {
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       });
       
-      // Update sync status and last synced time
-      setSyncStatus('synced');
-      setLastSynced(new Date());
+      setNotes(sortedNotes);
       
-      // Get latest collaborators
-      try {
-        const response = await apiService.get(`/api/parcels/${params.parcelId}/sync`);
-        if (response && response.collaborators) {
-          setCollaborators(response.collaborators);
-        }
-      } catch (error) {
-        console.error('Error syncing collaborators:', error);
+      // Scroll to the top
+      if (flatListRef.current) {
+        flatListRef.current.scrollToOffset({ offset: 0, animated: true });
       }
     } catch (error) {
-      console.error('Error syncing notes:', error);
-      setSyncStatus('error');
-      
-      if (!silent) {
-        Alert.alert(
-          'Sync Error',
-          'Failed to sync changes to the server. Changes will be saved locally and synced when connection is restored.',
-          [{ text: 'OK' }]
-        );
-      }
-    } finally {
-      if (!silent) {
-        setSaving(false);
-      }
-    }
-  };
-
-  // Format last synced time
-  const formatSyncTime = () => {
-    if (!lastSynced) return 'Never';
-    
-    // If less than a minute ago, show "Just now"
-    const diffMs = Date.now() - lastSynced.getTime();
-    if (diffMs < 60000) return 'Just now';
-    
-    // If less than an hour ago, show minutes
-    if (diffMs < 3600000) {
-      const minutes = Math.floor(diffMs / 60000);
-      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
-    }
-    
-    // Otherwise show time
-    return lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  };
-
-  // Get sync status text and color
-  const getSyncStatusDetails = () => {
-    if (!isConnected) {
-      return {
-        text: 'Offline',
-        color: Colors.offline,
-        icon: 'wifi-off',
-      };
-    }
-    
-    switch (syncStatus) {
-      case 'synced':
-        return {
-          text: `Synced ${formatSyncTime()}`,
-          color: Colors.online,
-          icon: 'check-circle',
-        };
-      case 'pending':
-        return {
-          text: 'Changes pending',
-          color: Colors.syncing,
-          icon: 'clock',
-        };
-      case 'error':
-        return {
-          text: 'Sync error',
-          color: Colors.error,
-          icon: 'alert-circle',
-        };
-      default:
-        return {
-          text: 'Unknown',
-          color: Colors.textLight,
-          icon: 'help-circle',
-        };
-    }
-  };
-
-  // Save notes manually
-  const handleSaveNotes = () => {
-    syncNotes();
-  };
-
-  // Refresh notes from server
-  const handleRefreshNotes = () => {
-    if (syncStatus === 'pending') {
+      console.error('Error adding field note:', error);
       Alert.alert(
-        'Unsaved Changes',
-        'You have unsaved changes. Save them before refreshing?',
-        [
-          {
-            text: 'Save & Refresh',
-            onPress: async () => {
-              await syncNotes();
-              loadNotes();
-            },
-          },
-          {
-            text: 'Discard & Refresh',
-            style: 'destructive',
-            onPress: () => loadNotes(),
-          },
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-        ]
+        'Error',
+        'Failed to add field note. Please try again.',
+        [{ text: 'OK' }]
       );
-    } else {
-      loadNotes();
+    } finally {
+      setIsSubmitting(false);
     }
   };
-
-  const syncDetails = getSyncStatusDetails();
-
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={100}
-    >
-      {/* Status Bar */}
-      <View style={styles.statusBar}>
-        <View style={styles.syncStatus}>
-          <Feather name={syncDetails.icon} size={16} color={syncDetails.color} />
-          <Text style={[styles.syncStatusText, { color: syncDetails.color }]}>
-            {syncDetails.text}
-          </Text>
+  
+  // Format date for display
+  const formatDate = (dateString: string): string => {
+    try {
+      const date = new Date(dateString);
+      return format(date, 'MMM d, yyyy h:mm a');
+    } catch (error) {
+      return dateString;
+    }
+  };
+  
+  // Render a field note item
+  const renderNoteItem = ({ item }: { item: FieldNote }) => {
+    const isCurrentUser = user && item.userId === user.id;
+    
+    return (
+      <View style={[
+        styles.noteItem,
+        isCurrentUser ? styles.currentUserNote : styles.otherUserNote
+      ]}>
+        <View style={styles.noteHeader}>
+          <Text style={styles.noteName}>{item.createdBy}</Text>
+          <Text style={styles.noteDate}>{formatDate(item.createdAt)}</Text>
         </View>
-
-        <View style={styles.collaborators}>
-          {collaborators.length > 0 ? (
-            <>
-              <Feather name="users" size={16} color={Colors.textLight} />
-              <Text style={styles.collaboratorsText}>
-                {collaborators.length === 1
-                  ? '1 collaborator'
-                  : `${collaborators.length} collaborators`}
-              </Text>
-            </>
-          ) : (
-            <Text style={styles.collaboratorsText}>No collaborators</Text>
+        <Text style={styles.noteText}>{item.text}</Text>
+      </View>
+    );
+  };
+  
+  // Go back to previous screen
+  const goBack = () => {
+    navigation.goBack();
+  };
+  
+  return (
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity onPress={goBack} style={styles.backButton}>
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
+        </TouchableOpacity>
+        
+        <View style={styles.headerTextContainer}>
+          <Text style={styles.headerTitle}>Field Notes</Text>
+          {propertyDetails && (
+            <Text style={styles.headerSubtitle} numberOfLines={1}>
+              {propertyDetails.address}, {propertyDetails.city}, {propertyDetails.state}
+            </Text>
           )}
         </View>
-      </View>
-
-      {/* Toolbar */}
-      <View style={styles.toolbar}>
-        <TouchableOpacity
-          style={styles.toolbarButton}
-          onPress={handleRefreshNotes}
-          disabled={loading || saving}
+        
+        <TouchableOpacity 
+          onPress={handleSync} 
+          style={styles.syncButton}
+          disabled={isSyncing}
         >
-          <Feather name="refresh-cw" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.toolbarButton}
-          onPress={() => {
-            // This would be implemented with a proper image picker
-            Alert.alert('Feature Coming Soon', 'Photo attachment is coming soon!');
-          }}
-        >
-          <Feather name="image" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.toolbarButton}
-          onPress={() => {
-            // This would be implemented with location services
-            Alert.alert('Feature Coming Soon', 'Location attachment is coming soon!');
-          }}
-        >
-          <Feather name="map-pin" size={20} color={Colors.primary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.toolbarButton}
-          onPress={() => {
-            // This would open a more detailed collaborators view
-            Alert.alert(
-              'Collaborators',
-              collaborators.length > 0
-                ? collaborators.join('\n')
-                : 'No one else is editing this document.'
-            );
-          }}
-        >
-          <Feather name="users" size={20} color={Colors.primary} />
+          {isSyncing ? (
+            <ActivityIndicator size="small" color={Colors.primary} />
+          ) : (
+            <View style={styles.syncButtonContent}>
+              <Ionicons 
+                name="sync" 
+                size={18} 
+                color={offline ? Colors.warning : Colors.primary} 
+              />
+              {offline && (
+                <View style={styles.offlineIndicator}>
+                  <Text style={styles.offlineIndicatorText}>!</Text>
+                </View>
+              )}
+            </View>
+          )}
         </TouchableOpacity>
       </View>
-
-      {/* Notes Editor */}
-      {loading ? (
+      
+      {/* Connection status */}
+      {offline && (
+        <View style={styles.offlineBanner}>
+          <Ionicons name="cloud-offline-outline" size={16} color={Colors.white} />
+          <Text style={styles.offlineBannerText}>
+            You are offline. Notes will sync when connection is restored.
+          </Text>
+        </View>
+      )}
+      
+      {/* Field notes list */}
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
           <Text style={styles.loadingText}>Loading field notes...</Text>
         </View>
       ) : (
-        <ScrollView style={styles.notesContainer}>
-          <TextInput
-            style={styles.notesInput}
-            multiline
-            value={notesText}
-            onChangeText={setNotesText}
-            placeholder="Enter property field notes here..."
-            placeholderTextColor={Colors.placeholderText}
-            autoCapitalize="sentences"
-            textAlignVertical="top"
-          />
-        </ScrollView>
+        <FlatList
+          ref={flatListRef}
+          data={notes}
+          renderItem={renderNoteItem}
+          keyExtractor={item => item.id}
+          contentContainerStyle={styles.notesList}
+          ListEmptyComponent={() => (
+            <View style={styles.emptyList}>
+              <Ionicons name="document-text-outline" size={48} color={Colors.textLight} />
+              <Text style={styles.emptyListText}>No field notes yet.</Text>
+              <Text style={styles.emptyListSubtext}>Add the first note below!</Text>
+            </View>
+          )}
+        />
       )}
-
-      {/* Save Button */}
-      <View style={styles.saveButtonContainer}>
+      
+      {/* Input area */}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 40}
+        style={styles.inputContainer}
+      >
+        <TextInput
+          style={styles.input}
+          placeholder="Type your note here..."
+          placeholderTextColor={Colors.textLight}
+          value={newNote}
+          onChangeText={setNewNote}
+          multiline
+          numberOfLines={3}
+        />
         <TouchableOpacity
           style={[
-            styles.saveButton,
-            (saving || syncStatus === 'synced' || !isConnected) && styles.saveButtonDisabled,
+            styles.sendButton,
+            (!newNote.trim() || isSubmitting) && styles.disabledButton
           ]}
-          onPress={handleSaveNotes}
-          disabled={saving || syncStatus === 'synced' || !isConnected}
+          onPress={handleAddNote}
+          disabled={!newNote.trim() || isSubmitting}
         >
-          {saving ? (
+          {isSubmitting ? (
             <ActivityIndicator size="small" color={Colors.white} />
           ) : (
-            <>
-              <Feather
-                name="save"
-                size={18}
-                color={
-                  saving || syncStatus === 'synced' || !isConnected
-                    ? Colors.disabledText
-                    : Colors.white
-                }
-              />
-              <Text
-                style={[
-                  styles.saveButtonText,
-                  (saving || syncStatus === 'synced' || !isConnected) && styles.saveButtonTextDisabled,
-                ]}
-              >
-                {syncStatus === 'synced'
-                  ? 'Saved'
-                  : !isConnected
-                  ? 'Offline'
-                  : 'Save Changes'}
-              </Text>
-            </>
+            <Ionicons name="send" size={20} color={Colors.white} />
           )}
         </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: Colors.background,
+    backgroundColor: Colors.white,
   },
-  statusBar: {
+  header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    paddingVertical: 12,
     paddingHorizontal: 16,
-    paddingVertical: 8,
     backgroundColor: Colors.white,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
   },
-  syncStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  backButton: {
+    padding: 8,
   },
-  syncStatusText: {
-    fontSize: 12,
-    marginLeft: 6,
+  headerTextContainer: {
+    flex: 1,
+    marginHorizontal: 12,
   },
-  collaborators: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: '600',
+    color: Colors.text,
   },
-  collaboratorsText: {
+  headerSubtitle: {
     fontSize: 12,
     color: Colors.textLight,
-    marginLeft: 6,
+    marginTop: 2,
   },
-  toolbar: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    backgroundColor: Colors.white,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  toolbarButton: {
+  syncButton: {
     padding: 8,
-    borderRadius: 4,
   },
-  notesContainer: {
-    flex: 1,
-    backgroundColor: Colors.white,
+  syncButtonContent: {
+    position: 'relative',
   },
-  notesInput: {
-    flex: 1,
-    padding: 16,
-    fontSize: 16,
-    color: Colors.text,
-    minHeight: 300,
-    textAlignVertical: 'top',
+  offlineIndicator: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: Colors.warning,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  offlineIndicatorText: {
+    color: Colors.white,
+    fontSize: 8,
+    fontWeight: 'bold',
+  },
+  offlineBanner: {
+    backgroundColor: Colors.warning,
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 8,
+    paddingHorizontal: 16,
+  },
+  offlineBannerText: {
+    color: Colors.white,
+    fontSize: 12,
+    marginLeft: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -509,34 +408,97 @@ const styles = StyleSheet.create({
   },
   loadingText: {
     marginTop: 12,
-    fontSize: 16,
     color: Colors.textLight,
   },
-  saveButtonContainer: {
+  notesList: {
     padding: 16,
+    paddingBottom: 80, // Extra space for input
+  },
+  emptyList: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 60,
+  },
+  emptyListText: {
+    fontSize: 16,
+    color: Colors.text,
+    marginTop: 12,
+  },
+  emptyListSubtext: {
+    fontSize: 14,
+    color: Colors.textLight,
+    marginTop: 4,
+  },
+  noteItem: {
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    maxWidth: '85%',
+  },
+  currentUserNote: {
+    alignSelf: 'flex-end',
+    backgroundColor: Colors.primary + '15', // 15% opacity
+    borderBottomRightRadius: 2,
+  },
+  otherUserNote: {
+    alignSelf: 'flex-start',
+    backgroundColor: Colors.backgroundDark,
+    borderBottomLeftRadius: 2,
+  },
+  noteHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 4,
+  },
+  noteName: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  noteDate: {
+    fontSize: 11,
+    color: Colors.textLight,
+    marginLeft: 8,
+  },
+  noteText: {
+    fontSize: 14,
+    color: Colors.text,
+    lineHeight: 20,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     backgroundColor: Colors.white,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
   },
-  saveButton: {
-    backgroundColor: Colors.primary,
+  input: {
+    flex: 1,
+    backgroundColor: Colors.backgroundDark,
+    borderRadius: 20,
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderRadius: 8,
-    flexDirection: 'row',
+    paddingVertical: 8,
+    minHeight: 40,
+    maxHeight: 100,
+    color: Colors.text,
+  },
+  sendButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
-  },
-  saveButtonDisabled: {
-    backgroundColor: Colors.disabledButton,
-  },
-  saveButtonText: {
-    color: Colors.white,
-    fontWeight: '600',
     marginLeft: 8,
   },
-  saveButtonTextDisabled: {
-    color: Colors.disabledText,
+  disabledButton: {
+    backgroundColor: Colors.disabledButton,
   },
 });
 

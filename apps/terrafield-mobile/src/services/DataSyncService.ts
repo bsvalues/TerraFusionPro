@@ -1,34 +1,49 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Y from 'yjs';
-import { fromUint8Array, toUint8Array } from 'js-base64';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import { WebsocketProvider } from 'y-websocket';
+import { v4 as uuidv4 } from 'uuid';
 import { ApiService } from './ApiService';
 import { NotificationService } from './NotificationService';
-import { ConflictResolutionService, ConflictType } from './ConflictResolutionService';
-import { v4 as uuidv4 } from 'uuid';
+import { ConflictResolutionService } from './ConflictResolutionService';
 
-const SYNC_STATE_KEY_PREFIX = 'sync_state_';
-const LOCAL_DOC_PREFIX = 'local_doc_';
-const VECTOR_CLOCK_PREFIX = 'vector_clock_';
-
-// Sync state interface
-interface SyncState {
-  lastSyncTime: number;
-  pendingChanges: boolean;
-  syncVersion: number;
-  docId: string;
+// Field note interface
+export interface FieldNote {
+  id: string;
+  parcelId: string;
+  text: string;
+  createdAt: string;
+  createdBy: string;
+  userId: number;
 }
+
+// Client state interface (for user presence awareness)
+interface ClientState {
+  userId: number;
+  name: string;
+  color: string;
+  status: 'online' | 'idle' | 'offline';
+  lastActive: number;
+}
+
+// WebSocket server details
+const WS_SERVER_URL = process.env.WS_SERVER_URL || 'wss://api.terrafield.example.com/ws';
 
 /**
  * Service to handle data synchronization with CRDT support
  */
 export class DataSyncService {
   private static instance: DataSyncService;
+  private docs: Map<string, Y.Doc> = new Map();
+  private providers: Map<string, WebsocketProvider> = new Map();
+  private persistences: Map<string, IndexeddbPersistence> = new Map();
   private apiService: ApiService;
   private notificationService: NotificationService;
-  private conflictService: ConflictResolutionService;
-  private activeDocs: Map<string, Y.Doc> = new Map();
-  private syncInterval: NodeJS.Timeout | null = null;
-  private syncIntervalTime = 30000; // 30 seconds
+  private conflictResolutionService: ConflictResolutionService;
+  private isOnline: boolean = false;
+  private clientState: ClientState | null = null;
+  private syncQueue: Set<string> = new Set();
+  private syncInProgress: boolean = false;
 
   /**
    * Private constructor to implement singleton pattern
@@ -36,8 +51,9 @@ export class DataSyncService {
   private constructor() {
     this.apiService = ApiService.getInstance();
     this.notificationService = NotificationService.getInstance();
-    this.conflictService = ConflictResolutionService.getInstance();
-    this.startSyncInterval();
+    this.conflictResolutionService = ConflictResolutionService.getInstance();
+    this.isOnline = this.apiService.isConnected();
+    this.initializeService();
   }
 
   /**
@@ -51,526 +67,348 @@ export class DataSyncService {
   }
 
   /**
-   * Start the sync interval
+   * Initialize service
    */
-  private startSyncInterval(): void {
-    // Clear any existing interval
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
+  private async initializeService(): Promise<void> {
+    // Load queued docs for syncing
+    const syncQueueJson = await AsyncStorage.getItem('terrafield_sync_queue');
+    if (syncQueueJson) {
+      const syncQueueArray = JSON.parse(syncQueueJson);
+      this.syncQueue = new Set(syncQueueArray);
     }
-    
-    // Set up new sync interval
-    this.syncInterval = setInterval(() => {
-      this.syncAllDocs();
-    }, this.syncIntervalTime);
-  }
 
-  /**
-   * Stop the sync interval
-   */
-  public stopSyncInterval(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
+    // Try to sync if online
+    if (this.isOnline) {
+      this.processDocumentSyncQueue();
     }
   }
 
   /**
-   * Change the sync interval time
+   * Set current user client state for awareness
    */
-  public setSyncIntervalTime(milliseconds: number): void {
-    this.syncIntervalTime = milliseconds;
-    this.startSyncInterval();
-  }
+  public setClientState(userId: number, name: string): void {
+    const colors = [
+      '#4C6AFF', // primary
+      '#FF753A', // secondary
+      '#00C689', // tertiary
+      '#FFAA00', // warning
+      '#0095FF', // info
+      '#FF3D71', // error
+    ];
 
-  /**
-   * Sync all active documents
-   */
-  public async syncAllDocs(): Promise<void> {
-    // Get all local document IDs
-    try {
-      const keys = await AsyncStorage.getAllKeys();
-      const docKeys = keys.filter(key => key.startsWith(LOCAL_DOC_PREFIX));
-      
-      for (const key of docKeys) {
-        const docId = key.replace(LOCAL_DOC_PREFIX, '');
-        await this.syncDoc(docId);
+    // Generate a consistent color based on userId
+    const colorIndex = userId % colors.length;
+    const color = colors[colorIndex];
+
+    this.clientState = {
+      userId,
+      name,
+      color,
+      status: 'online',
+      lastActive: Date.now(),
+    };
+
+    // Update awareness in all active providers
+    this.providers.forEach(provider => {
+      if (provider.awareness) {
+        provider.awareness.setLocalState(this.clientState);
       }
-    } catch (error) {
-      console.error('Error syncing all docs:', error);
-    }
+    });
   }
 
   /**
-   * Get or create a document
+   * Get a Y.js document
    */
-  public async getDoc(docId: string, parcelId: string): Promise<Y.Doc> {
-    // Check if the doc is already active
-    if (this.activeDocs.has(docId)) {
-      return this.activeDocs.get(docId)!;
+  private async getDoc(docId: string): Promise<Y.Doc> {
+    // If document already exists, return it
+    if (this.docs.has(docId)) {
+      return this.docs.get(docId)!;
     }
-    
-    // Create a new document
+
+    // Create a new Y.js document
     const doc = new Y.Doc();
-    
-    // Initialize the document with data (from local storage or server)
-    await this.initializeDoc(doc, docId, parcelId);
-    
-    // Store in active docs map
-    this.activeDocs.set(docId, doc);
-    
+    this.docs.set(docId, doc);
+
+    // Set up persistence
+    const persistence = new IndexeddbPersistence(docId, doc);
+    this.persistences.set(docId, persistence);
+
+    await new Promise<void>((resolve) => {
+      persistence.once('synced', () => {
+        console.log(`Document ${docId} loaded from IndexedDB`);
+        resolve();
+      });
+    });
+
+    // If online, set up WebSocket provider
+    if (this.isOnline) {
+      try {
+        const provider = new WebsocketProvider(WS_SERVER_URL, docId, doc, {
+          connect: true,
+        });
+
+        // Set awareness state if available
+        if (this.clientState && provider.awareness) {
+          provider.awareness.setLocalState(this.clientState);
+        }
+
+        this.providers.set(docId, provider);
+        
+        // Listen for connection changes
+        provider.on('status', (event: { status: string }) => {
+          if (event.status === 'connected') {
+            console.log(`WebSocket connection established for ${docId}`);
+          } else {
+            console.log(`WebSocket connection status for ${docId}: ${event.status}`);
+          }
+        });
+      } catch (error) {
+        console.error(`Error setting up WebSocket provider for ${docId}:`, error);
+      }
+    }
+
     return doc;
   }
 
   /**
-   * Initialize a document
+   * Add a field note
    */
-  private async initializeDoc(doc: Y.Doc, docId: string, parcelId: string): Promise<void> {
+  public async addFieldNote(
+    docId: string,
+    parcelId: string,
+    text: string,
+    userId: number,
+    createdBy: string
+  ): Promise<FieldNote> {
+    const doc = await this.getDoc(docId);
+    const fieldNotes = doc.getArray<any>('fieldNotes');
+
+    // Create the field note
+    const fieldNote: FieldNote = {
+      id: uuidv4(),
+      parcelId,
+      text,
+      createdAt: new Date().toISOString(),
+      createdBy,
+      userId,
+    };
+
+    // Add to the Y.js document
+    fieldNotes.push([fieldNote]);
+
+    // Queue for syncing if WebSocket is not connected
+    if (!this.isProvider(docId) || !this.isProviderConnected(docId)) {
+      this.queueDocForSync(docId);
+    }
+
+    // If online but no WebSocket, try to sync immediately
+    if (this.isOnline && !this.isProviderConnected(docId)) {
+      this.syncDoc(docId, parcelId).catch(error => {
+        console.error(`Error syncing document ${docId}:`, error);
+      });
+    }
+
+    return fieldNote;
+  }
+
+  /**
+   * Get all field notes
+   */
+  public async getFieldNotes(docId: string, parcelId: string): Promise<FieldNote[]> {
+    const doc = await this.getDoc(docId);
+    const fieldNotes = doc.getArray<any>('fieldNotes');
+    
+    // Convert to array
+    const notesArray: FieldNote[] = [];
+    fieldNotes.forEach(note => {
+      if (note.parcelId === parcelId) {
+        notesArray.push(note);
+      }
+    });
+    
+    return notesArray;
+  }
+
+  /**
+   * Queue a document for synchronization
+   */
+  private queueDocForSync(docId: string): void {
+    this.syncQueue.add(docId);
+    this.saveSyncQueue();
+  }
+
+  /**
+   * Save the sync queue to AsyncStorage
+   */
+  private async saveSyncQueue(): Promise<void> {
     try {
-      // Try to load from local storage first
-      const localData = await this.loadLocalDoc(docId);
-      
-      if (localData) {
-        // Apply local updates
-        const update = toUint8Array(localData);
-        Y.applyUpdate(doc, update);
-        console.log(`Document ${docId} loaded from local storage`);
-      } else {
-        // No local data, try to load from server
+      const syncQueueArray = Array.from(this.syncQueue);
+      await AsyncStorage.setItem('terrafield_sync_queue', JSON.stringify(syncQueueArray));
+    } catch (error) {
+      console.error('Error saving sync queue:', error);
+    }
+  }
+
+  /**
+   * Process the document sync queue
+   */
+  private async processDocumentSyncQueue(): Promise<void> {
+    if (this.syncInProgress || !this.isOnline || this.syncQueue.size === 0) {
+      return;
+    }
+
+    try {
+      this.syncInProgress = true;
+      const syncQueueArray = Array.from(this.syncQueue);
+
+      for (const docId of syncQueueArray) {
         try {
-          const data = await this.apiService.get(`/api/field-notes/${parcelId}/notes`);
-          
-          if (data && data.notes) {
-            // Initialize from server data
-            const notesArray = doc.getArray('notes');
-            
-            for (const note of data.notes) {
-              notesArray.push([note]);
-            }
-            
-            // Save initial state locally
-            await this.saveLocalDoc(docId, doc);
-            await this.saveSyncState(docId, {
-              lastSyncTime: Date.now(),
-              pendingChanges: false,
-              syncVersion: 1,
-              docId,
-            });
-            
-            console.log(`Document ${docId} loaded from server`);
-          }
+          await this.syncDoc(docId);
+          this.syncQueue.delete(docId);
         } catch (error) {
-          // If server fetch fails, create a new empty doc
-          console.log(`Could not load document ${docId} from server, creating new`);
-          
-          // Initialize with empty data
-          doc.getArray('notes');
-          
-          // Save empty state locally
-          await this.saveLocalDoc(docId, doc);
-          await this.saveSyncState(docId, {
-            lastSyncTime: Date.now(),
-            pendingChanges: false,
-            syncVersion: 1,
-            docId,
-          });
+          console.error(`Error syncing document ${docId}:`, error);
         }
       }
-      
-      // Setup change tracking
-      this.trackDocChanges(doc, docId, parcelId);
-      
+
+      await this.saveSyncQueue();
     } catch (error) {
-      console.error(`Error initializing document ${docId}:`, error);
+      console.error('Error processing sync queue:', error);
+    } finally {
+      this.syncInProgress = false;
     }
   }
 
   /**
-   * Track changes to a document
+   * Check if a WebSocket provider exists for a document
    */
-  private trackDocChanges(doc: Y.Doc, docId: string, parcelId: string): void {
-    doc.on('update', async (update: Uint8Array, origin: any) => {
-      // When document is updated, save locally
-      await this.saveLocalDoc(docId, doc);
-      
-      // Update sync state to mark that we have pending changes
-      const syncState = await this.getSyncState(docId);
-      await this.saveSyncState(docId, {
-        ...syncState,
-        pendingChanges: true,
-        lastSyncTime: syncState.lastSyncTime,
-      });
-      
-      // Try immediate sync
-      this.syncDoc(docId, parcelId);
-    });
+  private isProvider(docId: string): boolean {
+    return this.providers.has(docId);
   }
 
   /**
-   * Load local document from storage
+   * Check if a WebSocket provider is connected
    */
-  private async loadLocalDoc(docId: string): Promise<string | null> {
-    try {
-      return await AsyncStorage.getItem(`${LOCAL_DOC_PREFIX}${docId}`);
-    } catch (error) {
-      console.error(`Error loading local doc ${docId}:`, error);
-      return null;
-    }
+  private isProviderConnected(docId: string): boolean {
+    const provider = this.providers.get(docId);
+    if (!provider) return false;
+    return provider.wsconnected;
   }
 
   /**
-   * Save local document to storage
-   */
-  private async saveLocalDoc(docId: string, doc: Y.Doc): Promise<void> {
-    try {
-      const update = Y.encodeStateAsUpdate(doc);
-      const base64Update = fromUint8Array(update);
-      await AsyncStorage.setItem(`${LOCAL_DOC_PREFIX}${docId}`, base64Update);
-      
-      // Update vector clock
-      const vectorClock = this.getVectorClock(doc);
-      await this.saveVectorClock(docId, vectorClock);
-    } catch (error) {
-      console.error(`Error saving local doc ${docId}:`, error);
-    }
-  }
-
-  /**
-   * Get sync state for a document
-   */
-  private async getSyncState(docId: string): Promise<SyncState> {
-    try {
-      const json = await AsyncStorage.getItem(`${SYNC_STATE_KEY_PREFIX}${docId}`);
-      if (json) {
-        return JSON.parse(json);
-      }
-    } catch (error) {
-      console.error(`Error getting sync state for ${docId}:`, error);
-    }
-    
-    // Default state if not found
-    return {
-      lastSyncTime: 0,
-      pendingChanges: false,
-      syncVersion: 0,
-      docId,
-    };
-  }
-
-  /**
-   * Save sync state for a document
-   */
-  private async saveSyncState(docId: string, state: SyncState): Promise<void> {
-    try {
-      await AsyncStorage.setItem(`${SYNC_STATE_KEY_PREFIX}${docId}`, JSON.stringify(state));
-    } catch (error) {
-      console.error(`Error saving sync state for ${docId}:`, error);
-    }
-  }
-
-  /**
-   * Get vector clock for a document
-   */
-  private getVectorClock(doc: Y.Doc): Record<string, number> {
-    // Simplified vector clock - in a production system, would use proper vector clocks
-    // or leverage Yjs's built-in CRDT state vectors
-    return {
-      clientId: doc.clientID,
-      timestamp: Date.now(),
-    };
-  }
-
-  /**
-   * Save vector clock for a document
-   */
-  private async saveVectorClock(docId: string, vectorClock: Record<string, number>): Promise<void> {
-    try {
-      await AsyncStorage.setItem(`${VECTOR_CLOCK_PREFIX}${docId}`, JSON.stringify(vectorClock));
-    } catch (error) {
-      console.error(`Error saving vector clock for ${docId}:`, error);
-    }
-  }
-
-  /**
-   * Load vector clock for a document
-   */
-  private async loadVectorClock(docId: string): Promise<Record<string, number> | null> {
-    try {
-      const json = await AsyncStorage.getItem(`${VECTOR_CLOCK_PREFIX}${docId}`);
-      if (json) {
-        return JSON.parse(json);
-      }
-    } catch (error) {
-      console.error(`Error loading vector clock for ${docId}:`, error);
-    }
-    return null;
-  }
-
-  /**
-   * Sync a document with the server
+   * Synchronize a document with the server
    */
   public async syncDoc(docId: string, parcelId?: string): Promise<boolean> {
+    if (!this.isOnline) {
+      this.queueDocForSync(docId);
+      return false;
+    }
+
     try {
-      // Check if we have pending changes and if we're online
-      const syncState = await this.getSyncState(docId);
+      const doc = await this.getDoc(docId);
       
-      if (!syncState.pendingChanges) {
-        return true; // Nothing to sync
+      // If WebSocket provider is connected, we're synced
+      if (this.isProviderConnected(docId)) {
+        return true;
       }
       
-      // Check if we have the doc ID
-      if (!parcelId) {
-        // Try to get parcelId from the docId (assuming they're the same in this case)
-        parcelId = docId;
-      }
-      
-      // Get the document
-      const doc = this.activeDocs.get(docId);
-      
-      if (!doc) {
-        console.error(`Cannot sync - document ${docId} not active`);
-        return false;
-      }
-      
-      // Encode current state
+      // Get the updates as Uint8Array
       const update = Y.encodeStateAsUpdate(doc);
-      const base64Update = fromUint8Array(update);
       
-      // Get local vector clock
-      const vectorClockLocal = await this.loadVectorClock(docId) || {};
+      // Convert to base64 for API transmission
+      const updateBase64 = Buffer.from(update).toString('base64');
       
-      try {
-        // Send to server
-        const result = await this.apiService.post(`/api/field-notes/${parcelId}/sync`, {
-          update: base64Update,
-          vectorClock: vectorClockLocal,
-        });
-        
-        if (result && result.state) {
-          // Check for conflicts
-          if (result.vectorClock) {
-            const vectorClockRemote = result.vectorClock;
-            
-            const conflictType = this.conflictService.detectConflicts(
-              doc,
-              result.data,
-              vectorClockLocal,
-              vectorClockRemote
-            );
-            
-            if (conflictType) {
-              // Handle conflict
-              await this.handleConflict(doc, docId, conflictType, result.data);
-            } else {
-              // No conflict, apply server updates
-              const serverUpdate = toUint8Array(result.state);
-              Y.applyUpdate(doc, serverUpdate);
-              
-              // Save the updated document
-              await this.saveLocalDoc(docId, doc);
-            }
-          }
-          
-          // Update sync state
-          await this.saveSyncState(docId, {
-            lastSyncTime: Date.now(),
-            pendingChanges: false,
-            syncVersion: syncState.syncVersion + 1,
-            docId,
-          });
-          
-          // Send success notification
-          await this.notificationService.sendSyncSuccessNotification(
-            parcelId,
-            1 // Number of changes, simplified for now
-          );
-          
-          return true;
+      // Send to server
+      const response = await this.apiService.post(`/api/sync/${docId}`, {
+        update: updateBase64,
+      });
+      
+      // If server sent back updates, apply them
+      if (response && response.updates) {
+        for (const updateBase64 of response.updates) {
+          const updateBinary = Buffer.from(updateBase64, 'base64');
+          Y.applyUpdate(doc, new Uint8Array(updateBinary));
         }
-      } catch (error) {
-        console.error(`Error syncing document ${docId}:`, error);
-        
-        // Send error notification
-        await this.notificationService.sendSyncErrorNotification(
+      }
+      
+      // If there are conflicts, resolve them
+      if (response && response.conflicts && response.conflicts.length > 0) {
+        await this.resolveConflicts(docId, response.conflicts);
+      }
+      
+      // Notify if requested
+      if (parcelId && response && response.updates && response.updates.length > 0) {
+        this.notificationService.sendSyncSuccessNotification(
           parcelId,
-          1 // Number of pending changes, simplified for now
+          response.updates.length,
+        );
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error syncing document ${docId} with server:`, error);
+      
+      // Queue for retry
+      this.queueDocForSync(docId);
+      
+      // Notify if requested
+      if (parcelId) {
+        this.notificationService.sendSyncErrorNotification(
+          parcelId,
+          1, // Just one document failed
         );
       }
       
       return false;
-    } catch (error) {
-      console.error(`Error in syncDoc for ${docId}:`, error);
-      return false;
     }
   }
 
   /**
-   * Handle conflict between local and remote versions
+   * Resolve conflicts between local and server changes
    */
-  private async handleConflict(
-    doc: Y.Doc,
-    docId: string,
-    conflictType: ConflictType,
-    remoteData: any
-  ): Promise<void> {
-    // Register the conflict
-    const conflict = await this.conflictService.registerConflict(
-      docId,
-      conflictType,
-      this.getLocalData(doc),
-      remoteData
-    );
-    
-    // Default resolution strategy (can be changed by user later)
-    await this.conflictService.resolveConflict(
-      conflict.id,
-      'merged',
-      this.mergeData(doc, remoteData)
-    );
-    
-    // Apply the resolution
-    this.conflictService.applyResolution(doc, conflict);
-    
-    // Save resolved document
-    await this.saveLocalDoc(docId, doc);
+  private async resolveConflicts(docId: string, conflicts: any[]): Promise<void> {
+    try {
+      const doc = await this.getDoc(docId);
+      const fieldNotes = doc.getArray<any>('fieldNotes');
+      
+      // Use the conflict resolution service
+      const resolvedConflicts = await this.conflictResolutionService.resolveFieldNoteConflicts(
+        Array.from(fieldNotes),
+        conflicts,
+      );
+      
+      // Apply resolved conflicts to the document
+      if (resolvedConflicts && resolvedConflicts.length > 0) {
+        // Clear the array
+        fieldNotes.delete(0, fieldNotes.length);
+        
+        // Insert resolved notes
+        fieldNotes.insert(0, resolvedConflicts);
+      }
+    } catch (error) {
+      console.error(`Error resolving conflicts for document ${docId}:`, error);
+    }
   }
 
   /**
-   * Extract local data from document
+   * Disconnect and cleanup
    */
-  private getLocalData(doc: Y.Doc): any {
-    const notesArray = doc.getArray('notes');
-    return {
-      notes: notesArray.toArray(),
-    };
-  }
-
-  /**
-   * Merge local and remote data
-   */
-  private mergeData(doc: Y.Doc, remoteData: any): any {
-    // Simple merge logic - in a real application, this would use
-    // a more sophisticated merge strategy taking advantage of CRDT properties
-    const localData = this.getLocalData(doc);
-    
-    const combinedNotes = [...localData.notes];
-    
-    // Add remote notes that don't exist locally
-    if (remoteData.notes) {
-      for (const remoteNote of remoteData.notes) {
-        const exists = combinedNotes.some(note => note.id === remoteNote.id);
-        if (!exists) {
-          combinedNotes.push(remoteNote);
-        }
+  public async disconnect(): Promise<void> {
+    // Save all documents
+    for (const [docId, doc] of this.docs.entries()) {
+      const persistence = this.persistences.get(docId);
+      if (persistence) {
+        await persistence.whenSynced;
       }
     }
     
-    return {
-      notes: combinedNotes,
-    };
-  }
-
-  /**
-   * Add a field note to a document
-   */
-  public async addFieldNote(
-    docId: string, 
-    parcelId: string, 
-    text: string,
-    userId: number,
-    userName: string
-  ): Promise<string> {
-    const doc = await this.getDoc(docId, parcelId);
-    const notesArray = doc.getArray('notes');
-    
-    const noteId = uuidv4();
-    const timestamp = new Date().toISOString();
-    
-    const note = {
-      id: noteId,
-      parcelId,
-      text,
-      userId,
-      createdAt: timestamp,
-      createdBy: userName
-    };
-    
-    notesArray.push([note]);
-    
-    // No need to manually save as the document update event will trigger saving
-    
-    return noteId;
-  }
-
-  /**
-   * Update a field note in a document
-   */
-  public async updateFieldNote(
-    docId: string,
-    parcelId: string,
-    noteId: string,
-    text: string
-  ): Promise<boolean> {
-    const doc = await this.getDoc(docId, parcelId);
-    const notesArray = doc.getArray('notes');
-    const notes = notesArray.toArray();
-    
-    const index = notes.findIndex(note => note.id === noteId);
-    
-    if (index === -1) {
-      return false;
+    // Disconnect all WebSocket providers
+    for (const provider of this.providers.values()) {
+      provider.disconnect();
     }
     
-    const note = notes[index];
-    
-    // Update the note
-    const updatedNote = {
-      ...note,
-      text,
-    };
-    
-    // Replace the note in the array
-    doc.transact(() => {
-      notesArray.delete(index, 1);
-      notesArray.insert(index, [updatedNote]);
-    });
-    
-    return true;
-  }
-
-  /**
-   * Delete a field note from a document
-   */
-  public async deleteFieldNote(
-    docId: string,
-    parcelId: string,
-    noteId: string
-  ): Promise<boolean> {
-    const doc = await this.getDoc(docId, parcelId);
-    const notesArray = doc.getArray('notes');
-    const notes = notesArray.toArray();
-    
-    const index = notes.findIndex(note => note.id === noteId);
-    
-    if (index === -1) {
-      return false;
-    }
-    
-    // Delete the note
-    notesArray.delete(index, 1);
-    
-    return true;
-  }
-
-  /**
-   * Get all field notes from a document
-   */
-  public async getFieldNotes(
-    docId: string,
-    parcelId: string
-  ): Promise<any[]> {
-    const doc = await this.getDoc(docId, parcelId);
-    const notesArray = doc.getArray('notes');
-    return notesArray.toArray();
+    // Clear the maps
+    this.providers.clear();
+    this.docs.clear();
+    this.persistences.clear();
   }
 }

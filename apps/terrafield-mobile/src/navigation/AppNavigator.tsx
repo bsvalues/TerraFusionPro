@@ -2,9 +2,9 @@ import React from 'react';
 import { createStackNavigator } from '@react-navigation/stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { NavigationContainer } from '@react-navigation/native';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
+import { Platform, StyleSheet, View, Text } from 'react-native';
 
-// Import screens
 import HomeScreen from '../screens/HomeScreen';
 import PropertyDetailsScreen from '../screens/PropertyDetailsScreen';
 import FieldNotesScreen from '../screens/FieldNotesScreen';
@@ -18,94 +18,225 @@ import ProfileScreen from '../screens/ProfileScreen';
 import LoginScreen from '../screens/LoginScreen';
 import SignupScreen from '../screens/SignupScreen';
 
-// Import authentication hook
 import { useAuth } from '../hooks/useAuth';
 import * as Colors from '../constants/Colors';
 
-// Stack navigator types
-export type RootStackParamList = {
-  Main: undefined;
-  PropertyDetails: { propertyId: number; propertyAddress?: string };
-  FieldNotes: { parcelId: string; propertyAddress?: string };
-  PropertyComparison: { propertyIds?: number[] };
-  PhotoEnhancement: { photoUri?: string; propertyId?: number };
-  ARMeasurement: { propertyId?: number };
-  ReportGeneration: { propertyId: number };
-  PropertyShare: { propertyId: number };
+// Define the type for stack navigator params
+type AppStackParamList = {
+  Home: undefined;
+  PropertyDetails: { propertyId: string };
+  FieldNotes: { propertyId?: string; parcelId?: string };
+  PropertyComparison: { propertyId: string };
+  PhotoEnhancement: { propertyId: string };
+  ARMeasurement: { propertyId: string };
+  ReportGeneration: { propertyId: string };
+  PropertyShare: { propertyId: string };
+  Settings: undefined;
+  Profile: undefined;
   Login: undefined;
   Signup: undefined;
 };
 
-// Tab navigator types
-export type MainTabParamList = {
-  Home: undefined;
-  Comparisons: undefined;
-  Reports: undefined;
-  Settings: undefined;
-  Profile: undefined;
-};
+// Create stack navigator
+const Stack = createStackNavigator<AppStackParamList>();
 
-const Stack = createStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
+// Create tab navigator
+const Tab = createBottomTabNavigator();
+
+// Tab navigator icon function
+const getTabIcon = ({ route, color, size }: { route: any; color: string; size: number }) => {
+  let iconName = '';
+
+  switch (route.name) {
+    case 'Home':
+      iconName = 'home';
+      break;
+    case 'Properties':
+      iconName = 'business';
+      break;
+    case 'Reports':
+      iconName = 'document-text';
+      break;
+    case 'Profile':
+      iconName = 'person';
+      break;
+    default:
+      iconName = 'help-circle';
+  }
+
+  return <Ionicons name={iconName as any} size={size} color={color} />;
+};
 
 // Main tab navigator
 const MainTabNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
-        tabBarIcon: ({ color, size }) => {
-          let iconName;
-
-          if (route.name === 'Home') {
-            iconName = 'home';
-          } else if (route.name === 'Comparisons') {
-            iconName = 'bar-chart-2';
-          } else if (route.name === 'Reports') {
-            iconName = 'file-text';
-          } else if (route.name === 'Settings') {
-            iconName = 'settings';
-          } else if (route.name === 'Profile') {
-            iconName = 'user';
-          }
-
-          return <Feather name={iconName} size={size} color={color} />;
-        },
+        tabBarIcon: (props) => getTabIcon({ route, ...props }),
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textLight,
         tabBarStyle: {
+          backgroundColor: Colors.white,
           borderTopWidth: 1,
           borderTopColor: Colors.border,
-          height: 60,
-          paddingBottom: 5,
           paddingTop: 5,
+          paddingBottom: Platform.OS === 'ios' ? 20 : 5,
+          height: Platform.OS === 'ios' ? 85 : 60,
         },
         headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeScreen} />
       <Tab.Screen 
-        name="Comparisons" 
-        component={PropertyComparisonDashboard}
-        options={{ title: 'Comparisons' }}
+        name="Home" 
+        component={HomeScreen} 
+        options={{ 
+          title: 'Home',
+        }} 
+      />
+      <Tab.Screen 
+        name="Properties" 
+        component={PropertyStackNavigator} 
+        options={{ 
+          title: 'Properties',
+        }} 
       />
       <Tab.Screen 
         name="Reports" 
-        component={ReportGenerationScreen}
-        options={{ title: 'Reports' }}
+        component={ReportStackNavigator} 
+        options={{ 
+          title: 'Reports',
+        }} 
       />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
-      <Tab.Screen name="Profile" component={ProfileScreen} />
+      <Tab.Screen 
+        name="Profile" 
+        component={ProfileStackNavigator} 
+        options={{ 
+          title: 'Profile',
+        }} 
+      />
     </Tab.Navigator>
   );
 };
 
-// Authentication navigator
-const AuthNavigator = () => {
+// Property stack navigator
+const PropertyStackNavigator = () => {
   return (
-    <Stack.Navigator 
-      screenOptions={{ 
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Colors.white,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.border,
+        },
+        headerTintColor: Colors.primary,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="PropertyDetails" 
+        component={PropertyDetailsScreen} 
+        options={({ route }) => ({ 
+          title: 'Property Details',
+        })} 
+      />
+      <Stack.Screen 
+        name="FieldNotes" 
+        component={FieldNotesScreen} 
+        options={{ title: 'Field Notes', headerShown: false }} 
+      />
+      <Stack.Screen 
+        name="PropertyComparison" 
+        component={PropertyComparisonDashboard} 
+        options={{ title: 'Property Comparison' }} 
+      />
+      <Stack.Screen 
+        name="PhotoEnhancement" 
+        component={PhotoEnhancementScreen} 
+        options={{ title: 'Photo Enhancement' }} 
+      />
+      <Stack.Screen 
+        name="ARMeasurement" 
+        component={ARMeasurementScreen} 
+        options={{ title: 'AR Measurement' }} 
+      />
+      <Stack.Screen 
+        name="PropertyShare" 
+        component={PropertyShareScreen} 
+        options={{ title: 'Share Property' }} 
+      />
+    </Stack.Navigator>
+  );
+};
+
+// Report stack navigator
+const ReportStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Colors.white,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.border,
+        },
+        headerTintColor: Colors.primary,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="ReportGeneration" 
+        component={ReportGenerationScreen} 
+        options={{ title: 'Generate Report' }} 
+      />
+    </Stack.Navigator>
+  );
+};
+
+// Profile stack navigator
+const ProfileStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: Colors.white,
+          elevation: 0,
+          shadowOpacity: 0,
+          borderBottomWidth: 1,
+          borderBottomColor: Colors.border,
+        },
+        headerTintColor: Colors.primary,
+        headerTitleStyle: {
+          fontWeight: '600',
+        },
+      }}
+    >
+      <Stack.Screen 
+        name="Profile" 
+        component={ProfileScreen} 
+        options={{ title: 'Profile' }} 
+      />
+      <Stack.Screen 
+        name="Settings" 
+        component={SettingsScreen} 
+        options={{ title: 'Settings' }} 
+      />
+    </Stack.Navigator>
+  );
+};
+
+// Auth stack navigator
+const AuthStackNavigator = () => {
+  return (
+    <Stack.Navigator
+      screenOptions={{
         headerShown: false,
-        cardStyle: { backgroundColor: Colors.background }
       }}
     >
       <Stack.Screen name="Login" component={LoginScreen} />
@@ -114,76 +245,37 @@ const AuthNavigator = () => {
   );
 };
 
-// Root navigator
+// App Navigator
 const AppNavigator = () => {
-  const user = useAuth();
-  const isAuthenticated = !!user.id;
+  const { user, isLoading } = useAuth();
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <Text style={styles.loadingText}>Loading...</Text>
+      </View>
+    );
+  }
 
   return (
     <NavigationContainer>
-      {isAuthenticated ? (
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: Colors.primary,
-              elevation: 0,
-              shadowOpacity: 0,
-            },
-            headerTintColor: Colors.white,
-            headerTitleStyle: {
-              fontWeight: '600',
-            },
-            cardStyle: { backgroundColor: Colors.background },
-          }}
-        >
-          <Stack.Screen 
-            name="Main" 
-            component={MainTabNavigator} 
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen 
-            name="PropertyDetails" 
-            component={PropertyDetailsScreen}
-            options={({ route }) => ({ 
-              title: route.params?.propertyAddress || 'Property Details'
-            })}
-          />
-          <Stack.Screen 
-            name="FieldNotes" 
-            component={FieldNotesScreen}
-            options={{ title: 'Field Notes' }}
-          />
-          <Stack.Screen 
-            name="PropertyComparison" 
-            component={PropertyComparisonDashboard}
-            options={{ title: 'Property Comparison' }}
-          />
-          <Stack.Screen 
-            name="PhotoEnhancement" 
-            component={PhotoEnhancementScreen}
-            options={{ title: 'Photo Enhancement' }}
-          />
-          <Stack.Screen 
-            name="ARMeasurement" 
-            component={ARMeasurementScreen}
-            options={{ title: 'AR Measurement' }}
-          />
-          <Stack.Screen 
-            name="ReportGeneration" 
-            component={ReportGenerationScreen}
-            options={{ title: 'Report Generation' }}
-          />
-          <Stack.Screen 
-            name="PropertyShare" 
-            component={PropertyShareScreen}
-            options={{ title: 'Share Property' }}
-          />
-        </Stack.Navigator>
-      ) : (
-        <AuthNavigator />
-      )}
+      {user ? <MainTabNavigator /> : <AuthStackNavigator />}
     </NavigationContainer>
   );
 };
+
+const styles = StyleSheet.create({
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  loadingText: {
+    fontSize: 16,
+    color: Colors.text,
+  },
+});
 
 export default AppNavigator;

@@ -1,27 +1,47 @@
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import Constants from 'expo-constants';
 
-// Configure notifications globally
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-  }),
-});
+// Storage keys
+const NOTIFICATIONS_SETTINGS_KEY = 'terrafield_notifications_settings';
+
+// Notification channels
+enum NotificationChannels {
+  SYNC = 'sync_notifications',
+  FIELD_NOTES = 'field_notes_notifications',
+  SYSTEM = 'system_notifications',
+}
+
+// Notification settings interface
+interface NotificationSettings {
+  syncEnabled: boolean;
+  fieldNotesEnabled: boolean;
+  systemEnabled: boolean;
+}
+
+// Default notification settings
+const DEFAULT_SETTINGS: NotificationSettings = {
+  syncEnabled: true,
+  fieldNotesEnabled: true,
+  systemEnabled: true,
+};
 
 /**
- * Service to handle notifications for the app
+ * Service to handle notifications
  */
 export class NotificationService {
   private static instance: NotificationService;
-  private isInitialized: boolean = false;
+  private settings: NotificationSettings = DEFAULT_SETTINGS;
+  private pushToken: string | null = null;
+  private initialized: boolean = false;
 
   /**
-   * Private constructor for singleton pattern
+   * Private constructor to implement singleton pattern
    */
-  private constructor() {}
+  private constructor() {
+    this.initializeService();
+  }
 
   /**
    * Get instance of NotificationService (Singleton)
@@ -34,189 +54,261 @@ export class NotificationService {
   }
 
   /**
-   * Initialize the notification service
+   * Initialize service
    */
-  public async initialize(): Promise<boolean> {
-    if (this.isInitialized) {
-      return true;
+  private async initializeService(): Promise<void> {
+    if (this.initialized) {
+      return;
     }
 
     try {
-      // Request permissions
-      const { status: existingStatus } = await Notifications.getPermissionsAsync();
-      let finalStatus = existingStatus;
+      // Load notification settings
+      await this.loadSettings();
 
-      // If we don't have permission, request it
-      if (existingStatus !== 'granted') {
-        const { status } = await Notifications.requestPermissionsAsync();
-        finalStatus = status;
+      // Configure notification handler
+      await this.configureNotifications();
+
+      // Register notification channels (Android only)
+      if (Platform.OS === 'android') {
+        await this.createNotificationChannels();
       }
 
-      if (finalStatus !== 'granted') {
-        console.warn('Failed to get push token for notifications');
-        return false;
-      }
+      // Register for push notifications
+      await this.registerForPushNotifications();
 
-      // Set up notification listener
-      Notifications.addNotificationReceivedListener(this.handleNotification);
-
-      this.isInitialized = true;
-      return true;
+      this.initialized = true;
     } catch (error) {
-      console.error('Error initializing notifications:', error);
-      return false;
+      console.error('Error initializing NotificationService:', error);
     }
   }
 
   /**
-   * Send a local notification
+   * Load notification settings from storage
    */
-  public async sendLocalNotification(
+  private async loadSettings(): Promise<void> {
+    try {
+      const settingsJson = await AsyncStorage.getItem(NOTIFICATIONS_SETTINGS_KEY);
+      if (settingsJson) {
+        this.settings = { ...DEFAULT_SETTINGS, ...JSON.parse(settingsJson) };
+      } else {
+        this.settings = DEFAULT_SETTINGS;
+      }
+    } catch (error) {
+      console.error('Error loading notification settings:', error);
+      this.settings = DEFAULT_SETTINGS;
+    }
+  }
+
+  /**
+   * Save notification settings to storage
+   */
+  private async saveSettings(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(NOTIFICATIONS_SETTINGS_KEY, JSON.stringify(this.settings));
+    } catch (error) {
+      console.error('Error saving notification settings:', error);
+    }
+  }
+
+  /**
+   * Configure notification handler
+   */
+  private async configureNotifications(): Promise<void> {
+    // Set notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+      }),
+    });
+  }
+
+  /**
+   * Create notification channels (Android only)
+   */
+  private async createNotificationChannels(): Promise<void> {
+    if (Platform.OS === 'android') {
+      // Sync channel
+      await Notifications.setNotificationChannelAsync(NotificationChannels.SYNC, {
+        name: 'Sync Notifications',
+        importance: Notifications.AndroidImportance.DEFAULT,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+
+      // Field notes channel
+      await Notifications.setNotificationChannelAsync(NotificationChannels.FIELD_NOTES, {
+        name: 'Field Notes Notifications',
+        importance: Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+
+      // System channel
+      await Notifications.setNotificationChannelAsync(NotificationChannels.SYSTEM, {
+        name: 'System Notifications',
+        importance: Notifications.AndroidImportance.MAX,
+        vibrationPattern: [0, 250, 250, 250],
+        lightColor: '#FF231F7C',
+      });
+    }
+  }
+
+  /**
+   * Register for push notifications
+   */
+  private async registerForPushNotifications(): Promise<void> {
+    try {
+      if (Constants.isDevice) {
+        const { status: existingStatus } = await Notifications.getPermissionsAsync();
+        let finalStatus = existingStatus;
+
+        if (existingStatus !== 'granted') {
+          const { status } = await Notifications.requestPermissionsAsync();
+          finalStatus = status;
+        }
+
+        if (finalStatus !== 'granted') {
+          console.log('Failed to get push token for push notification!');
+          return;
+        }
+
+        // Get push token
+        const token = (await Notifications.getExpoPushTokenAsync()).data;
+        this.pushToken = token;
+      } else {
+        console.log('Must use physical device for push notifications');
+      }
+    } catch (error) {
+      console.error('Error registering for push notifications:', error);
+    }
+  }
+
+  /**
+   * Send local notification
+   */
+  private async sendLocalNotification(
     title: string,
     body: string,
-    data: any = {}
+    data?: any,
+    channel?: NotificationChannels,
   ): Promise<void> {
     try {
-      // Check if notifications are enabled in user preferences
-      const notificationsEnabled = await this.areNotificationsEnabled();
-      
-      if (!notificationsEnabled) {
-        console.log('Notifications are disabled by user');
-        return;
-      }
-
-      await this.initialize();
-
       await Notifications.scheduleNotificationAsync({
         content: {
           title,
           body,
-          data,
-          sound: true,
+          data: data || {},
+          ...(Platform.OS === 'android' ? { channelId: channel } : {}),
         },
-        trigger: null, // Show immediately
+        trigger: null, // Send immediately
       });
     } catch (error) {
-      console.error('Error sending notification:', error);
+      console.error('Error sending local notification:', error);
     }
   }
 
   /**
-   * Send a field note update notification
-   */
-  public async sendFieldNoteUpdateNotification(
-    propertyAddress: string,
-    updaterName: string
-  ): Promise<void> {
-    await this.sendLocalNotification(
-      'Field Notes Updated',
-      `${updaterName} updated notes for ${propertyAddress}`,
-      {
-        type: 'field_note_update',
-        propertyAddress,
-        updaterName,
-      }
-    );
-  }
-
-  /**
-   * Send a sync error notification
-   */
-  public async sendSyncErrorNotification(
-    propertyAddress: string,
-    pendingChanges: number
-  ): Promise<void> {
-    await this.sendLocalNotification(
-      'Sync Error',
-      `Failed to sync ${pendingChanges} changes for ${propertyAddress}. They will be synced when connection is restored.`,
-      {
-        type: 'sync_error',
-        propertyAddress,
-        pendingChanges,
-      }
-    );
-  }
-
-  /**
-   * Send a sync success notification
+   * Send sync success notification
    */
   public async sendSyncSuccessNotification(
-    propertyAddress: string,
-    changesCount: number
+    parcelId: string,
+    count: number,
   ): Promise<void> {
-    if (changesCount <= 0) return;
+    if (!this.settings.syncEnabled) {
+      return;
+    }
 
     await this.sendLocalNotification(
       'Sync Complete',
-      `Successfully synced ${changesCount} changes for ${propertyAddress}.`,
-      {
-        type: 'sync_success',
-        propertyAddress,
-        changesCount,
-      }
+      `Successfully synchronized ${count} field notes for parcel ${parcelId}`,
+      { type: 'sync', parcelId },
+      NotificationChannels.SYNC,
     );
   }
 
   /**
-   * Send a notification when someone else is editing the same document
+   * Send sync error notification
    */
-  public async sendCollaborationNotification(
-    propertyAddress: string,
-    collaboratorName: string
+  public async sendSyncErrorNotification(
+    parcelId: string,
+    count: number,
   ): Promise<void> {
+    if (!this.settings.syncEnabled) {
+      return;
+    }
+
     await this.sendLocalNotification(
-      'New Collaborator',
-      `${collaboratorName} is now editing notes for ${propertyAddress}.`,
-      {
-        type: 'new_collaborator',
-        propertyAddress,
-        collaboratorName,
-      }
+      'Sync Failed',
+      `Failed to synchronize ${count} field notes for parcel ${parcelId}. Will retry later.`,
+      { type: 'sync_error', parcelId },
+      NotificationChannels.SYNC,
     );
   }
 
   /**
-   * Handle incoming notifications
+   * Send field note notification
    */
-  private handleNotification = (notification: Notifications.Notification) => {
-    console.log('Notification received:', notification);
-    
-    // Handle specific notification types
-    const data = notification.request.content.data;
-    
-    if (data?.type === 'field_note_update') {
-      // Could trigger a refresh of field notes
-      console.log('Field note update notification received');
+  public async sendFieldNoteNotification(
+    parcelId: string,
+    createdBy: string,
+    text: string,
+  ): Promise<void> {
+    if (!this.settings.fieldNotesEnabled) {
+      return;
     }
-  };
 
-  /**
-   * Check if notifications are enabled in user preferences
-   */
-  public async areNotificationsEnabled(): Promise<boolean> {
-    try {
-      const notificationsPreference = await AsyncStorage.getItem(
-        'notificationsEnabled'
-      );
-      // Default to enabled if preference not set
-      return notificationsPreference !== 'false';
-    } catch (error) {
-      console.error('Error checking notification preference:', error);
-      return true; // Default to enabled
-    }
+    // Truncate text if too long
+    const truncatedText = text.length > 50 ? `${text.substring(0, 47)}...` : text;
+
+    await this.sendLocalNotification(
+      `New field note by ${createdBy}`,
+      truncatedText,
+      { type: 'field_note', parcelId },
+      NotificationChannels.FIELD_NOTES,
+    );
   }
 
   /**
-   * Set notifications enabled/disabled
+   * Send system notification
    */
-  public async setNotificationsEnabled(enabled: boolean): Promise<void> {
-    try {
-      await AsyncStorage.setItem(
-        'notificationsEnabled',
-        enabled ? 'true' : 'false'
-      );
-    } catch (error) {
-      console.error('Error setting notification preference:', error);
+  public async sendSystemNotification(
+    title: string,
+    body: string,
+    data?: any,
+  ): Promise<void> {
+    if (!this.settings.systemEnabled) {
+      return;
     }
+
+    await this.sendLocalNotification(
+      title,
+      body,
+      { type: 'system', ...data },
+      NotificationChannels.SYSTEM,
+    );
+  }
+
+  /**
+   * Set notification settings
+   */
+  public async setSettings(settings: Partial<NotificationSettings>): Promise<void> {
+    this.settings = { ...this.settings, ...settings };
+    await this.saveSettings();
+  }
+
+  /**
+   * Get notification settings
+   */
+  public getSettings(): NotificationSettings {
+    return { ...this.settings };
+  }
+
+  /**
+   * Get push token
+   */
+  public getPushToken(): string | null {
+    return this.pushToken;
   }
 }

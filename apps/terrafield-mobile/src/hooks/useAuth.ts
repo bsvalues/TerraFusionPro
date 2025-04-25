@@ -1,206 +1,180 @@
-import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import { useEffect, useState, createContext, useContext } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiService } from '../services/ApiService';
 
 // User interface
 export interface User {
   id: number;
-  username: string;
   name: string;
+  username: string;
   email: string;
-  role: 'admin' | 'appraiser' | 'reviewer';
-  created_at?: string;
+  role: string;
 }
 
-// Auth context type
-interface AuthContextType {
+// Authentication context interface
+export interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   error: string | null;
-  login: (username: string, password: string) => Promise<boolean>;
-  logout: () => Promise<void>;
-  register: (userData: RegisterData) => Promise<boolean>;
+  signIn: (username: string, password: string) => Promise<boolean>;
+  signOut: () => Promise<void>;
+  signUp: (userData: SignUpData) => Promise<boolean>;
 }
 
-// Register data interface
-interface RegisterData {
-  username: string;
-  password: string;
+// Sign up data interface
+export interface SignUpData {
   name: string;
+  username: string;
   email: string;
-  role?: 'admin' | 'appraiser' | 'reviewer';
+  password: string;
 }
 
-// Create context
+// Authentication context
 const AuthContext = createContext<AuthContextType | null>(null);
 
-// Auth provider props
-interface AuthProviderProps {
-  children: ReactNode;
-}
-
-// Local storage key
+// Storage keys
 const USER_STORAGE_KEY = 'terrafield_user';
 
-// Auth provider component
-export const AuthProvider = ({ children }: AuthProviderProps) => {
+// API service
+const apiService = ApiService.getInstance();
+
+// Authentication provider
+export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const apiService = ApiService.getInstance();
-
-  // Load user from storage on mount
+  // Check if user is already logged in
   useEffect(() => {
-    loadUser();
+    const loadUserFromStorage = async () => {
+      try {
+        const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
+        
+        if (userJson) {
+          const loadedUser = JSON.parse(userJson);
+          setUser(loadedUser);
+          
+          // Set API token
+          if (loadedUser.token) {
+            apiService.setToken(loadedUser.token);
+          }
+        }
+      } catch (error) {
+        console.error('Error loading user from storage:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadUserFromStorage();
   }, []);
 
-  // Load user from storage
-  const loadUser = async () => {
-    try {
-      const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
-      
-      if (userJson) {
-        const userData = JSON.parse(userJson);
-        setUser(userData);
-      }
-    } catch (err) {
-      console.error('Error loading user:', err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Save user to storage
-  const saveUser = async (userData: User) => {
-    try {
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
-    } catch (err) {
-      console.error('Error saving user:', err);
-    }
-  };
-
-  // Clear user from storage
-  const clearUser = async () => {
-    try {
-      await AsyncStorage.removeItem(USER_STORAGE_KEY);
-    } catch (err) {
-      console.error('Error clearing user:', err);
-    }
-  };
-
-  // Login function
-  const login = async (username: string, password: string): Promise<boolean> => {
+  // Sign in
+  const signIn = async (username: string, password: string): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.post('/api/auth/login', { username, password });
+      const response = await apiService.post('/api/auth/login', {
+        username,
+        password,
+      });
       
-      if (response && response.id) {
-        const userData: User = {
-          id: response.id,
-          username: response.username,
-          name: response.name || username,
-          email: response.email || '',
-          role: response.role || 'appraiser',
-          created_at: response.created_at,
-        };
-        
-        setUser(userData);
-        saveUser(userData);
-        
-        // Set token in ApiService
-        if (response.token) {
-          apiService.setToken(response.token);
-        }
-        
-        return true;
-      } else {
-        setError('Invalid response from server');
-        return false;
-      }
-    } catch (err) {
-      console.error('Login error:', err);
-      setError(err instanceof Error ? err.message : 'Login failed');
+      const userData = response.user;
+      const token = response.token;
+      
+      // Save user and token
+      const userToSave = { ...userData, token };
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userToSave));
+      
+      // Set API token
+      apiService.setToken(token);
+      
+      // Set user state
+      setUser(userData);
+      
+      return true;
+    } catch (error) {
+      console.error('Sign in error:', error);
+      setError('Invalid username or password');
       return false;
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Logout function
-  const logout = async (): Promise<void> => {
+  // Sign out
+  const signOut = async (): Promise<void> => {
     setIsLoading(true);
     
     try {
-      // Call logout API if connected
-      if (apiService.isAuthenticated()) {
-        await apiService.post('/api/auth/logout');
-      }
-    } catch (err) {
-      console.error('Logout error:', err);
+      // Call logout API
+      await apiService.post('/api/auth/logout');
+    } catch (error) {
+      console.error('Sign out error:', error);
     } finally {
-      // Clear token in ApiService
+      // Clear user from storage
+      await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      
+      // Clear API token
       apiService.clearToken();
       
-      // Clear user state and storage
+      // Clear user state
       setUser(null);
-      await clearUser();
-      
       setIsLoading(false);
     }
   };
 
-  // Register function
-  const register = async (userData: RegisterData): Promise<boolean> => {
+  // Sign up
+  const signUp = async (userData: SignUpData): Promise<boolean> => {
     setIsLoading(true);
     setError(null);
     
     try {
-      const response = await apiService.post('/api/users', userData);
+      const response = await apiService.post('/api/auth/register', userData);
       
-      if (response && response.id) {
-        const newUser: User = {
-          id: response.id,
-          username: response.username,
-          name: response.name || userData.username,
-          email: response.email || userData.email,
-          role: response.role || 'appraiser',
-          created_at: response.created_at,
-        };
-        
-        setUser(newUser);
-        saveUser(newUser);
-        
-        // Set token in ApiService
-        if (response.token) {
-          apiService.setToken(response.token);
-        }
-        
-        return true;
-      } else {
-        setError('Invalid response from server');
-        return false;
-      }
-    } catch (err) {
-      console.error('Registration error:', err);
-      setError(err instanceof Error ? err.message : 'Registration failed');
+      const registeredUser = response.user;
+      const token = response.token;
+      
+      // Save user and token
+      const userToSave = { ...registeredUser, token };
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userToSave));
+      
+      // Set API token
+      apiService.setToken(token);
+      
+      // Set user state
+      setUser(registeredUser);
+      
+      return true;
+    } catch (error) {
+      console.error('Sign up error:', error);
+      setError('Registration failed. Please try again.');
       return false;
     } finally {
       setIsLoading(false);
     }
+  };
+
+  // Auth context value
+  const authContextValue: AuthContextType = {
+    user,
+    isLoading,
+    error,
+    signIn,
+    signOut,
+    signUp,
   };
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, error, login, logout, register }}>
+    <AuthContext.Provider value={authContextValue}>
       {children}
     </AuthContext.Provider>
   );
 };
 
-// Hook to use auth
-export const useAuth = () => {
+// Hook to use authentication context
+export const useAuth = (): AuthContextType => {
   const context = useContext(AuthContext);
   
   if (!context) {
