@@ -1,50 +1,52 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
-import NetInfo from '@react-native-community/netinfo';
 import { NotificationService } from './NotificationService';
 
-/**
- * Interface for pending request
- */
-interface PendingRequest {
+// Request types
+interface QueuedRequest {
   id: string;
   url: string;
   method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: any;
-  timestamp: number;
+  headers?: Record<string, string>;
+  createdAt: string;
   retries: number;
+  priority: number;
 }
 
-/**
- * Service to handle API requests with offline support
- */
+// API Service class
 export class ApiService {
   private static instance: ApiService;
-  private baseUrl: string;
-  private token: string | null = null;
-  private pendingRequests: PendingRequest[] = [];
-  private isConnectedValue: boolean = true;
+  private isOnline: boolean;
+  private token: string | null;
+  private apiBaseUrl: string;
+  private wsBaseUrl: string;
+  private requestQueue: QueuedRequest[];
+  private processingQueue: boolean;
   private notificationService: NotificationService;
-  private syncInterval: NodeJS.Timeout | null = null;
+  private maxRetries: number;
   
-  /**
-   * Private constructor to implement singleton pattern
-   */
+  // Private constructor
   private constructor() {
-    this.baseUrl = process.env.API_URL || 'https://api.terrafield.example.com';
+    this.isOnline = true; // Default to true, will be updated by network listener
+    this.token = null;
+    this.apiBaseUrl = 'https://api.terrafield.com/v1'; // Default URL, should be configurable
+    this.wsBaseUrl = 'wss://api.terrafield.com/ws'; // Default WebSocket URL
+    this.requestQueue = [];
+    this.processingQueue = false;
     this.notificationService = NotificationService.getInstance();
-    this.loadPendingRequests();
+    this.maxRetries = 5;
     
-    // Start network listening
-    this.setupNetworkListeners();
+    // Load queue from storage
+    this.loadQueue();
     
-    // Set up sync interval
-    this.setupSyncInterval();
+    // Process queue periodically
+    setInterval(() => {
+      this.processQueue();
+    }, 30000); // Check every 30 seconds
   }
   
-  /**
-   * Get instance of ApiService (Singleton)
-   */
+  // Get instance (singleton)
   public static getInstance(): ApiService {
     if (!ApiService.instance) {
       ApiService.instance = new ApiService();
@@ -52,265 +54,345 @@ export class ApiService {
     return ApiService.instance;
   }
   
-  /**
-   * Set up network change listeners
-   */
-  private setupNetworkListeners(): void {
-    NetInfo.addEventListener(state => {
-      const wasConnected = this.isConnectedValue;
-      this.isConnectedValue = state.isConnected === true;
-      
-      // If we just came online and we have pending requests, sync
-      if (!wasConnected && this.isConnectedValue && this.pendingRequests.length > 0) {
-        this.syncPendingRequests();
-      }
-      
-      // Notify if connection state changed
-      if (wasConnected !== this.isConnectedValue) {
-        if (this.isConnectedValue) {
-          this.notificationService.sendSystemNotification(
-            'Connection Restored',
-            'You are now back online. Your changes will be synchronized.'
-          );
-        } else {
-          this.notificationService.sendSystemNotification(
-            'Connection Lost',
-            'You are currently offline. Changes will be saved locally and synchronized when you reconnect.'
-          );
-        }
-      }
-    });
+  // Set connectivity status
+  public setConnectivity(isConnected: boolean): void {
+    const wasOffline = !this.isOnline;
+    this.isOnline = isConnected;
+    
+    // If connectivity restored, process queue
+    if (wasOffline && isConnected) {
+      this.notificationService.sendSystemNotification(
+        'Connection Restored',
+        'Your internet connection has been restored. Syncing pending changes...'
+      );
+      this.processQueue();
+    } else if (!isConnected) {
+      this.notificationService.sendSystemNotification(
+        'Offline Mode',
+        'You are currently offline. Changes will be saved locally and synced when connection is restored.'
+      );
+    }
   }
   
-  /**
-   * Set up sync interval
-   */
-  private setupSyncInterval(): void {
-    // Sync every 5 minutes
-    this.syncInterval = setInterval(() => {
-      if (this.isConnectedValue && this.pendingRequests.length > 0) {
-        this.syncPendingRequests();
-      }
-    }, 5 * 60 * 1000);
-  }
-  
-  /**
-   * Check if we're connected
-   */
+  // Check if connected
   public isConnected(): boolean {
-    return this.isConnectedValue;
+    return this.isOnline;
   }
   
-  /**
-   * Set auth token
-   */
+  // Set API token
   public setToken(token: string): void {
     this.token = token;
   }
   
-  /**
-   * Clear auth token
-   */
+  // Clear API token
   public clearToken(): void {
     this.token = null;
   }
   
-  /**
-   * Load pending requests from storage
-   */
-  private async loadPendingRequests(): Promise<void> {
-    try {
-      const pendingRequestsJson = await AsyncStorage.getItem('terrafield_pending_requests');
-      if (pendingRequestsJson) {
-        this.pendingRequests = JSON.parse(pendingRequestsJson);
-      }
-    } catch (error) {
-      console.error('Error loading pending requests:', error);
-    }
+  // Get API token
+  public getToken(): string | null {
+    return this.token;
   }
   
-  /**
-   * Save pending requests to storage
-   */
-  private async savePendingRequests(): Promise<void> {
-    try {
-      await AsyncStorage.setItem('terrafield_pending_requests', JSON.stringify(this.pendingRequests));
-    } catch (error) {
-      console.error('Error saving pending requests:', error);
-    }
+  // Configure base URLs
+  public configure(apiBaseUrl: string, wsBaseUrl: string): void {
+    this.apiBaseUrl = apiBaseUrl;
+    this.wsBaseUrl = wsBaseUrl;
   }
   
-  /**
-   * Get the number of pending requests
-   */
-  public getPendingRequestsCount(): number {
-    return this.pendingRequests.length;
+  // Get WebSocket URL
+  public getWebSocketURL(): string {
+    return this.wsBaseUrl;
   }
   
-  /**
-   * Synchronize all pending requests
-   */
-  public async syncPendingRequests(): Promise<void> {
-    if (!this.isConnectedValue || this.pendingRequests.length === 0) {
-      return;
-    }
-    
-    // Create a copy of the pending requests
-    const requests = [...this.pendingRequests];
-    
-    // Clear the pending requests
-    this.pendingRequests = [];
-    await this.savePendingRequests();
-    
-    // Process each request
-    const failedRequests: PendingRequest[] = [];
-    
-    for (const request of requests) {
-      try {
-        await this.processRequest(request.url, request.method, request.body);
-      } catch (error) {
-        console.error(`Error syncing request ${request.url}:`, error);
-        
-        // Increment retry count
-        request.retries++;
-        
-        // If we've tried too many times, give up
-        if (request.retries >= 5) {
-          this.notificationService.sendSyncErrorNotification(
-            request.url,
-            'Request failed after multiple attempts. Some data may be lost.'
-          );
-        } else {
-          failedRequests.push(request);
-        }
-      }
-    }
-    
-    // If we have failed requests, add them back to the queue
-    if (failedRequests.length > 0) {
-      this.pendingRequests.push(...failedRequests);
-      await this.savePendingRequests();
-      
-      // Notify about failed requests
-      this.notificationService.sendSystemNotification(
-        'Sync Incomplete',
-        `${failedRequests.length} changes could not be synchronized. Will retry later.`
-      );
-    } else if (requests.length > 0) {
-      // Notify about successful sync
-      this.notificationService.sendSystemNotification(
-        'Sync Complete',
-        `Successfully synchronized ${requests.length} changes.`
-      );
-    }
-  }
-  
-  /**
-   * Process a request
-   */
-  private async processRequest(
-    url: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
-    body?: any,
-  ): Promise<any> {
-    const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
-    
-    const headers: HeadersInit = {
-      'Content-Type': 'application/json',
-    };
-    
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
-    
-    const options: RequestInit = {
-      method,
-      headers,
-    };
-    
-    if (body && method !== 'GET') {
-      options.body = JSON.stringify(body);
-    }
-    
-    const response = await fetch(fullUrl, options);
-    
-    if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
-    }
-    
-    // If it's not JSON, return the response
-    const contentType = response.headers.get('content-type');
-    if (!contentType || !contentType.includes('application/json')) {
-      return response;
-    }
-    
-    return await response.json();
-  }
-  
-  /**
-   * Perform a request
-   */
+  // Generic request function
   private async request<T>(
     method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     url: string,
     body?: any,
+    headers?: Record<string, string>,
+    priority: number = 1
   ): Promise<T> {
-    if (!this.isConnectedValue && method !== 'GET') {
-      // Queue non-GET requests for later
-      const request: PendingRequest = {
-        id: uuidv4(),
-        url,
+    // Prepare full URL
+    const fullUrl = url.startsWith('http') ? url : `${this.apiBaseUrl}${url}`;
+    
+    // Prepare headers
+    const requestHeaders: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(headers || {}),
+    };
+    
+    // Add auth token if available
+    if (this.token) {
+      requestHeaders['Authorization'] = `Bearer ${this.token}`;
+    }
+    
+    // If offline, queue the request and return a promise
+    if (!this.isOnline) {
+      return this.queueRequest<T>(method, url, body, requestHeaders, priority);
+    }
+    
+    // If online, make the request
+    try {
+      const response = await fetch(fullUrl, {
         method,
-        body,
-        timestamp: Date.now(),
-        retries: 0,
-      };
+        headers: requestHeaders,
+        body: body ? JSON.stringify(body) : undefined,
+      });
       
-      this.pendingRequests.push(request);
-      await this.savePendingRequests();
+      // Handle response
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status} ${response.statusText}`);
+      }
       
-      // For now, return an empty object
-      return {} as T;
-    } else if (!this.isConnectedValue && method === 'GET') {
-      // We can't fulfill GET requests offline
+      // If response is empty, return empty object
+      if (response.status === 204) {
+        return {} as T;
+      }
+      
+      // Parse response
+      const data = await response.json();
+      return data as T;
+    } catch (error) {
+      // If network error, queue the request and throw
+      if (
+        error instanceof TypeError &&
+        error.message.includes('Network request failed')
+      ) {
+        this.setConnectivity(false);
+        return this.queueRequest<T>(method, url, body, requestHeaders, priority);
+      }
+      
+      // Otherwise, rethrow
+      throw error;
+    }
+  }
+  
+  // Queue a request for later execution
+  private queueRequest<T>(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+    url: string,
+    body?: any,
+    headers?: Record<string, string>,
+    priority: number = 1
+  ): Promise<T> {
+    // Don't queue GET requests
+    if (method === 'GET') {
       throw new Error('Cannot perform GET request while offline');
     }
     
-    return await this.processRequest(url, method, body);
+    // Create queue item
+    const queueItem: QueuedRequest = {
+      id: uuidv4(),
+      url,
+      method,
+      body,
+      headers,
+      createdAt: new Date().toISOString(),
+      retries: 0,
+      priority,
+    };
+    
+    // Add to queue
+    this.requestQueue.push(queueItem);
+    this.saveQueue();
+    
+    // Show notification
+    this.notificationService.sendSystemNotification(
+      'Request Queued',
+      'You are offline. Your request has been queued and will be processed when you are back online.'
+    );
+    
+    // Return a promise that will resolve when the request is processed
+    return new Promise<T>((resolve, reject) => {
+      // In offline mode, we resolve with an empty object
+      // The actual request will be processed later
+      resolve({} as T);
+    });
   }
   
-  /**
-   * Perform a GET request
-   */
-  public async get<T>(url: string): Promise<T> {
-    return await this.request<T>('GET', url);
+  // Process the request queue
+  private async processQueue(): Promise<void> {
+    // If already processing or offline, skip
+    if (this.processingQueue || !this.isOnline || this.requestQueue.length === 0) {
+      return;
+    }
+    
+    this.processingQueue = true;
+    
+    try {
+      // Sort queue by priority and creation time
+      this.requestQueue.sort((a, b) => {
+        if (a.priority !== b.priority) {
+          return b.priority - a.priority; // Higher priority first
+        }
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(); // Older first
+      });
+      
+      // Process queue
+      const processedRequests: string[] = [];
+      
+      for (const request of this.requestQueue) {
+        try {
+          // Prepare full URL
+          const fullUrl = request.url.startsWith('http')
+            ? request.url
+            : `${this.apiBaseUrl}${request.url}`;
+          
+          // Make request
+          const response = await fetch(fullUrl, {
+            method: request.method,
+            headers: request.headers,
+            body: request.body ? JSON.stringify(request.body) : undefined,
+          });
+          
+          // If successful, mark for removal
+          if (response.ok) {
+            processedRequests.push(request.id);
+          } else {
+            // If failed, increment retries
+            request.retries++;
+            
+            // If max retries reached, mark for removal
+            if (request.retries >= this.maxRetries) {
+              processedRequests.push(request.id);
+              
+              // Show notification
+              this.notificationService.sendSystemNotification(
+                'Request Failed',
+                `A queued request to ${request.url} failed after ${this.maxRetries} attempts.`
+              );
+            }
+          }
+        } catch (error) {
+          // If error, increment retries
+          request.retries++;
+          
+          // If max retries reached, mark for removal
+          if (request.retries >= this.maxRetries) {
+            processedRequests.push(request.id);
+            
+            // Show notification
+            this.notificationService.sendSystemNotification(
+              'Request Failed',
+              `A queued request to ${request.url} failed after ${this.maxRetries} attempts.`
+            );
+          }
+        }
+      }
+      
+      // Remove processed requests
+      this.requestQueue = this.requestQueue.filter(
+        (request) => !processedRequests.includes(request.id)
+      );
+      
+      // Save queue
+      this.saveQueue();
+      
+      // Show notification
+      if (processedRequests.length > 0) {
+        this.notificationService.sendSystemNotification(
+          'Sync Complete',
+          `Successfully synchronized ${processedRequests.length} pending requests.`
+        );
+      }
+    } finally {
+      this.processingQueue = false;
+    }
   }
   
-  /**
-   * Perform a POST request
-   */
-  public async post<T>(url: string, body?: any): Promise<T> {
-    return await this.request<T>('POST', url, body);
+  // Load queue from storage
+  private async loadQueue(): Promise<void> {
+    try {
+      const queueJson = await AsyncStorage.getItem('terrafield_request_queue');
+      
+      if (queueJson) {
+        this.requestQueue = JSON.parse(queueJson);
+      }
+    } catch (error) {
+      console.error('Failed to load request queue:', error);
+      this.requestQueue = [];
+    }
   }
   
-  /**
-   * Perform a PUT request
-   */
-  public async put<T>(url: string, body?: any): Promise<T> {
-    return await this.request<T>('PUT', url, body);
+  // Save queue to storage
+  private async saveQueue(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        'terrafield_request_queue',
+        JSON.stringify(this.requestQueue)
+      );
+    } catch (error) {
+      console.error('Failed to save request queue:', error);
+    }
   }
   
-  /**
-   * Perform a DELETE request
-   */
-  public async delete<T>(url: string): Promise<T> {
-    return await this.request<T>('DELETE', url);
+  // Public API methods
+  
+  // GET request
+  public async get<T>(url: string, headers?: Record<string, string>): Promise<T> {
+    return this.request<T>('GET', url, undefined, headers);
   }
   
-  /**
-   * Perform a PATCH request
-   */
-  public async patch<T>(url: string, body?: any): Promise<T> {
-    return await this.request<T>('PATCH', url, body);
+  // POST request
+  public async post<T>(
+    url: string,
+    body?: any,
+    headers?: Record<string, string>,
+    priority: number = 1
+  ): Promise<T> {
+    return this.request<T>('POST', url, body, headers, priority);
+  }
+  
+  // PUT request
+  public async put<T>(
+    url: string,
+    body?: any,
+    headers?: Record<string, string>,
+    priority: number = 1
+  ): Promise<T> {
+    return this.request<T>('PUT', url, body, headers, priority);
+  }
+  
+  // DELETE request
+  public async delete<T>(
+    url: string,
+    body?: any,
+    headers?: Record<string, string>,
+    priority: number = 1
+  ): Promise<T> {
+    return this.request<T>('DELETE', url, body, headers, priority);
+  }
+  
+  // PATCH request
+  public async patch<T>(
+    url: string,
+    body?: any,
+    headers?: Record<string, string>,
+    priority: number = 1
+  ): Promise<T> {
+    return this.request<T>('PATCH', url, body, headers, priority);
+  }
+  
+  // Get queue stats
+  public getQueueStats(): { total: number; byType: Record<string, number> } {
+    const byType: Record<string, number> = {};
+    
+    this.requestQueue.forEach((request) => {
+      byType[request.method] = (byType[request.method] || 0) + 1;
+    });
+    
+    return {
+      total: this.requestQueue.length,
+      byType,
+    };
+  }
+  
+  // Clear queue (for testing)
+  public async clearQueue(): Promise<void> {
+    this.requestQueue = [];
+    await this.saveQueue();
   }
 }
+
+export default ApiService;

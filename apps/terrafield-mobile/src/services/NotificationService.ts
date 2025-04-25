@@ -1,43 +1,80 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
 
-/**
- * Interface for notification object
- */
+// Notification types
+export enum NotificationType {
+  SYSTEM = 'system',
+  USER = 'user',
+  SUCCESS = 'success',
+  ERROR = 'error',
+  WARNING = 'warning',
+  INFO = 'info',
+}
+
+// Channel types
+export enum NotificationChannel {
+  SYNC = 'sync',
+  FIELD_NOTES = 'field-notes',
+  AUTH = 'auth',
+  REPORTS = 'reports',
+  PROPERTIES = 'properties',
+  SYSTEM = 'system',
+}
+
+// Notification interface
 export interface Notification {
   id: string;
+  type: NotificationType;
   title: string;
   message: string;
   timestamp: string;
-  isRead: boolean;
-  type: 'system' | 'task' | 'sync';
+  read: boolean;
+  channel: NotificationChannel;
   data?: any;
 }
 
-/**
- * Interface for notification listener
- */
+// Notification listener type
 type NotificationListener = (notification: Notification) => void;
 
-/**
- * Service to handle notifications
- */
+// Notification preferences type
+interface NotificationPreferences {
+  enabled: boolean;
+  channels: Record<NotificationChannel, boolean>;
+}
+
+// Main notification service class
 export class NotificationService {
   private static instance: NotificationService;
-  private notifications: Notification[] = [];
-  private listeners: NotificationListener[] = [];
-  private MAX_NOTIFICATIONS = 100;
+  private notifications: Notification[];
+  private listeners: NotificationListener[];
+  private preferences: NotificationPreferences;
+  private maxNotifications: number;
   
-  /**
-   * Private constructor to implement singleton pattern
-   */
+  // Private constructor
   private constructor() {
+    this.notifications = [];
+    this.listeners = [];
+    this.maxNotifications = 100;
+    
+    // Default preferences
+    this.preferences = {
+      enabled: true,
+      channels: {
+        [NotificationChannel.SYNC]: true,
+        [NotificationChannel.FIELD_NOTES]: true,
+        [NotificationChannel.AUTH]: true,
+        [NotificationChannel.REPORTS]: true,
+        [NotificationChannel.PROPERTIES]: true,
+        [NotificationChannel.SYSTEM]: true,
+      },
+    };
+    
+    // Load notifications and preferences from storage
     this.loadNotifications();
+    this.loadPreferences();
   }
   
-  /**
-   * Get instance of NotificationService (Singleton)
-   */
+  // Get instance (singleton)
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
       NotificationService.instance = new NotificationService();
@@ -45,116 +82,60 @@ export class NotificationService {
     return NotificationService.instance;
   }
   
-  /**
-   * Load notifications from storage
-   */
-  private async loadNotifications(): Promise<void> {
-    try {
-      const notificationsJson = await AsyncStorage.getItem('terrafield_notifications');
-      if (notificationsJson) {
-        this.notifications = JSON.parse(notificationsJson);
-      }
-    } catch (error) {
-      console.error('Error loading notifications:', error);
-    }
-  }
-  
-  /**
-   * Save notifications to storage
-   */
-  private async saveNotifications(): Promise<void> {
-    try {
-      await AsyncStorage.setItem('terrafield_notifications', JSON.stringify(this.notifications));
-    } catch (error) {
-      console.error('Error saving notifications:', error);
-    }
-  }
-  
-  /**
-   * Add a listener for notifications
-   */
+  // Add notification listener
   public addListener(listener: NotificationListener): void {
     this.listeners.push(listener);
   }
   
-  /**
-   * Remove a listener
-   */
+  // Remove notification listener
   public removeListener(listener: NotificationListener): void {
-    this.listeners = this.listeners.filter(l => l !== listener);
+    this.listeners = this.listeners.filter((l) => l !== listener);
   }
   
-  /**
-   * Get all notifications
-   */
-  public getNotifications(): Notification[] {
-    return [...this.notifications];
-  }
-  
-  /**
-   * Get unread notifications
-   */
-  public getUnreadNotifications(): Notification[] {
-    return this.notifications.filter(n => !n.isRead);
-  }
-  
-  /**
-   * Mark a notification as read
-   */
-  public async markAsRead(id: string): Promise<void> {
-    const index = this.notifications.findIndex(n => n.id === id);
-    if (index !== -1) {
-      this.notifications[index].isRead = true;
-      await this.saveNotifications();
-    }
-  }
-  
-  /**
-   * Mark all notifications as read
-   */
-  public async markAllAsRead(): Promise<void> {
-    this.notifications.forEach(n => (n.isRead = true));
-    await this.saveNotifications();
-  }
-  
-  /**
-   * Clear all notifications
-   */
-  public async clearAll(): Promise<void> {
-    this.notifications = [];
-    await this.saveNotifications();
-  }
-  
-  /**
-   * Send a notification
-   */
-  private async sendNotification(
+  // Send notification
+  public sendNotification(
+    type: NotificationType,
     title: string,
     message: string,
-    type: 'system' | 'task' | 'sync',
+    channel: NotificationChannel = NotificationChannel.SYSTEM,
     data?: any
-  ): Promise<Notification> {
-    // Create notification object
+  ): Notification {
+    // If notifications are disabled or channel is disabled, return empty notification
+    if (!this.preferences.enabled || !this.preferences.channels[channel]) {
+      return {
+        id: uuidv4(),
+        type,
+        title,
+        message,
+        timestamp: new Date().toISOString(),
+        read: true,
+        channel,
+        data,
+      };
+    }
+    
+    // Create notification
     const notification: Notification = {
       id: uuidv4(),
+      type,
       title,
       message,
       timestamp: new Date().toISOString(),
-      isRead: false,
-      type,
+      read: false,
+      channel,
       data,
     };
     
-    // Add to notifications list
+    // Add to notifications
     this.notifications.unshift(notification);
     
-    // Trim to max size
-    if (this.notifications.length > this.MAX_NOTIFICATIONS) {
-      this.notifications = this.notifications.slice(0, this.MAX_NOTIFICATIONS);
+    // Limit the number of notifications
+    if (this.notifications.length > this.maxNotifications) {
+      this.notifications = this.notifications.slice(0, this.maxNotifications);
     }
     
-    // Save to storage
-    await this.saveNotifications();
+    // Save notifications
+    this.saveNotifications();
     
     // Notify listeners
     this.notifyListeners(notification);
@@ -162,11 +143,104 @@ export class NotificationService {
     return notification;
   }
   
-  /**
-   * Notify all listeners
-   */
+  // Send system notification
+  public sendSystemNotification(
+    title: string,
+    message: string,
+    data?: any
+  ): Notification {
+    return this.sendNotification(
+      NotificationType.SYSTEM,
+      title,
+      message,
+      NotificationChannel.SYSTEM,
+      data
+    );
+  }
+  
+  // Send success notification
+  public sendSuccessNotification(
+    title: string,
+    message: string,
+    channel: NotificationChannel = NotificationChannel.SYSTEM,
+    data?: any
+  ): Notification {
+    return this.sendNotification(
+      NotificationType.SUCCESS,
+      title,
+      message,
+      channel,
+      data
+    );
+  }
+  
+  // Send error notification
+  public sendErrorNotification(
+    title: string,
+    message: string,
+    channel: NotificationChannel = NotificationChannel.SYSTEM,
+    data?: any
+  ): Notification {
+    return this.sendNotification(
+      NotificationType.ERROR,
+      title,
+      message,
+      channel,
+      data
+    );
+  }
+  
+  // Send warning notification
+  public sendWarningNotification(
+    title: string,
+    message: string,
+    channel: NotificationChannel = NotificationChannel.SYSTEM,
+    data?: any
+  ): Notification {
+    return this.sendNotification(
+      NotificationType.WARNING,
+      title,
+      message,
+      channel,
+      data
+    );
+  }
+  
+  // Send info notification
+  public sendInfoNotification(
+    title: string,
+    message: string,
+    channel: NotificationChannel = NotificationChannel.SYSTEM,
+    data?: any
+  ): Notification {
+    return this.sendNotification(
+      NotificationType.INFO,
+      title,
+      message,
+      channel,
+      data
+    );
+  }
+  
+  // Send user notification
+  public sendUserNotification(
+    title: string,
+    message: string,
+    channel: NotificationChannel = NotificationChannel.SYSTEM,
+    data?: any
+  ): Notification {
+    return this.sendNotification(
+      NotificationType.USER,
+      title,
+      message,
+      channel,
+      data
+    );
+  }
+  
+  // Notify listeners
   private notifyListeners(notification: Notification): void {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(notification);
       } catch (error) {
@@ -175,53 +249,149 @@ export class NotificationService {
     });
   }
   
-  /**
-   * Send a system notification
-   */
-  public async sendSystemNotification(
-    title: string,
-    message: string,
-    data?: any
-  ): Promise<Notification> {
-    return await this.sendNotification(title, message, 'system', data);
+  // Get all notifications
+  public getNotifications(): Notification[] {
+    return [...this.notifications];
   }
   
-  /**
-   * Send a task notification
-   */
-  public async sendTaskNotification(
-    title: string,
-    message: string,
-    data?: any
-  ): Promise<Notification> {
-    return await this.sendNotification(title, message, 'task', data);
+  // Get unread notifications
+  public getUnreadNotifications(): Notification[] {
+    return this.notifications.filter((notification) => !notification.read);
   }
   
-  /**
-   * Send a sync success notification
-   */
-  public async sendSyncSuccessNotification(
-    resource: string,
-    count: number
-  ): Promise<Notification> {
-    const title = 'Sync Complete';
-    const message = count === 1
-      ? `Successfully synchronized ${resource}`
-      : `Successfully synchronized ${count} items for ${resource}`;
+  // Get notifications by channel
+  public getNotificationsByChannel(
+    channel: NotificationChannel
+  ): Notification[] {
+    return this.notifications.filter(
+      (notification) => notification.channel === channel
+    );
+  }
+  
+  // Get notifications by type
+  public getNotificationsByType(type: NotificationType): Notification[] {
+    return this.notifications.filter(
+      (notification) => notification.type === type
+    );
+  }
+  
+  // Mark notification as read
+  public markAsRead(id: string): void {
+    const notification = this.notifications.find((n) => n.id === id);
     
-    return await this.sendNotification(title, message, 'sync', { resource, count });
+    if (notification) {
+      notification.read = true;
+      this.saveNotifications();
+    }
   }
   
-  /**
-   * Send a sync error notification
-   */
-  public async sendSyncErrorNotification(
-    resource: string,
-    errorMessage: string
-  ): Promise<Notification> {
-    const title = 'Sync Error';
-    const message = `Failed to synchronize ${resource}: ${errorMessage}`;
+  // Mark all notifications as read
+  public markAllAsRead(): void {
+    this.notifications.forEach((notification) => {
+      notification.read = true;
+    });
     
-    return await this.sendNotification(title, message, 'sync', { resource, error: errorMessage });
+    this.saveNotifications();
+  }
+  
+  // Delete notification
+  public deleteNotification(id: string): void {
+    this.notifications = this.notifications.filter((n) => n.id !== id);
+    this.saveNotifications();
+  }
+  
+  // Clear all notifications
+  public clearNotifications(): void {
+    this.notifications = [];
+    this.saveNotifications();
+  }
+  
+  // Enable notifications
+  public enableNotifications(): void {
+    this.preferences.enabled = true;
+    this.savePreferences();
+  }
+  
+  // Disable notifications
+  public disableNotifications(): void {
+    this.preferences.enabled = false;
+    this.savePreferences();
+  }
+  
+  // Enable channel
+  public enableChannel(channel: NotificationChannel): void {
+    this.preferences.channels[channel] = true;
+    this.savePreferences();
+  }
+  
+  // Disable channel
+  public disableChannel(channel: NotificationChannel): void {
+    this.preferences.channels[channel] = false;
+    this.savePreferences();
+  }
+  
+  // Get preferences
+  public getPreferences(): NotificationPreferences {
+    return { ...this.preferences };
+  }
+  
+  // Set preferences
+  public setPreferences(preferences: NotificationPreferences): void {
+    this.preferences = { ...preferences };
+    this.savePreferences();
+  }
+  
+  // Load notifications from storage
+  private async loadNotifications(): Promise<void> {
+    try {
+      const notificationsJson = await AsyncStorage.getItem('terrafield_notifications');
+      
+      if (notificationsJson) {
+        this.notifications = JSON.parse(notificationsJson);
+      }
+    } catch (error) {
+      console.error('Failed to load notifications:', error);
+    }
+  }
+  
+  // Save notifications to storage
+  private async saveNotifications(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        'terrafield_notifications',
+        JSON.stringify(this.notifications)
+      );
+    } catch (error) {
+      console.error('Failed to save notifications:', error);
+    }
+  }
+  
+  // Load preferences from storage
+  private async loadPreferences(): Promise<void> {
+    try {
+      const preferencesJson = await AsyncStorage.getItem(
+        'terrafield_notification_preferences'
+      );
+      
+      if (preferencesJson) {
+        this.preferences = JSON.parse(preferencesJson);
+      }
+    } catch (error) {
+      console.error('Failed to load notification preferences:', error);
+    }
+  }
+  
+  // Save preferences to storage
+  private async savePreferences(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        'terrafield_notification_preferences',
+        JSON.stringify(this.preferences)
+      );
+    } catch (error) {
+      console.error('Failed to save notification preferences:', error);
+    }
   }
 }
+
+export default NotificationService;
