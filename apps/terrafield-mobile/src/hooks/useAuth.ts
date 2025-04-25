@@ -1,140 +1,209 @@
-import { useState, useEffect, useContext, createContext } from 'react';
+import { useState, useEffect, createContext, useContext, ReactNode } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { ApiService } from '../services/ApiService';
 
-// User type
+// User interface
 export interface User {
   id: number;
   username: string;
   name: string;
-  email?: string;
-  role: string;
+  email: string;
+  role: 'admin' | 'appraiser' | 'reviewer';
+  created_at?: string;
 }
 
 // Auth context type
 interface AuthContextType {
   user: User | null;
   isLoading: boolean;
+  error: string | null;
   login: (username: string, password: string) => Promise<boolean>;
   logout: () => Promise<void>;
   register: (userData: RegisterData) => Promise<boolean>;
 }
 
-// Register data type
+// Register data interface
 interface RegisterData {
   username: string;
   password: string;
   name: string;
-  email?: string;
+  email: string;
+  role?: 'admin' | 'appraiser' | 'reviewer';
 }
 
 // Create context
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | null>(null);
+
+// Auth provider props
+interface AuthProviderProps {
+  children: ReactNode;
+}
+
+// Local storage key
+const USER_STORAGE_KEY = 'terrafield_user';
 
 // Auth provider component
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   const [user, setUser] = useState<User | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
+
   const apiService = ApiService.getInstance();
 
-  // Load user on mount
+  // Load user from storage on mount
   useEffect(() => {
     loadUser();
   }, []);
 
-  // Load user from API or token
+  // Load user from storage
   const loadUser = async () => {
-    setIsLoading(true);
     try {
-      // Try to load token
-      const token = await apiService.loadToken();
+      const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
       
-      if (token) {
-        // Get user data
-        const userData = await apiService.get<User>('/api/user');
-        
-        if (userData) {
-          setUser(userData);
-        } else {
-          // Token invalid, clear it
-          await apiService.clearToken();
-        }
+      if (userJson) {
+        const userData = JSON.parse(userJson);
+        setUser(userData);
       }
-    } catch (error) {
-      console.error('Error loading user:', error);
-      await apiService.clearToken();
+    } catch (err) {
+      console.error('Error loading user:', err);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Login user
+  // Save user to storage
+  const saveUser = async (userData: User) => {
+    try {
+      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+    } catch (err) {
+      console.error('Error saving user:', err);
+    }
+  };
+
+  // Clear user from storage
+  const clearUser = async () => {
+    try {
+      await AsyncStorage.removeItem(USER_STORAGE_KEY);
+    } catch (err) {
+      console.error('Error clearing user:', err);
+    }
+  };
+
+  // Login function
   const login = async (username: string, password: string): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      const response = await apiService.post<{ user: User; token: string }>('/api/auth/login', {
-        username,
-        password,
-      });
+      const response = await apiService.post('/api/auth/login', { username, password });
       
-      if (response && response.token && response.user) {
-        await apiService.setToken(response.token);
-        setUser(response.user);
+      if (response && response.id) {
+        const userData: User = {
+          id: response.id,
+          username: response.username,
+          name: response.name || username,
+          email: response.email || '',
+          role: response.role || 'appraiser',
+          created_at: response.created_at,
+        };
+        
+        setUser(userData);
+        saveUser(userData);
+        
+        // Set token in ApiService
+        if (response.token) {
+          apiService.setToken(response.token);
+        }
+        
         return true;
+      } else {
+        setError('Invalid response from server');
+        return false;
       }
-      
+    } catch (err) {
+      console.error('Login error:', err);
+      setError(err instanceof Error ? err.message : 'Login failed');
       return false;
-    } catch (error) {
-      console.error('Login error:', error);
-      return false;
-    }
-  };
-
-  // Logout user
-  const logout = async (): Promise<void> => {
-    try {
-      await apiService.post('/api/auth/logout');
-    } catch (error) {
-      console.error('Logout error:', error);
     } finally {
-      await apiService.clearToken();
-      setUser(null);
+      setIsLoading(false);
     }
   };
 
-  // Register user
-  const register = async (userData: RegisterData): Promise<boolean> => {
+  // Logout function
+  const logout = async (): Promise<void> => {
+    setIsLoading(true);
+    
     try {
-      const response = await apiService.post<{ user: User; token: string }>('/api/users', userData);
-      
-      if (response && response.token && response.user) {
-        await apiService.setToken(response.token);
-        setUser(response.user);
-        return true;
+      // Call logout API if connected
+      if (apiService.isAuthenticated()) {
+        await apiService.post('/api/auth/logout');
       }
+    } catch (err) {
+      console.error('Logout error:', err);
+    } finally {
+      // Clear token in ApiService
+      apiService.clearToken();
       
-      return false;
-    } catch (error) {
-      console.error('Registration error:', error);
-      return false;
+      // Clear user state and storage
+      setUser(null);
+      await clearUser();
+      
+      setIsLoading(false);
     }
   };
 
-  // Provide context value
-  const value = {
-    user,
-    isLoading,
-    login,
-    logout,
-    register,
+  // Register function
+  const register = async (userData: RegisterData): Promise<boolean> => {
+    setIsLoading(true);
+    setError(null);
+    
+    try {
+      const response = await apiService.post('/api/users', userData);
+      
+      if (response && response.id) {
+        const newUser: User = {
+          id: response.id,
+          username: response.username,
+          name: response.name || userData.username,
+          email: response.email || userData.email,
+          role: response.role || 'appraiser',
+          created_at: response.created_at,
+        };
+        
+        setUser(newUser);
+        saveUser(newUser);
+        
+        // Set token in ApiService
+        if (response.token) {
+          apiService.setToken(response.token);
+        }
+        
+        return true;
+      } else {
+        setError('Invalid response from server');
+        return false;
+      }
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError(err instanceof Error ? err.message : 'Registration failed');
+      return false;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, isLoading, error, login, logout, register }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
 
-// Auth hook
-export const useAuth = (): AuthContextType => {
+// Hook to use auth
+export const useAuth = () => {
   const context = useContext(AuthContext);
   
-  if (context === undefined) {
+  if (!context) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   

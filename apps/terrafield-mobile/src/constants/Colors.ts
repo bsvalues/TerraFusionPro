@@ -1,50 +1,40 @@
-// Main brand colors
-export const primary = '#3366BB';
-export const secondary = '#607D8B';
-export const accent = '#FF5722';
-export const success = '#4CAF50';
-export const info = '#2196F3';
-export const warning = '#FFC107';
-export const error = '#F44336';
-
-// Light/dark variants
-export const lightPrimary = '#EBF2FB';
-export const darkPrimary = '#284B87';
+// Primary brand colors
+export const primary = '#3498db';
+export const secondary = '#2ecc71';
+export const accent = '#e74c3c';
 
 // Text colors
-export const text = '#212121';
-export const textLight = '#757575';
-export const textLight2 = '#9E9E9E';
-export const errorText = '#D32F2F';
-
-// Background colors
-export const background = '#F5F5F5';
-export const white = '#FFFFFF';
+export const text = '#2c3e50';
+export const textLight = '#7f8c8d';
+export const placeholderText = '#bdc3c7';
+export const white = '#ffffff';
 export const black = '#000000';
 
-// Border colors
-export const border = '#E0E0E0';
-export const borderLight = '#EEEEEE';
-export const divider = '#EEEEEE';
+// Background colors
+export const background = '#f5f5f5';
+export const backgroundDark = '#ecf0f1';
+export const card = '#ffffff';
 
-// Shadow
-export const shadow = '#000000';
-
-// Button states
-export const disabledButton = '#BDBDBD';
-export const disabledText = '#9E9E9E';
+// UI feedback colors
+export const error = '#e74c3c';
+export const success = '#2ecc71';
+export const warning = '#f39c12';
+export const info = '#3498db';
 
 // Status colors
-export const online = '#4CAF50';
-export const offline = '#F44336';
-export const syncing = '#FFC107';
+export const online = '#27ae60';
+export const offline = '#e74c3c';
+export const syncing = '#f39c12';
 
-// UI element colors
-export const cardBackground = '#FFFFFF';
-export const inputBackground = '#FFFFFF';
-export const placeholderText = '#9E9E9E';
+// UI component colors
+export const border = '#dfe4ea';
+export const divider = '#ecf0f1';
+export const disabledButton = '#ecf0f1';
+export const disabledText = '#95a5a6';
 
-// Transparency variants
-export const transparent = 'transparent';
-export const overlayDark = 'rgba(0,0,0,0.5)';
-export const overlayLight = 'rgba(255,255,255,0.8)';
+// Dark mode colors (for future implementation)
+export const darkBackground = '#2c3e50';
+export const darkCard = '#34495e';
+export const darkText = '#ecf0f1';
+export const darkBorder = '#7f8c8d';
+export const darkPlaceholderText = '#95a5a6';
