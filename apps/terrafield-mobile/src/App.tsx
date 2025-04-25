@@ -1,43 +1,37 @@
-import React from 'react';
-import { StatusBar } from 'expo-status-bar';
-import { NavigationContainer } from '@react-navigation/native';
-import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import React, { useEffect } from 'react';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'react-native';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import AppNavigator from './navigation/AppNavigator';
 
-// Import screens
-import HomeScreen from './screens/HomeScreen';
-import ParcelDetailScreen from './screens/ParcelDetailScreen';
-import ParcelNoteScreen from './screens/ParcelNoteScreen';
+// Create Query Client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      staleTime: 1000 * 60 * 5, // 5 minutes
+      refetchOnWindowFocus: true,
+    },
+  },
+});
 
-// Define the navigator parameter list
-export type RootStackParamList = {
-  Home: undefined;
-  ParcelDetail: { parcelId: string };
-  ParcelNote: { parcelId: string };
-};
-
-const Stack = createNativeStackNavigator<RootStackParamList>();
-
+// Main App Component
 export default function App() {
+  // Initialize services as needed
+  useEffect(() => {
+    // This would be a good place to initialize any services that need
+    // to be started when the app launches
+    return () => {
+      // Cleanup function if needed
+    };
+  }, []);
+
   return (
-    <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
-        <Stack.Screen
-          name="Home"
-          component={HomeScreen}
-          options={{ title: 'TerraField Mobile' }}
-        />
-        <Stack.Screen
-          name="ParcelDetail"
-          component={ParcelDetailScreen}
-          options={{ title: 'Parcel Details' }}
-        />
-        <Stack.Screen
-          name="ParcelNote"
-          component={ParcelNoteScreen}
-          options={{ title: 'Parcel Notes' }}
-        />
-      </Stack.Navigator>
-      <StatusBar style="auto" />
-    </NavigationContainer>
+    <SafeAreaProvider>
+      <QueryClientProvider client={queryClient}>
+        <StatusBar barStyle="light-content" />
+        <AppNavigator />
+      </QueryClientProvider>
+    </SafeAreaProvider>
   );
 }

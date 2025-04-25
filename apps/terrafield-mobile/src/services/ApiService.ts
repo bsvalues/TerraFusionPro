@@ -1,151 +1,252 @@
+import { Platform } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+import * as SecureStore from 'expo-secure-store';
+
 /**
- * ApiService for handling HTTP requests
- * in the TerraField Mobile application
+ * Base URL for API calls
+ * Uses localhost for iOS simulator and 10.0.2.2 for Android emulator
  */
+const API_BASE_URL = Platform.OS === 'ios' ? 
+  'http://localhost:5000' : 
+  'http://10.0.2.2:5000';
 
-// API service configuration
-interface ApiConfig {
-  baseUrl: string;
-  headers: Record<string, string>;
-  timeout: number;
-}
-
-// Default API configuration
-const DEFAULT_API_CONFIG: ApiConfig = {
-  baseUrl: 'https://appraisalcore.replit.app/api',
-  headers: {
-    'Content-Type': 'application/json',
-    'Accept': 'application/json',
-  },
-  timeout: 30000, // 30 seconds
-};
-
-// API service using the singleton pattern
+/**
+ * API service for handling API requests
+ */
 export class ApiService {
   private static instance: ApiService;
-  private config: ApiConfig;
-  
-  // Private constructor to prevent direct instantiation
-  private constructor(config: ApiConfig = DEFAULT_API_CONFIG) {
-    this.config = { ...config };
+  private token: string | null = null;
+  private isConnected: boolean = true;
+  private pendingRequests: Array<{ 
+    method: string, 
+    endpoint: string, 
+    data?: any,
+    timestamp: number 
+  }> = [];
+
+  private constructor() {
+    // Initialize network connectivity monitoring
+    NetInfo.addEventListener(state => {
+      // Update connection status
+      this.isConnected = state.isConnected ?? false;
+
+      // If we're back online, process pending requests
+      if (state.isConnected) {
+        this.processPendingRequests();
+      }
+    });
+
+    // Load pending requests from storage
+    this.loadPendingRequests();
   }
-  
-  // Get singleton instance
-  public static getInstance(config?: ApiConfig): ApiService {
+
+  /**
+   * Get instance of ApiService (Singleton)
+   */
+  public static getInstance(): ApiService {
     if (!ApiService.instance) {
-      ApiService.instance = new ApiService(config);
+      ApiService.instance = new ApiService();
     }
     return ApiService.instance;
   }
-  
-  // Set authentication token
-  public setAuthToken(token: string | null): void {
-    if (token) {
-      this.config.headers['Authorization'] = `Bearer ${token}`;
-    } else {
-      delete this.config.headers['Authorization'];
-    }
-  }
-  
-  // Update API configuration
-  public updateConfig(config: Partial<ApiConfig>): void {
-    this.config = { ...this.config, ...config };
-  }
-  
-  // Create full API URL
-  private createUrl(endpoint: string): string {
-    return endpoint.startsWith('http')
-      ? endpoint
-      : `${this.config.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
-  }
-  
-  // Handle API response
-  private async handleResponse<T>(response: Response): Promise<T> {
-    if (!response.ok) {
-      // Try to get error details from response
-      try {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `HTTP Error ${response.status}`);
-      } catch (error) {
-        // If error response isn't valid JSON
-        throw new Error(`HTTP Error ${response.status}`);
-      }
-    }
-    
-    // Handle different response types
-    const contentType = response.headers.get('content-type');
-    
-    if (contentType?.includes('application/json')) {
-      return response.json() as Promise<T>;
-    } else if (contentType?.includes('text/')) {
-      const text = await response.text();
-      return text as unknown as T;
-    } else {
-      // Return the raw response for other content types (like blobs)
-      return response as unknown as T;
-    }
-  }
-  
-  // Generic request method
-  private async request<T>(method: string, endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
-    const url = this.createUrl(endpoint);
-    const config = { ...this.config, ...customConfig };
-    
-    // Set up request options
-    const options: RequestInit = {
-      method,
-      headers: config.headers,
-    };
-    
-    // Add body if method is not GET or HEAD
-    if (method !== 'GET' && method !== 'HEAD' && data) {
-      options.body = typeof data === 'string' ? data : JSON.stringify(data);
-    }
+
+  /**
+   * Set authentication token
+   */
+  public async setToken(token: string): Promise<void> {
+    this.token = token;
     
     try {
-      // Create AbortController for timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), config.timeout);
-      options.signal = controller.signal;
-      
-      // Make the request
-      const response = await fetch(url, options);
-      
-      // Clear timeout
-      clearTimeout(timeoutId);
-      
-      // Handle response
-      return this.handleResponse<T>(response);
+      await SecureStore.setItemAsync('auth_token', token);
     } catch (error) {
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${config.timeout}ms`);
+      console.error('Error saving auth token:', error);
+    }
+  }
+
+  /**
+   * Clear authentication token
+   */
+  public async clearToken(): Promise<void> {
+    this.token = null;
+    
+    try {
+      await SecureStore.deleteItemAsync('auth_token');
+    } catch (error) {
+      console.error('Error clearing auth token:', error);
+    }
+  }
+
+  /**
+   * Load authentication token from secure storage
+   */
+  public async loadToken(): Promise<string | null> {
+    try {
+      this.token = await SecureStore.getItemAsync('auth_token');
+      return this.token;
+    } catch (error) {
+      console.error('Error loading auth token:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Make GET request
+   */
+  public async get<T>(endpoint: string): Promise<T | null> {
+    return this.request<T>('GET', endpoint);
+  }
+
+  /**
+   * Make POST request
+   */
+  public async post<T>(endpoint: string, data?: any): Promise<T | null> {
+    return this.request<T>('POST', endpoint, data);
+  }
+
+  /**
+   * Make PUT request
+   */
+  public async put<T>(endpoint: string, data?: any): Promise<T | null> {
+    return this.request<T>('PUT', endpoint, data);
+  }
+
+  /**
+   * Make DELETE request
+   */
+  public async delete<T>(endpoint: string): Promise<T | null> {
+    return this.request<T>('DELETE', endpoint);
+  }
+
+  /**
+   * Handle all requests
+   */
+  private async request<T>(method: string, endpoint: string, data?: any): Promise<T | null> {
+    // If not connected, queue the request and return null
+    if (!this.isConnected) {
+      console.log(`No connection, queueing ${method} request to ${endpoint}`);
+      await this.queueRequest(method, endpoint, data);
+      return null;
+    }
+
+    // Create request options
+    const options: RequestInit = {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    };
+
+    // Add authorization token if available
+    if (this.token) {
+      options.headers = {
+        ...options.headers,
+        'Authorization': `Bearer ${this.token}`,
+      };
+    }
+
+    // Add body for non-GET requests
+    if (method !== 'GET' && data) {
+      options.body = JSON.stringify(data);
+    }
+
+    try {
+      // Make the request
+      const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+
+      // Handle response
+      if (response.ok) {
+        // If response is empty, return empty object
+        const contentType = response.headers.get('content-type');
+        if (contentType && contentType.includes('application/json')) {
+          return await response.json();
+        }
+        return {} as T;
+      } else {
+        // Handle error response
+        const errorText = await response.text();
+        console.error(`API Error (${response.status}):`, errorText);
+        throw new Error(errorText || `API Error: ${response.status}`);
+      }
+    } catch (error) {
+      // If network error, queue the request for later
+      console.error(`Request failed:`, error);
+      if (!this.isConnected) {
+        await this.queueRequest(method, endpoint, data);
       }
       throw error;
     }
   }
-  
-  // GET request
-  public async get<T = any>(endpoint: string, customConfig?: Partial<ApiConfig>): Promise<T> {
-    return this.request<T>('GET', endpoint, undefined, customConfig);
+
+  /**
+   * Queue a request for later execution
+   */
+  private async queueRequest(method: string, endpoint: string, data?: any): Promise<void> {
+    const request = {
+      method,
+      endpoint,
+      data,
+      timestamp: Date.now(),
+    };
+
+    this.pendingRequests.push(request);
+    
+    // Save pending requests to storage
+    try {
+      await AsyncStorage.setItem('pendingRequests', JSON.stringify(this.pendingRequests));
+    } catch (error) {
+      console.error('Error saving pending requests:', error);
+    }
   }
-  
-  // POST request
-  public async post<T = any>(endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
-    return this.request<T>('POST', endpoint, data, customConfig);
+
+  /**
+   * Load pending requests from storage
+   */
+  private async loadPendingRequests(): Promise<void> {
+    try {
+      const requests = await AsyncStorage.getItem('pendingRequests');
+      if (requests) {
+        this.pendingRequests = JSON.parse(requests);
+      }
+    } catch (error) {
+      console.error('Error loading pending requests:', error);
+    }
   }
-  
-  // PUT request
-  public async put<T = any>(endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
-    return this.request<T>('PUT', endpoint, data, customConfig);
-  }
-  
-  // PATCH request
-  public async patch<T = any>(endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
-    return this.request<T>('PATCH', endpoint, data, customConfig);
-  }
-  
-  // DELETE request
-  public async delete<T = any>(endpoint: string, customConfig?: Partial<ApiConfig>): Promise<T> {
-    return this.request<T>('DELETE', endpoint, undefined, customConfig);
+
+  /**
+   * Process pending requests when back online
+   */
+  private async processPendingRequests(): Promise<void> {
+    if (this.pendingRequests.length === 0) return;
+
+    console.log(`Processing ${this.pendingRequests.length} pending requests`);
+    
+    // Create a copy of the pending requests
+    const requests = [...this.pendingRequests];
+    
+    // Clear pending requests
+    this.pendingRequests = [];
+    await AsyncStorage.removeItem('pendingRequests');
+    
+    // Process each request
+    for (const request of requests) {
+      try {
+        await this.request(request.method, request.endpoint, request.data);
+        console.log(`Processed queued request: ${request.method} ${request.endpoint}`);
+      } catch (error) {
+        console.error(`Failed to process queued request:`, error);
+        
+        // If still relevant (less than 24 hours old), requeue the request
+        const ONE_DAY = 24 * 60 * 60 * 1000;
+        if (Date.now() - request.timestamp < ONE_DAY) {
+          this.pendingRequests.push(request);
+        }
+      }
+    }
+    
+    // Save any requests that couldn't be processed
+    if (this.pendingRequests.length > 0) {
+      await AsyncStorage.setItem('pendingRequests', JSON.stringify(this.pendingRequests));
+    }
   }
 }
