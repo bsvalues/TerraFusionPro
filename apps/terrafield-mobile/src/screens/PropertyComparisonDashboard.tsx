@@ -606,9 +606,13 @@ const PropertyComparisonDashboard: React.FC = () => {
                   <View style={styles.miniTrendContainer}>
                     <AnimatedSparkline
                       data={[
+                        comparable.price * 0.7,
+                        comparable.price * 0.75,
+                        comparable.price * 0.8,
                         comparable.price * 0.85,
                         comparable.price * 0.9,
                         comparable.price * 0.95,
+                        comparable.price * 0.98,
                         comparable.price,
                         comparable.price * 1.05
                       ]}
@@ -616,7 +620,7 @@ const PropertyComparisonDashboard: React.FC = () => {
                       height={40}
                       lineWidth={1.5}
                       showArea={true}
-                      showDots={false}
+                      showDots={true}
                       trend={true}
                       color={
                         comparable.price > property.price
@@ -626,6 +630,8 @@ const PropertyComparisonDashboard: React.FC = () => {
                             : '#3498db'
                       }
                       highlightLast={true}
+                      animated={true}
+                      animationDuration={1500}
                       formatValue={(value) => formatCurrency(value)}
                     />
                   </View>
