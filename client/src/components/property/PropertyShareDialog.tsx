@@ -38,13 +38,22 @@ export default function PropertyShareDialog({
   // Fetch existing share links for this property
   const { data: shareLinks, isLoading, error } = useQuery({
     queryKey: [`/api/properties/${propertyId}/share-links`],
-    queryFn: getQueryFn(),
+    queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: isOpen && propertyId > 0,
   });
 
+  interface ShareLinkData {
+    expiresAt?: string;
+    viewsLimit?: number;
+    includePhotos: boolean;
+    includeComparables: boolean;
+    includeValuation: boolean;
+    allowReports: boolean;
+  }
+
   // Create new share link
   const createShareLinkMutation = useMutation({
-    mutationFn: async (shareData: any) => {
+    mutationFn: async (shareData: ShareLinkData) => {
       const response = await apiRequest("POST", `/api/properties/${propertyId}/share`, shareData);
       return await response.json();
     },
@@ -64,10 +73,30 @@ export default function PropertyShareDialog({
     }
   });
 
+  interface PropertyShareLink {
+    id: number;
+    propertyId: number;
+    userId: number;
+    shareToken: string;
+    shareUrl: string;
+    expiresAt?: string;
+    viewsLimit?: number;
+    viewCount: number;
+    isActive: boolean;
+    includePhotos: boolean;
+    includeComparables: boolean;
+    includeValuation: boolean;
+    allowReports: boolean;
+    createdAt: string;
+    updatedAt: string;
+  }
+  
   // Delete share link
   const deleteShareLinkMutation = useMutation({
-    mutationFn: async (shareLinkId: string) => {
-      await apiRequest("DELETE", `/api/property-shares/${shareLinkId}`);
+    mutationFn: async (shareLinkId: number) => {
+      await apiRequest("DELETE", `/api/property-shares/${shareLinkId}`, {
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/properties/${propertyId}/share-links`] });
@@ -279,7 +308,7 @@ export default function PropertyShareDialog({
               </div>
             ) : (
               <div className="space-y-3">
-                {shareLinks.map((link: any) => (
+                {shareLinks && Array.isArray(shareLinks) && shareLinks.map((link: PropertyShareLink) => (
                   <Card key={link.id} className="p-4">
                     <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
                       <div className="space-y-2">

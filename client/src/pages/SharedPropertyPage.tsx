@@ -245,7 +245,7 @@ export default function SharedPropertyPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Property Photos</h3>
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-                  {property.photos.map((photo: any, index: number) => (
+                  {property.photos.map((photo: Photo, index: number) => (
                     <div key={index} className="aspect-video relative rounded-md overflow-hidden">
                       <img 
                         src={photo.photoUrl} 
@@ -265,7 +265,7 @@ export default function SharedPropertyPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Comparable Properties</h3>
                 <div className="grid grid-cols-1 gap-4">
-                  {property.comparables.map((comp: any, index: number) => (
+                  {property.comparables.map((comp: Comparable, index: number) => (
                     <Card key={index} className="overflow-hidden">
                       <CardContent className="p-4">
                         <div className="flex justify-between items-start">
@@ -319,7 +319,7 @@ export default function SharedPropertyPage() {
               <div className="space-y-4">
                 <h3 className="text-lg font-medium">Appraisal Reports</h3>
                 <div className="grid grid-cols-1 gap-3">
-                  {property.reports.map((report: any, index: number) => (
+                  {property.reports.map((report: Report, index: number) => (
                     <Button 
                       key={index} 
                       variant="outline" 
