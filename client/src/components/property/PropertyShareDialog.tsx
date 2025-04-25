@@ -54,7 +54,10 @@ export default function PropertyShareDialog({
   // Create new share link
   const createShareLinkMutation = useMutation({
     mutationFn: async (shareData: ShareLinkData) => {
-      const response = await apiRequest("POST", `/api/properties/${propertyId}/share`, shareData);
+      const response = await apiRequest("POST", `/api/properties/${propertyId}/share`, { 
+        method: "POST", 
+        data: shareData 
+      });
       return await response.json();
     },
     onSuccess: () => {
@@ -77,7 +80,7 @@ export default function PropertyShareDialog({
     id: number;
     propertyId: number;
     userId: number;
-    shareToken: string;
+    token: string;
     shareUrl: string;
     expiresAt?: string;
     viewsLimit?: number;
