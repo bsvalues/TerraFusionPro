@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useLocation } from 'wouter';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Home, Calendar, Ruler, Bed, Bath, Map, Trees, Car, DollarSign, Hash, ClipboardList, FileSpreadsheet, FileText } from 'lucide-react';
+import { Home, Calendar, Ruler, Bed, Bath, Map, Trees, Car, DollarSign, Hash, ClipboardList, FileSpreadsheet, FileText, Share2 } from 'lucide-react';
+import PropertyShareDialog from './PropertyShareDialog';
 
 interface PropertyInfoCardProps {
   property: any;
@@ -148,14 +149,31 @@ interface ActionsSectionProps {
 
 function ActionsSection({ propertyId }: ActionsSectionProps) {
   const [_, setLocation] = useLocation();
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
   
   const handleUADFormClick = () => {
     setLocation(`/uad-form/${propertyId}`);
   };
   
+  const handleShareClick = () => {
+    setIsShareDialogOpen(true);
+  };
+  
   return (
     <div className="w-full flex flex-col space-y-3">
-      <h4 className="text-sm font-medium mb-1">Create Appraisal Documents</h4>
+      <div className="flex justify-between items-center">
+        <h4 className="text-sm font-medium mb-1">Create Appraisal Documents</h4>
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={handleShareClick}
+          className="ml-auto"
+        >
+          <Share2 className="mr-2 h-4 w-4" />
+          Share Property
+        </Button>
+      </div>
+      
       <div className="flex flex-wrap gap-2">
         <Button 
           variant="default" 
@@ -177,6 +195,13 @@ function ActionsSection({ propertyId }: ActionsSectionProps) {
           Grid Report
         </Button>
       </div>
+      
+      {/* Share Dialog */}
+      <PropertyShareDialog 
+        propertyId={propertyId}
+        isOpen={isShareDialogOpen}
+        onClose={() => setIsShareDialogOpen(false)}
+      />
     </div>
   );
 }
