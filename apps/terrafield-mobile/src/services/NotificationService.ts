@@ -1,33 +1,65 @@
-import { NotificationType } from './types';
+/**
+ * NotificationService
+ * 
+ * This service handles in-app notifications and WebSocket communication
+ * for real-time updates.
+ */
 
-export interface Notification {
-  id: string;
-  type: NotificationType;
-  userId: number;
-  title: string;
-  message: string;
-  resourceId?: string;
-  resourceType?: string;
-  timestamp: Date;
-  read: boolean;
-  data?: Record<string, any>;
+import { ApiService } from './ApiService';
+import NetInfo from '@react-native-community/netinfo';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Notification types
+export enum NotificationType {
+  NEW_ASSIGNMENT = 'new_assignment',
+  SYNC_COMPLETED = 'sync_completed',
+  SYNC_STARTED = 'sync_started',
+  SYNC_FAILED = 'sync_failed',
+  PROPERTY_UPDATED = 'property_updated',
+  REPORT_UPDATED = 'report_updated',
+  COMMENT_ADDED = 'comment_added',
+  COLLABORATION_INVITE = 'collaboration_invite',
+  FIELD_NOTE_ADDED = 'field_note_added',
+  FIELD_NOTE_UPDATED = 'field_note_updated',
+  PHOTO_UPLOADED = 'photo_uploaded',
+  SYSTEM_MESSAGE = 'system_message'
 }
 
-/**
- * Service to manage notifications in the TerraField Mobile app
- */
+// Notification interface
+export interface Notification {
+  id: string;
+  userId: number;
+  type: NotificationType;
+  title: string;
+  message: string;
+  metadata?: Record<string, any>;
+  read: boolean;
+  createdAt: string;
+}
+
+type NotificationCallback = (notification: Notification) => void;
+
 export class NotificationService {
   private static instance: NotificationService;
-  private websocket: WebSocket | null = null;
-  private notifications: Notification[] = [];
-  private listeners: ((notifications: Notification[]) => void)[] = [];
+  private apiService: ApiService;
+  private wsConnection: WebSocket | null = null;
   private isConnected: boolean = false;
-  private userId: number | null = null;
-  private reconnectTimer: any = null;
-  private apiUrl: string;
+  private reconnectAttempts: number = 0;
+  private maxReconnectAttempts: number = 5;
+  private reconnectDelay: number = 2000; // ms
+  private isReconnecting: boolean = false;
+  private observers: Set<NotificationCallback> = new Set();
+  private notifications: Notification[] = [];
+  private storageKey: string = 'terrafield_notifications';
   
   private constructor() {
-    this.apiUrl = 'https://appraisalcore.replit.app';
+    this.apiService = ApiService.getInstance();
+    
+    // Load notifications from storage
+    this.loadNotifications();
+    
+    // Monitor network connectivity
+    this.monitorConnectivity();
   }
   
   /**
@@ -41,104 +73,193 @@ export class NotificationService {
   }
   
   /**
-   * Connect to the notification server for a user
+   * Monitor network connectivity
    */
-  public connect(userId: number): void {
-    this.userId = userId;
-    
-    if (this.websocket) {
-      this.disconnect();
-    }
-    
-    const wsUrl = `${this.apiUrl.replace('http', 'ws')}/notifications`;
-    this.websocket = new WebSocket(wsUrl);
-    
-    this.websocket.onopen = () => {
-      console.log('Notification WebSocket connected');
-      this.isConnected = true;
-      
-      // Register this connection with user ID
-      if (this.websocket && this.userId) {
-        this.websocket.send(JSON.stringify({
-          type: 'register',
-          userId: this.userId
-        }));
-      }
-      
-      // Clear any reconnect timers
-      if (this.reconnectTimer) {
-        clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = null;
-      }
-    };
-    
-    this.websocket.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        switch (data.type) {
-          case 'notification':
-            // Single new notification
-            this.addNotification(data.notification);
-            break;
-            
-          case 'initial_notifications':
-            // Batch of notifications on connection
-            this.notifications = data.notifications;
-            this.notifyListeners();
-            break;
-            
-          case 'notification_updated':
-            // A notification was updated (e.g. marked as read)
-            this.updateNotification(data.notification);
-            break;
-            
-          case 'notifications_cleared':
-            // All notifications were cleared
-            this.notifications = [];
-            this.notifyListeners();
-            break;
+  private monitorConnectivity() {
+    NetInfo.addEventListener(state => {
+      if (state.isConnected) {
+        if (!this.isConnected && !this.isReconnecting) {
+          this.connect();
         }
-      } catch (error) {
-        console.error('Error processing notification message:', error);
+      } else {
+        this.isConnected = false;
       }
-    };
-    
-    this.websocket.onclose = () => {
-      console.log('Notification WebSocket disconnected');
-      this.isConnected = false;
-      
-      // Attempt to reconnect after a delay
-      this.reconnectTimer = setTimeout(() => {
-        if (this.userId) {
-          this.connect(this.userId);
-        }
-      }, 5000);
-    };
-    
-    this.websocket.onerror = (error) => {
-      console.error('Notification WebSocket error:', error);
-    };
-    
-    // Also fetch existing notifications via API
-    this.fetchNotifications();
+    });
   }
   
   /**
-   * Disconnect from the notification server
+   * Connect to the notification WebSocket
    */
-  public disconnect(): void {
-    if (this.websocket) {
-      this.websocket.close();
-      this.websocket = null;
+  public async connect(userId?: number): Promise<void> {
+    if (this.isConnected || this.isReconnecting) return;
+    
+    try {
+      this.isReconnecting = true;
+      
+      // Get WebSocket URL from API service
+      const wsUrl = this.apiService.config.wsBaseUrl;
+      if (!wsUrl) {
+        throw new Error('WebSocket URL not configured');
+      }
+      
+      // Close existing connection if any
+      if (this.wsConnection) {
+        this.wsConnection.close();
+        this.wsConnection = null;
+      }
+      
+      // Create new WebSocket connection
+      this.wsConnection = new WebSocket(`${wsUrl}/notifications`);
+      
+      // Set up event handlers
+      this.wsConnection.onopen = () => {
+        this.isConnected = true;
+        this.reconnectAttempts = 0;
+        this.isReconnecting = false;
+        
+        console.log('Connected to notification WebSocket');
+        
+        // Register with userId if available
+        if (userId) {
+          this.registerUserId(userId);
+        }
+      };
+      
+      this.wsConnection.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'notification' && data.notification) {
+            const notification = data.notification as Notification;
+            this.addNotification(notification);
+          }
+        } catch (error) {
+          console.error('Error processing notification message:', error);
+        }
+      };
+      
+      this.wsConnection.onclose = () => {
+        this.isConnected = false;
+        this.wsConnection = null;
+        console.log('Notification WebSocket connection closed');
+        
+        // Attempt to reconnect
+        this.attemptReconnect();
+      };
+      
+      this.wsConnection.onerror = (error) => {
+        console.error('Notification WebSocket error:', error);
+        this.isConnected = false;
+        
+        // Attempt to reconnect
+        this.attemptReconnect();
+      };
+    } catch (error) {
+      console.error('Error connecting to notification WebSocket:', error);
+      this.isConnected = false;
+      this.isReconnecting = false;
+      
+      // Attempt to reconnect
+      this.attemptReconnect();
+    }
+  }
+  
+  /**
+   * Attempt to reconnect to the WebSocket
+   */
+  private attemptReconnect(): void {
+    if (this.isReconnecting || this.reconnectAttempts >= this.maxReconnectAttempts) return;
+    
+    this.reconnectAttempts++;
+    this.isReconnecting = true;
+    
+    console.log(`Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts})...`);
+    
+    setTimeout(() => {
+      this.isReconnecting = false;
+      this.connect();
+    }, this.reconnectDelay * this.reconnectAttempts);
+  }
+  
+  /**
+   * Register user ID with the notification server
+   */
+  private registerUserId(userId: number): void {
+    if (!this.isConnected || !this.wsConnection) return;
+    
+    try {
+      this.wsConnection.send(JSON.stringify({
+        type: 'register',
+        userId: userId
+      }));
+      
+      console.log(`Registered for notifications with user ID: ${userId}`);
+    } catch (error) {
+      console.error('Error registering user ID for notifications:', error);
+    }
+  }
+  
+  /**
+   * Subscribe to notifications
+   */
+  public subscribe(callback: NotificationCallback): () => void {
+    this.observers.add(callback);
+    
+    // Immediately notify with current notifications
+    this.notifications.forEach(notification => {
+      callback(notification);
+    });
+    
+    // Return unsubscribe function
+    return () => {
+      this.observers.delete(callback);
+    };
+  }
+  
+  /**
+   * Add a notification
+   */
+  private addNotification(notification: Notification): void {
+    // Add to local collection
+    this.notifications.unshift(notification);
+    
+    // Limit to 100 notifications
+    if (this.notifications.length > 100) {
+      this.notifications = this.notifications.slice(0, 100);
     }
     
-    this.isConnected = false;
-    this.userId = null;
+    // Save to storage
+    this.saveNotifications();
     
-    if (this.reconnectTimer) {
-      clearTimeout(this.reconnectTimer);
-      this.reconnectTimer = null;
+    // Notify observers
+    this.observers.forEach(callback => {
+      callback(notification);
+    });
+  }
+  
+  /**
+   * Load notifications from storage
+   */
+  private async loadNotifications(): Promise<void> {
+    try {
+      const data = await AsyncStorage.getItem(this.storageKey);
+      if (data) {
+        this.notifications = JSON.parse(data);
+        console.log(`Loaded ${this.notifications.length} notifications from storage`);
+      }
+    } catch (error) {
+      console.error('Error loading notifications from storage:', error);
+    }
+  }
+  
+  /**
+   * Save notifications to storage
+   */
+  private async saveNotifications(): Promise<void> {
+    try {
+      await AsyncStorage.setItem(this.storageKey, JSON.stringify(this.notifications));
+    } catch (error) {
+      console.error('Error saving notifications to storage:', error);
     }
   }
   
@@ -150,138 +271,96 @@ export class NotificationService {
   }
   
   /**
-   * Subscribe to notification updates
+   * Get unread notifications
    */
-  public subscribe(listener: (notifications: Notification[]) => void): () => void {
-    this.listeners.push(listener);
-    
-    // Immediately call with current notifications
-    listener([...this.notifications]);
-    
-    // Return unsubscribe function
-    return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
-    };
+  public getUnreadNotifications(): Notification[] {
+    return this.notifications.filter(notification => !notification.read);
   }
   
   /**
    * Mark a notification as read
    */
-  public async markAsRead(notificationId: string): Promise<boolean> {
-    if (!this.userId) {
-      return false;
-    }
+  public async markAsRead(notificationId: string): Promise<void> {
+    const index = this.notifications.findIndex(n => n.id === notificationId);
     
-    try {
-      const response = await fetch(`${this.apiUrl}/api/notifications/${notificationId}/read`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({ userId: this.userId })
-      });
-      
-      if (response.ok) {
-        // The server will notify us via WebSocket, but we'll update locally too for immediate feedback
-        this.updateNotification({ id: notificationId, read: true });
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error marking notification as read:', error);
-      return false;
+    if (index !== -1) {
+      this.notifications[index].read = true;
+      await this.saveNotifications();
     }
+  }
+  
+  /**
+   * Mark all notifications as read
+   */
+  public async markAllAsRead(): Promise<void> {
+    this.notifications.forEach(notification => {
+      notification.read = true;
+    });
+    
+    await this.saveNotifications();
   }
   
   /**
    * Clear all notifications
    */
-  public async clearNotifications(): Promise<boolean> {
-    if (!this.userId) {
-      return false;
-    }
-    
+  public async clearNotifications(): Promise<void> {
+    this.notifications = [];
+    await this.saveNotifications();
+  }
+  
+  /**
+   * Send a notification to a user
+   */
+  public async sendNotification(
+    userId: number,
+    type: NotificationType,
+    title: string,
+    message: string,
+    metadata?: Record<string, any>
+  ): Promise<Notification | null> {
     try {
-      const response = await fetch(`${this.apiUrl}/api/notifications/clear?userId=${this.userId}`, {
-        method: 'DELETE'
-      });
-      
-      if (response.ok) {
-        // The server will notify us via WebSocket, but we'll update locally too for immediate feedback
-        this.notifications = [];
-        this.notifyListeners();
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Error clearing notifications:', error);
-      return false;
-    }
-  }
-  
-  /**
-   * Fetch notifications from the API
-   */
-  private async fetchNotifications(): Promise<void> {
-    if (!this.userId) {
-      return;
-    }
-    
-    try {
-      const response = await fetch(`${this.apiUrl}/api/notifications?userId=${this.userId}`);
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        if (data.success && data.notifications) {
-          this.notifications = data.notifications;
-          this.notifyListeners();
-        }
-      }
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    }
-  }
-  
-  /**
-   * Add a new notification
-   */
-  private addNotification(notification: Notification): void {
-    // Convert string timestamp to Date if needed
-    if (typeof notification.timestamp === 'string') {
-      notification.timestamp = new Date(notification.timestamp);
-    }
-    
-    this.notifications.unshift(notification);
-    this.notifyListeners();
-  }
-  
-  /**
-   * Update an existing notification
-   */
-  private updateNotification(updatedNotification: Partial<Notification> & { id: string }): void {
-    const index = this.notifications.findIndex(n => n.id === updatedNotification.id);
-    
-    if (index !== -1) {
-      this.notifications[index] = {
-        ...this.notifications[index],
-        ...updatedNotification
+      // Create notification object
+      const notificationData = {
+        userId,
+        type,
+        title,
+        message,
+        metadata
       };
       
-      this.notifyListeners();
+      // Try to send to server if online
+      if (this.isConnected) {
+        const response = await this.apiService.post<Notification>(
+          '/api/notifications', 
+          notificationData
+        );
+        
+        if (response) {
+          // Add to local collection
+          this.addNotification(response);
+          return response;
+        }
+      } else {
+        // Generate local notification if offline
+        const localNotification: Notification = {
+          id: Date.now().toString(36) + Math.random().toString(36).substring(2),
+          userId,
+          type,
+          title,
+          message,
+          metadata,
+          read: false,
+          createdAt: new Date().toISOString()
+        };
+        
+        // Add to local collection
+        this.addNotification(localNotification);
+        return localNotification;
+      }
+    } catch (error) {
+      console.error('Error sending notification:', error);
     }
-  }
-  
-  /**
-   * Notify all listeners of changes
-   */
-  private notifyListeners(): void {
-    const notificationsCopy = [...this.notifications];
     
-    for (const listener of this.listeners) {
-      listener(notificationsCopy);
-    }
+    return null;
   }
 }

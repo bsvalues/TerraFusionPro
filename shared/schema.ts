@@ -34,6 +34,27 @@ export const insertUserSchema = createInsertSchema(users).pick({
 });
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
+
+// Field Notes
+export const fieldNotes = pgTable("field_notes", {
+  id: text("id").primaryKey(),
+  parcelId: text("parcel_id").notNull(),
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").defaultNow(),
+  createdBy: text("created_by").notNull(),
+  userId: integer("user_id").notNull(),
+});
+
+export const fieldNoteSchema = z.object({
+  id: z.string().optional(),
+  parcelId: z.string(),
+  text: z.string(),
+  createdAt: z.string().datetime().optional().default(() => new Date().toISOString()),
+  createdBy: z.string(),
+  userId: z.number(),
+});
+
+export type FieldNote = z.infer<typeof fieldNoteSchema>;
 export type User = typeof users.$inferSelect;
 
 // Property model
