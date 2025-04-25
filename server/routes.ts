@@ -16,6 +16,7 @@ import {
   ParcelNote
 } from '../packages/crdt/src/index';
 import { photoSyncRouter } from './routes/photo-sync-routes';
+import fieldNotesRouter from './routes/field-notes-routes';
 import { 
   insertUserSchema, 
   insertPropertySchema, 

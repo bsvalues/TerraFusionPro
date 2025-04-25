@@ -1,17 +1,27 @@
 import { v4 as uuidv4 } from 'uuid';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+import { fromUint8Array, toUint8Array } from 'js-base64';
 import { OfflineQueueService, OperationType } from './OfflineQueueService';
-import { ConflictResolutionService, DataType } from './ConflictResolutionService';
-import { NotificationService } from './NotificationService';
-import { NotificationType, PropertyData, AppraisalReport, ComparableData } from './types';
+import { ConflictResolutionService, ConflictType } from './ConflictResolutionService';
+import { NotificationService, NotificationType } from './NotificationService';
+import { ApiService } from './ApiService';
 import * as Y from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
 
-// For now we'll use a constant API URL, but this would typically come from a config file
-const API_URL = 'https://appraisalcore.replit.app';
-const SYNC_INTERVAL_MS = 60000; // 1 minute
+// Types
+interface SyncInfo {
+  lastSynced: string;
+  lastUpdateId: string;
+}
+
+interface FieldNote {
+  id?: string;
+  parcelId: string;
+  text: string;
+  createdAt?: string;
+  createdBy: string;
+  userId: number;
+}
 
 /**
  * This service handles synchronization of data between the mobile app and the server
@@ -19,606 +29,503 @@ const SYNC_INTERVAL_MS = 60000; // 1 minute
  */
 export class DataSyncService {
   private static instance: DataSyncService;
-  private ydoc: Y.Doc;
-  private wsProvider: WebsocketProvider | null = null;
-  private indexeddbProvider: IndexeddbPersistence | null = null;
-  private isOnline: boolean = true;
-  private isSyncing: boolean = false;
-  private syncInterval: NodeJS.Timeout | null = null;
-  private offlineQueueService: OfflineQueueService;
+  private offlineQueue: OfflineQueueService;
   private conflictService: ConflictResolutionService;
   private notificationService: NotificationService;
+  private apiService: ApiService;
+  private syncInProgress: boolean = false;
+  private syncInterval: NodeJS.Timeout | null = null;
   
-  // Define CRDT shared types for different data
-  public properties: Y.Map<PropertyData>;
-  public reports: Y.Map<AppraisalReport>;
-  public comparables: Y.Map<ComparableData>;
-  
-  // Store last sync timestamps
-  private lastSyncTimes: Record<string, number> = {
-    properties: 0,
-    reports: 0,
-    comparables: 0,
-    photos: 0
-  };
-  
+  // In-memory store of active Yjs documents
+  private documents: Map<string, Y.Doc> = new Map();
+
   private constructor() {
-    // Initialize YJS document
-    this.ydoc = new Y.Doc();
-    
-    // Initialize shared data types
-    this.properties = this.ydoc.getMap('properties');
-    this.reports = this.ydoc.getMap('reports');
-    this.comparables = this.ydoc.getMap('comparables');
-    
-    // Initialize services
-    this.offlineQueueService = OfflineQueueService.getInstance();
+    this.offlineQueue = OfflineQueueService.getInstance();
     this.conflictService = ConflictResolutionService.getInstance();
     this.notificationService = NotificationService.getInstance();
-    
-    // Initialize providers
-    this.setupPersistence();
-    
-    // Monitor connectivity
-    this.monitorConnectivity();
-    
-    // Load last sync times
-    this.loadLastSyncTimes();
+    this.apiService = ApiService.getInstance();
+
+    // Set up auto sync
+    this.setupAutoSync();
+
+    // Listen for network changes
+    this.setupNetworkListener();
   }
-  
-  /**
-   * Get the singleton instance
-   */
+
   public static getInstance(): DataSyncService {
     if (!DataSyncService.instance) {
       DataSyncService.instance = new DataSyncService();
     }
     return DataSyncService.instance;
   }
-  
+
   /**
-   * Set up CRDT persistence providers
+   * Set up auto sync interval
    */
-  private setupPersistence() {
-    try {
-      // IndexedDB for offline persistence
-      this.indexeddbProvider = new IndexeddbPersistence('terrafield-data', this.ydoc);
-      
-      this.indexeddbProvider.on('synced', () => {
-        console.log('Data loaded from IndexedDB');
-      });
-      
-      // WebSocket for real-time sync when online
-      this.connectWebsocket();
-    } catch (error) {
-      console.error('Error setting up CRDT persistence:', error);
+  private setupAutoSync(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
     }
-  }
-  
-  /**
-   * Connect to the WebSocket server for real-time sync
-   */
-  private connectWebsocket() {
-    if (!this.isOnline) return;
-    
-    try {
-      // Close existing connection if any
-      if (this.wsProvider) {
-        this.wsProvider.disconnect();
-        this.wsProvider.destroy();
-        this.wsProvider = null;
+
+    // Sync every 5 minutes
+    this.syncInterval = setInterval(async () => {
+      const isConnected = await this.isConnected();
+      if (isConnected) {
+        await this.syncAll();
       }
-      
-      // Connect to the WebSocket server
-      this.wsProvider = new WebsocketProvider(
-        `${API_URL.replace('http', 'ws')}/crdt`,
-        'terrafield-data',
-        this.ydoc
-      );
-      
-      this.wsProvider.on('status', (event: { status: string }) => {
-        console.log('WebSocket connection status:', event.status);
-        
-        if (event.status === 'connected') {
-          console.log('Connected to CRDT server, syncing data...');
-          this.notificationService.sendNotification(
-            1, // TODO: Get actual user ID
-            NotificationType.SYNC_STARTED,
-            'Data Sync Started',
-            'Connecting to server for real-time data synchronization.'
-          );
-        }
-      });
-      
-      this.wsProvider.on('sync', (isSynced: boolean) => {
-        if (isSynced) {
-          console.log('Initial data sync completed');
-          this.notificationService.sendNotification(
-            1, // TODO: Get actual user ID 
-            NotificationType.SYNC_COMPLETED,
-            'Data Sync Completed',
-            'Your data is now synchronized with the server.'
-          );
-          
-          // Update last sync times
-          const now = Date.now();
-          Object.keys(this.lastSyncTimes).forEach(key => {
-            this.lastSyncTimes[key] = now;
-          });
-          this.saveLastSyncTimes();
-        }
-      });
-    } catch (error) {
-      console.error('Error connecting to WebSocket:', error);
-    }
+    }, 5 * 60 * 1000);
   }
-  
+
   /**
-   * Monitor network connectivity changes
+   * Set up network change listener
    */
-  private monitorConnectivity() {
+  private setupNetworkListener(): void {
     NetInfo.addEventListener(state => {
-      const wasOnline = this.isOnline;
-      this.isOnline = state.isConnected ?? false;
-      
-      if (!wasOnline && this.isOnline) {
-        // Just came online, reconnect WebSocket and sync data
-        console.log('Device is now online, reconnecting...');
-        this.connectWebsocket();
-        this.syncDataWithServer();
-      } else if (wasOnline && !this.isOnline) {
-        // Just went offline, disconnect WebSocket
-        console.log('Device is now offline, disconnecting...');
-        if (this.wsProvider) {
-          this.wsProvider.disconnect();
-        }
-        
-        this.notificationService.sendNotification(
-          1, // TODO: Get actual user ID
-          NotificationType.SYSTEM,
-          'Offline Mode',
-          'You are now working offline. Changes will be synchronized when you reconnect.'
-        );
+      // When we go from offline to online, attempt to sync
+      if (state.isConnected) {
+        this.syncAll();
       }
     });
   }
-  
+
   /**
-   * Start periodic synchronization with the server
+   * Check if device is connected to the internet
    */
-  public startPeriodicSync(intervalMs: number = SYNC_INTERVAL_MS) {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-    }
-    
-    this.syncInterval = setInterval(() => {
-      if (this.isOnline && !this.isSyncing) {
-        this.syncDataWithServer();
-      }
-    }, intervalMs);
-    
-    console.log(`Periodic sync started with interval: ${intervalMs}ms`);
+  private async isConnected(): Promise<boolean> {
+    const netInfo = await NetInfo.fetch();
+    return !!netInfo.isConnected;
   }
-  
+
   /**
-   * Stop periodic synchronization
+   * Sync all data
    */
-  public stopPeriodicSync() {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-      this.syncInterval = null;
-      console.log('Periodic sync stopped');
-    }
-  }
-  
-  /**
-   * Manually trigger synchronization with the server
-   */
-  public async syncDataWithServer() {
-    if (!this.isOnline || this.isSyncing) return;
-    
-    this.isSyncing = true;
-    
+  public async syncAll(): Promise<void> {
+    if (this.syncInProgress) return;
+
+    this.syncInProgress = true;
     try {
-      console.log('Starting data sync with server...');
+      const isConnected = await this.isConnected();
+      if (!isConnected) {
+        console.log('Cannot sync: No internet connection');
+        return;
+      }
+
+      // Get all parcel IDs that have local changes
+      const parcelIds = await this.getLocallyModifiedParcelIds();
       
-      this.notificationService.sendNotification(
-        1, // TODO: Get actual user ID
-        NotificationType.SYNC_STARTED,
-        'Data Sync Started',
-        'Synchronizing your data with the server.'
-      );
-      
-      // Process any pending operations in the queue first
-      await this.offlineQueueService.processQueue();
-      
-      // Sync each data type
-      await Promise.all([
-        this.syncProperties(),
-        this.syncReports(),
-        this.syncComparables()
-      ]);
-      
-      // Update last sync times
-      const now = Date.now();
-      Object.keys(this.lastSyncTimes).forEach(key => {
-        this.lastSyncTimes[key] = now;
-      });
-      await this.saveLastSyncTimes();
-      
-      this.notificationService.sendNotification(
-        1, // TODO: Get actual user ID
-        NotificationType.SYNC_COMPLETED,
-        'Data Sync Completed',
-        'Your data has been successfully synchronized with the server.'
-      );
-      
-      console.log('Data sync completed successfully');
+      // Sync each parcel
+      for (const parcelId of parcelIds) {
+        await this.syncParcelData(parcelId);
+      }
+
+      // Process offline queue
+      await this.offlineQueue.processQueue();
     } catch (error) {
-      console.error('Error syncing data with server:', error);
-      
-      this.notificationService.sendNotification(
-        1, // TODO: Get actual user ID
-        NotificationType.SYNC_FAILED,
-        'Data Sync Failed',
-        `There was a problem synchronizing your data: ${error instanceof Error ? error.message : String(error)}`
-      );
+      console.error('Error syncing all data:', error);
     } finally {
-      this.isSyncing = false;
+      this.syncInProgress = false;
     }
   }
-  
+
   /**
-   * Sync properties with the server
+   * Get all parcel IDs that have local changes
    */
-  private async syncProperties() {
+  private async getLocallyModifiedParcelIds(): Promise<string[]> {
     try {
-      // Fetch properties updated since last sync
-      const lastSync = this.lastSyncTimes.properties;
-      const response = await fetch(`${API_URL}/api/properties/sync?since=${lastSync}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
+      // Get all keys from AsyncStorage that start with field notes prefix
+      const keys = await AsyncStorage.getAllKeys();
+      const fieldNoteKeys = keys.filter(key => key.startsWith('terrafield_fieldnotes_'));
       
-      if (!response.ok) {
-        throw new Error(`Properties sync failed with status ${response.status}`);
+      // Extract parcel IDs from keys
+      return fieldNoteKeys.map(key => key.replace('terrafield_fieldnotes_', ''));
+    } catch (error) {
+      console.error('Error getting locally modified parcel IDs:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Sync field notes for a specific parcel
+   */
+  public async syncParcelData(parcelId: string): Promise<boolean> {
+    if (!parcelId) return false;
+
+    try {
+      const isConnected = await this.isConnected();
+      if (!isConnected) {
+        console.log(`Cannot sync parcel ${parcelId}: No internet connection`);
+        return false;
       }
+
+      // Get or create document
+      let doc = this.documents.get(parcelId);
       
-      const serverProperties = await response.json();
-      console.log(`Received ${serverProperties.length} properties from server`);
-      
-      // Update local properties
-      for (const serverProperty of serverProperties) {
-        const propertyId = serverProperty.id;
-        const localProperty = this.properties.get(propertyId);
+      if (!doc) {
+        // Try to load from local storage
+        doc = new Y.Doc();
+        this.documents.set(parcelId, doc);
         
-        if (!localProperty) {
-          // New property from server, just add it
-          this.properties.set(propertyId, serverProperty);
-        } else {
-          // Check for conflicts
-          const conflict = await this.conflictService.detectConflict(
-            DataType.PROPERTY,
-            propertyId,
-            localProperty,
-            serverProperty
-          );
-          
-          if (conflict) {
-            // Resolve conflict automatically
-            const resolvedData = await this.conflictService.autoResolveConflict(conflict);
-            if (resolvedData) {
-              this.properties.set(propertyId, resolvedData);
+        const localData = await AsyncStorage.getItem(`terrafield_fieldnotes_${parcelId}`);
+        if (localData) {
+          try {
+            const parsedData = JSON.parse(localData);
+            if (parsedData.update) {
+              const update = toUint8Array(parsedData.update);
+              Y.applyUpdate(doc, update);
             }
-          } else {
-            // No conflict, update with server version
-            this.properties.set(propertyId, serverProperty);
+          } catch (parseError) {
+            console.error('Error parsing local data:', parseError);
           }
         }
       }
+
+      // Encode current document state
+      const update = Y.encodeStateAsUpdate(doc);
+      const base64Update = fromUint8Array(update);
+
+      // Call the sync API
+      const response = await this.apiService.post(`/api/field-notes/${parcelId}/sync`, {
+        update: base64Update
+      });
+
+      if (response.state && response.data) {
+        // Apply the merged state from server
+        const serverUpdate = toUint8Array(response.state);
+        Y.applyUpdate(doc, serverUpdate);
+
+        // Save to local storage
+        await this.saveToLocalStorage(parcelId, doc);
+
+        // Update last synced time
+        await this.updateLastSyncTime(parcelId);
+
+        // Process any conflicts
+        await this.resolveConflicts(parcelId);
+
+        return true;
+      }
+
+      return false;
+    } catch (error) {
+      console.error(`Error syncing parcel ${parcelId}:`, error);
       
-      // Push local properties to server
-      // We're sending only properties updated locally since last sync
-      const localUpdates: PropertyData[] = [];
-      this.properties.forEach((property, key) => {
-        const lastModified = new Date(property.lastModified).getTime();
-        if (lastModified > lastSync) {
-          localUpdates.push(property);
+      // Add to the conflict resolution queue for later handling
+      this.conflictService.addConflict(
+        ConflictType.FIELD_NOTE,
+        `parcel_${parcelId}`,
+        `Failed to sync field notes for parcel ${parcelId}`,
+        { parcelId }
+      );
+      
+      return false;
+    }
+  }
+
+  /**
+   * Save document to local storage
+   */
+  private async saveToLocalStorage(parcelId: string, doc: Y.Doc): Promise<void> {
+    try {
+      // Encode current document state
+      const update = Y.encodeStateAsUpdate(doc);
+      const base64Update = fromUint8Array(update);
+      
+      // Save to local storage
+      const now = new Date().toISOString();
+      const dataToSave = {
+        update: base64Update,
+        lastSynced: now
+      };
+      
+      await AsyncStorage.setItem(
+        `terrafield_fieldnotes_${parcelId}`,
+        JSON.stringify(dataToSave)
+      );
+    } catch (error) {
+      console.error(`Error saving parcel ${parcelId} to local storage:`, error);
+    }
+  }
+
+  /**
+   * Update last sync time
+   */
+  private async updateLastSyncTime(parcelId: string): Promise<void> {
+    try {
+      const now = new Date().toISOString();
+      const syncInfo: SyncInfo = {
+        lastSynced: now,
+        lastUpdateId: uuidv4()
+      };
+      
+      await AsyncStorage.setItem(
+        `terrafield_sync_${parcelId}`,
+        JSON.stringify(syncInfo)
+      );
+    } catch (error) {
+      console.error(`Error updating last sync time for parcel ${parcelId}:`, error);
+    }
+  }
+
+  /**
+   * Get last sync time for a parcel
+   */
+  public async getLastSyncTime(parcelId: string): Promise<SyncInfo | null> {
+    try {
+      const syncInfoJson = await AsyncStorage.getItem(`terrafield_sync_${parcelId}`);
+      if (syncInfoJson) {
+        return JSON.parse(syncInfoJson) as SyncInfo;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error getting last sync time for parcel ${parcelId}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Resolve any conflicts for this parcel
+   */
+  private async resolveConflicts(parcelId: string): Promise<void> {
+    try {
+      const conflicts = this.conflictService.getUnresolvedConflicts()
+        .filter(conflict => 
+          conflict.type === ConflictType.FIELD_NOTE && 
+          conflict.entityId === `parcel_${parcelId}`
+        );
+      
+      if (conflicts.length > 0) {
+        // Auto-resolve conflicts
+        const resolvedCount = this.conflictService.autoResolveConflicts();
+        console.log(`Auto-resolved ${resolvedCount} conflicts for parcel ${parcelId}`);
+        
+        // Notify about any remaining conflicts
+        const remainingConflicts = this.conflictService.getUnresolvedConflicts()
+          .filter(conflict => 
+            conflict.type === ConflictType.FIELD_NOTE && 
+            conflict.entityId === `parcel_${parcelId}`
+          );
+        
+        if (remainingConflicts.length > 0) {
+          this.notificationService.sendNotification(
+            1, // Default user ID (should come from auth)
+            NotificationType.CONFLICT_DETECTED,
+            'Sync Conflicts Detected',
+            `There are ${remainingConflicts.length} unresolved conflicts for property ${parcelId}.`
+          );
         }
-      });
-      
-      if (localUpdates.length > 0) {
-        console.log(`Sending ${localUpdates.length} local property updates to server`);
-        
-        // Push updates to server
-        const updateResponse = await fetch(`${API_URL}/api/properties/batch`, {
-          method: 'POST',
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(localUpdates),
-        });
-        
-        if (!updateResponse.ok) {
-          throw new Error(`Sending local property updates failed with status ${updateResponse.status}`);
+      }
+    } catch (error) {
+      console.error(`Error resolving conflicts for parcel ${parcelId}:`, error);
+    }
+  }
+
+  /**
+   * Get field notes for a parcel
+   */
+  public async getFieldNotes(parcelId: string): Promise<FieldNote[]> {
+    try {
+      // Try to get from server first if online
+      const isConnected = await this.isConnected();
+      if (isConnected) {
+        try {
+          const response = await this.apiService.get(`/api/field-notes/${parcelId}/notes`);
+          if (response && response.notes) {
+            return response.notes;
+          }
+        } catch (error) {
+          console.log('Failed to fetch field notes from server, using local data');
         }
-        
-        console.log('Local property updates sent successfully');
-      }
-    } catch (error) {
-      console.error('Error syncing properties:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Sync appraisal reports with the server
-   */
-  private async syncReports() {
-    try {
-      // Implementation similar to syncProperties but for reports
-      const lastSync = this.lastSyncTimes.reports;
-      const response = await fetch(`${API_URL}/api/reports/sync?since=${lastSync}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Reports sync failed with status ${response.status}`);
       }
       
-      const serverReports = await response.json();
-      console.log(`Received ${serverReports.length} reports from server`);
-      
-      // Update local reports with server data
-      // (Conflict detection and resolution logic similar to properties)
-      // ...
-      
-      // Send local updates to server
-      // ...
-    } catch (error) {
-      console.error('Error syncing reports:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Sync comparable properties with the server
-   */
-  private async syncComparables() {
-    try {
-      // Implementation similar to syncProperties but for comparables
-      const lastSync = this.lastSyncTimes.comparables;
-      const response = await fetch(`${API_URL}/api/comparables/sync?since=${lastSync}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      if (!response.ok) {
-        throw new Error(`Comparables sync failed with status ${response.status}`);
+      // Fall back to local storage
+      const doc = this.documents.get(parcelId);
+      if (doc) {
+        const notesArray = doc.getArray('notes');
+        return notesArray.toArray();
       }
       
-      const serverComparables = await response.json();
-      console.log(`Received ${serverComparables.length} comparables from server`);
-      
-      // Update local comparables with server data
-      // (Conflict detection and resolution logic similar to properties)
-      // ...
-      
-      // Send local updates to server
-      // ...
-    } catch (error) {
-      console.error('Error syncing comparables:', error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Add a property to the local CRDT store
-   */
-  public addProperty(property: PropertyData): string {
-    if (!property.id) {
-      property.id = uuidv4();
-    }
-    
-    // Ensure timestamps are set
-    if (!property.createdAt) {
-      property.createdAt = new Date();
-    }
-    property.lastModified = new Date();
-    
-    // Add to CRDT
-    this.properties.set(property.id, property);
-    
-    // If offline, queue this operation
-    if (!this.isOnline) {
-      this.offlineQueueService.enqueue(
-        OperationType.CREATE_PROPERTY,
-        property,
-        2 // High priority
-      );
-    }
-    
-    return property.id;
-  }
-  
-  /**
-   * Update a property in the local CRDT store
-   */
-  public updateProperty(property: PropertyData): void {
-    if (!property.id) {
-      throw new Error('Property ID is required for updates');
-    }
-    
-    // Update last modified time
-    property.lastModified = new Date();
-    
-    // Update in CRDT
-    this.properties.set(property.id, property);
-    
-    // If offline, queue this operation
-    if (!this.isOnline) {
-      this.offlineQueueService.enqueue(
-        OperationType.UPDATE_PROPERTY,
-        property,
-        2 // High priority
-      );
-    }
-  }
-  
-  /**
-   * Get a property from the local CRDT store
-   */
-  public getProperty(id: string): PropertyData | undefined {
-    return this.properties.get(id);
-  }
-  
-  /**
-   * Get all properties from the local CRDT store
-   */
-  public getAllProperties(): PropertyData[] {
-    const result: PropertyData[] = [];
-    this.properties.forEach((property) => {
-      result.push(property);
-    });
-    return result;
-  }
-  
-  /**
-   * Add a report to the local CRDT store
-   */
-  public addReport(report: AppraisalReport): string {
-    if (!report.id) {
-      report.id = uuidv4();
-    }
-    
-    // Ensure timestamps are set
-    if (!report.createdAt) {
-      report.createdAt = new Date();
-    }
-    report.lastModified = new Date();
-    
-    // Add to CRDT
-    this.reports.set(report.id, report);
-    
-    // If offline, queue this operation
-    if (!this.isOnline) {
-      this.offlineQueueService.enqueue(
-        OperationType.CREATE_REPORT,
-        report,
-        2 // High priority
-      );
-    }
-    
-    return report.id;
-  }
-  
-  /**
-   * Update a report in the local CRDT store
-   */
-  public updateReport(report: AppraisalReport): void {
-    if (!report.id) {
-      throw new Error('Report ID is required for updates');
-    }
-    
-    // Update last modified time
-    report.lastModified = new Date();
-    
-    // Update in CRDT
-    this.reports.set(report.id, report);
-    
-    // If offline, queue this operation
-    if (!this.isOnline) {
-      this.offlineQueueService.enqueue(
-        OperationType.UPDATE_REPORT,
-        report,
-        2 // High priority
-      );
-    }
-  }
-  
-  /**
-   * Get a report from the local CRDT store
-   */
-  public getReport(id: string): AppraisalReport | undefined {
-    return this.reports.get(id);
-  }
-  
-  /**
-   * Get all reports from the local CRDT store
-   */
-  public getAllReports(): AppraisalReport[] {
-    const result: AppraisalReport[] = [];
-    this.reports.forEach((report) => {
-      result.push(report);
-    });
-    return result;
-  }
-  
-  /**
-   * Load last sync times from persistent storage
-   */
-  private async loadLastSyncTimes() {
-    try {
-      const syncTimesJson = await AsyncStorage.getItem('@terrafield:last_sync_times');
-      if (syncTimesJson) {
-        this.lastSyncTimes = JSON.parse(syncTimesJson);
-        console.log('Loaded last sync times:', this.lastSyncTimes);
+      // Try to load from local storage
+      const localData = await AsyncStorage.getItem(`terrafield_fieldnotes_${parcelId}`);
+      if (localData) {
+        try {
+          const parsedData = JSON.parse(localData);
+          if (parsedData.update) {
+            const newDoc = new Y.Doc();
+            const update = toUint8Array(parsedData.update);
+            Y.applyUpdate(newDoc, update);
+            
+            // Store for future use
+            this.documents.set(parcelId, newDoc);
+            
+            // Get the notes
+            const notesArray = newDoc.getArray('notes');
+            return notesArray.toArray();
+          }
+        } catch (parseError) {
+          console.error('Error parsing local data:', parseError);
+        }
       }
+      
+      return [];
     } catch (error) {
-      console.error('Error loading last sync times:', error);
+      console.error(`Error getting field notes for parcel ${parcelId}:`, error);
+      return [];
     }
   }
-  
+
   /**
-   * Save last sync times to persistent storage
+   * Add a field note
    */
-  private async saveLastSyncTimes() {
+  public async addFieldNote(note: FieldNote): Promise<boolean> {
     try {
-      await AsyncStorage.setItem('@terrafield:last_sync_times', JSON.stringify(this.lastSyncTimes));
+      const { parcelId } = note;
+      
+      // Get or create document
+      let doc = this.documents.get(parcelId);
+      
+      if (!doc) {
+        // Create new document
+        doc = new Y.Doc();
+        this.documents.set(parcelId, doc);
+      }
+      
+      // Add note ID if missing
+      if (!note.id) {
+        note.id = uuidv4();
+      }
+      
+      // Add created at timestamp if missing
+      if (!note.createdAt) {
+        note.createdAt = new Date().toISOString();
+      }
+      
+      // Add to the Yjs document
+      const notesArray = doc.getArray('notes');
+      notesArray.push([note]);
+      
+      // Save to local storage
+      await this.saveToLocalStorage(parcelId, doc);
+      
+      // Try to sync if online
+      const isConnected = await this.isConnected();
+      if (isConnected) {
+        try {
+          await this.syncParcelData(parcelId);
+        } catch (syncError) {
+          console.error('Error syncing after adding note:', syncError);
+          
+          // Add to offline queue
+          await this.offlineQueue.enqueue(
+            OperationType.CREATE_NOTE,
+            { note, parcelId },
+            2 // Medium priority
+          );
+        }
+      } else {
+        // Add to offline queue
+        await this.offlineQueue.enqueue(
+          OperationType.CREATE_NOTE,
+          { note, parcelId },
+          2 // Medium priority
+        );
+      }
+      
+      return true;
     } catch (error) {
-      console.error('Error saving last sync times:', error);
+      console.error('Error adding field note:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Delete a field note
+   */
+  public async deleteFieldNote(parcelId: string, noteId: string): Promise<boolean> {
+    try {
+      // Get document
+      let doc = this.documents.get(parcelId);
+      
+      if (!doc) {
+        // Try to load from local storage
+        const localData = await AsyncStorage.getItem(`terrafield_fieldnotes_${parcelId}`);
+        if (localData) {
+          try {
+            doc = new Y.Doc();
+            this.documents.set(parcelId, doc);
+            
+            const parsedData = JSON.parse(localData);
+            if (parsedData.update) {
+              const update = toUint8Array(parsedData.update);
+              Y.applyUpdate(doc, update);
+            }
+          } catch (parseError) {
+            console.error('Error parsing local data:', parseError);
+            return false;
+          }
+        } else {
+          return false;
+        }
+      }
+      
+      // Find the note
+      const notesArray = doc.getArray('notes');
+      const notes = notesArray.toArray();
+      const noteIndex = notes.findIndex(note => note.id === noteId);
+      
+      if (noteIndex === -1) {
+        return false;
+      }
+      
+      // Delete the note
+      notesArray.delete(noteIndex, 1);
+      
+      // Save to local storage
+      await this.saveToLocalStorage(parcelId, doc);
+      
+      // Try to sync if online
+      const isConnected = await this.isConnected();
+      if (isConnected) {
+        try {
+          // Try to delete on the server
+          await this.apiService.delete(`/api/field-notes/${parcelId}/notes/${noteId}`);
+          
+          // Also sync the updated Yjs document
+          await this.syncParcelData(parcelId);
+        } catch (syncError) {
+          console.error('Error syncing after deleting note:', syncError);
+          
+          // Add to offline queue
+          await this.offlineQueue.enqueue(
+            OperationType.DELETE_NOTE,
+            { noteId, parcelId },
+            2 // Medium priority
+          );
+        }
+      } else {
+        // Add to offline queue
+        await this.offlineQueue.enqueue(
+          OperationType.DELETE_NOTE,
+          { noteId, parcelId },
+          2 // Medium priority
+        );
+      }
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting field note ${noteId} from parcel ${parcelId}:`, error);
+      return false;
     }
   }
   
   /**
-   * Force a full sync with the server, ignoring last sync times
+   * Get a property by ID
    */
-  public async forceFullSync() {
-    // Reset last sync times to 0 to force a full sync
-    Object.keys(this.lastSyncTimes).forEach(key => {
-      this.lastSyncTimes[key] = 0;
-    });
-    
-    // Perform sync
-    await this.syncDataWithServer();
-  }
-  
-  /**
-   * Clear all local data (for testing or account reset)
-   */
-  public async clearAllData() {
-    // Clear CRDT data
-    this.properties.clear();
-    this.reports.clear();
-    this.comparables.clear();
-    
-    // Reset last sync times
-    Object.keys(this.lastSyncTimes).forEach(key => {
-      this.lastSyncTimes[key] = 0;
-    });
-    await this.saveLastSyncTimes();
-    
-    console.log('All local data cleared');
+  public async getProperty(propertyId: number): Promise<any> {
+    try {
+      return await this.apiService.get(`/api/properties/${propertyId}`);
+    } catch (error) {
+      console.error(`Error getting property ${propertyId}:`, error);
+      return null;
+    }
   }
 }

@@ -52,7 +52,27 @@ async function initDocFromDb(doc: Y.Doc, parcelId: string): Promise<void> {
  */
 function getFieldNotesData(doc: Y.Doc): { notes: FieldNote[] } {
   const notesArray = doc.getArray('notes');
-  const notes = notesArray.toArray();
+  const rawNotes = notesArray.toArray();
+  
+  // Ensure we're returning properly typed FieldNote objects
+  const notes: FieldNote[] = rawNotes.map(note => {
+    // Validate and cast each note using the schema
+    try {
+      return fieldNoteSchema.parse(note);
+    } catch (e) {
+      console.error("Invalid field note data:", e, note);
+      // Return a minimally valid note to prevent crashes
+      return {
+        id: note.id || uuidv4(),
+        parcelId: note.parcelId || "",
+        text: note.text || "",
+        createdAt: note.createdAt || new Date().toISOString(),
+        createdBy: note.createdBy || "Unknown",
+        userId: note.userId || 0
+      };
+    }
+  });
+  
   return { notes };
 }
 
@@ -120,6 +140,11 @@ async function persistNotesToDb(parcelId: string, doc: Y.Doc): Promise<void> {
       // Add or update notes
       for (const note of notes) {
         try {
+          // Ensure we have a valid note with an ID
+          if (!note.id) {
+            note.id = uuidv4();
+          }
+          
           const validatedNote = fieldNoteSchema.parse(note);
           
           if (existingNoteIds.has(validatedNote.id)) {
@@ -127,22 +152,22 @@ async function persistNotesToDb(parcelId: string, doc: Y.Doc): Promise<void> {
             await tx
               .update(fieldNotes)
               .set({
-                text: validatedNote.text,
-                updatedAt: new Date(),
+                text: validatedNote.text
+                // Don't include updatedAt as it doesn't exist in our schema
               })
-              .where(eq(fieldNotes.id, validatedNote.id));
+              .where(eq(fieldNotes.id, validatedNote.id || ''));
             
             // Remove from the set of existing notes
             existingNoteIds.delete(validatedNote.id);
           } else {
             // Insert new note
             await tx.insert(fieldNotes).values({
-              id: validatedNote.id,
               parcelId: validatedNote.parcelId,
               text: validatedNote.text,
               createdAt: new Date(validatedNote.createdAt || new Date()),
               createdBy: validatedNote.createdBy,
               userId: validatedNote.userId,
+              id: validatedNote.id
             });
           }
         } catch (error) {
@@ -151,8 +176,10 @@ async function persistNotesToDb(parcelId: string, doc: Y.Doc): Promise<void> {
       }
       
       // Delete notes that no longer exist in the Yjs document
-      for (const id of existingNoteIds) {
-        await tx.delete(fieldNotes).where(eq(fieldNotes.id, id));
+      for (const id of Array.from(existingNoteIds)) {
+        if (id) {
+          await tx.delete(fieldNotes).where(eq(fieldNotes.id, id));
+        }
       }
     });
     
