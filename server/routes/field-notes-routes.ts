@@ -1,235 +1,291 @@
-import express, { Request, Response } from 'express';
-import { storage } from '../storage';
+import express, { Request, Response, Router } from 'express';
 import * as Y from 'yjs';
-import { applyUpdateV2 } from 'yjs';
+import { db } from '../db';
+import { eq } from 'drizzle-orm';
+import { fieldNotes, FieldNote, fieldNoteSchema } from '@shared/schema';
 import { fromUint8Array, toUint8Array } from 'js-base64';
-import { fieldNoteSchema } from '../../shared/schema';
-import { z } from 'zod';
+import { v4 as uuidv4 } from 'uuid';
+import * as z from 'zod';
 
-const router = express.Router();
+const router = Router();
 
-// Map to store Yjs documents for field notes by parcelId
-const fieldNoteDocs = new Map<string, Y.Doc>();
+// In-memory store of active Yjs documents (to be moved to a persistent store like Redis in production)
+const documents = new Map<string, Y.Doc>();
 
-// Helper function to create or retrieve a field notes document
+/**
+ * Get an existing document from the store or create a new one
+ */
 function getOrCreateFieldNoteDoc(parcelId: string): Y.Doc {
-  if (!fieldNoteDocs.has(parcelId)) {
+  if (!documents.has(parcelId)) {
     const doc = new Y.Doc();
-    fieldNoteDocs.set(parcelId, doc);
-  }
-  return fieldNoteDocs.get(parcelId)!;
-}
-
-// Helper function to get field notes data from a document
-function getFieldNotesData(doc: Y.Doc): { notes: any[] } {
-  const notesArray = doc.getArray('notes');
-  return {
-    notes: notesArray.toArray()
-  };
-}
-
-// Helper function to update field notes data in a document
-function updateFieldNoteData(doc: Y.Doc, noteData: any): void {
-  // Parse and validate the note data
-  try {
-    const validatedData = fieldNoteSchema.parse(noteData);
-    const notesArray = doc.getArray('notes');
+    documents.set(parcelId, doc);
     
-    // Update existing note or add a new one
-    if (validatedData.id) {
-      const index = notesArray.toArray().findIndex((note: any) => note.id === validatedData.id);
-      if (index !== -1) {
-        // Update existing note
-        notesArray.delete(index, 1);
-        notesArray.insert(index, [validatedData]);
-      } else {
-        // Add new note
-        notesArray.push([validatedData]);
-      }
-    } else {
-      // Add new note with generated id
-      notesArray.push([{
-        ...validatedData,
-        id: Date.now().toString(36) + Math.random().toString(36).substring(2)
-      }]);
+    // Initialize with data from the database
+    initDocFromDb(doc, parcelId);
+  }
+  
+  return documents.get(parcelId)!;
+}
+
+/**
+ * Initialize a Yjs document with data from the database
+ */
+async function initDocFromDb(doc: Y.Doc, parcelId: string): Promise<void> {
+  try {
+    // Get field notes for this parcel from the database
+    const notes = await db.select().from(fieldNotes).where(eq(fieldNotes.parcelId, parcelId));
+    
+    if (notes.length > 0) {
+      // Add the notes to the Yjs document
+      const notesArray = doc.getArray('notes');
+      notes.forEach(note => {
+        notesArray.push([note]);
+      });
     }
   } catch (error) {
-    console.error('Error validating field note data:', error);
-    throw error;
+    console.error(`Error initializing document for parcel ${parcelId}:`, error);
   }
 }
 
-// Helper function to apply encoded updates to a document
+/**
+ * Get field notes data from a Yjs document
+ */
+function getFieldNotesData(doc: Y.Doc): { notes: FieldNote[] } {
+  const notesArray = doc.getArray('notes');
+  const notes = notesArray.toArray();
+  return { notes };
+}
+
+/**
+ * Update a field note in the Yjs document
+ */
+function updateFieldNoteData(doc: Y.Doc, noteData: any): void {
+  const notesArray = doc.getArray('notes');
+  
+  // Check if this is an update or a new note
+  if (noteData.id) {
+    // Find the existing note
+    const index = notesArray.toArray().findIndex(note => note.id === noteData.id);
+    
+    if (index !== -1) {
+      // Update the existing note
+      notesArray.delete(index, 1);
+      notesArray.insert(index, [noteData]);
+    }
+  } else {
+    // Add a new note
+    noteData.id = uuidv4();
+    noteData.createdAt = new Date().toISOString();
+    notesArray.push([noteData]);
+  }
+}
+
+/**
+ * Apply an encoded update to a Yjs document
+ */
 function applyEncodedUpdate(doc: Y.Doc, encodedUpdate: string): void {
-  try {
-    // Convert base64 to Uint8Array
-    const update = toUint8Array(encodedUpdate);
-    // Apply the update to the document
-    applyUpdateV2(doc, update);
-  } catch (error) {
-    console.error('Error applying encoded update:', error);
-    throw error;
-  }
+  const update = toUint8Array(encodedUpdate);
+  Y.applyUpdate(doc, update);
 }
 
-// Helper function to encode document updates
+/**
+ * Encode a Yjs document update as a base64 string
+ */
 function encodeDocUpdate(doc: Y.Doc): string {
-  // Get the document state as an update
   const update = Y.encodeStateAsUpdate(doc);
-  // Convert to base64 for JSON serialization
   return fromUint8Array(update);
 }
 
-// Helper function to merge updates
+/**
+ * Merge updates and return the merged state
+ */
 function mergeUpdates(doc: Y.Doc, encodedUpdate: string): string {
-  // Apply the received update
   applyEncodedUpdate(doc, encodedUpdate);
-  // Return the current state
   return encodeDocUpdate(doc);
 }
 
-// Get current field notes state
+/**
+ * Persist field notes to the database
+ */
+async function persistNotesToDb(parcelId: string, doc: Y.Doc): Promise<void> {
+  try {
+    const { notes } = getFieldNotesData(doc);
+    
+    // Get existing notes for this parcel
+    const existingNotes = await db.select().from(fieldNotes).where(eq(fieldNotes.parcelId, parcelId));
+    const existingNoteIds = new Set(existingNotes.map(note => note.id));
+    
+    // Transaction to update the database
+    await db.transaction(async (tx) => {
+      // Add or update notes
+      for (const note of notes) {
+        try {
+          const validatedNote = fieldNoteSchema.parse(note);
+          
+          if (existingNoteIds.has(validatedNote.id)) {
+            // Update existing note
+            await tx
+              .update(fieldNotes)
+              .set({
+                text: validatedNote.text,
+                updatedAt: new Date(),
+              })
+              .where(eq(fieldNotes.id, validatedNote.id));
+            
+            // Remove from the set of existing notes
+            existingNoteIds.delete(validatedNote.id);
+          } else {
+            // Insert new note
+            await tx.insert(fieldNotes).values({
+              id: validatedNote.id,
+              parcelId: validatedNote.parcelId,
+              text: validatedNote.text,
+              createdAt: new Date(validatedNote.createdAt || new Date()),
+              createdBy: validatedNote.createdBy,
+              userId: validatedNote.userId,
+            });
+          }
+        } catch (error) {
+          console.error(`Error persisting note for parcel ${parcelId}:`, error);
+        }
+      }
+      
+      // Delete notes that no longer exist in the Yjs document
+      for (const id of existingNoteIds) {
+        await tx.delete(fieldNotes).where(eq(fieldNotes.id, id));
+      }
+    });
+    
+    console.log(`Successfully persisted ${notes.length} notes for parcel ${parcelId}`);
+  } catch (error) {
+    console.error(`Error persisting notes for parcel ${parcelId}:`, error);
+  }
+}
+
+// GET endpoint to retrieve field notes for a parcel
 router.get('/:parcelId/notes', async (req: Request, res: Response) => {
   try {
     const { parcelId } = req.params;
     
     if (!parcelId) {
-      return res.status(400).json({ message: 'Parcel ID is required' });
+      return res.status(400).json({ error: 'Parcel ID is required' });
     }
     
-    // Get or create the Yjs document for this parcel
+    // Get or create the document
     const doc = getOrCreateFieldNoteDoc(parcelId);
     
-    // Get notes data
-    const notesData = getFieldNotesData(doc);
+    // Get the notes data
+    const data = getFieldNotesData(doc);
     
-    // Encode the current state
-    const update = encodeDocUpdate(doc);
-    
-    // Return the data and encoded state
-    res.status(200).json({
-      update,
-      data: notesData
-    });
+    res.status(200).json(data);
   } catch (error) {
-    console.error('Error getting field notes:', error);
-    res.status(500).json({ message: 'Error getting field notes' });
+    console.error('Error retrieving field notes:', error);
+    res.status(500).json({ error: 'Failed to retrieve field notes' });
   }
 });
 
-// Update field notes
+// PUT endpoint to update field notes for a parcel
 router.put('/:parcelId/notes', async (req: Request, res: Response) => {
   try {
     const { parcelId } = req.params;
-    const { update, note } = req.body;
+    const { update } = req.body;
     
     if (!parcelId) {
-      return res.status(400).json({ message: 'Parcel ID is required' });
+      return res.status(400).json({ error: 'Parcel ID is required' });
     }
     
-    // Get or create the Yjs document for this parcel
+    if (!update) {
+      return res.status(400).json({ error: 'Update data is required' });
+    }
+    
+    // Get or create the document
     const doc = getOrCreateFieldNoteDoc(parcelId);
     
-    if (update) {
-      // If we have an update, apply it to the document
-      const mergedUpdate = mergeUpdates(doc, update);
-      
-      // Return the merged state
-      const notesData = getFieldNotesData(doc);
-      
-      return res.status(200).json({
-        mergedUpdate,
-        data: notesData
-      });
-    } else if (note) {
-      // If we have a direct note update, apply it to the document
-      updateFieldNoteData(doc, note);
-      
-      // Return the current state
-      const notesData = getFieldNotesData(doc);
-      const currentUpdate = encodeDocUpdate(doc);
-      
-      return res.status(200).json({
-        mergedUpdate: currentUpdate,
-        data: notesData
-      });
-    } else {
-      return res.status(400).json({ message: 'Update or note data is required' });
-    }
+    // Apply the update
+    applyEncodedUpdate(doc, update);
+    
+    // Get the updated notes
+    const data = getFieldNotesData(doc);
+    
+    // Persist to database
+    await persistNotesToDb(parcelId, doc);
+    
+    res.status(200).json(data);
   } catch (error) {
     console.error('Error updating field notes:', error);
-    res.status(500).json({ message: 'Error updating field notes' });
+    res.status(500).json({ error: 'Failed to update field notes' });
   }
 });
 
-// Sync field notes (for CRDT-based clients)
+// POST endpoint for CRDT sync operations
 router.post('/:parcelId/sync', async (req: Request, res: Response) => {
   try {
     const { parcelId } = req.params;
     const { update } = req.body;
     
     if (!parcelId) {
-      return res.status(400).json({ message: 'Parcel ID is required' });
+      return res.status(400).json({ error: 'Parcel ID is required' });
     }
     
     if (!update) {
-      return res.status(400).json({ message: 'Update data is required' });
+      return res.status(400).json({ error: 'Update data is required' });
     }
     
-    // Get or create the Yjs document for this parcel
+    // Get or create the document
     const doc = getOrCreateFieldNoteDoc(parcelId);
     
-    // Apply the received update to our document
+    // Merge the updates
     const mergedState = mergeUpdates(doc, update);
     
-    // Return the merged state to the client
-    const notesData = getFieldNotesData(doc);
+    // Get the updated notes
+    const data = getFieldNotesData(doc);
+    
+    // Persist to database
+    await persistNotesToDb(parcelId, doc);
     
     res.status(200).json({
       state: mergedState,
-      data: notesData
+      data
     });
   } catch (error) {
     console.error('Error syncing field notes:', error);
-    res.status(500).json({ message: 'Error syncing field notes' });
+    res.status(500).json({ error: 'Failed to sync field notes' });
   }
 });
 
-// Delete a field note
+// DELETE endpoint to remove a field note
 router.delete('/:parcelId/notes/:noteId', async (req: Request, res: Response) => {
   try {
     const { parcelId, noteId } = req.params;
     
     if (!parcelId || !noteId) {
-      return res.status(400).json({ message: 'Parcel ID and Note ID are required' });
+      return res.status(400).json({ error: 'Parcel ID and Note ID are required' });
     }
     
-    // Get the Yjs document
+    // Get the document
     const doc = getOrCreateFieldNoteDoc(parcelId);
+    
+    // Get the notes array
     const notesArray = doc.getArray('notes');
     
     // Find the note to delete
     const notes = notesArray.toArray();
-    const index = notes.findIndex((note: any) => note.id === noteId);
+    const noteIndex = notes.findIndex(note => note.id === noteId);
     
-    if (index === -1) {
-      return res.status(404).json({ message: 'Note not found' });
+    if (noteIndex === -1) {
+      return res.status(404).json({ error: 'Note not found' });
     }
     
-    // Delete the note
-    notesArray.delete(index, 1);
+    // Delete from Yjs document
+    notesArray.delete(noteIndex, 1);
     
-    // Return the updated data
-    const notesData = getFieldNotesData(doc);
-    const currentUpdate = encodeDocUpdate(doc);
+    // Delete from database
+    await db.delete(fieldNotes).where(eq(fieldNotes.id, noteId));
     
-    res.status(200).json({
-      mergedUpdate: currentUpdate,
-      data: notesData
-    });
+    res.status(204).end();
   } catch (error) {
     console.error('Error deleting field note:', error);
-    res.status(500).json({ message: 'Error deleting field note' });
+    res.status(500).json({ error: 'Failed to delete field note' });
   }
 });
 
