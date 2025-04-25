@@ -461,7 +461,7 @@ export const propertyShareLinks = pgTable("property_share_links", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").notNull().references(() => properties.id),
   userId: integer("user_id").notNull().references(() => users.id),
-  shareToken: text("share_token").notNull().unique(),
+  token: text("token").notNull().unique(),
   expiresAt: timestamp("expires_at"),
   viewsLimit: integer("views_limit"),
   viewCount: integer("view_count").default(0),

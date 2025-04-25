@@ -54,10 +54,7 @@ export default function PropertyShareDialog({
   // Create new share link
   const createShareLinkMutation = useMutation({
     mutationFn: async (shareData: ShareLinkData) => {
-      const response = await apiRequest("POST", `/api/properties/${propertyId}/share`, { 
-        method: "POST", 
-        data: shareData 
-      });
+      const response = await apiRequest("POST", `/api/properties/${propertyId}/share`, shareData);
       return await response.json();
     },
     onSuccess: () => {
@@ -97,9 +94,7 @@ export default function PropertyShareDialog({
   // Delete share link
   const deleteShareLinkMutation = useMutation({
     mutationFn: async (shareLinkId: number) => {
-      await apiRequest("DELETE", `/api/property-shares/${shareLinkId}`, {
-        method: "DELETE"
-      });
+      await apiRequest("DELETE", `/api/property-shares/${shareLinkId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/properties/${propertyId}/share-links`] });
@@ -305,7 +300,7 @@ export default function PropertyShareDialog({
                 <AlertCircle className="h-5 w-5 mx-auto mb-2" />
                 Failed to load share links
               </div>
-            ) : !shareLinks || shareLinks.length === 0 ? (
+            ) : !shareLinks || !Array.isArray(shareLinks) || shareLinks.length === 0 ? (
               <div className="text-center py-4 text-muted-foreground">
                 No active share links for this property
               </div>
