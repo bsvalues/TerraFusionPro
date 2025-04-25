@@ -1,279 +1,174 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import {
   StyleSheet,
   View,
   Text,
-  TextInput,
-  FlatList,
   TouchableOpacity,
-  KeyboardAvoidingView,
-  Platform,
+  ScrollView,
   ActivityIndicator,
+  Alert,
   SafeAreaView,
   StatusBar,
-  Alert,
+  Image,
 } from 'react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import CollaborativeFieldNotes from '../components/CollaborativeFieldNotes';
 import { useAuth } from '../hooks/useAuth';
-import { DataSyncService, FieldNote } from '../services/DataSyncService';
 import { ApiService } from '../services/ApiService';
 import { NotificationService } from '../services/NotificationService';
 import * as Colors from '../constants/Colors';
 
-// Interface for property details
-interface PropertyDetails {
-  id: string;
-  address: string;
+// Define the route params type
+interface FieldNotesRouteParams {
+  propertyId: string;
   parcelId: string;
-  propertyType: string;
-  status: string;
-}
-
-// Interface for user presence
-interface UserPresence {
-  userId: number;
-  name: string;
-  color: string;
-  status: 'online' | 'idle' | 'offline';
-  lastActive: number;
+  propertyAddress?: string;
+  propertyType?: string;
 }
 
 const FieldNotesScreen = () => {
-  const route = useRoute<any>();
   const navigation = useNavigation<any>();
+  const route = useRoute();
   const { user } = useAuth();
-  const [property, setProperty] = useState<PropertyDetails | null>(null);
-  const [notes, setNotes] = useState<FieldNote[]>([]);
-  const [noteText, setNoteText] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [activeUsers, setActiveUsers] = useState<UserPresence[]>([]);
-  
-  // Get services
-  const apiService = ApiService.getInstance();
-  const dataSyncService = DataSyncService.getInstance();
-  const notificationService = NotificationService.getInstance();
   
   // Get route params
-  const propertyId = route.params?.propertyId || '';
-  const parcelId = route.params?.parcelId || '';
+  const { propertyId, parcelId, propertyAddress, propertyType } = route.params as FieldNotesRouteParams;
   
-  // References
-  const flatListRef = useRef<FlatList>(null);
+  // State
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [propertyDetails, setPropertyDetails] = useState<any>(null);
+  const [isOffline, setIsOffline] = useState(false);
+  const [syncCount, setSyncCount] = useState(0);
   
-  // Document ID for Yjs
-  const docId = `property_${propertyId}_parcel_${parcelId}`;
+  // Services
+  const apiService = ApiService.getInstance();
+  const notificationService = NotificationService.getInstance();
   
-  // Load data
+  // Load property details
   useEffect(() => {
-    loadData();
+    const loadPropertyDetails = async () => {
+      setIsLoading(true);
+      
+      try {
+        // Check if we are online
+        const online = apiService.isConnected();
+        setIsOffline(!online);
+        
+        // If we're online, try to load from API
+        if (online) {
+          try {
+            const details = await apiService.get(`/api/properties/${propertyId}`);
+            setPropertyDetails(details);
+            
+            // Cache property details for offline use
+            await AsyncStorage.setItem(
+              `terrafield_property_${propertyId}`,
+              JSON.stringify(details)
+            );
+          } catch (apiError) {
+            console.error('Error fetching property details from API:', apiError);
+            await loadFromCache();
+          }
+        } else {
+          // If offline, load from cache
+          await loadFromCache();
+        }
+      } catch (error) {
+        console.error('Error loading property details:', error);
+        Alert.alert(
+          'Error',
+          'Failed to load property details. Please try again.'
+        );
+      } finally {
+        setIsLoading(false);
+      }
+    };
     
-    // Set up listeners for property changes
-    const interval = setInterval(() => {
-      refreshNotes();
-    }, 5000); // Check for updates every 5 seconds
+    // Load property details from cache
+    const loadFromCache = async () => {
+      try {
+        const cachedDetailsJson = await AsyncStorage.getItem(
+          `terrafield_property_${propertyId}`
+        );
+        
+        if (cachedDetailsJson) {
+          const cachedDetails = JSON.parse(cachedDetailsJson);
+          setPropertyDetails(cachedDetails);
+        } else {
+          // If no cached data, create a minimal property object with the info we have
+          setPropertyDetails({
+            id: propertyId,
+            parcelId: parcelId,
+            address: propertyAddress || 'Unknown Address',
+            propertyType: propertyType || 'Unknown Type',
+          });
+        }
+      } catch (cacheError) {
+        console.error('Error loading from cache:', cacheError);
+        
+        // Create a minimal property object with the info we have
+        setPropertyDetails({
+          id: propertyId,
+          parcelId: parcelId,
+          address: propertyAddress || 'Unknown Address',
+          propertyType: propertyType || 'Unknown Type',
+        });
+      }
+    };
+    
+    loadPropertyDetails();
+    
+    // Set up connection status change listener
+    const connectionStatusListener = () => {
+      const isConnected = apiService.isConnected();
+      setIsOffline(!isConnected);
+    };
+    
+    // Check connection status periodically
+    const interval = setInterval(connectionStatusListener, 10000);
     
     return () => {
       clearInterval(interval);
     };
-  }, [propertyId, parcelId]);
+  }, [propertyId, parcelId, propertyAddress, propertyType]);
   
-  // Load all data
-  const loadData = async () => {
-    try {
-      setIsLoading(true);
-      
-      // Load property details
-      await loadPropertyDetails();
-      
-      // Load notes
-      await refreshNotes();
-    } catch (error) {
-      console.error('Error loading data:', error);
-      Alert.alert('Error', 'Failed to load field notes. Please try again.');
-    } finally {
-      setIsLoading(false);
+  // Handle sync status change
+  const handleSyncStatusChange = (isSyncing: boolean) => {
+    setIsSyncing(isSyncing);
+    if (!isSyncing) {
+      // Update sync count when sync completes
+      setSyncCount(prev => prev + 1);
     }
   };
   
-  // Load property details
-  const loadPropertyDetails = async () => {
-    try {
-      if (apiService.isConnected()) {
-        const data = await apiService.get<PropertyDetails>(`/api/properties/${propertyId}`);
-        setProperty(data);
-      } else {
-        // Try to load from cache
-        const cached = await loadFromCache(`property_${propertyId}`);
-        if (cached) {
-          setProperty(cached);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading property details:', error);
-      // Try to load from cache
-      const cached = await loadFromCache(`property_${propertyId}`);
-      if (cached) {
-        setProperty(cached);
-      }
-    }
-  };
-  
-  // Refresh notes
-  const refreshNotes = async () => {
-    try {
-      const fieldNotes = await dataSyncService.getFieldNotes(docId, parcelId);
-      
-      // Sort by creation date (newest first)
-      const sortedNotes = [...fieldNotes].sort(
-        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-      );
-      
-      setNotes(sortedNotes);
-      
-      // Get active users
-      if (dataSyncService.getActiveUsers) {
-        const users = await dataSyncService.getActiveUsers(docId);
-        setActiveUsers(users);
-      }
-    } catch (error) {
-      console.error('Error refreshing notes:', error);
-    }
-  };
-  
-  // Handle adding a new note
-  const handleAddNote = async () => {
-    if (!noteText.trim() || !user) {
-      return;
-    }
-    
-    try {
-      // Add note to sync service
-      await dataSyncService.addFieldNote(
-        docId,
-        parcelId,
-        noteText.trim(),
-        user.id,
-        user.name
-      );
-      
-      // Clear input
-      setNoteText('');
-      
-      // Refresh notes
-      await refreshNotes();
-      
-      // Scroll to top
-      flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
-    } catch (error) {
-      console.error('Error adding note:', error);
-      Alert.alert('Error', 'Failed to add note. Please try again.');
-    }
-  };
-  
-  // Handle sync now
-  const handleSyncNow = async () => {
-    try {
-      setIsSyncing(true);
-      
-      // Sync notes
-      await dataSyncService.syncDoc(docId, parcelId);
-      
-      // Refresh notes
-      await refreshNotes();
-      
-      // Show success message
-      notificationService.sendSystemNotification(
-        'Sync Complete',
-        'Field notes have been synchronized successfully.'
-      );
-    } catch (error) {
-      console.error('Error syncing notes:', error);
-      Alert.alert('Error', 'Failed to sync notes. Please try again.');
-    } finally {
-      setIsSyncing(false);
-    }
-  };
-  
-  // Load data from cache
-  const loadFromCache = async (key: string) => {
-    try {
-      const cached = await AsyncStorage.getItem(`terrafield_${key}`);
-      if (cached) {
-        const parsedCache = JSON.parse(cached);
-        return parsedCache.data;
-      }
-      return null;
-    } catch (error) {
-      console.error(`Error loading ${key} from cache:`, error);
-      return null;
-    }
+  // Handle back button press
+  const handleBackPress = () => {
+    navigation.goBack();
   };
   
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
+    return date.toLocaleDateString('en-US', {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
-      hour12: true,
     });
   };
   
-  // Render note item
-  const renderNoteItem = ({ item }: { item: FieldNote }) => {
-    const isOwnNote = user && item.userId === user.id;
-    const userColor = activeUsers.find(u => u.userId === item.userId)?.color || Colors.primary;
-    
+  // Render loading state
+  if (isLoading) {
     return (
-      <View style={[
-        styles.noteItem,
-        isOwnNote ? styles.ownNoteItem : null,
-      ]}>
-        <View style={styles.noteHeader}>
-          <View style={[styles.noteAuthorIcon, { backgroundColor: userColor + '20' }]}>
-            <Text style={[styles.noteAuthorInitial, { color: userColor }]}>
-              {item.createdBy.charAt(0).toUpperCase()}
-            </Text>
-          </View>
-          <View style={styles.noteAuthorInfo}>
-            <Text style={styles.noteAuthor}>
-              {item.createdBy} {isOwnNote && '(You)'}
-            </Text>
-            <Text style={styles.noteDate}>{formatDate(item.createdAt)}</Text>
-          </View>
-        </View>
-        <Text style={styles.noteText}>{item.text}</Text>
-      </View>
+      <SafeAreaView style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading property details...</Text>
+      </SafeAreaView>
     );
-  };
-  
-  // Render active user
-  const renderActiveUser = ({ item }: { item: UserPresence }) => {
-    const isCurrentUser = user && item.userId === user.id;
-    
-    return (
-      <View style={styles.activeUserContainer}>
-        <View style={[styles.activeUserAvatar, { backgroundColor: item.color + '20' }]}>
-          <Text style={[styles.activeUserInitial, { color: item.color }]}>
-            {item.name.charAt(0).toUpperCase()}
-          </Text>
-          <View style={[
-            styles.statusIndicator,
-            { backgroundColor: item.status === 'online' ? Colors.success : Colors.warning }
-          ]} />
-        </View>
-        <Text style={styles.activeUserName} numberOfLines={1}>
-          {isCurrentUser ? 'You' : item.name}
-        </Text>
-      </View>
-    );
-  };
+  }
   
   return (
     <SafeAreaView style={styles.container}>
@@ -281,111 +176,83 @@ const FieldNotesScreen = () => {
       
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Ionicons name="chevron-back" size={24} color={Colors.primary} />
+        <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
+          <Ionicons name="arrow-back" size={24} color={Colors.primary} />
         </TouchableOpacity>
-        
-        <View style={styles.headerTitle}>
-          <Text style={styles.title} numberOfLines={1}>
-            Field Notes
-          </Text>
-          {property && (
-            <Text style={styles.subtitle} numberOfLines={1}>
-              {property.address}
-            </Text>
-          )}
+        <View style={styles.titleContainer}>
+          <Text style={styles.title}>Field Notes</Text>
         </View>
-        
-        <TouchableOpacity
-          style={styles.syncButton}
-          onPress={handleSyncNow}
-          disabled={isSyncing}
-        >
-          {isSyncing ? (
-            <ActivityIndicator size="small" color={Colors.primary} />
-          ) : (
-            <Ionicons name="sync" size={24} color={Colors.primary} />
-          )}
-        </TouchableOpacity>
+        {isOffline ? (
+          <View style={styles.offlineIndicator}>
+            <Ionicons name="cloud-offline" size={16} color={Colors.white} />
+          </View>
+        ) : (
+          <View style={styles.onlineIndicator}>
+            <Ionicons name="cloud-done" size={16} color={Colors.white} />
+          </View>
+        )}
       </View>
       
-      {/* Connection status */}
-      {!apiService.isConnected() && (
-        <View style={styles.offlineNotice}>
-          <Ionicons name="cloud-offline" size={16} color={Colors.white} />
-          <Text style={styles.offlineText}>You are offline. Changes will sync when you reconnect.</Text>
-        </View>
-      )}
-      
-      {/* Active users */}
-      {activeUsers.length > 0 && (
-        <View style={styles.activeUsersContainer}>
-          <FlatList
-            data={activeUsers}
-            renderItem={renderActiveUser}
-            keyExtractor={item => item.userId.toString()}
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.activeUsersList}
-          />
-        </View>
-      )}
-      
-      {/* Main content */}
-      {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading notes...</Text>
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={notes}
-          renderItem={renderNoteItem}
-          keyExtractor={item => item.id}
-          contentContainerStyle={styles.notesList}
-          showsVerticalScrollIndicator={true}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Ionicons name="document-text" size={48} color={Colors.textLight} />
-              <Text style={styles.emptyText}>No field notes yet</Text>
-              <Text style={styles.emptySubtext}>Add the first note below</Text>
-            </View>
-          }
-        />
-      )}
-      
-      {/* Input area */}
-      <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        keyboardVerticalOffset={Platform.OS === 'ios' ? 100 : 90}
-        style={styles.inputContainer}
-      >
-        <View style={styles.inputWrapper}>
-          <TextInput
-            style={styles.input}
-            placeholder="Add a field note..."
-            placeholderTextColor={Colors.textLight}
-            multiline
-            value={noteText}
-            onChangeText={setNoteText}
-          />
-          <TouchableOpacity
-            style={[styles.sendButton, !noteText.trim() && styles.sendButtonDisabled]}
-            onPress={handleAddNote}
-            disabled={!noteText.trim()}
-          >
+      {/* Property details card */}
+      <View style={styles.propertyCard}>
+        <View style={styles.propertyHeader}>
+          <View style={styles.propertyIconContainer}>
             <Ionicons
-              name="send"
-              size={20}
-              color={noteText.trim() ? Colors.white : Colors.disabledText}
+              name={
+                propertyDetails?.propertyType?.toLowerCase().includes('residential')
+                  ? 'home'
+                  : propertyDetails?.propertyType?.toLowerCase().includes('commercial')
+                  ? 'business'
+                  : propertyDetails?.propertyType?.toLowerCase().includes('land')
+                  ? 'leaf'
+                  : 'location'
+              }
+              size={28}
+              color={Colors.white}
             />
-          </TouchableOpacity>
+          </View>
+          <View style={styles.propertyInfo}>
+            <Text style={styles.propertyAddress} numberOfLines={1}>
+              {propertyDetails?.address || 'Unknown Address'}
+            </Text>
+            <Text style={styles.propertyType}>
+              {propertyDetails?.propertyType || 'Unknown Type'}
+            </Text>
+          </View>
         </View>
-      </KeyboardAvoidingView>
+        <View style={styles.propertySeparator} />
+        <View style={styles.propertyDetails}>
+          <View style={styles.propertyDetailItem}>
+            <Text style={styles.propertyDetailLabel}>Parcel ID</Text>
+            <Text style={styles.propertyDetailValue}>{parcelId}</Text>
+          </View>
+          <View style={styles.propertyDetailItem}>
+            <Text style={styles.propertyDetailLabel}>Property ID</Text>
+            <Text style={styles.propertyDetailValue}>{propertyId}</Text>
+          </View>
+          {propertyDetails?.lastUpdated && (
+            <View style={styles.propertyDetailItem}>
+              <Text style={styles.propertyDetailLabel}>Last Updated</Text>
+              <Text style={styles.propertyDetailValue}>
+                {formatDate(propertyDetails.lastUpdated)}
+              </Text>
+            </View>
+          )}
+        </View>
+      </View>
+      
+      {/* Collaborative field notes */}
+      <View style={styles.notesContainer}>
+        {user && (
+          <CollaborativeFieldNotes
+            propertyId={propertyId}
+            parcelId={parcelId}
+            userId={user.id}
+            userName={user.fullName || user.username}
+            onSyncStatusChange={handleSyncStatusChange}
+          />
+        )}
+      </View>
     </SafeAreaView>
   );
 };
@@ -394,6 +261,17 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: Colors.background,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: Colors.background,
+  },
+  loadingText: {
+    marginTop: 12,
+    color: Colors.textLight,
+    fontSize: 16,
   },
   header: {
     flexDirection: 'row',
@@ -407,190 +285,89 @@ const styles = StyleSheet.create({
   backButton: {
     padding: 8,
   },
-  headerTitle: {
+  titleContainer: {
     flex: 1,
-    marginLeft: 12,
+    paddingHorizontal: 16,
   },
   title: {
     fontSize: 18,
     fontWeight: 'bold',
     color: Colors.text,
   },
-  subtitle: {
-    fontSize: 14,
-    color: Colors.textLight,
-  },
-  syncButton: {
-    padding: 8,
-  },
-  offlineNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  offlineIndicator: {
     backgroundColor: Colors.warning,
-    paddingHorizontal: 15,
-    paddingVertical: 10,
-    marginHorizontal: 16,
-    marginTop: 8,
-    borderRadius: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
-  offlineText: {
-    color: Colors.white,
-    fontSize: 12,
-    marginLeft: 8,
-    flex: 1,
+  onlineIndicator: {
+    backgroundColor: Colors.success,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
   },
-  activeUsersContainer: {
-    marginTop: 12,
-    marginBottom: 4,
-  },
-  activeUsersList: {
-    paddingHorizontal: 16,
-  },
-  activeUserContainer: {
-    alignItems: 'center',
-    marginRight: 16,
-    width: 48,
-  },
-  activeUserAvatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
-  },
-  activeUserInitial: {
-    fontSize: 16,
-    fontWeight: 'bold',
-  },
-  statusIndicator: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    borderWidth: 1,
-    borderColor: Colors.white,
-  },
-  activeUserName: {
-    fontSize: 10,
-    color: Colors.textLight,
-    marginTop: 4,
-    textAlign: 'center',
-  },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 12,
-    color: Colors.textLight,
-  },
-  notesList: {
-    padding: 16,
-    paddingBottom: 100,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingTop: 100,
-  },
-  emptyText: {
-    fontSize: 16,
-    color: Colors.text,
-    marginTop: 12,
-  },
-  emptySubtext: {
-    fontSize: 14,
-    color: Colors.textLight,
-    marginTop: 4,
-  },
-  noteItem: {
+  propertyCard: {
     backgroundColor: Colors.white,
+    margin: 16,
+    borderRadius: 12,
+    shadowColor: Colors.shadowColor,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
+  },
+  propertyHeader: {
+    flexDirection: 'row',
     padding: 16,
-    borderRadius: 8,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
   },
-  ownNoteItem: {
-    backgroundColor: Colors.primary + '08',
-  },
-  noteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  noteAuthorIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 8,
-  },
-  noteAuthorInitial: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  noteAuthorInfo: {
-    flex: 1,
-  },
-  noteAuthor: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  noteDate: {
-    fontSize: 12,
-    color: Colors.textLight,
-  },
-  noteText: {
-    fontSize: 14,
-    color: Colors.text,
-    lineHeight: 20,
-  },
-  inputContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    padding: 12,
-  },
-  inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-  },
-  input: {
-    flex: 1,
-    backgroundColor: Colors.backgroundDark,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    paddingRight: 48,
-    fontSize: 14,
-    maxHeight: 100,
-    color: Colors.text,
-  },
-  sendButton: {
-    position: 'absolute',
-    right: 4,
-    bottom: 4,
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  propertyIconContainer: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
     backgroundColor: Colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+    marginRight: 16,
   },
-  sendButtonDisabled: {
-    backgroundColor: Colors.disabledButton,
+  propertyInfo: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  propertyAddress: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  propertyType: {
+    fontSize: 14,
+    color: Colors.textLight,
+  },
+  propertySeparator: {
+    height: 1,
+    backgroundColor: Colors.border,
+    marginHorizontal: 16,
+  },
+  propertyDetails: {
+    padding: 16,
+  },
+  propertyDetailItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  propertyDetailLabel: {
+    fontSize: 14,
+    color: Colors.textLight,
+  },
+  propertyDetailValue: {
+    fontSize: 14,
+    color: Colors.text,
+    fontWeight: '500',
+  },
+  notesContainer: {
+    flex: 1,
+    marginTop: 8,
   },
 });
 

@@ -1,39 +1,84 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { LogBox } from 'react-native';
+import { StatusBar } from 'react-native';
+import NetInfo from '@react-native-community/netinfo';
+import * as Font from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
+import { Ionicons } from '@expo/vector-icons';
+
+// Navigation
 import AppNavigator from './navigation/AppNavigator';
+
+// Context Providers
 import { AuthProvider } from './hooks/useAuth';
 
-// Ignore specific warnings that are not relevant or cannot be fixed
-LogBox.ignoreLogs([
-  // Ignore timer warnings from external libraries
-  'Setting a timer for a long period of time',
-  // Ignore warnings from Hermes dev experience
-  'Require cycle:',
-  // Ignore yellow box about ViewPropTypes
-  'ViewPropTypes will be removed from React Native',
-  // Add more warnings to ignore as necessary
-]);
+// Services
+import { ApiService } from './services/ApiService';
+import { NotificationService } from './services/NotificationService';
+import { DataSyncService } from './services/DataSyncService';
+
+// Constants
+import * as Colors from './constants/Colors';
+
+// Prevent native splash screen from autohiding
+SplashScreen.preventAutoHideAsync();
 
 const App = () => {
-  // Run setup tasks when the app starts
+  const [isReady, setIsReady] = useState(false);
+  
+  // Initialize App
   useEffect(() => {
-    // Initialize services or load necessary data here
-    const initializeApp = async () => {
+    const prepare = async () => {
       try {
-        // You might want to initialize services here
-        // For example, initialize the notification service
-        // or perform any other startup tasks
+        // Initialize services
+        ApiService.getInstance();
+        NotificationService.getInstance();
+        DataSyncService.getInstance();
+        
+        // Setup network connectivity listener
+        const unsubscribe = NetInfo.addEventListener(state => {
+          ApiService.getInstance().setConnectivity(state.isConnected || false);
+        });
+        
+        // Load fonts
+        await Font.loadAsync({
+          ...Ionicons.font,
+          'Roboto-Regular': require('./assets/fonts/Roboto-Regular.ttf'),
+          'Roboto-Medium': require('./assets/fonts/Roboto-Medium.ttf'),
+          'Roboto-Bold': require('./assets/fonts/Roboto-Bold.ttf'),
+        });
+        
+        // Wait for a second to simulate loading
+        await new Promise(resolve => setTimeout(resolve, 1000));
       } catch (error) {
-        console.error('Error initializing app:', error);
+        console.warn('Error initializing app:', error);
+      } finally {
+        setIsReady(true);
+        
+        // Hide splash screen
+        SplashScreen.hideAsync();
       }
     };
-
-    initializeApp();
+    
+    prepare();
+    
+    // Return cleanup function
+    return () => {
+      // Clean up any resources
+    };
   }, []);
-
+  
+  if (!isReady) {
+    return null;
+  }
+  
   return (
     <SafeAreaProvider>
+      <StatusBar
+        barStyle="dark-content"
+        backgroundColor={Colors.white}
+        translucent={false}
+      />
       <AuthProvider>
         <AppNavigator />
       </AuthProvider>

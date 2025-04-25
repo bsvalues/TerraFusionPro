@@ -1,358 +1,268 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Alert } from 'react-native';
 import { ApiService } from '../services/ApiService';
 import { NotificationService } from '../services/NotificationService';
 
-// User interface
+// User types
 export interface User {
   id: number;
   username: string;
-  name: string;
-  email: string;
-  role: string;
+  fullName?: string;
+  email?: string;
+  role?: string;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
-// Authentication context interface
-interface AuthContextType {
-  user: User | null;
-  isLoading: boolean;
-  error: string | null;
-  signIn: (username: string, password: string) => Promise<boolean>;
-  signUp: (data: SignUpData) => Promise<boolean>;
-  signOut: () => Promise<void>;
-  updateProfile: (data: Partial<User>) => Promise<boolean>;
-  updatePassword: (currentPassword: string, newPassword: string) => Promise<boolean>;
-  resetPassword: (email: string) => Promise<boolean>;
-}
-
-// Sign-up data interface
-interface SignUpData {
+// LoginCredentials type
+interface LoginCredentials {
   username: string;
   password: string;
-  name: string;
-  email: string;
 }
 
-// Create context with initial value
+// RegisterData type
+interface RegisterData {
+  username: string;
+  password: string;
+  fullName?: string;
+  email?: string;
+}
+
+// Auth context type
+interface AuthContextType {
+  user: User | null;
+  token: string | null;
+  isLoading: boolean;
+  error: string | null;
+  login: (username: string, password: string) => Promise<void>;
+  register: (data: RegisterData) => Promise<void>;
+  logout: () => Promise<void>;
+  updateUser: (userData: Partial<User>) => Promise<void>;
+}
+
+// Create context
 const AuthContext = createContext<AuthContextType | null>(null);
 
 // Storage keys
 const USER_STORAGE_KEY = 'terrafield_user';
+const TOKEN_STORAGE_KEY = 'terrafield_token';
 
 // Auth provider component
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // State
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Services
   const apiService = ApiService.getInstance();
   const notificationService = NotificationService.getInstance();
   
-  // Load user data from storage on app start
+  // Initialize auth state
   useEffect(() => {
-    loadUser();
+    const loadAuthState = async () => {
+      try {
+        // Load user from storage
+        const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
+        const storedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
+        
+        if (userJson && storedToken) {
+          const userData = JSON.parse(userJson);
+          setUser(userData);
+          setToken(storedToken);
+          
+          // Set token in API service
+          apiService.setToken(storedToken);
+        }
+      } catch (error) {
+        console.error('Error loading auth state:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadAuthState();
   }, []);
   
-  // Load user data from storage
-  const loadUser = async () => {
+  // Login function
+  const login = async (username: string, password: string) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      setError(null);
+      // Call login API
+      const response = await apiService.post<{ user: User; token: string }>(
+        '/api/auth/login',
+        { username, password }
+      );
       
-      // Get user data from storage
-      const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
-      
-      if (userJson) {
-        // Parse user data
-        const userData = JSON.parse(userJson);
-        setUser(userData);
+      if (response.user && response.token) {
+        // Save user and token
+        setUser(response.user);
+        setToken(response.token);
         
-        // Set token in ApiService
-        if (userData.token) {
-          apiService.setToken(userData.token);
-        }
+        // Store in AsyncStorage
+        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
+        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, response.token);
         
-        // Validate token with server
-        try {
-          // Only validate if we're online
-          if (apiService.isConnected()) {
-            const validatedUser = await apiService.get('/api/user/validate');
-            if (validatedUser) {
-              // Update user data with latest from server
-              const updatedUserData = { ...userData, ...validatedUser };
-              setUser(updatedUserData);
-              saveUser(updatedUserData);
-            }
-          }
-        } catch (validationError) {
-          console.warn('Token validation failed:', validationError);
-          // Keep the user logged in but we'll try again later
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      setError('Failed to load user data');
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Save user data to storage
-  const saveUser = async (userData: User & { token?: string }) => {
-    try {
-      await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
-    } catch (error) {
-      console.error('Error saving user data:', error);
-    }
-  };
-  
-  // Sign in
-  const signIn = async (username: string, password: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Call API to sign in
-      const response = await apiService.post('/api/auth/login', { username, password });
-      
-      if (response && response.user && response.token) {
-        // Set user data
-        const userData = { 
-          ...response.user,
-          token: response.token
-        };
-        
-        setUser(userData);
-        
-        // Set token in ApiService
+        // Set token in API service
         apiService.setToken(response.token);
         
-        // Save user data to storage
-        await saveUser(userData);
-        
-        // Send client state to DataSyncService if applicable
-        try {
-          const { DataSyncService } = await import('../services/DataSyncService');
-          DataSyncService.getInstance().setClientState(userData.id, userData.name);
-        } catch (error) {
-          console.warn('Failed to set client state in DataSyncService:', error);
-        }
-        
-        return true;
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (error) {
-      console.error('Sign in error:', error);
-      setError(error.message || 'Failed to sign in');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Sign up
-  const signUp = async (data: SignUpData): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Call API to sign up
-      const response = await apiService.post('/api/auth/register', data);
-      
-      if (response && response.user && response.token) {
-        // Set user data
-        const userData = { 
-          ...response.user,
-          token: response.token
-        };
-        
-        setUser(userData);
-        
-        // Set token in ApiService
-        apiService.setToken(response.token);
-        
-        // Save user data to storage
-        await saveUser(userData);
-        
-        // Send welcome notification
+        // Show success notification
         notificationService.sendSystemNotification(
-          'Welcome to TerraField',
-          `Thank you for joining TerraField, ${userData.name}! Your account has been created successfully.`
+          'Login Successful',
+          `Welcome back, ${response.user.fullName || response.user.username}!`
         );
-        
-        return true;
       } else {
         throw new Error('Invalid response from server');
       }
     } catch (error) {
-      console.error('Sign up error:', error);
-      setError(error.message || 'Failed to sign up');
-      return false;
+      console.error('Login error:', error);
+      setError('Invalid username or password. Please try again.');
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Sign out
-  const signOut = async (): Promise<void> => {
+  // Register function
+  const register = async (data: RegisterData) => {
+    setIsLoading(true);
+    setError(null);
+    
     try {
-      setIsLoading(true);
-      setError(null);
+      // Call register API
+      const response = await apiService.post<{ user: User; token: string }>(
+        '/api/auth/register',
+        data
+      );
       
-      // Call API to sign out
-      try {
+      if (response.user && response.token) {
+        // Save user and token
+        setUser(response.user);
+        setToken(response.token);
+        
+        // Store in AsyncStorage
+        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
+        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, response.token);
+        
+        // Set token in API service
+        apiService.setToken(response.token);
+        
+        // Show success notification
+        notificationService.sendSystemNotification(
+          'Registration Successful',
+          `Welcome to TerraField, ${response.user.fullName || response.user.username}!`
+        );
+      } else {
+        throw new Error('Invalid response from server');
+      }
+    } catch (error) {
+      console.error('Registration error:', error);
+      setError('Registration failed. Please try again.');
+      throw error;
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Logout function
+  const logout = async () => {
+    try {
+      // Call logout API if online
+      if (apiService.isConnected()) {
         await apiService.post('/api/auth/logout');
-      } catch (error) {
-        console.warn('Error during API sign out:', error);
-        // Continue with local sign out even if API call fails
       }
       
-      // Clear token in ApiService
+      // Clear token in API service
       apiService.clearToken();
       
-      // Clear user data
-      setUser(null);
-      
-      // Remove user data from storage
+      // Clear storage
       await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
       
-      // Disconnect from any active synchronization
-      try {
-        const { DataSyncService } = await import('../services/DataSyncService');
-        await DataSyncService.getInstance().disconnect();
-      } catch (error) {
-        console.warn('Error disconnecting from DataSyncService:', error);
-      }
+      // Clear state
+      setUser(null);
+      setToken(null);
+      
+      // Show success notification
+      notificationService.sendSystemNotification(
+        'Logout Successful',
+        'You have been logged out.'
+      );
     } catch (error) {
-      console.error('Sign out error:', error);
-      setError('Failed to sign out');
-    } finally {
-      setIsLoading(false);
+      console.error('Logout error:', error);
+      
+      // Force logout even if API call fails
+      apiService.clearToken();
+      await AsyncStorage.removeItem(USER_STORAGE_KEY);
+      await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
+      setUser(null);
+      setToken(null);
     }
   };
   
-  // Update profile
-  const updateProfile = async (data: Partial<User>): Promise<boolean> => {
+  // Update user function
+  const updateUser = async (userData: Partial<User>) => {
+    if (!user) {
+      throw new Error('Not authenticated');
+    }
+    
+    setIsLoading(true);
+    
     try {
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
+      // Call update user API
+      const response = await apiService.put<{ user: User }>(
+        `/api/users/${user.id}`,
+        userData
+      );
       
-      setIsLoading(true);
-      setError(null);
-      
-      // Call API to update profile
-      const updatedUser = await apiService.put('/api/user/profile', data);
-      
-      if (updatedUser) {
-        // Update user data
-        const userData = { ...user, ...updatedUser };
-        setUser(userData);
+      if (response.user) {
+        // Update local user data
+        const updatedUser = { ...user, ...response.user };
+        setUser(updatedUser);
         
-        // Save updated user data to storage
-        await saveUser(userData);
+        // Update in AsyncStorage
+        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
         
-        // Send notification
+        // Show success notification
         notificationService.sendSystemNotification(
           'Profile Updated',
-          'Your profile has been updated successfully.'
+          'Your profile information has been updated.'
         );
         
-        return true;
-      } else {
-        throw new Error('Invalid response from server');
+        return;
       }
+      
+      throw new Error('Invalid response from server');
     } catch (error) {
-      console.error('Update profile error:', error);
-      setError(error.message || 'Failed to update profile');
-      return false;
+      console.error('Update user error:', error);
+      Alert.alert('Error', 'Failed to update profile. Please try again.');
+      throw error;
     } finally {
       setIsLoading(false);
     }
   };
   
-  // Update password
-  const updatePassword = async (currentPassword: string, newPassword: string): Promise<boolean> => {
-    try {
-      if (!user) {
-        throw new Error('User not authenticated');
-      }
-      
-      setIsLoading(true);
-      setError(null);
-      
-      // Call API to update password
-      const response = await apiService.put('/api/user/password', {
-        currentPassword,
-        newPassword,
-      });
-      
-      if (response && response.success) {
-        // Send notification
-        notificationService.sendSystemNotification(
-          'Password Updated',
-          'Your password has been updated successfully.'
-        );
-        
-        return true;
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (error) {
-      console.error('Update password error:', error);
-      setError(error.message || 'Failed to update password');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Reset password
-  const resetPassword = async (email: string): Promise<boolean> => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Call API to reset password
-      const response = await apiService.post('/api/auth/reset-password', { email });
-      
-      if (response && response.success) {
-        return true;
-      } else {
-        throw new Error('Invalid response from server');
-      }
-    } catch (error) {
-      console.error('Reset password error:', error);
-      setError(error.message || 'Failed to reset password');
-      return false;
-    } finally {
-      setIsLoading(false);
-    }
-  };
-  
-  // Provider value
-  const value: AuthContextType = {
+  // Context value
+  const contextValue: AuthContextType = {
     user,
+    token,
     isLoading,
     error,
-    signIn,
-    signUp,
-    signOut,
-    updateProfile,
-    updatePassword,
-    resetPassword,
+    login,
+    register,
+    logout,
+    updateUser,
   };
   
-  return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
-  );
+  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
 };
 
 // Hook to use auth context
-export const useAuth = (): AuthContextType => {
+export const useAuth = () => {
   const context = useContext(AuthContext);
   
   if (!context) {
@@ -361,3 +271,5 @@ export const useAuth = (): AuthContextType => {
   
   return context;
 };
+
+export default useAuth;

@@ -1,59 +1,51 @@
-// Primary colors
-export const primary = '#4C6AFF'; // Primary brand color
-export const secondary = '#FF753A'; // Secondary accent color
-export const tertiary = '#00C689'; // Tertiary accent color
-
-// Neutrals
-export const white = '#FFFFFF';
-export const background = '#F7F9FC';
-export const backgroundDark = '#EDF1F7';
-export const border = '#E4E9F2';
-export const text = '#1A2138';
-export const textLight = '#8F9BB3';
-export const textMuted = '#C5CEE0';
-export const black = '#151A30';
+// Primary color palette
+export const primary = '#4361EE';       // Primary brand color
+export const secondary = '#3F37C9';     // Secondary brand color
+export const tertiary = '#4CC9F0';      // Tertiary brand color
+export const accent = '#F72585';        // Accent color
 
 // Status colors
-export const success = '#00E096';
-export const warning = '#FFAA00';
-export const error = '#FF3D71';
-export const info = '#0095FF';
+export const success = '#4ADE80';       // Success state
+export const warning = '#FB923C';       // Warning state
+export const error = '#F43F5E';         // Error state
+export const info = '#60A5FA';          // Info state
 
-// UI element colors
-export const card = white;
-export const disabledButton = '#C5CEE0';
-export const disabledText = '#8F9BB3';
-export const ripple = 'rgba(76, 106, 255, 0.2)';
-export const overlay = 'rgba(26, 33, 56, 0.7)';
-export const shadow = 'rgba(76, 106, 255, 0.15)';
+// Text colors
+export const text = '#1F2937';          // Primary text
+export const textLight = '#6B7280';     // Secondary text
+export const textMuted = '#9CA3AF';     // Muted text
+export const disabledText = '#D1D5DB';  // Disabled text
+export const white = '#FFFFFF';         // White text
 
-// Field specific colors
-export const fieldBorder = '#E4E9F2';
-export const fieldBackground = white;
-export const fieldPlaceholder = textLight;
-export const fieldLabel = text;
-export const fieldFocus = primary;
-export const fieldError = error;
+// Background colors
+export const background = '#F9FAFB';    // Primary background
+export const backgroundDark = '#F3F4F6'; // Secondary background
+export const backgroundAlt = '#E5E7EB';  // Alternative background
+export const backgroundDarker = '#D1D5DB'; // Darker background
 
-// Tag and badge colors
-export const tagBackground = '#F0F4FF';
-export const tagText = primary;
-export const badgeBackground = primary;
-export const badgeText = white;
+// Border colors
+export const border = '#E5E7EB';        // Primary border
+export const borderDark = '#D1D5DB';    // Secondary border
 
-// Navigation colors
-export const navBackground = white;
-export const navActive = primary;
-export const navInactive = textLight;
-export const navBorder = border;
+// Button colors
+export const buttonPrimary = primary;           // Primary button
+export const buttonSecondary = '#6B7280';      // Secondary button
+export const buttonOutline = 'transparent';    // Outline button
+export const disabledButton = '#E5E7EB';      // Disabled button
 
-// Theme specific colors
-export const darkMode = {
-  background: '#151A30',
-  backgroundDark: '#222B45',
-  text: '#F7F9FC',
-  textLight: '#C5CEE0',
-  border: '#2E3A59',
-  card: '#222B45',
-  shadow: 'rgba(0, 0, 0, 0.2)',
-};
+// Shadows
+export const shadowColor = '#000000';
+export const shadowColorLight = '#9CA3AF';
+
+// Overlay colors
+export const overlay = 'rgba(0, 0, 0, 0.5)';  // Modal overlay
+
+// Transparency variants - add alpha values to colors
+// For example: primary + '80' for 50% transparency
+// Alpha values: 
+// - 80 = 50%
+// - 50 = 31%
+// - 30 = 19%
+// - 20 = 12%
+// - 10 = 6%
+// - 05 = 2%

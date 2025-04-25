@@ -1,73 +1,84 @@
+import * as Y from 'yjs';
+import { IndexeddbPersistence } from 'y-indexeddb';
+import { WebsocketProvider } from 'y-websocket';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { v4 as uuidv4 } from 'uuid';
-import * as Y from 'yjs';
-import { WebsocketProvider } from 'y-websocket';
-import { IndexeddbPersistence } from 'y-indexeddb';
 import { ApiService } from './ApiService';
 import { NotificationService } from './NotificationService';
 import { ConflictResolutionService } from './ConflictResolutionService';
+import * as Colors from '../constants/Colors';
 
-/**
- * Interface for a field note
- */
+// Types
 export interface FieldNote {
   id: string;
+  parcelId: string;
   text: string;
   userId: number;
   createdBy: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string;
+  syncStatus: 'synced' | 'pending' | 'conflict';
 }
 
-/**
- * Interface for user presence
- */
 export interface UserPresence {
   userId: number;
   name: string;
   color: string;
-  status: 'online' | 'idle' | 'offline';
-  lastActive: number;
+  status: 'online' | 'offline' | 'away';
+  lastActive: string;
 }
 
-/**
- * Service to handle data synchronization with CRDT
- */
+interface YjsDocument {
+  doc: Y.Doc;
+  persistence?: IndexeddbPersistence;
+  provider?: WebsocketProvider;
+  awareness?: any;
+}
+
+// Main class
 export class DataSyncService {
   private static instance: DataSyncService;
-  private documents: Map<string, Y.Doc> = new Map();
-  private providers: Map<string, WebsocketProvider> = new Map();
-  private persistences: Map<string, IndexeddbPersistence> = new Map();
-  private activeUsers: Map<string, UserPresence[]> = new Map();
-  private clientId: string;
-  private clientState: { userId: number; name: string } | null = null;
-  private offlineChanges: Map<string, any[]> = new Map();
+  private documents: Map<string, YjsDocument>;
+  private clientId: number;
+  private clientName: string;
+  private clientColor: string;
   private apiService: ApiService;
   private notificationService: NotificationService;
   private conflictResolutionService: ConflictResolutionService;
-  private wsServerUrl: string;
-  private colors = [
-    '#FF5733', '#33FF57', '#3357FF', '#FF33A8', '#33A8FF',
-    '#A833FF', '#FF8333', '#33FFC1', '#C133FF', '#FFDA33',
+  private syncInProgress: boolean;
+  private syncQueue: string[];
+  
+  // User presence colors
+  private readonly USER_COLORS = [
+    Colors.primary,
+    Colors.secondary,
+    Colors.tertiary,
+    Colors.accent,
+    '#E63946',
+    '#2A9D8F',
+    '#E9C46A',
+    '#F4A261',
   ];
   
-  /**
-   * Private constructor to implement singleton pattern
-   */
+  // Private constructor
   private constructor() {
-    this.clientId = uuidv4();
+    this.documents = new Map();
+    this.clientId = 0;
+    this.clientName = '';
+    this.clientColor = this.USER_COLORS[0];
     this.apiService = ApiService.getInstance();
     this.notificationService = NotificationService.getInstance();
     this.conflictResolutionService = ConflictResolutionService.getInstance();
-    this.wsServerUrl = process.env.WS_SERVER_URL || 'wss://sync.terrafield.example.com';
+    this.syncInProgress = false;
+    this.syncQueue = [];
     
-    // Load offline changes
-    this.loadOfflineChanges();
+    // Setup sync timer
+    setInterval(() => {
+      this.processSyncQueue();
+    }, 60000); // Check every minute
   }
   
-  /**
-   * Get instance of DataSyncService (Singleton)
-   */
+  // Get instance
   public static getInstance(): DataSyncService {
     if (!DataSyncService.instance) {
       DataSyncService.instance = new DataSyncService();
@@ -75,408 +86,481 @@ export class DataSyncService {
     return DataSyncService.instance;
   }
   
-  /**
-   * Set client state
-   */
-  public setClientState(userId: number, name: string): void {
-    this.clientState = { userId, name };
+  // Set client state
+  public setClientState(userId: number, userName: string): void {
+    this.clientId = userId;
+    this.clientName = userName;
+    
+    // Assign a color based on user ID
+    const colorIndex = userId % this.USER_COLORS.length;
+    this.clientColor = this.USER_COLORS[colorIndex];
   }
   
-  /**
-   * Get a Y.js document
-   */
-  private getDocument(docId: string): Y.Doc {
+  // Get or create Yjs document
+  private getOrCreateDocument(docId: string): YjsDocument {
     if (!this.documents.has(docId)) {
       const doc = new Y.Doc();
-      this.documents.set(docId, doc);
       
-      // Setup persistence
-      this.setupPersistence(docId, doc);
+      // Initialize persistence (offline)
+      const persistence = new IndexeddbPersistence(docId, doc);
       
-      // Try to connect to WebSocket if online
+      let provider: WebsocketProvider | undefined;
+      
+      // Initialize provider if online
       if (this.apiService.isConnected()) {
-        this.setupProvider(docId, doc);
+        try {
+          const wsUrl = this.apiService.getWebSocketURL();
+          provider = new WebsocketProvider(wsUrl, docId, doc, {
+            connect: true,
+          });
+          
+          // Setup awareness
+          if (provider.awareness) {
+            provider.awareness.setLocalState({
+              userId: this.clientId,
+              name: this.clientName,
+              color: this.clientColor,
+              status: 'online',
+              lastActive: new Date().toISOString(),
+            });
+          }
+          
+          // Handle connection status changes
+          provider.on('status', (event: { status: string }) => {
+            if (event.status === 'connected') {
+              this.notificationService.sendSystemNotification(
+                'Connected',
+                'Connected to synchronization server. Changes will be synced in real-time.'
+              );
+            } else if (event.status === 'disconnected') {
+              this.notificationService.sendSystemNotification(
+                'Disconnected',
+                'Disconnected from synchronization server. Changes will be saved locally and synced when reconnected.'
+              );
+            }
+          });
+        } catch (error) {
+          console.error('Failed to initialize WebSocket provider:', error);
+        }
       }
+      
+      const document: YjsDocument = {
+        doc,
+        persistence,
+        provider,
+        awareness: provider?.awareness,
+      };
+      
+      this.documents.set(docId, document);
     }
     
     return this.documents.get(docId)!;
   }
   
-  /**
-   * Set up IndexedDB persistence
-   */
-  private setupPersistence(docId: string, doc: Y.Doc): void {
-    try {
-      const persistence = new IndexeddbPersistence(`terrafield_${docId}`, doc);
-      
-      persistence.on('synced', () => {
-        console.log(`[DataSyncService] Document ${docId} synced from IndexedDB`);
-      });
-      
-      this.persistences.set(docId, persistence);
-    } catch (error) {
-      console.error(`[DataSyncService] Error setting up persistence for ${docId}:`, error);
-    }
-  }
-  
-  /**
-   * Set up WebSocket provider
-   */
-  private setupProvider(docId: string, doc: Y.Doc): void {
-    try {
-      // If a provider already exists, disconnect it first
-      if (this.providers.has(docId)) {
-        this.providers.get(docId)!.disconnect();
-        this.providers.delete(docId);
-      }
-      
-      const provider = new WebsocketProvider(this.wsServerUrl, docId, doc, {
-        connect: true,
-        params: {
-          client_id: this.clientId,
-          user_id: this.clientState?.userId || 0,
-          user_name: this.clientState?.name || 'Anonymous',
-        },
-      });
-      
-      provider.on('status', (event: { status: string }) => {
-        console.log(`[DataSyncService] WebSocket status for ${docId}:`, event.status);
-        
-        if (event.status === 'connected') {
-          // When connected, check for offline changes
-          this.applyOfflineChanges(docId);
-        }
-      });
-      
-      provider.awareness.on('change', () => {
-        this.updateActiveUsers(docId, provider);
-      });
-      
-      // Set local state
-      if (this.clientState) {
-        provider.awareness.setLocalState({
-          user: {
-            id: this.clientState.userId,
-            name: this.clientState.name,
-            color: this.getRandomColor(),
-          },
-          cursor: {},
-        });
-      }
-      
-      this.providers.set(docId, provider);
-    } catch (error) {
-      console.error(`[DataSyncService] Error setting up WebSocket provider for ${docId}:`, error);
-    }
-  }
-  
-  /**
-   * Get a random color for user representation
-   */
-  private getRandomColor(): string {
-    return this.colors[Math.floor(Math.random() * this.colors.length)];
-  }
-  
-  /**
-   * Update active users
-   */
-  private updateActiveUsers(docId: string, provider: WebsocketProvider): void {
-    const states = provider.awareness.getStates();
-    const users: UserPresence[] = [];
+  // Get field notes
+  public async getFieldNotes(docId: string, parcelId: string): Promise<FieldNote[]> {
+    const document = this.getOrCreateDocument(docId);
+    const doc = document.doc;
     
-    states.forEach((state, clientId) => {
-      if (state.user) {
-        users.push({
-          userId: state.user.id,
-          name: state.user.name,
-          color: state.user.color,
-          status: 'online',
-          lastActive: Date.now(),
+    // Get notes from Yjs document
+    const notesArray = doc.getArray<any>('notes');
+    
+    // Convert to FieldNote array
+    const notes: FieldNote[] = [];
+    
+    notesArray.forEach((noteObj) => {
+      if (noteObj.parcelId === parcelId) {
+        notes.push({
+          id: noteObj.id,
+          parcelId: noteObj.parcelId,
+          text: noteObj.text,
+          userId: noteObj.userId,
+          createdBy: noteObj.createdBy,
+          createdAt: noteObj.createdAt,
+          updatedAt: noteObj.updatedAt,
+          syncStatus: noteObj.syncStatus || 'pending',
         });
       }
     });
     
-    this.activeUsers.set(docId, users);
-  }
-  
-  /**
-   * Get active users
-   */
-  public getActiveUsers(docId: string): UserPresence[] {
-    return this.activeUsers.get(docId) || [];
-  }
-  
-  /**
-   * Load offline changes from storage
-   */
-  private async loadOfflineChanges(): Promise<void> {
-    try {
-      const offlineChangesJson = await AsyncStorage.getItem('terrafield_offline_changes');
-      if (offlineChangesJson) {
-        const parsedChanges = JSON.parse(offlineChangesJson);
-        Object.keys(parsedChanges).forEach(docId => {
-          this.offlineChanges.set(docId, parsedChanges[docId]);
-        });
-      }
-    } catch (error) {
-      console.error('[DataSyncService] Error loading offline changes:', error);
-    }
-  }
-  
-  /**
-   * Save offline changes to storage
-   */
-  private async saveOfflineChanges(): Promise<void> {
-    try {
-      const changes: Record<string, any[]> = {};
-      this.offlineChanges.forEach((value, key) => {
-        changes[key] = value;
-      });
-      
-      await AsyncStorage.setItem('terrafield_offline_changes', JSON.stringify(changes));
-    } catch (error) {
-      console.error('[DataSyncService] Error saving offline changes:', error);
-    }
-  }
-  
-  /**
-   * Apply offline changes to a document
-   */
-  private async applyOfflineChanges(docId: string): Promise<void> {
-    if (!this.offlineChanges.has(docId)) {
-      return;
-    }
-    
-    const changes = this.offlineChanges.get(docId) || [];
-    if (changes.length === 0) {
-      return;
-    }
-    
-    try {
-      console.log(`[DataSyncService] Applying ${changes.length} offline changes to ${docId}`);
-      
-      // Apply changes to the Yjs document
-      const doc = this.getDocument(docId);
-      const fieldNotesArray = doc.getArray('fieldNotes');
-      
-      changes.forEach(change => {
-        if (change.type === 'add_note') {
-          // Add field note
-          fieldNotesArray.push([change.note]);
-        } else if (change.type === 'update_note') {
-          // Update field note
-          const index = fieldNotesArray.toArray().findIndex((note: any) => note.id === change.noteId);
-          if (index !== -1) {
-            fieldNotesArray.delete(index, 1);
-            fieldNotesArray.insert(index, [change.note]);
-          }
-        } else if (change.type === 'delete_note') {
-          // Delete field note
-          const index = fieldNotesArray.toArray().findIndex((note: any) => note.id === change.noteId);
-          if (index !== -1) {
-            fieldNotesArray.delete(index, 1);
-          }
+    // If online and no notes in Yjs document, try to fetch from server
+    if (notes.length === 0 && this.apiService.isConnected()) {
+      try {
+        const serverNotes = await this.apiService.get(
+          `/api/parcels/${parcelId}/notes`
+        );
+        
+        if (serverNotes && Array.isArray(serverNotes)) {
+          // Update Yjs document with notes from server
+          serverNotes.forEach((serverNote) => {
+            this.addNoteToDocument(doc, {
+              id: serverNote.id,
+              parcelId: serverNote.parcelId,
+              text: serverNote.text,
+              userId: serverNote.userId,
+              createdBy: serverNote.createdBy,
+              createdAt: serverNote.createdAt,
+              updatedAt: serverNote.updatedAt,
+              syncStatus: 'synced',
+            });
+          });
+          
+          // Convert to FieldNote array again
+          notesArray.forEach((noteObj) => {
+            if (noteObj.parcelId === parcelId) {
+              notes.push({
+                id: noteObj.id,
+                parcelId: noteObj.parcelId,
+                text: noteObj.text,
+                userId: noteObj.userId,
+                createdBy: noteObj.createdBy,
+                createdAt: noteObj.createdAt,
+                updatedAt: noteObj.updatedAt,
+                syncStatus: noteObj.syncStatus || 'synced',
+              });
+            }
+          });
         }
-      });
-      
-      // Clear offline changes for this document
-      this.offlineChanges.set(docId, []);
-      await this.saveOfflineChanges();
-      
-      this.notificationService.sendSyncSuccessNotification(
-        'field notes',
-        changes.length
-      );
-    } catch (error) {
-      console.error(`[DataSyncService] Error applying offline changes to ${docId}:`, error);
-      
-      this.notificationService.sendSyncErrorNotification(
-        'field notes',
-        'Failed to apply offline changes. Will try again later.'
-      );
+      } catch (error) {
+        console.error('Failed to fetch notes from server:', error);
+        
+        // Try to get from local storage as a fallback
+        try {
+          const storageKey = `terrafield_notes_${parcelId}`;
+          const storedNotes = await AsyncStorage.getItem(storageKey);
+          
+          if (storedNotes) {
+            const localNotes = JSON.parse(storedNotes);
+            
+            if (Array.isArray(localNotes)) {
+              // Update Yjs document with notes from local storage
+              localNotes.forEach((localNote) => {
+                this.addNoteToDocument(doc, {
+                  ...localNote,
+                  syncStatus: 'pending',
+                });
+              });
+              
+              // Add to notes array
+              localNotes.forEach((localNote) => {
+                notes.push({
+                  ...localNote,
+                  syncStatus: 'pending',
+                });
+              });
+            }
+          }
+        } catch (storageError) {
+          console.error('Failed to load notes from local storage:', storageError);
+        }
+      }
     }
+    
+    return notes;
   }
   
-  /**
-   * Add a field note
-   */
+  // Add field note
   public async addFieldNote(
     docId: string,
     parcelId: string,
     text: string,
     userId: number,
     userName: string
-  ): Promise<void> {
-    if (!text.trim()) {
+  ): Promise<FieldNote> {
+    const document = this.getOrCreateDocument(docId);
+    const doc = document.doc;
+    
+    // Create note
+    const newNote: FieldNote = {
+      id: uuidv4(),
+      parcelId,
+      text,
+      userId,
+      createdBy: userName,
+      createdAt: new Date().toISOString(),
+      syncStatus: 'pending',
+    };
+    
+    // Add to Yjs document
+    this.addNoteToDocument(doc, newNote);
+    
+    // Save to local storage as backup
+    try {
+      const storageKey = `terrafield_notes_${parcelId}`;
+      let storedNotes = [];
+      
+      const storedNotesJson = await AsyncStorage.getItem(storageKey);
+      if (storedNotesJson) {
+        storedNotes = JSON.parse(storedNotesJson);
+      }
+      
+      storedNotes.push(newNote);
+      await AsyncStorage.setItem(storageKey, JSON.stringify(storedNotes));
+    } catch (error) {
+      console.error('Failed to save note to local storage:', error);
+    }
+    
+    // Add to sync queue
+    this.addToSyncQueue(docId);
+    
+    // If online, sync immediately
+    if (this.apiService.isConnected()) {
+      this.syncDoc(docId, parcelId);
+    }
+    
+    return newNote;
+  }
+  
+  // Add note to Yjs document
+  private addNoteToDocument(doc: Y.Doc, note: FieldNote): void {
+    const notesArray = doc.getArray<any>('notes');
+    
+    // Check if note already exists
+    let exists = false;
+    notesArray.forEach((existingNote, index) => {
+      if (existingNote.id === note.id) {
+        exists = true;
+        
+        // If existing note is in conflict state, use conflict resolution
+        if (existingNote.syncStatus === 'conflict') {
+          const resolvedNote = this.conflictResolutionService.resolveNoteConflict(
+            existingNote,
+            note
+          );
+          
+          // Update note
+          notesArray.delete(index);
+          notesArray.insert(index, [resolvedNote]);
+        }
+      }
+    });
+    
+    // If note doesn't exist, add it
+    if (!exists) {
+      notesArray.push([note]);
+    }
+  }
+  
+  // Sync document
+  public async syncDoc(docId: string, parcelId: string): Promise<void> {
+    if (!this.apiService.isConnected()) {
+      this.addToSyncQueue(docId);
       return;
     }
     
-    const timestamp = new Date().toISOString();
+    const document = this.getOrCreateDocument(docId);
+    const doc = document.doc;
+    const notesArray = doc.getArray<any>('notes');
+    const pendingNotes: FieldNote[] = [];
     
-    // Create field note object
-    const note: FieldNote = {
-      id: uuidv4(),
-      text: text.trim(),
-      userId,
-      createdBy: userName,
-      createdAt: timestamp,
-      updatedAt: timestamp,
-    };
+    // Find pending notes
+    notesArray.forEach((note) => {
+      if (note.parcelId === parcelId && note.syncStatus === 'pending') {
+        pendingNotes.push({
+          id: note.id,
+          parcelId: note.parcelId,
+          text: note.text,
+          userId: note.userId,
+          createdBy: note.createdBy,
+          createdAt: note.createdAt,
+          updatedAt: note.updatedAt,
+          syncStatus: note.syncStatus,
+        });
+      }
+    });
+    
+    if (pendingNotes.length === 0) {
+      return;
+    }
     
     try {
-      // Get document
-      const doc = this.getDocument(docId);
-      const fieldNotesArray = doc.getArray('fieldNotes');
+      // Send pending notes to server
+      const response = await this.apiService.post(
+        `/api/parcels/${parcelId}/sync`,
+        { notes: pendingNotes }
+      );
       
-      // Add note to the document
-      fieldNotesArray.push([note]);
-      
-      // If offline, store the change for later sync
-      if (!this.apiService.isConnected() || !this.providers.has(docId) || !this.providers.get(docId)!.wsconnected) {
-        // Add to offline changes
-        const changes = this.offlineChanges.get(docId) || [];
-        changes.push({
-          type: 'add_note',
-          note,
-          timestamp: Date.now(),
+      if (response && response.notes) {
+        const { notes, conflicts } = response;
+        
+        // Update sync status of successful notes
+        notesArray.forEach((note, index) => {
+          if (notes.some((syncedNote: any) => syncedNote.id === note.id)) {
+            // Mark as synced
+            const updatedNote = { ...note, syncStatus: 'synced' };
+            notesArray.delete(index);
+            notesArray.insert(index, [updatedNote]);
+          } else if (conflicts && conflicts.some((conflict: any) => conflict.id === note.id)) {
+            // Mark as conflict
+            const updatedNote = { ...note, syncStatus: 'conflict' };
+            notesArray.delete(index);
+            notesArray.insert(index, [updatedNote]);
+          }
         });
         
-        this.offlineChanges.set(docId, changes);
-        await this.saveOfflineChanges();
-      }
-    } catch (error) {
-      console.error(`[DataSyncService] Error adding field note to ${docId}:`, error);
-      throw error;
-    }
-  }
-  
-  /**
-   * Get field notes from a document
-   */
-  public async getFieldNotes(docId: string, parcelId: string): Promise<FieldNote[]> {
-    try {
-      // Get document
-      const doc = this.getDocument(docId);
-      const fieldNotesArray = doc.getArray('fieldNotes');
-      
-      // Convert to array
-      const notes = fieldNotesArray.toArray() as FieldNote[];
-      
-      // If we're connected, also try to fetch from API and merge
-      if (this.apiService.isConnected()) {
-        try {
-          const apiNotes = await this.apiService.get<FieldNote[]>(`/api/properties/${parcelId}/notes`);
-          
-          // If we got notes from API, merge with local notes
-          if (apiNotes && apiNotes.length > 0) {
-            // Use conflict resolution service to merge notes
-            const mergedNotes = await this.conflictResolutionService.resolveFieldNoteConflicts(
-              notes,
-              apiNotes
-            );
-            
-            // Update the document with merged notes
-            if (mergedNotes.length > 0) {
-              fieldNotesArray.delete(0, fieldNotesArray.length);
-              fieldNotesArray.push(mergedNotes);
-            }
-            
-            return mergedNotes;
-          }
-        } catch (error) {
-          console.error(`[DataSyncService] Error fetching field notes from API for ${parcelId}:`, error);
-          // Continue with local notes
+        // Show notification
+        this.notificationService.sendSystemNotification(
+          'Sync Complete',
+          `Synchronized ${notes.length} field notes.`
+        );
+        
+        // If there were conflicts, show notification
+        if (conflicts && conflicts.length > 0) {
+          this.notificationService.sendSystemNotification(
+            'Sync Conflicts',
+            `There were ${conflicts.length} conflicts. Please review and resolve.`
+          );
         }
+        
+        // Update local storage
+        this.updateLocalStorage(parcelId, notesArray);
       }
-      
-      return notes;
     } catch (error) {
-      console.error(`[DataSyncService] Error getting field notes from ${docId}:`, error);
-      return [];
+      console.error('Failed to sync notes with server:', error);
+      this.notificationService.sendSystemNotification(
+        'Sync Failed',
+        'Failed to synchronize field notes. Will retry later.'
+      );
+      
+      // Keep in sync queue
+      this.addToSyncQueue(docId);
     }
   }
   
-  /**
-   * Sync a document with the server
-   */
-  public async syncDoc(docId: string, parcelId: string): Promise<void> {
-    if (!this.apiService.isConnected()) {
-      throw new Error('Cannot sync while offline');
+  // Process sync queue
+  private async processSyncQueue(): Promise<void> {
+    if (this.syncInProgress || this.syncQueue.length === 0 || !this.apiService.isConnected()) {
+      return;
     }
     
+    this.syncInProgress = true;
+    
     try {
-      // Get document
-      const doc = this.getDocument(docId);
+      const docId = this.syncQueue.shift()!;
+      const document = this.getOrCreateDocument(docId);
+      const doc = document.doc;
+      const notesArray = doc.getArray<any>('notes');
       
-      // If we have a WebSocket provider, make sure it's connected
-      if (!this.providers.has(docId)) {
-        this.setupProvider(docId, doc);
-      } else if (!this.providers.get(docId)!.wsconnected) {
-        this.providers.get(docId)!.disconnect();
-        this.setupProvider(docId, doc);
-      }
-      
-      // Apply any offline changes
-      await this.applyOfflineChanges(docId);
-      
-      // Get field notes from document
-      const fieldNotesArray = doc.getArray('fieldNotes');
-      const notes = fieldNotesArray.toArray() as FieldNote[];
-      
-      // Sync with API
-      if (notes.length > 0) {
-        // For each note, make sure it's synced with the server
-        for (const note of notes) {
-          try {
-            await this.apiService.post(`/api/properties/${parcelId}/notes`, note);
-          } catch (error) {
-            console.error(`[DataSyncService] Error syncing note ${note.id} to API:`, error);
-            // Continue with next note
-          }
+      // Get unique parcel IDs
+      const parcelIds = new Set<string>();
+      notesArray.forEach((note) => {
+        if (note.syncStatus === 'pending') {
+          parcelIds.add(note.parcelId);
         }
-      }
+      });
       
-      // Get notes from API and merge
-      const apiNotes = await this.apiService.get<FieldNote[]>(`/api/properties/${parcelId}/notes`);
-      
-      // Merge notes using conflict resolution service
-      const mergedNotes = await this.conflictResolutionService.resolveFieldNoteConflicts(
-        notes,
-        apiNotes
-      );
-      
-      // Update the document with merged notes
-      if (mergedNotes.length > 0) {
-        fieldNotesArray.delete(0, fieldNotesArray.length);
-        fieldNotesArray.push(mergedNotes);
+      // Sync each parcel
+      for (const parcelId of parcelIds) {
+        await this.syncDoc(docId, parcelId);
       }
     } catch (error) {
-      console.error(`[DataSyncService] Error syncing document ${docId}:`, error);
-      throw error;
+      console.error('Error processing sync queue:', error);
+    } finally {
+      this.syncInProgress = false;
+      
+      // Process next item if queue is not empty
+      if (this.syncQueue.length > 0) {
+        setTimeout(() => {
+          this.processSyncQueue();
+        }, 5000); // Wait 5 seconds before next sync
+      }
     }
   }
   
-  /**
-   * Disconnect all providers and persistence
-   */
-  public async disconnect(): Promise<void> {
-    try {
-      // Disconnect all providers
-      this.providers.forEach(provider => {
-        provider.disconnect();
-      });
-      
-      this.providers.clear();
-      
-      // Close all persistences
-      await Promise.all(
-        Array.from(this.persistences.values()).map(persistence => persistence.destroy())
-      );
-      
-      this.persistences.clear();
-      this.documents.clear();
-    } catch (error) {
-      console.error('[DataSyncService] Error disconnecting:', error);
+  // Add to sync queue
+  private addToSyncQueue(docId: string): void {
+    if (!this.syncQueue.includes(docId)) {
+      this.syncQueue.push(docId);
     }
   }
+  
+  // Update local storage
+  private async updateLocalStorage(parcelId: string, notesArray: Y.Array<any>): Promise<void> {
+    try {
+      const storageKey = `terrafield_notes_${parcelId}`;
+      const notes: FieldNote[] = [];
+      
+      notesArray.forEach((note) => {
+        if (note.parcelId === parcelId) {
+          notes.push({
+            id: note.id,
+            parcelId: note.parcelId,
+            text: note.text,
+            userId: note.userId,
+            createdBy: note.createdBy,
+            createdAt: note.createdAt,
+            updatedAt: note.updatedAt,
+            syncStatus: note.syncStatus,
+          });
+        }
+      });
+      
+      await AsyncStorage.setItem(storageKey, JSON.stringify(notes));
+    } catch (error) {
+      console.error('Failed to update local storage:', error);
+    }
+  }
+  
+  // Get active users
+  public getActiveUsers(docId: string): UserPresence[] {
+    const document = this.getOrCreateDocument(docId);
+    const awareness = document.awareness;
+    
+    if (!awareness) {
+      return [
+        {
+          userId: this.clientId,
+          name: this.clientName,
+          color: this.clientColor,
+          status: this.apiService.isConnected() ? 'online' : 'offline',
+          lastActive: new Date().toISOString(),
+        },
+      ];
+    }
+    
+    const states = awareness.getStates();
+    const users: UserPresence[] = [];
+    
+    states.forEach((state: any, clientId: number) => {
+      if (state.userId && state.name) {
+        users.push({
+          userId: state.userId,
+          name: state.name,
+          color: state.color || this.USER_COLORS[0],
+          status: state.status || 'online',
+          lastActive: state.lastActive || new Date().toISOString(),
+        });
+      }
+    });
+    
+    // Make sure current user is in the list
+    if (!users.some((user) => user.userId === this.clientId)) {
+      users.push({
+        userId: this.clientId,
+        name: this.clientName,
+        color: this.clientColor,
+        status: this.apiService.isConnected() ? 'online' : 'offline',
+        lastActive: new Date().toISOString(),
+      });
+    }
+    
+    return users;
+  }
+  
+  // Clean up resources
+  public destroy(): void {
+    this.documents.forEach((document) => {
+      if (document.provider) {
+        document.provider.disconnect();
+      }
+      
+      if (document.persistence) {
+        document.persistence.destroy();
+      }
+    });
+    
+    this.documents.clear();
+  }
 }
+
+export default DataSyncService;
