@@ -20,6 +20,7 @@ import { useRoute, useNavigation } from '@react-navigation/native';
 import { BarChart, LineChart, PieChart, ContributionGraph } from 'react-native-chart-kit';
 import { DataTable } from 'react-native-paper';
 import MapView, { Marker, Circle } from 'react-native-maps';
+import AnimatedSparkline from '../components/AnimatedSparkline';
 
 import {
   PropertyComparisonService,
@@ -30,6 +31,8 @@ import {
   VisualizationMode,
 } from '../services/PropertyComparisonService';
 import { ComparableService } from '../services/ComparableService';
+import PropertyValueTrend from '../components/PropertyValueTrend';
+import { ValueHistoryPeriod, ValueHistoryType } from '../services/PropertyValueHistoryService';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -361,6 +364,24 @@ const PropertyComparisonDashboard: React.FC = () => {
             </Text>
           </View>
         </View>
+        
+        {/* Property Value Trend */}
+        <View style={styles.valueTrendContainer}>
+          <PropertyValueTrend
+            propertyId={propertyId}
+            width={screenWidth - 64}
+            height={200}
+            showHeader={true}
+            showDetails={true}
+            valueTypes={[
+              ValueHistoryType.MARKET,
+              ValueHistoryType.APPRAISED,
+              ValueHistoryType.ASSESSED,
+              ValueHistoryType.AUTOMATED
+            ]}
+            period={ValueHistoryPeriod.YEAR_3}
+          />
+        </View>
       </View>
     );
   };
@@ -579,6 +600,34 @@ const PropertyComparisonDashboard: React.FC = () => {
                         />
                       </View>
                     ))}
+                  </View>
+                  
+                  {/* Property Value Mini Trend */}
+                  <View style={styles.miniTrendContainer}>
+                    <AnimatedSparkline
+                      data={[
+                        comparable.price * 0.85,
+                        comparable.price * 0.9,
+                        comparable.price * 0.95,
+                        comparable.price,
+                        comparable.price * 1.05
+                      ]}
+                      width={120}
+                      height={40}
+                      lineWidth={1.5}
+                      showArea={true}
+                      showDots={false}
+                      trend={true}
+                      color={
+                        comparable.price > property.price
+                          ? '#e74c3c'
+                          : comparable.price < property.price
+                            ? '#2ecc71'
+                            : '#3498db'
+                      }
+                      highlightLast={true}
+                      formatValue={(value) => formatCurrency(value)}
+                    />
                   </View>
                 </TouchableOpacity>
               );
@@ -1456,6 +1505,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#f5f5f5',
   },
+  valueTrendContainer: {
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
+    paddingTop: 16,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1827,6 +1882,15 @@ const styles = StyleSheet.create({
   similarityScoreCategoryValue: {
     height: 8,
     borderRadius: 4,
+  },
+  miniTrendContainer: {
+    marginTop: 10,
+    alignSelf: 'flex-end',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 4,
+    padding: 4,
+    borderWidth: 1,
+    borderColor: '#f0f0f0',
   },
   modalOverlay: {
     flex: 1,
