@@ -1,30 +1,18 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import NetInfo from '@react-native-community/netinfo';
 import { v4 as uuidv4 } from 'uuid';
+import NetInfo from '@react-native-community/netinfo';
+import { NotificationService } from './NotificationService';
 
-// API base URL
-const API_BASE_URL = process.env.API_URL || 'https://api.terrafield.example.com'; // Replace with actual API URL
-
-// Storage keys
-const PENDING_REQUESTS_KEY = 'terrafield_pending_requests';
-const AUTH_TOKEN_KEY = 'terrafield_auth_token';
-
-// Pending request interface
+/**
+ * Interface for pending request
+ */
 interface PendingRequest {
   id: string;
   url: string;
-  method: string;
+  method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
   body?: any;
   timestamp: number;
   retries: number;
-}
-
-// Response interface
-interface ApiResponse<T = any> {
-  data: T;
-  status: number;
-  headers: Headers;
-  ok: boolean;
 }
 
 /**
@@ -32,18 +20,28 @@ interface ApiResponse<T = any> {
  */
 export class ApiService {
   private static instance: ApiService;
+  private baseUrl: string;
   private token: string | null = null;
-  private isNetworkConnected: boolean = true;
   private pendingRequests: PendingRequest[] = [];
-  private syncInProgress: boolean = false;
-
+  private isConnectedValue: boolean = true;
+  private notificationService: NotificationService;
+  private syncInterval: NodeJS.Timeout | null = null;
+  
   /**
    * Private constructor to implement singleton pattern
    */
   private constructor() {
-    this.initializeService();
+    this.baseUrl = process.env.API_URL || 'https://api.terrafield.example.com';
+    this.notificationService = NotificationService.getInstance();
+    this.loadPendingRequests();
+    
+    // Start network listening
+    this.setupNetworkListeners();
+    
+    // Set up sync interval
+    this.setupSyncInterval();
   }
-
+  
   /**
    * Get instance of ApiService (Singleton)
    */
@@ -53,183 +51,212 @@ export class ApiService {
     }
     return ApiService.instance;
   }
-
+  
   /**
-   * Initialize service
+   * Set up network change listeners
    */
-  private async initializeService(): Promise<void> {
-    try {
-      // Subscribe to network state changes
-      NetInfo.addEventListener(state => {
-        const isConnected = state.isConnected ?? false;
-        const wasConnected = this.isNetworkConnected;
-        this.isNetworkConnected = isConnected;
-        
-        // If we just got connected, try to sync pending requests
-        if (isConnected && !wasConnected) {
-          this.syncPendingRequests();
-        }
-      });
+  private setupNetworkListeners(): void {
+    NetInfo.addEventListener(state => {
+      const wasConnected = this.isConnectedValue;
+      this.isConnectedValue = state.isConnected === true;
       
-      // Check initial network state
-      const netInfoState = await NetInfo.fetch();
-      this.isNetworkConnected = netInfoState.isConnected ?? false;
-      
-      // Load auth token
-      const token = await AsyncStorage.getItem(AUTH_TOKEN_KEY);
-      if (token) {
-        this.token = token;
-      }
-      
-      // Load pending requests
-      await this.loadPendingRequests();
-      
-      // Try to sync pending requests
-      if (this.isNetworkConnected) {
+      // If we just came online and we have pending requests, sync
+      if (!wasConnected && this.isConnectedValue && this.pendingRequests.length > 0) {
         this.syncPendingRequests();
       }
-    } catch (error) {
-      console.error('Error initializing ApiService:', error);
-    }
-  }
-
-  /**
-   * Load pending requests from storage
-   */
-  private async loadPendingRequests(): Promise<void> {
-    try {
-      const pendingRequestsJson = await AsyncStorage.getItem(PENDING_REQUESTS_KEY);
-      if (pendingRequestsJson) {
-        this.pendingRequests = JSON.parse(pendingRequestsJson);
-        
-        // Sort by timestamp
-        this.pendingRequests.sort((a, b) => a.timestamp - b.timestamp);
+      
+      // Notify if connection state changed
+      if (wasConnected !== this.isConnectedValue) {
+        if (this.isConnectedValue) {
+          this.notificationService.sendSystemNotification(
+            'Connection Restored',
+            'You are now back online. Your changes will be synchronized.'
+          );
+        } else {
+          this.notificationService.sendSystemNotification(
+            'Connection Lost',
+            'You are currently offline. Changes will be saved locally and synchronized when you reconnect.'
+          );
+        }
       }
-    } catch (error) {
-      console.error('Error loading pending requests:', error);
-      this.pendingRequests = [];
-    }
+    });
   }
-
+  
   /**
-   * Save pending requests to storage
+   * Set up sync interval
    */
-  private async savePendingRequests(): Promise<void> {
-    try {
-      await AsyncStorage.setItem(PENDING_REQUESTS_KEY, JSON.stringify(this.pendingRequests));
-    } catch (error) {
-      console.error('Error saving pending requests:', error);
-    }
+  private setupSyncInterval(): void {
+    // Sync every 5 minutes
+    this.syncInterval = setInterval(() => {
+      if (this.isConnectedValue && this.pendingRequests.length > 0) {
+        this.syncPendingRequests();
+      }
+    }, 5 * 60 * 1000);
   }
-
+  
   /**
-   * Check if we're connected to the network
+   * Check if we're connected
    */
   public isConnected(): boolean {
-    return this.isNetworkConnected;
+    return this.isConnectedValue;
   }
-
+  
   /**
    * Set auth token
    */
   public setToken(token: string): void {
     this.token = token;
-    AsyncStorage.setItem(AUTH_TOKEN_KEY, token).catch(error => {
-      console.error('Error saving auth token:', error);
-    });
   }
-
+  
   /**
    * Clear auth token
    */
   public clearToken(): void {
     this.token = null;
-    AsyncStorage.removeItem(AUTH_TOKEN_KEY).catch(error => {
-      console.error('Error removing auth token:', error);
-    });
   }
-
+  
   /**
-   * Get auth token
+   * Load pending requests from storage
    */
-  public getToken(): string | null {
-    return this.token;
+  private async loadPendingRequests(): Promise<void> {
+    try {
+      const pendingRequestsJson = await AsyncStorage.getItem('terrafield_pending_requests');
+      if (pendingRequestsJson) {
+        this.pendingRequests = JSON.parse(pendingRequestsJson);
+      }
+    } catch (error) {
+      console.error('Error loading pending requests:', error);
+    }
   }
-
+  
   /**
-   * Add a request to the pending queue
+   * Save pending requests to storage
    */
-  private async addToPendingRequests(request: PendingRequest): Promise<void> {
-    this.pendingRequests.push(request);
-    await this.savePendingRequests();
+  private async savePendingRequests(): Promise<void> {
+    try {
+      await AsyncStorage.setItem('terrafield_pending_requests', JSON.stringify(this.pendingRequests));
+    } catch (error) {
+      console.error('Error saving pending requests:', error);
+    }
   }
-
+  
   /**
-   * Remove a request from the pending queue
+   * Get the number of pending requests
    */
-  private async removeFromPendingRequests(requestId: string): Promise<void> {
-    this.pendingRequests = this.pendingRequests.filter(request => request.id !== requestId);
-    await this.savePendingRequests();
+  public getPendingRequestsCount(): number {
+    return this.pendingRequests.length;
   }
-
+  
   /**
-   * Sync pending requests
+   * Synchronize all pending requests
    */
   public async syncPendingRequests(): Promise<void> {
-    if (this.syncInProgress || !this.isNetworkConnected || this.pendingRequests.length === 0) {
+    if (!this.isConnectedValue || this.pendingRequests.length === 0) {
       return;
     }
     
-    try {
-      this.syncInProgress = true;
-      
-      const requests = [...this.pendingRequests];
-      
-      for (const request of requests) {
-        try {
-          // Make the request
-          await this.makeRequest(
+    // Create a copy of the pending requests
+    const requests = [...this.pendingRequests];
+    
+    // Clear the pending requests
+    this.pendingRequests = [];
+    await this.savePendingRequests();
+    
+    // Process each request
+    const failedRequests: PendingRequest[] = [];
+    
+    for (const request of requests) {
+      try {
+        await this.processRequest(request.url, request.method, request.body);
+      } catch (error) {
+        console.error(`Error syncing request ${request.url}:`, error);
+        
+        // Increment retry count
+        request.retries++;
+        
+        // If we've tried too many times, give up
+        if (request.retries >= 5) {
+          this.notificationService.sendSyncErrorNotification(
             request.url,
-            request.method,
-            request.body,
-            false // Don't queue this request again
+            'Request failed after multiple attempts. Some data may be lost.'
           );
-          
-          // If successful, remove from pending
-          await this.removeFromPendingRequests(request.id);
-        } catch (error) {
-          console.error(`Error syncing pending request ${request.id}:`, error);
-          
-          // Increment retry count
-          request.retries++;
-          
-          // If too many retries, remove the request
-          if (request.retries > 5) {
-            await this.removeFromPendingRequests(request.id);
-          }
+        } else {
+          failedRequests.push(request);
         }
       }
-    } catch (error) {
-      console.error('Error syncing pending requests:', error);
-    } finally {
-      this.syncInProgress = false;
+    }
+    
+    // If we have failed requests, add them back to the queue
+    if (failedRequests.length > 0) {
+      this.pendingRequests.push(...failedRequests);
+      await this.savePendingRequests();
+      
+      // Notify about failed requests
+      this.notificationService.sendSystemNotification(
+        'Sync Incomplete',
+        `${failedRequests.length} changes could not be synchronized. Will retry later.`
+      );
+    } else if (requests.length > 0) {
+      // Notify about successful sync
+      this.notificationService.sendSystemNotification(
+        'Sync Complete',
+        `Successfully synchronized ${requests.length} changes.`
+      );
     }
   }
-
+  
   /**
-   * Make an API request
+   * Process a request
    */
-  private async makeRequest<T = any>(
+  private async processRequest(
     url: string,
-    method: string,
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
     body?: any,
-    queueIfOffline: boolean = true
-  ): Promise<ApiResponse<T>> {
-    const fullUrl = url.startsWith('http') ? url : `${API_BASE_URL}${url}`;
+  ): Promise<any> {
+    const fullUrl = url.startsWith('http') ? url : `${this.baseUrl}${url}`;
     
-    // Check if we're connected to the network
-    if (!this.isNetworkConnected && queueIfOffline) {
-      // Queue the request for later
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    if (this.token) {
+      headers['Authorization'] = `Bearer ${this.token}`;
+    }
+    
+    const options: RequestInit = {
+      method,
+      headers,
+    };
+    
+    if (body && method !== 'GET') {
+      options.body = JSON.stringify(body);
+    }
+    
+    const response = await fetch(fullUrl, options);
+    
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+    
+    // If it's not JSON, return the response
+    const contentType = response.headers.get('content-type');
+    if (!contentType || !contentType.includes('application/json')) {
+      return response;
+    }
+    
+    return await response.json();
+  }
+  
+  /**
+   * Perform a request
+   */
+  private async request<T>(
+    method: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH',
+    url: string,
+    body?: any,
+  ): Promise<T> {
+    if (!this.isConnectedValue && method !== 'GET') {
+      // Queue non-GET requests for later
       const request: PendingRequest = {
         id: uuidv4(),
         url,
@@ -239,144 +266,51 @@ export class ApiService {
         retries: 0,
       };
       
-      await this.addToPendingRequests(request);
+      this.pendingRequests.push(request);
+      await this.savePendingRequests();
       
-      throw new Error('Network is offline. Request queued for later.');
+      // For now, return an empty object
+      return {} as T;
+    } else if (!this.isConnectedValue && method === 'GET') {
+      // We can't fulfill GET requests offline
+      throw new Error('Cannot perform GET request while offline');
     }
     
-    // Prepare headers
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-    
-    // Add auth token if available
-    if (this.token) {
-      headers['Authorization'] = `Bearer ${this.token}`;
-    }
-    
-    // Prepare request options
-    const options: RequestInit = {
-      method,
-      headers,
-    };
-    
-    // Add body if available
-    if (body && (method === 'POST' || method === 'PUT' || method === 'PATCH')) {
-      options.body = JSON.stringify(body);
-    }
-    
-    try {
-      // Make the request
-      const response = await fetch(fullUrl, options);
-      
-      // Parse response
-      let data: T;
-      const contentType = response.headers.get('content-type');
-      
-      if (contentType && contentType.includes('application/json')) {
-        data = await response.json();
-      } else {
-        data = await response.text() as unknown as T;
-      }
-      
-      // Return response
-      return {
-        data,
-        status: response.status,
-        headers: response.headers,
-        ok: response.ok,
-      };
-    } catch (error) {
-      console.error(`Error making API request to ${fullUrl}:`, error);
-      
-      // Queue the request for later if needed
-      if (queueIfOffline) {
-        const request: PendingRequest = {
-          id: uuidv4(),
-          url,
-          method,
-          body,
-          timestamp: Date.now(),
-          retries: 0,
-        };
-        
-        await this.addToPendingRequests(request);
-      }
-      
-      throw error;
-    }
+    return await this.processRequest(url, method, body);
   }
-
+  
   /**
-   * Make a GET request
+   * Perform a GET request
    */
-  public async get<T = any>(url: string): Promise<T> {
-    const response = await this.makeRequest<T>(url, 'GET');
-    
-    if (!response.ok) {
-      throw new Error(`GET request failed with status ${response.status}`);
-    }
-    
-    return response.data;
+  public async get<T>(url: string): Promise<T> {
+    return await this.request<T>('GET', url);
   }
-
+  
   /**
-   * Make a POST request
+   * Perform a POST request
    */
-  public async post<T = any>(url: string, body?: any): Promise<T> {
-    const response = await this.makeRequest<T>(url, 'POST', body);
-    
-    if (!response.ok) {
-      throw new Error(`POST request failed with status ${response.status}`);
-    }
-    
-    return response.data;
+  public async post<T>(url: string, body?: any): Promise<T> {
+    return await this.request<T>('POST', url, body);
   }
-
+  
   /**
-   * Make a PUT request
+   * Perform a PUT request
    */
-  public async put<T = any>(url: string, body?: any): Promise<T> {
-    const response = await this.makeRequest<T>(url, 'PUT', body);
-    
-    if (!response.ok) {
-      throw new Error(`PUT request failed with status ${response.status}`);
-    }
-    
-    return response.data;
+  public async put<T>(url: string, body?: any): Promise<T> {
+    return await this.request<T>('PUT', url, body);
   }
-
+  
   /**
-   * Make a PATCH request
+   * Perform a DELETE request
    */
-  public async patch<T = any>(url: string, body?: any): Promise<T> {
-    const response = await this.makeRequest<T>(url, 'PATCH', body);
-    
-    if (!response.ok) {
-      throw new Error(`PATCH request failed with status ${response.status}`);
-    }
-    
-    return response.data;
+  public async delete<T>(url: string): Promise<T> {
+    return await this.request<T>('DELETE', url);
   }
-
+  
   /**
-   * Make a DELETE request
+   * Perform a PATCH request
    */
-  public async delete<T = any>(url: string): Promise<T> {
-    const response = await this.makeRequest<T>(url, 'DELETE');
-    
-    if (!response.ok) {
-      throw new Error(`DELETE request failed with status ${response.status}`);
-    }
-    
-    return response.data;
-  }
-
-  /**
-   * Get pending requests count
-   */
-  public getPendingRequestsCount(): number {
-    return this.pendingRequests.length;
+  public async patch<T>(url: string, body?: any): Promise<T> {
+    return await this.request<T>('PATCH', url, body);
   }
 }

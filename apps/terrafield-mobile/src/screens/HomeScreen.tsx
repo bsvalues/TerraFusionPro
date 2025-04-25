@@ -1,451 +1,699 @@
 import React, { useState, useEffect } from 'react';
 import {
+  StyleSheet,
   View,
   Text,
-  StyleSheet,
   ScrollView,
   TouchableOpacity,
-  FlatList,
-  ActivityIndicator,
   RefreshControl,
+  ActivityIndicator,
+  FlatList,
   Image,
-  useWindowDimensions
+  SafeAreaView,
+  StatusBar,
 } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-import { ApiService } from '../services/ApiService';
 import { useAuth } from '../hooks/useAuth';
+import { ApiService } from '../services/ApiService';
 import * as Colors from '../constants/Colors';
 
-// Property type definition
+// Property interface
 interface Property {
-  id: number;
+  id: string;
   address: string;
   city: string;
   state: string;
   zipCode: string;
   propertyType: string;
-  bedrooms: number;
-  bathrooms: number;
-  squareFeet: number;
-  yearBuilt: number;
-  lotSize: number;
-  parcelId: string;
-  image?: string;
+  status: string;
   lastUpdated: string;
+  thumbnail?: string; 
 }
 
-// Feature item definition
-interface FeatureItem {
+// Appraisal task interface
+interface AppraisalTask {
+  id: string;
+  propertyId: string;
+  address: string;
+  dueDate: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'review';
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  taskType: string;
+}
+
+// Notification interface
+interface Notification {
   id: string;
   title: string;
-  icon: string;
-  description: string;
-  screen: string;
-  params?: any;
-  badge?: string;
-  color: string;
+  message: string;
+  timestamp: string;
+  isRead: boolean;
+  type: 'system' | 'task' | 'sync';
 }
 
-const HomeScreen: React.FC = () => {
-  const navigation = useNavigation();
-  const { width } = useWindowDimensions();
-  const user = useAuth();
+const HomeScreen = () => {
+  const navigation = useNavigation<any>();
+  const { user, signOut } = useAuth();
   const apiService = ApiService.getInstance();
-
-  // State
-  const [properties, setProperties] = useState<Property[]>([]);
-  const [recentReports, setRecentReports] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-
-  // Featured functionality items
-  const features: FeatureItem[] = [
-    {
-      id: 'field_notes',
-      title: 'Field Notes',
-      icon: 'file-text',
-      description: 'Collaborative property notes',
-      screen: 'FieldNotes',
-      badge: 'New',
-      color: Colors.primary,
-    },
-    {
-      id: 'photo_enhancement',
-      title: 'Photo Enhancement',
-      icon: 'image',
-      description: 'AI-powered photo improvements',
-      screen: 'PhotoEnhancement',
-      color: Colors.info,
-    },
-    {
-      id: 'ar_measurement',
-      title: 'AR Measurement',
-      icon: 'maximize',
-      description: 'Measure with augmented reality',
-      screen: 'ARMeasurement',
-      color: Colors.success,
-    },
-    {
-      id: 'property_comparison',
-      title: 'Property Comparison',
-      icon: 'bar-chart-2',
-      description: 'Compare multiple properties',
-      screen: 'PropertyComparison',
-      color: Colors.warning,
-    },
-    {
-      id: 'property_share',
-      title: 'Property Share',
-      icon: 'share-2',
-      description: 'Share property details securely',
-      screen: 'PropertyShare',
-      color: Colors.accent,
-    },
-  ];
-
-  // Load data
+  
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [error, setError] = useState<string | null>(null);
+  const [recentProperties, setRecentProperties] = useState<Property[]>([]);
+  const [pendingTasks, setPendingTasks] = useState<AppraisalTask[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [syncStatus, setSyncStatus] = useState<{
+    pendingChanges: number;
+    lastSynced: string | null;
+  }>({
+    pendingChanges: 0,
+    lastSynced: null,
+  });
+  
+  // Load data on mount
   useEffect(() => {
     loadData();
   }, []);
-
-  // Load property and report data
+  
+  // Load all data
   const loadData = async () => {
-    setLoading(true);
     try {
-      // Fetch properties
-      const propertyResponse = await apiService.get(`/api/properties?userId=${user.id}`);
+      setIsLoading(true);
+      setError(null);
       
-      if (propertyResponse) {
-        setProperties(propertyResponse);
-      }
-
-      // Fetch recent reports
-      const reportResponse = await apiService.get(`/api/reports?userId=${user.id}`);
-      
-      if (reportResponse) {
-        setRecentReports(reportResponse.slice(0, 5)); // Take only the 5 most recent
-      }
+      // Load data in parallel
+      await Promise.all([
+        loadRecentProperties(),
+        loadPendingTasks(),
+        loadNotifications(),
+        loadSyncStatus(),
+      ]);
     } catch (error) {
       console.error('Error loading data:', error);
-      
-      // For demo purposes, set some sample data if API fails
-      setProperties([
-        {
-          id: 1,
-          address: '123 Main Street',
-          city: 'Springfield',
-          state: 'IL',
-          zipCode: '12345',
-          propertyType: 'Single Family',
-          bedrooms: 4,
-          bathrooms: 2.5,
-          squareFeet: 2400,
-          yearBuilt: 1995,
-          lotSize: 0.25,
-          parcelId: 'ABC123456',
-          lastUpdated: new Date().toISOString(),
-        },
-        {
-          id: 2,
-          address: '456 Park Avenue',
-          city: 'Riverdale',
-          state: 'NY',
-          zipCode: '54321',
-          propertyType: 'Condo',
-          bedrooms: 2,
-          bathrooms: 2,
-          squareFeet: 1200,
-          yearBuilt: 2010,
-          lotSize: 0,
-          parcelId: 'XYZ789012',
-          lastUpdated: new Date().toISOString(),
-        },
-      ]);
+      setError('Failed to load data. Please try again.');
     } finally {
-      setLoading(false);
-      setRefreshing(false);
+      setIsLoading(false);
+      setIsRefreshing(false);
     }
   };
-
+  
+  // Load recent properties
+  const loadRecentProperties = async () => {
+    try {
+      if (apiService.isConnected()) {
+        const data = await apiService.get<Property[]>('/api/properties/recent');
+        setRecentProperties(data || []);
+      } else {
+        // Try to load from offline cache
+        const cached = await loadFromCache('recent_properties');
+        if (cached) {
+          setRecentProperties(cached);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading recent properties:', error);
+      // Try to load from offline cache
+      const cached = await loadFromCache('recent_properties');
+      if (cached) {
+        setRecentProperties(cached);
+      }
+    }
+  };
+  
+  // Load pending tasks
+  const loadPendingTasks = async () => {
+    try {
+      if (apiService.isConnected()) {
+        const data = await apiService.get<AppraisalTask[]>('/api/tasks/pending');
+        setPendingTasks(data || []);
+        
+        // Cache data for offline use
+        saveToCache('pending_tasks', data);
+      } else {
+        // Try to load from offline cache
+        const cached = await loadFromCache('pending_tasks');
+        if (cached) {
+          setPendingTasks(cached);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading pending tasks:', error);
+      // Try to load from offline cache
+      const cached = await loadFromCache('pending_tasks');
+      if (cached) {
+        setPendingTasks(cached);
+      }
+    }
+  };
+  
+  // Load notifications
+  const loadNotifications = async () => {
+    try {
+      if (apiService.isConnected()) {
+        const data = await apiService.get<Notification[]>('/api/notifications');
+        setNotifications(data || []);
+        
+        // Cache data for offline use
+        saveToCache('notifications', data);
+      } else {
+        // Try to load from offline cache
+        const cached = await loadFromCache('notifications');
+        if (cached) {
+          setNotifications(cached);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading notifications:', error);
+      // Try to load from offline cache
+      const cached = await loadFromCache('notifications');
+      if (cached) {
+        setNotifications(cached);
+      }
+    }
+  };
+  
+  // Load sync status
+  const loadSyncStatus = async () => {
+    try {
+      // Get pending changes count from ApiService
+      const pendingChanges = apiService.getPendingRequestsCount();
+      
+      // Get last synced timestamp from cache
+      const lastSyncedCache = await loadFromCache('last_synced');
+      
+      setSyncStatus({
+        pendingChanges,
+        lastSynced: lastSyncedCache ? lastSyncedCache.timestamp : null,
+      });
+    } catch (error) {
+      console.error('Error loading sync status:', error);
+    }
+  };
+  
+  // Save data to cache
+  const saveToCache = async (key: string, data: any) => {
+    try {
+      const cacheData = {
+        data,
+        timestamp: new Date().toISOString(),
+      };
+      await AsyncStorage.setItem(`terrafield_${key}`, JSON.stringify(cacheData));
+    } catch (error) {
+      console.error(`Error saving ${key} to cache:`, error);
+    }
+  };
+  
+  // Load data from cache
+  const loadFromCache = async (key: string) => {
+    try {
+      const cached = await AsyncStorage.getItem(`terrafield_${key}`);
+      if (cached) {
+        const parsedCache = JSON.parse(cached);
+        return parsedCache.data;
+      }
+      return null;
+    } catch (error) {
+      console.error(`Error loading ${key} from cache:`, error);
+      return null;
+    }
+  };
+  
   // Handle refresh
   const handleRefresh = () => {
-    setRefreshing(true);
+    setIsRefreshing(true);
     loadData();
   };
-
-  // Navigate to property details
-  const navigateToPropertyDetails = (property: Property) => {
-    navigation.navigate('PropertyDetails', {
-      propertyId: property.id,
-      propertyAddress: property.address,
-    });
-  };
-
-  // Navigate to field notes for a property
-  const navigateToFieldNotes = (property: Property) => {
-    navigation.navigate('FieldNotes', {
-      parcelId: property.parcelId,
-      propertyAddress: property.address,
-    });
-  };
-
-  // Navigate to feature
-  const navigateToFeature = (feature: FeatureItem, property?: Property) => {
-    // If we have a property, use it for the navigation params
-    if (property) {
-      let params = { ...feature.params };
+  
+  // Handle sync now
+  const handleSyncNow = async () => {
+    try {
+      // Trigger sync in ApiService
+      await apiService.syncPendingRequests();
       
-      switch (feature.screen) {
-        case 'FieldNotes':
-          params = {
-            ...params,
-            parcelId: property.parcelId,
-            propertyAddress: property.address,
-          };
-          break;
-        case 'PropertyDetails':
-        case 'PhotoEnhancement':
-        case 'ARMeasurement':
-        case 'ReportGeneration':
-        case 'PropertyShare':
-          params = {
-            ...params,
-            propertyId: property.id,
-            propertyAddress: property.address,
-          };
-          break;
-        case 'PropertyComparison':
-          params = {
-            ...params,
-            propertyIds: [property.id],
-          };
-          break;
-      }
+      // Update sync status
+      await saveToCache('last_synced', { timestamp: new Date().toISOString() });
+      loadSyncStatus();
       
-      navigation.navigate(feature.screen as never, params as never);
-    } else {
-      // Just navigate to the feature
-      navigation.navigate(feature.screen as never, feature.params as never);
+      // Reload data
+      loadData();
+    } catch (error) {
+      console.error('Error syncing data:', error);
+      setError('Failed to sync data. Please try again.');
     }
   };
-
+  
+  // Navigation handlers
+  const goToProperty = (propertyId: string) => {
+    navigation.navigate('PropertyDetails', { propertyId });
+  };
+  
+  const goToTask = (task: AppraisalTask) => {
+    // Navigate based on task type
+    switch (task.taskType) {
+      case 'field_notes':
+        navigation.navigate('FieldNotes', { propertyId: task.propertyId, parcelId: task.id });
+        break;
+      case 'photo_enhancement':
+        navigation.navigate('PhotoEnhancement', { propertyId: task.propertyId });
+        break;
+      case 'property_comparison':
+        navigation.navigate('PropertyComparison', { propertyId: task.propertyId });
+        break;
+      default:
+        navigation.navigate('PropertyDetails', { propertyId: task.propertyId });
+    }
+  };
+  
+  const goToNotifications = () => {
+    // This would be implemented in a future screen
+    // navigation.navigate('Notifications');
+    console.log('Notifications screen not implemented yet');
+  };
+  
+  // Format date for display
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+  
+  // Get priority color
+  const getPriorityColor = (priority: string) => {
+    switch (priority) {
+      case 'urgent':
+        return Colors.error;
+      case 'high':
+        return Colors.warning;
+      case 'medium':
+        return Colors.secondary;
+      case 'low':
+      default:
+        return Colors.info;
+    }
+  };
+  
   // Render property item
   const renderPropertyItem = ({ item }: { item: Property }) => (
     <TouchableOpacity
       style={styles.propertyCard}
-      onPress={() => navigateToPropertyDetails(item)}
+      onPress={() => goToProperty(item.id)}
     >
-      <View style={styles.propertyImageContainer}>
-        {item.image ? (
-          <Image
-            source={{ uri: item.image }}
-            style={styles.propertyImage}
-            resizeMode="cover"
-          />
-        ) : (
-          <View style={styles.propertyImagePlaceholder}>
-            <Feather name="home" size={40} color={Colors.textLight} />
-          </View>
-        )}
-        <View style={styles.propertyTypeTag}>
-          <Text style={styles.propertyTypeText}>{item.propertyType}</Text>
+      {item.thumbnail ? (
+        <Image source={{ uri: item.thumbnail }} style={styles.propertyImage} />
+      ) : (
+        <View style={styles.propertyImagePlaceholder}>
+          <Ionicons name="home" size={24} color={Colors.textLight} />
         </View>
-      </View>
-
-      <View style={styles.propertyContent}>
+      )}
+      
+      <View style={styles.propertyInfo}>
         <Text style={styles.propertyAddress} numberOfLines={1}>
           {item.address}
         </Text>
-        <Text style={styles.propertyLocation}>
+        <Text style={styles.propertyLocation} numberOfLines={1}>
           {item.city}, {item.state} {item.zipCode}
         </Text>
-
-        <View style={styles.propertyDetails}>
-          <View style={styles.propertyDetailItem}>
-            <Feather name="home" size={14} color={Colors.textLight} />
-            <Text style={styles.propertyDetailText}>{item.squareFeet} sq ft</Text>
+        <View style={styles.propertyMeta}>
+          <Text style={styles.propertyType}>{item.propertyType}</Text>
+          <View style={[styles.propertyStatus, { backgroundColor: getStatusColor(item.status) }]}>
+            <Text style={styles.propertyStatusText}>{item.status}</Text>
           </View>
-          <View style={styles.propertyDetailItem}>
-            <Feather name="bed" size={14} color={Colors.textLight} />
-            <Text style={styles.propertyDetailText}>{item.bedrooms} beds</Text>
-          </View>
-          <View style={styles.propertyDetailItem}>
-            <Feather name="droplet" size={14} color={Colors.textLight} />
-            <Text style={styles.propertyDetailText}>{item.bathrooms} baths</Text>
-          </View>
-        </View>
-
-        <View style={styles.propertyActions}>
-          <TouchableOpacity
-            style={styles.propertyActionButton}
-            onPress={() => navigateToFieldNotes(item)}
-          >
-            <Feather name="file-text" size={16} color={Colors.primary} />
-            <Text style={styles.propertyActionText}>Notes</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.propertyActionButton}
-            onPress={() => navigateToFeature(
-              features.find(f => f.id === 'photo_enhancement')!,
-              item
-            )}
-          >
-            <Feather name="image" size={16} color={Colors.info} />
-            <Text style={styles.propertyActionText}>Photos</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.propertyActionButton}
-            onPress={() => navigateToFeature(
-              features.find(f => f.id === 'property_share')!,
-              item
-            )}
-          >
-            <Feather name="share-2" size={16} color={Colors.accent} />
-            <Text style={styles.propertyActionText}>Share</Text>
-          </TouchableOpacity>
         </View>
       </View>
     </TouchableOpacity>
   );
-
-  // Render feature item
-  const renderFeatureItem = ({ item }: { item: FeatureItem }) => (
+  
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status.toLowerCase()) {
+      case 'active':
+        return Colors.success + '20';
+      case 'pending':
+        return Colors.warning + '20';
+      case 'completed':
+        return Colors.tertiary + '20';
+      case 'archived':
+        return Colors.textLight + '20';
+      default:
+        return Colors.background;
+    }
+  };
+  
+  // Render task item
+  const renderTaskItem = ({ item }: { item: AppraisalTask }) => (
     <TouchableOpacity
-      style={[styles.featureCard, { backgroundColor: item.color + '10' }]} // 10% opacity
-      onPress={() => navigateToFeature(item)}
+      style={styles.taskCard}
+      onPress={() => goToTask(item)}
     >
-      <View style={[styles.featureIconContainer, { backgroundColor: item.color }]}>
-        <Feather name={item.icon} size={20} color={Colors.white} />
-      </View>
-      <Text style={styles.featureTitle}>{item.title}</Text>
-      <Text style={styles.featureDescription} numberOfLines={2}>
-        {item.description}
-      </Text>
-      {item.badge && (
-        <View style={styles.featureBadge}>
-          <Text style={styles.featureBadgeText}>{item.badge}</Text>
+      <View style={styles.taskHeader}>
+        <View style={[styles.taskPriority, { backgroundColor: getPriorityColor(item.priority) + '20' }]}>
+          <Text style={[styles.taskPriorityText, { color: getPriorityColor(item.priority) }]}>
+            {item.priority.toUpperCase()}
+          </Text>
         </View>
-      )}
+        <Text style={styles.taskDueDate}>Due: {formatDate(item.dueDate)}</Text>
+      </View>
+      
+      <Text style={styles.taskAddress} numberOfLines={1}>
+        {item.address}
+      </Text>
+      
+      <View style={styles.taskFooter}>
+        <Text style={styles.taskType}>{getTaskTypeLabel(item.taskType)}</Text>
+        <View style={[styles.taskStatus, { backgroundColor: getTaskStatusColor(item.status) }]}>
+          <Text style={styles.taskStatusText}>{getStatusLabel(item.status)}</Text>
+        </View>
+      </View>
     </TouchableOpacity>
   );
-
+  
+  // Get task type label
+  const getTaskTypeLabel = (type: string) => {
+    switch (type) {
+      case 'field_notes':
+        return 'Field Notes';
+      case 'photo_enhancement':
+        return 'Photo Enhancement';
+      case 'property_comparison':
+        return 'Property Comparison';
+      default:
+        return type.replace('_', ' ');
+    }
+  };
+  
+  // Get status label
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'in_progress':
+        return 'In Progress';
+      default:
+        return status.charAt(0).toUpperCase() + status.slice(1);
+    }
+  };
+  
+  // Get task status color
+  const getTaskStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return Colors.warning + '20';
+      case 'in_progress':
+        return Colors.primary + '20';
+      case 'completed':
+        return Colors.success + '20';
+      case 'review':
+        return Colors.info + '20';
+      default:
+        return Colors.background;
+    }
+  };
+  
+  // Render notification item
+  const renderNotificationItem = ({ item }: { item: Notification }) => (
+    <View style={[styles.notificationItem, !item.isRead && styles.notificationUnread]}>
+      <View style={styles.notificationIconContainer}>
+        <Ionicons 
+          name={getNotificationIcon(item.type)} 
+          size={20} 
+          color={getNotificationColor(item.type)} 
+        />
+      </View>
+      
+      <View style={styles.notificationContent}>
+        <Text style={styles.notificationTitle}>{item.title}</Text>
+        <Text style={styles.notificationMessage} numberOfLines={2}>
+          {item.message}
+        </Text>
+        <Text style={styles.notificationTime}>
+          {formatDate(item.timestamp)}
+        </Text>
+      </View>
+      
+      {!item.isRead && (
+        <View style={styles.notificationDot} />
+      )}
+    </View>
+  );
+  
+  // Get notification icon
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case 'system':
+        return 'information-circle';
+      case 'task':
+        return 'checkmark-circle';
+      case 'sync':
+        return 'sync';
+      default:
+        return 'notifications';
+    }
+  };
+  
+  // Get notification color
+  const getNotificationColor = (type: string) => {
+    switch (type) {
+      case 'system':
+        return Colors.info;
+      case 'task':
+        return Colors.primary;
+      case 'sync':
+        return Colors.tertiary;
+      default:
+        return Colors.textLight;
+    }
+  };
+  
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
+      
       {/* Header */}
       <View style={styles.header}>
-        <View>
-          <Text style={styles.welcomeText}>Welcome back,</Text>
-          <Text style={styles.userName}>{user.name}</Text>
+        <View style={styles.headerLeft}>
+          <Text style={styles.greeting}>Hello, {user?.name?.split(' ')[0] || 'User'}</Text>
+          <Text style={styles.date}>
+            {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
+          </Text>
         </View>
-        <TouchableOpacity
-          style={styles.profileButton}
-          onPress={() => navigation.navigate('Profile' as never)}
-        >
-          <Feather name="user" size={20} color={Colors.white} />
-        </TouchableOpacity>
+        
+        <View style={styles.headerRight}>
+          <TouchableOpacity 
+            style={styles.syncButton} 
+            onPress={handleSyncNow}
+            disabled={syncStatus.pendingChanges === 0}
+          >
+            <Ionicons 
+              name="sync" 
+              size={20} 
+              color={syncStatus.pendingChanges > 0 ? Colors.primary : Colors.textLight} 
+            />
+            {syncStatus.pendingChanges > 0 && (
+              <View style={styles.syncBadge}>
+                <Text style={styles.syncBadgeText}>{syncStatus.pendingChanges}</Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.notificationButton} 
+            onPress={goToNotifications}
+          >
+            <Ionicons name="notifications" size={20} color={Colors.primary} />
+            {notifications.filter(n => !n.isRead).length > 0 && (
+              <View style={styles.notificationBadge}>
+                <Text style={styles.notificationBadgeText}>
+                  {notifications.filter(n => !n.isRead).length}
+                </Text>
+              </View>
+            )}
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.profileButton} 
+            onPress={() => navigation.navigate('Profile')}
+          >
+            <View style={styles.profileAvatar}>
+              <Text style={styles.profileInitials}>
+                {user?.name?.split(' ').map(n => n[0]).join('') || 'U'}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
       </View>
-
-      {loading && !refreshing ? (
+      
+      {/* Content */}
+      {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.loadingText}>Loading your properties...</Text>
+          <Text style={styles.loadingText}>Loading data...</Text>
+        </View>
+      ) : error ? (
+        <View style={styles.errorContainer}>
+          <Ionicons name="alert-circle" size={48} color={Colors.error} />
+          <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.retryButton} onPress={loadData}>
+            <Text style={styles.retryButtonText}>Retry</Text>
+          </TouchableOpacity>
         </View>
       ) : (
-        <ScrollView
+        <ScrollView 
           style={styles.scrollView}
+          contentContainerStyle={styles.scrollContent}
           refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={handleRefresh}
+              colors={[Colors.primary]}
+              tintColor={Colors.primary}
+            />
           }
         >
-          {/* Features section */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>TerraField Features</Text>
-            <FlatList
-              data={features}
-              renderItem={renderFeatureItem}
-              keyExtractor={(item) => item.id}
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.featureList}
-              snapToInterval={width * 0.7 + 10}
-              decelerationRate="fast"
-              snapToAlignment="start"
-            />
-          </View>
-
-          {/* Properties section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Your Properties</Text>
-              <TouchableOpacity style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>View All</Text>
-                <Feather name="chevron-right" size={16} color={Colors.primary} />
+          {/* Sync status */}
+          {!apiService.isConnected() && (
+            <View style={styles.offlineNotice}>
+              <Ionicons name="cloud-offline" size={16} color={Colors.white} />
+              <Text style={styles.offlineText}>You are offline. Changes will sync when you reconnect.</Text>
+            </View>
+          )}
+          
+          {syncStatus.pendingChanges > 0 && (
+            <View style={styles.syncNotice}>
+              <Ionicons name="sync" size={16} color={Colors.primary} />
+              <Text style={styles.syncText}>
+                {syncStatus.pendingChanges} {syncStatus.pendingChanges === 1 ? 'change' : 'changes'} pending synchronization.
+              </Text>
+              <TouchableOpacity onPress={handleSyncNow}>
+                <Text style={styles.syncNowText}>Sync Now</Text>
               </TouchableOpacity>
             </View>
-
-            {properties.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Feather name="home" size={48} color={Colors.textLight} />
-                <Text style={styles.emptyStateTitle}>No Properties Yet</Text>
-                <Text style={styles.emptyStateText}>
-                  Properties you add will appear here for quick access.
-                </Text>
-                <TouchableOpacity style={styles.addButton}>
-                  <Feather name="plus" size={16} color={Colors.white} />
-                  <Text style={styles.addButtonText}>Add Property</Text>
-                </TouchableOpacity>
+          )}
+          
+          {/* Pending Tasks */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Pending Tasks</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Tasks')}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {pendingTasks.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="checkmark-circle" size={32} color={Colors.textLight} />
+                <Text style={styles.emptyText}>No pending tasks</Text>
               </View>
             ) : (
               <FlatList
-                data={properties}
-                renderItem={renderPropertyItem}
-                keyExtractor={(item) => item.id.toString()}
-                scrollEnabled={false}
-                contentContainerStyle={styles.propertiesList}
+                data={pendingTasks.slice(0, 3)}
+                renderItem={renderTaskItem}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.taskListContent}
               />
             )}
           </View>
-
-          {/* Recent Reports section */}
+          
+          {/* Recent Properties */}
           <View style={styles.section}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Recent Reports</Text>
-              <TouchableOpacity style={styles.viewAllButton}>
-                <Text style={styles.viewAllText}>View All</Text>
-                <Feather name="chevron-right" size={16} color={Colors.primary} />
+              <Text style={styles.sectionTitle}>Recent Properties</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Properties')}>
+                <Text style={styles.seeAllText}>See All</Text>
               </TouchableOpacity>
             </View>
-
-            {recentReports.length === 0 ? (
-              <View style={styles.emptyState}>
-                <Feather name="file-text" size={48} color={Colors.textLight} />
-                <Text style={styles.emptyStateTitle}>No Reports Yet</Text>
-                <Text style={styles.emptyStateText}>
-                  Generated reports will appear here for quick access.
-                </Text>
-                <TouchableOpacity style={styles.addButton}>
-                  <Feather name="plus" size={16} color={Colors.white} />
-                  <Text style={styles.addButtonText}>Create Report</Text>
-                </TouchableOpacity>
+            
+            {recentProperties.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="home" size={32} color={Colors.textLight} />
+                <Text style={styles.emptyText}>No recent properties</Text>
               </View>
             ) : (
-              <View>
-                {/* Reports list would go here */}
-                <Text style={styles.comingSoonText}>
-                  Recent reports view coming soon...
-                </Text>
+              <FlatList
+                data={recentProperties.slice(0, 3)}
+                renderItem={renderPropertyItem}
+                keyExtractor={item => item.id}
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.propertyListContent}
+              />
+            )}
+          </View>
+          
+          {/* Notifications */}
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Notifications</Text>
+              <TouchableOpacity onPress={goToNotifications}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            </View>
+            
+            {notifications.length === 0 ? (
+              <View style={styles.emptyContainer}>
+                <Ionicons name="notifications" size={32} color={Colors.textLight} />
+                <Text style={styles.emptyText}>No notifications</Text>
+              </View>
+            ) : (
+              <View style={styles.notificationsList}>
+                {notifications.slice(0, 3).map(notification => (
+                  <View key={notification.id}>
+                    {renderNotificationItem({ item: notification })}
+                  </View>
+                ))}
               </View>
             )}
           </View>
-
-          {/* Bottom padding */}
-          <View style={styles.bottomPadding} />
+          
+          {/* Quick Actions */}
+          <View style={styles.quickActions}>
+            <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+            
+            <View style={styles.quickActionsGrid}>
+              <TouchableOpacity 
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('NewAppraisal')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: Colors.primary + '15' }]}>
+                  <Ionicons name="add" size={24} color={Colors.primary} />
+                </View>
+                <Text style={styles.quickActionText}>New Appraisal</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('PhotoEnhancement')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: Colors.secondary + '15' }]}>
+                  <Ionicons name="camera" size={24} color={Colors.secondary} />
+                </View>
+                <Text style={styles.quickActionText}>Enhance Photos</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('PropertyComparison')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: Colors.tertiary + '15' }]}>
+                  <Ionicons name="git-compare" size={24} color={Colors.tertiary} />
+                </View>
+                <Text style={styles.quickActionText}>Compare Properties</Text>
+              </TouchableOpacity>
+              
+              <TouchableOpacity 
+                style={styles.quickActionItem}
+                onPress={() => navigation.navigate('GenerateReport')}
+              >
+                <View style={[styles.quickActionIcon, { backgroundColor: Colors.info + '15' }]}>
+                  <Ionicons name="document-text" size={24} color={Colors.info} />
+                </View>
+                <Text style={styles.quickActionText}>Generate Report</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </ScrollView>
       )}
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -458,34 +706,90 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: Colors.primary,
     paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
+    paddingVertical: 15,
+    backgroundColor: Colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  welcomeText: {
-    fontSize: 16,
-    fontWeight: '400',
-    color: Colors.white,
-    opacity: 0.8,
+  headerLeft: {
+    flex: 1,
   },
-  userName: {
-    fontSize: 20,
-    fontWeight: '700',
-    color: Colors.white,
+  greeting: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: Colors.text,
   },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+  date: {
+    fontSize: 12,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  headerRight: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  syncButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  syncBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: Colors.primary,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
     justifyContent: 'center',
     alignItems: 'center',
   },
+  syncBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  notificationButton: {
+    padding: 8,
+    marginRight: 8,
+  },
+  notificationBadge: {
+    position: 'absolute',
+    top: 2,
+    right: 2,
+    backgroundColor: Colors.error,
+    borderRadius: 8,
+    width: 16,
+    height: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  notificationBadgeText: {
+    color: Colors.white,
+    fontSize: 10,
+    fontWeight: 'bold',
+  },
+  profileButton: {
+    padding: 4,
+  },
+  profileAvatar: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: Colors.primary,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInitials: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: 'bold',
+  },
   scrollView: {
     flex: 1,
+  },
+  scrollContent: {
+    paddingBottom: 30,
   },
   loadingContainer: {
     flex: 1,
@@ -493,9 +797,67 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
+    marginTop: 10,
     color: Colors.textLight,
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  errorText: {
+    marginTop: 10,
+    marginBottom: 20,
+    color: Colors.text,
+    textAlign: 'center',
+  },
+  retryButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 4,
+  },
+  retryButtonText: {
+    color: Colors.white,
+    fontWeight: 'bold',
+  },
+  offlineNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.warning,
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 15,
+    borderRadius: 4,
+  },
+  offlineText: {
+    color: Colors.white,
+    fontSize: 12,
+    marginLeft: 8,
+    flex: 1,
+  },
+  syncNotice: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: Colors.primary + '10',
+    paddingHorizontal: 15,
+    paddingVertical: 10,
+    marginHorizontal: 20,
+    marginTop: 15,
+    borderRadius: 4,
+  },
+  syncText: {
+    color: Colors.text,
+    fontSize: 12,
+    marginLeft: 8,
+    flex: 1,
+  },
+  syncNowText: {
+    color: Colors.primary,
+    fontSize: 12,
+    fontWeight: 'bold',
   },
   section: {
     marginTop: 20,
@@ -505,213 +867,230 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
-  },
-  viewAllButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  viewAllText: {
-    fontSize: 14,
-    color: Colors.primary,
-    marginRight: 4,
-  },
-  featureList: {
-    paddingRight: 20,
-    paddingBottom: 10,
-    paddingTop: 10,
-  },
-  featureCard: {
-    width: 160,
-    padding: 16,
-    borderRadius: 12,
-    marginRight: 12,
-    marginVertical: 4,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  featureIconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  featureTitle: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: 'bold',
     color: Colors.text,
-    marginBottom: 4,
   },
-  featureDescription: {
+  seeAllText: {
     fontSize: 12,
+    color: Colors.primary,
+  },
+  emptyContainer: {
+    backgroundColor: Colors.white,
+    padding: 20,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  emptyText: {
+    marginTop: 8,
     color: Colors.textLight,
-    lineHeight: 16,
   },
-  featureBadge: {
-    position: 'absolute',
-    top: 8,
-    right: 8,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    backgroundColor: Colors.accent,
-    borderRadius: 10,
-  },
-  featureBadgeText: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: Colors.white,
+  propertyListContent: {
+    paddingRight: 10,
   },
   propertyCard: {
     backgroundColor: Colors.white,
-    borderRadius: 12,
-    marginBottom: 16,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+    borderRadius: 8,
+    marginRight: 10,
+    width: 250,
     overflow: 'hidden',
-  },
-  propertyImageContainer: {
-    height: 160,
-    backgroundColor: Colors.lightPrimary,
-    position: 'relative',
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
   propertyImage: {
     width: '100%',
-    height: '100%',
+    height: 120,
+    backgroundColor: Colors.backgroundDark,
   },
   propertyImagePlaceholder: {
     width: '100%',
-    height: '100%',
+    height: 120,
+    backgroundColor: Colors.backgroundDark,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: Colors.lightPrimary,
   },
-  propertyTypeTag: {
-    position: 'absolute',
-    top: 12,
-    left: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
-  },
-  propertyTypeText: {
-    color: Colors.white,
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  propertyContent: {
-    padding: 16,
+  propertyInfo: {
+    padding: 15,
   },
   propertyAddress: {
-    fontSize: 18,
+    fontSize: 14,
     fontWeight: '600',
     color: Colors.text,
-    marginBottom: 4,
   },
   propertyLocation: {
-    fontSize: 14,
+    fontSize: 12,
     color: Colors.textLight,
-    marginBottom: 12,
+    marginTop: 2,
   },
-  propertyDetails: {
-    flexDirection: 'row',
-    marginBottom: 16,
-  },
-  propertyDetailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  propertyDetailText: {
-    fontSize: 14,
-    color: Colors.textLight,
-    marginLeft: 6,
-  },
-  propertyActions: {
+  propertyMeta: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingTop: 12,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-  },
-  propertyActionButton: {
-    flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    marginTop: 10,
   },
-  propertyActionText: {
-    fontSize: 14,
-    marginLeft: 6,
-    color: Colors.text,
-  },
-  propertiesList: {
-    paddingTop: 8,
-  },
-  emptyState: {
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    padding: 20,
-    alignItems: 'center',
-    marginTop: 8,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  emptyStateTitle: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: Colors.text,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  emptyStateText: {
-    fontSize: 14,
+  propertyType: {
+    fontSize: 11,
     color: Colors.textLight,
-    textAlign: 'center',
-    marginBottom: 16,
   },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 16,
+  propertyStatus: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  propertyStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  taskListContent: {
+    paddingRight: 10,
+  },
+  taskCard: {
+    backgroundColor: Colors.white,
     borderRadius: 8,
+    marginRight: 10,
+    width: 250,
+    padding: 15,
+    borderWidth: 1,
+    borderColor: Colors.border,
   },
-  addButtonText: {
+  taskHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  taskPriority: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  taskPriorityText: {
+    fontSize: 10,
+    fontWeight: '600',
+  },
+  taskDueDate: {
+    fontSize: 11,
+    color: Colors.textLight,
+  },
+  taskAddress: {
     fontSize: 14,
     fontWeight: '600',
-    color: Colors.white,
+    color: Colors.text,
+    marginBottom: 10,
+  },
+  taskFooter: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  taskType: {
+    fontSize: 11,
+    color: Colors.textLight,
+  },
+  taskStatus: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  taskStatusText: {
+    fontSize: 10,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  notificationsList: {
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  notificationItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
+  },
+  notificationUnread: {
+    backgroundColor: Colors.primary + '05',
+  },
+  notificationIconContainer: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: Colors.backgroundDark,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  notificationContent: {
+    flex: 1,
+  },
+  notificationTitle: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: Colors.text,
+  },
+  notificationMessage: {
+    fontSize: 12,
+    color: Colors.textLight,
+    marginTop: 2,
+  },
+  notificationTime: {
+    fontSize: 10,
+    color: Colors.textMuted,
+    marginTop: 4,
+  },
+  notificationDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
     marginLeft: 8,
   },
-  comingSoonText: {
-    fontSize: 14,
-    color: Colors.textLight,
-    textAlign: 'center',
-    padding: 20,
-    backgroundColor: Colors.white,
-    borderRadius: 12,
-    marginTop: 8,
+  quickActions: {
+    marginTop: 20,
+    marginBottom: 10,
+    paddingHorizontal: 20,
   },
-  bottomPadding: {
-    height: 80,
+  quickActionsTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: Colors.text,
+    marginBottom: 15,
+  },
+  quickActionsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+  },
+  quickActionItem: {
+    width: '48%',
+    backgroundColor: Colors.white,
+    borderRadius: 8,
+    padding: 15,
+    alignItems: 'center',
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: Colors.border,
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 10,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: Colors.text,
+    textAlign: 'center',
   },
 });
 
