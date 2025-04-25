@@ -192,6 +192,7 @@ export class PropertyShareService {
         username: users.username,
         firstName: users.firstName,
         lastName: users.lastName,
+        email: users.email,
       })
       .from(users)
       .where(eq(users.id, shareLink.userId));
