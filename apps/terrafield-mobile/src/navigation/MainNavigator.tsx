@@ -1,229 +1,196 @@
 import React from 'react';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
-import { NavigationContainer } from '@react-navigation/native';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 
-// Home and Dashboard
-import DashboardScreen from '../screens/DashboardScreen';
-import PropertyListScreen from '../screens/PropertyListScreen';
+import {
+  RootStackParamList,
+  MainTabParamList,
+  PropertiesStackParamList,
+  InspectionStackParamList,
+  ReportsStackParamList,
+  SettingsStackParamList,
+  DashboardStackParamList,
+} from './types';
+
+// Mock screen components for demonstration purposes
+// In a real app, these would be imported from the actual screens
+import LoginScreen from '../screens/LoginScreen';
+import DashboardHomeScreen from '../screens/DashboardHomeScreen';
+import PropertiesListScreen from '../screens/PropertiesListScreen';
 import PropertyDetailScreen from '../screens/PropertyDetailScreen';
-
-// Inspection and Data Collection
-import InspectionScreen from '../screens/InspectionScreen';
-import FormCaptureScreen from '../screens/FormCaptureScreen';
-import VoicePropertyFormScreen from '../screens/VoicePropertyFormScreen';
-
-// Photos and Measurements
-import PhotoEnhancementScreen from '../screens/PhotoEnhancementScreen';
-import ARMeasurementScreen from '../screens/ARMeasurementScreen';
-
-// Comparables and Analysis
+import PropertyEditScreen from '../screens/PropertyEditScreen';
+import AddPropertyScreen from '../screens/AddPropertyScreen';
+import PropertySearchScreen from '../screens/PropertySearchScreen';
+import PropertyMapViewScreen from '../screens/PropertyMapViewScreen';
 import ComparableSearchScreen from '../screens/ComparableSearchScreen';
-import AdjustmentModelScreen from '../screens/AdjustmentModelScreen';
-
-// Reporting and Compliance
+import PropertyComparisonDashboard from '../screens/PropertyComparisonDashboard';
+import InspectionListScreen from '../screens/InspectionListScreen';
+import InspectionDetailScreen from '../screens/InspectionDetailScreen';
+import PhotoCaptureScreen from '../screens/PhotoCaptureScreen';
+import ARMeasurementScreen from '../screens/ARMeasurementScreen';
+import VoiceNotesScreen from '../screens/VoiceNotesScreen';
+import SketchPadScreen from '../screens/SketchPadScreen';
+import FieldDataVerificationScreen from '../screens/FieldDataVerificationScreen';
+import ReportsListScreen from '../screens/ReportsListScreen';
+import ReportDetailScreen from '../screens/ReportDetailScreen';
 import ReportGenerationScreen from '../screens/ReportGenerationScreen';
-import ComplianceDocumentScreen from '../screens/ComplianceDocumentScreen';
-
-// Collaboration and Sync
-import CollaborationScreen from '../screens/CollaborationScreen';
-import SyncStatusScreen from '../screens/SyncStatusScreen';
-
-// Auth and Profile
-import AuthScreen from '../screens/AuthScreen';
+import ComplianceDocumentsScreen from '../screens/ComplianceDocumentsScreen';
+import SettingsHomeScreen from '../screens/SettingsHomeScreen';
 import ProfileScreen from '../screens/ProfileScreen';
-import SecuritySettingsScreen from '../screens/SecuritySettingsScreen';
-
-// Types
-import { RootStackParamList, MainTabParamList } from './types';
+import AccountSettingsScreen from '../screens/AccountSettingsScreen';
+import AppSettingsScreen from '../screens/AppSettingsScreen';
+import OfflineScreen from '../screens/OfflineScreen';
+import CollaborationScreen from '../screens/CollaborationScreen';
+import ExternalDataScreen from '../screens/ExternalDataScreen';
+import SupportScreen from '../screens/SupportScreen';
 
 // Create navigators
-const Stack = createStackNavigator<RootStackParamList>();
-const Tab = createBottomTabNavigator<MainTabParamList>();
+const RootStack = createStackNavigator<RootStackParamList>();
+const MainTab = createBottomTabNavigator<MainTabParamList>();
+const DashboardStack = createStackNavigator<DashboardStackParamList>();
+const PropertiesStack = createStackNavigator<PropertiesStackParamList>();
+const InspectionStack = createStackNavigator<InspectionStackParamList>();
+const ReportsStack = createStackNavigator<ReportsStackParamList>();
+const SettingsStack = createStackNavigator<SettingsStackParamList>();
 
-/**
- * Home stack navigator
- */
-const HomeStack = () => {
+// Dashboard stack navigator
+const DashboardStackNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
+    <DashboardStack.Navigator
+      initialRouteName="DashboardHome"
+      screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="Dashboard" component={DashboardScreen} />
-      <Stack.Screen name="PropertyList" component={PropertyListScreen} />
-      <Stack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
-    </Stack.Navigator>
+      <DashboardStack.Screen name="DashboardHome" component={DashboardHomeScreen} />
+      <DashboardStack.Screen name="Notifications" component={DashboardHomeScreen} />
+      <DashboardStack.Screen name="Tasks" component={DashboardHomeScreen} />
+    </DashboardStack.Navigator>
   );
 };
 
-/**
- * Inspection stack navigator
- */
-const InspectionStack = () => {
+// Properties stack navigator
+const PropertiesStackNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
+    <PropertiesStack.Navigator
+      initialRouteName="PropertiesList"
+      screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="Inspection" component={InspectionScreen} />
-      <Stack.Screen name="FormCapture" component={FormCaptureScreen} />
-      <Stack.Screen name="VoiceForm" component={VoicePropertyFormScreen} />
-      <Stack.Screen name="PhotoEnhancement" component={PhotoEnhancementScreen} />
-      <Stack.Screen name="ARMeasurement" component={ARMeasurementScreen} />
-    </Stack.Navigator>
+      <PropertiesStack.Screen name="PropertiesList" component={PropertiesListScreen} />
+      <PropertiesStack.Screen name="PropertyDetail" component={PropertyDetailScreen} />
+      <PropertiesStack.Screen name="PropertyEdit" component={PropertyEditScreen} />
+      <PropertiesStack.Screen name="AddProperty" component={AddPropertyScreen} />
+      <PropertiesStack.Screen name="PropertySearch" component={PropertySearchScreen} />
+      <PropertiesStack.Screen name="ComparableSearch" component={ComparableSearchScreen} />
+      <PropertiesStack.Screen name="PropertyMapView" component={PropertyMapViewScreen} />
+      <PropertiesStack.Screen name="PropertyComparisonDashboard" component={PropertyComparisonDashboard} />
+    </PropertiesStack.Navigator>
   );
 };
 
-/**
- * Analysis stack navigator
- */
-const AnalysisStack = () => {
+// Inspection stack navigator
+const InspectionStackNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
+    <InspectionStack.Navigator
+      initialRouteName="InspectionList"
+      screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="ComparableSearch" component={ComparableSearchScreen} />
-      <Stack.Screen name="AdjustmentModel" component={AdjustmentModelScreen} />
-    </Stack.Navigator>
+      <InspectionStack.Screen name="InspectionList" component={InspectionListScreen} />
+      <InspectionStack.Screen name="InspectionDetail" component={InspectionDetailScreen} />
+      <InspectionStack.Screen name="PhotoCapture" component={PhotoCaptureScreen} />
+      <InspectionStack.Screen name="ARMeasurement" component={ARMeasurementScreen} />
+      <InspectionStack.Screen name="VoiceNotes" component={VoiceNotesScreen} />
+      <InspectionStack.Screen name="SketchPad" component={SketchPadScreen} />
+      <InspectionStack.Screen name="FieldDataVerification" component={FieldDataVerificationScreen} />
+    </InspectionStack.Navigator>
   );
 };
 
-/**
- * Reports stack navigator
- */
-const ReportsStack = () => {
+// Reports stack navigator
+const ReportsStackNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
+    <ReportsStack.Navigator
+      initialRouteName="ReportsList"
+      screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="ReportGeneration" component={ReportGenerationScreen} />
-      <Stack.Screen name="ComplianceDocument" component={ComplianceDocumentScreen} />
-    </Stack.Navigator>
+      <ReportsStack.Screen name="ReportsList" component={ReportsListScreen} />
+      <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen} />
+      <ReportsStack.Screen name="ReportGeneration" component={ReportGenerationScreen} />
+      <ReportsStack.Screen name="ComplianceDocuments" component={ComplianceDocumentsScreen} />
+    </ReportsStack.Navigator>
   );
 };
 
-/**
- * Collaboration stack navigator
- */
-const CollaborationStack = () => {
+// Settings stack navigator
+const SettingsStackNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
+    <SettingsStack.Navigator
+      initialRouteName="SettingsHome"
+      screenOptions={{ headerShown: false }}
     >
-      <Stack.Screen name="Collaboration" component={CollaborationScreen} />
-      <Stack.Screen name="SyncStatus" component={SyncStatusScreen} />
-    </Stack.Navigator>
+      <SettingsStack.Screen name="SettingsHome" component={SettingsHomeScreen} />
+      <SettingsStack.Screen name="Profile" component={ProfileScreen} />
+      <SettingsStack.Screen name="AccountSettings" component={AccountSettingsScreen} />
+      <SettingsStack.Screen name="AppSettings" component={AppSettingsScreen} />
+      <SettingsStack.Screen name="Offline" component={OfflineScreen} />
+      <SettingsStack.Screen name="Collaboration" component={CollaborationScreen} />
+      <SettingsStack.Screen name="ExternalData" component={ExternalDataScreen} />
+      <SettingsStack.Screen name="Support" component={SupportScreen} />
+    </SettingsStack.Navigator>
   );
 };
 
-/**
- * Profile stack navigator
- */
-const ProfileStack = () => {
+// Main tab navigator
+const MainTabNavigator = () => {
   return (
-    <Stack.Navigator
-      screenOptions={{
-        headerShown: false,
-      }}
-    >
-      <Stack.Screen name="Profile" component={ProfileScreen} />
-      <Stack.Screen name="SecuritySettings" component={SecuritySettingsScreen} />
-    </Stack.Navigator>
-  );
-};
-
-/**
- * Main tab navigator
- */
-const MainTabs = () => {
-  return (
-    <Tab.Navigator
+    <MainTab.Navigator
+      initialRouteName="Dashboard"
       screenOptions={({ route }) => ({
+        headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName;
-
-          switch (route.name) {
-            case 'Home':
-              iconName = focused ? 'home' : 'home-outline';
-              break;
-            case 'Inspection':
-              iconName = focused ? 'clipboard-check' : 'clipboard-check-outline';
-              break;
-            case 'Analysis':
-              iconName = focused ? 'chart-box' : 'chart-box-outline';
-              break;
-            case 'Reports':
-              iconName = focused ? 'file-document' : 'file-document-outline';
-              break;
-            case 'Collaborate':
-              iconName = focused ? 'account-group' : 'account-group-outline';
-              break;
-            case 'Profile':
-              iconName = focused ? 'account-circle' : 'account-circle-outline';
-              break;
-            default:
-              iconName = 'circle';
+          let iconName: string = 'home';
+          
+          if (route.name === 'Dashboard') {
+            iconName = focused ? 'view-dashboard' : 'view-dashboard-outline';
+          } else if (route.name === 'Properties') {
+            iconName = focused ? 'home' : 'home-outline';
+          } else if (route.name === 'Reports') {
+            iconName = focused ? 'file-document' : 'file-document-outline';
+          } else if (route.name === 'Inspection') {
+            iconName = focused ? 'clipboard-check' : 'clipboard-check-outline';
+          } else if (route.name === 'Settings') {
+            iconName = focused ? 'cog' : 'cog-outline';
           }
-
-          return <MaterialCommunityIcons name={iconName} size={size} color={color} />;
+          
+          return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
         },
         tabBarActiveTintColor: '#3498db',
-        tabBarInactiveTintColor: '#7f8c8d',
+        tabBarInactiveTintColor: 'gray',
         tabBarStyle: {
           borderTopWidth: 1,
-          borderTopColor: '#eee',
-          backgroundColor: '#fff',
-          elevation: 5,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: -2 },
-          shadowOpacity: 0.1,
-          shadowRadius: 2,
+          borderTopColor: '#f0f0f0',
         },
-        headerShown: false,
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} />
-      <Tab.Screen name="Inspection" component={InspectionStack} />
-      <Tab.Screen name="Analysis" component={AnalysisStack} />
-      <Tab.Screen name="Reports" component={ReportsStack} />
-      <Tab.Screen name="Collaborate" component={CollaborationStack} />
-      <Tab.Screen name="Profile" component={ProfileStack} />
-    </Tab.Navigator>
+      <MainTab.Screen name="Dashboard" component={DashboardStackNavigator} />
+      <MainTab.Screen name="Properties" component={PropertiesStackNavigator} />
+      <MainTab.Screen name="Inspection" component={InspectionStackNavigator} />
+      <MainTab.Screen name="Reports" component={ReportsStackNavigator} />
+      <MainTab.Screen name="Settings" component={SettingsStackNavigator} />
+    </MainTab.Navigator>
   );
 };
 
-/**
- * Root navigator
- */
-const RootNavigator = () => {
-  // Check auth state
-  const isLoggedIn = true; // For demonstration, in real app would check auth state
-
+// Root stack navigator
+const RootStackNavigator = () => {
   return (
-    <NavigationContainer>
-      <Stack.Navigator
-        screenOptions={{
-          headerShown: false,
-        }}
-      >
-        {isLoggedIn ? (
-          <Stack.Screen name="Main" component={MainTabs} />
-        ) : (
-          <Stack.Screen name="Auth" component={AuthScreen} />
-        )}
-      </Stack.Navigator>
-    </NavigationContainer>
+    <RootStack.Navigator
+      initialRouteName="Main"
+      screenOptions={{ headerShown: false }}
+    >
+      <RootStack.Screen name="Login" component={LoginScreen} />
+      <RootStack.Screen name="Main" component={MainTabNavigator} />
+    </RootStack.Navigator>
   );
 };
 
-export default RootNavigator;
+export default RootStackNavigator;

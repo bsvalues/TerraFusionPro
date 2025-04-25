@@ -29,6 +29,7 @@ export type PropertiesStackParamList = {
   PropertySearch: undefined;
   ComparableSearch: { propertyId: string };
   PropertyMapView: undefined;
+  PropertyComparisonDashboard: { propertyId: string };
 };
 
 export type InspectionStackParamList = {
