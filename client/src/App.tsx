@@ -13,6 +13,7 @@ import UADFormPage from "./pages/UADFormPage";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import ImportPage from "./pages/ImportPage";
 import NotFound from "./pages/not-found";
+import SharedPropertyPage from "./pages/SharedPropertyPage";
 import { useState } from "react";
 import { TooltipProvider } from "./contexts/TooltipContext";
 import TermsPage from "./pages/TermsPage";
@@ -86,6 +87,7 @@ function App() {
             <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
             <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
             <Route path="/notification-test" component={NotificationTestPage} />
+            <Route path="/shared/:token" component={SharedPropertyPage} />
             <Route component={NotFound} />
           </Switch>
         </main>
