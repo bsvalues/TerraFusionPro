@@ -1,44 +1,55 @@
-import { Platform } from 'react-native';
+import { Platform, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
 import * as SecureStore from 'expo-secure-store';
 
-/**
- * Base URL for API calls
- * Uses localhost for iOS simulator and 10.0.2.2 for Android emulator
- */
-const API_BASE_URL = Platform.OS === 'ios' ? 
-  'http://localhost:5000' : 
-  'http://10.0.2.2:5000';
+const API_URL = process.env.API_URL || 'https://api.terrafield.com';
+const TOKEN_KEY = 'auth_token';
+const OFFLINE_QUEUE_KEY = 'offline_api_queue';
+
+type HttpMethod = 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+
+interface OfflineRequest {
+  id: string;
+  url: string;
+  method: HttpMethod;
+  body?: any;
+  timestamp: number;
+  retries: number;
+}
 
 /**
- * API service for handling API requests
+ * Service to handle API requests with offline support
  */
 export class ApiService {
   private static instance: ApiService;
   private token: string | null = null;
   private isConnected: boolean = true;
-  private pendingRequests: Array<{ 
-    method: string, 
-    endpoint: string, 
-    data?: any,
-    timestamp: number 
-  }> = [];
+  private offlineQueue: OfflineRequest[] = [];
+  private maxRetries = 3;
 
+  /**
+   * Private constructor to implement singleton pattern
+   */
   private constructor() {
-    // Initialize network connectivity monitoring
-    NetInfo.addEventListener(state => {
-      // Update connection status
-      this.isConnected = state.isConnected ?? false;
+    this.setupNetworkListener();
+    this.loadTokenFromStorage();
+    this.loadOfflineQueue();
+  }
 
-      // If we're back online, process pending requests
-      if (state.isConnected) {
-        this.processPendingRequests();
+  /**
+   * Set up network connectivity listener
+   */
+  private setupNetworkListener(): void {
+    NetInfo.addEventListener(state => {
+      const wasConnected = this.isConnected;
+      this.isConnected = state.isConnected ?? false;
+      
+      // If connectivity was restored, process offline queue
+      if (!wasConnected && this.isConnected) {
+        this.processOfflineQueue();
       }
     });
-
-    // Load pending requests from storage
-    this.loadPendingRequests();
   }
 
   /**
@@ -52,201 +63,296 @@ export class ApiService {
   }
 
   /**
-   * Set authentication token
+   * Process the offline request queue
    */
-  public async setToken(token: string): Promise<void> {
-    this.token = token;
-    
+  private async processOfflineQueue(): Promise<void> {
+    if (this.offlineQueue.length === 0 || !this.isConnected) {
+      return;
+    }
+
+    const queue = [...this.offlineQueue];
+    const successfulRequests: string[] = [];
+    const failedRequests: OfflineRequest[] = [];
+
+    for (const request of queue) {
+      try {
+        const { url, method, body } = request;
+        await this.makeRequest(url, method, body);
+        successfulRequests.push(request.id);
+        console.log(`Offline request processed successfully: ${request.id}`);
+      } catch (error) {
+        if (request.retries >= this.maxRetries) {
+          console.warn(`Max retries reached for request ${request.id}, removing from queue`);
+          successfulRequests.push(request.id);
+        } else {
+          const updatedRequest = {
+            ...request,
+            retries: request.retries + 1,
+          };
+          failedRequests.push(updatedRequest);
+        }
+      }
+    }
+
+    // Update the queue by removing successful requests
+    this.offlineQueue = this.offlineQueue.filter(
+      request => !successfulRequests.includes(request.id)
+    );
+
+    // Save the updated queue
+    this.saveOfflineQueue();
+  }
+
+  /**
+   * Load saved auth token from secure storage
+   */
+  private async loadTokenFromStorage(): Promise<void> {
     try {
-      await SecureStore.setItemAsync('auth_token', token);
+      this.token = await SecureStore.getItemAsync(TOKEN_KEY);
+    } catch (error) {
+      console.error('Error loading auth token:', error);
+    }
+  }
+
+  /**
+   * Save auth token to secure storage
+   */
+  private async saveTokenToStorage(token: string): Promise<void> {
+    try {
+      await SecureStore.setItemAsync(TOKEN_KEY, token);
     } catch (error) {
       console.error('Error saving auth token:', error);
     }
   }
 
   /**
-   * Clear authentication token
+   * Load offline request queue from storage
    */
-  public async clearToken(): Promise<void> {
-    this.token = null;
-    
+  private async loadOfflineQueue(): Promise<void> {
     try {
-      await SecureStore.deleteItemAsync('auth_token');
+      const queueData = await AsyncStorage.getItem(OFFLINE_QUEUE_KEY);
+      if (queueData) {
+        this.offlineQueue = JSON.parse(queueData);
+      }
     } catch (error) {
-      console.error('Error clearing auth token:', error);
+      console.error('Error loading offline queue:', error);
     }
   }
 
   /**
-   * Load authentication token from secure storage
+   * Save offline request queue to storage
    */
-  public async loadToken(): Promise<string | null> {
+  private async saveOfflineQueue(): Promise<void> {
     try {
-      this.token = await SecureStore.getItemAsync('auth_token');
-      return this.token;
+      await AsyncStorage.setItem(OFFLINE_QUEUE_KEY, JSON.stringify(this.offlineQueue));
     } catch (error) {
-      console.error('Error loading auth token:', error);
-      return null;
+      console.error('Error saving offline queue:', error);
     }
   }
 
   /**
-   * Make GET request
+   * Add a request to the offline queue
    */
-  public async get<T>(endpoint: string): Promise<T | null> {
-    return this.request<T>('GET', endpoint);
-  }
-
-  /**
-   * Make POST request
-   */
-  public async post<T>(endpoint: string, data?: any): Promise<T | null> {
-    return this.request<T>('POST', endpoint, data);
-  }
-
-  /**
-   * Make PUT request
-   */
-  public async put<T>(endpoint: string, data?: any): Promise<T | null> {
-    return this.request<T>('PUT', endpoint, data);
-  }
-
-  /**
-   * Make DELETE request
-   */
-  public async delete<T>(endpoint: string): Promise<T | null> {
-    return this.request<T>('DELETE', endpoint);
-  }
-
-  /**
-   * Handle all requests
-   */
-  private async request<T>(method: string, endpoint: string, data?: any): Promise<T | null> {
-    // If not connected, queue the request and return null
-    if (!this.isConnected) {
-      console.log(`No connection, queueing ${method} request to ${endpoint}`);
-      await this.queueRequest(method, endpoint, data);
-      return null;
-    }
-
-    // Create request options
-    const options: RequestInit = {
+  private async addToOfflineQueue(
+    url: string,
+    method: HttpMethod,
+    body?: any
+  ): Promise<void> {
+    const request: OfflineRequest = {
+      id: `${Date.now()}_${Math.random().toString(36).slice(2, 9)}`,
+      url,
       method,
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      body,
+      timestamp: Date.now(),
+      retries: 0,
     };
 
-    // Add authorization token if available
-    if (this.token) {
-      options.headers = {
-        ...options.headers,
-        'Authorization': `Bearer ${this.token}`,
-      };
-    }
+    this.offlineQueue.push(request);
+    await this.saveOfflineQueue();
+    console.log(`Request added to offline queue: ${request.id}`);
+  }
 
-    // Add body for non-GET requests
-    if (method !== 'GET' && data) {
-      options.body = JSON.stringify(data);
+  /**
+   * Set the auth token
+   */
+  public setToken(token: string): void {
+    this.token = token;
+    this.saveTokenToStorage(token);
+  }
+
+  /**
+   * Clear the auth token
+   */
+  public clearToken(): void {
+    this.token = null;
+    SecureStore.deleteItemAsync(TOKEN_KEY);
+  }
+
+  /**
+   * Check if user is authenticated (has token)
+   */
+  public isAuthenticated(): boolean {
+    return this.token !== null;
+  }
+
+  /**
+   * Make a HTTP request with offline support
+   */
+  private async makeRequest(
+    url: string,
+    method: HttpMethod,
+    body?: any,
+    isRetry: boolean = false
+  ): Promise<any> {
+    const fullUrl = url.startsWith('http') ? url : `${API_URL}${url}`;
+    
+    // Check network connectivity
+    if (!this.isConnected && !isRetry) {
+      if (method !== 'GET') {
+        await this.addToOfflineQueue(url, method, body);
+        return { offline: true, queued: true, message: 'Request queued for when network is available' };
+      } else {
+        throw new Error('Network is not available');
+      }
     }
 
     try {
-      // Make the request
-      const response = await fetch(`${API_BASE_URL}${endpoint}`, options);
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      };
 
-      // Handle response
-      if (response.ok) {
-        // If response is empty, return empty object
-        const contentType = response.headers.get('content-type');
-        if (contentType && contentType.includes('application/json')) {
-          return await response.json();
-        }
-        return {} as T;
+      if (this.token) {
+        headers['Authorization'] = `Bearer ${this.token}`;
+      }
+
+      const options: RequestInit = {
+        method,
+        headers,
+      };
+
+      if (body && method !== 'GET') {
+        options.body = JSON.stringify(body);
+      }
+
+      const response = await fetch(fullUrl, options);
+      
+      // Check for unauthorized (token expired or invalid)
+      if (response.status === 401 && this.token && !isRetry) {
+        // Try refreshing token (implementation depends on your auth flow)
+        await this.refreshToken();
+        
+        // Retry the request once with the new token
+        return this.makeRequest(url, method, body, true);
+      }
+      
+      // Parse response
+      let data;
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        data = await response.json();
       } else {
-        // Handle error response
-        const errorText = await response.text();
-        console.error(`API Error (${response.status}):`, errorText);
-        throw new Error(errorText || `API Error: ${response.status}`);
+        data = await response.text();
       }
+      
+      if (!response.ok) {
+        throw new Error(data.message || 'Request failed');
+      }
+      
+      return data;
     } catch (error) {
-      // If network error, queue the request for later
-      console.error(`Request failed:`, error);
-      if (!this.isConnected) {
-        await this.queueRequest(method, endpoint, data);
+      if (!this.isConnected && method !== 'GET' && !isRetry) {
+        await this.addToOfflineQueue(url, method, body);
+        return { offline: true, queued: true, message: 'Request queued for when network is available' };
       }
+      
       throw error;
     }
   }
 
   /**
-   * Queue a request for later execution
+   * Refresh the auth token
    */
-  private async queueRequest(method: string, endpoint: string, data?: any): Promise<void> {
-    const request = {
-      method,
-      endpoint,
-      data,
-      timestamp: Date.now(),
-    };
-
-    this.pendingRequests.push(request);
-    
-    // Save pending requests to storage
+  private async refreshToken(): Promise<boolean> {
+    // This would call your refresh token endpoint
+    // For simplicity, we're just handling token invalidation here
     try {
-      await AsyncStorage.setItem('pendingRequests', JSON.stringify(this.pendingRequests));
+      // Example refresh token implementation:
+      // const response = await fetch(`${API_URL}/auth/refresh`, {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({ refreshToken: this.refreshToken }),
+      // });
+      //
+      // if (response.ok) {
+      //   const data = await response.json();
+      //   this.setToken(data.token);
+      //   return true;
+      // }
+      
+      // For now, just clear the token
+      this.clearToken();
+      return false;
     } catch (error) {
-      console.error('Error saving pending requests:', error);
+      this.clearToken();
+      return false;
     }
   }
 
   /**
-   * Load pending requests from storage
+   * GET request
    */
-  private async loadPendingRequests(): Promise<void> {
-    try {
-      const requests = await AsyncStorage.getItem('pendingRequests');
-      if (requests) {
-        this.pendingRequests = JSON.parse(requests);
-      }
-    } catch (error) {
-      console.error('Error loading pending requests:', error);
-    }
+  public async get(url: string): Promise<any> {
+    return this.makeRequest(url, 'GET');
   }
 
   /**
-   * Process pending requests when back online
+   * POST request
    */
-  private async processPendingRequests(): Promise<void> {
-    if (this.pendingRequests.length === 0) return;
+  public async post(url: string, body?: any): Promise<any> {
+    return this.makeRequest(url, 'POST', body);
+  }
 
-    console.log(`Processing ${this.pendingRequests.length} pending requests`);
-    
-    // Create a copy of the pending requests
-    const requests = [...this.pendingRequests];
-    
-    // Clear pending requests
-    this.pendingRequests = [];
-    await AsyncStorage.removeItem('pendingRequests');
-    
-    // Process each request
-    for (const request of requests) {
-      try {
-        await this.request(request.method, request.endpoint, request.data);
-        console.log(`Processed queued request: ${request.method} ${request.endpoint}`);
-      } catch (error) {
-        console.error(`Failed to process queued request:`, error);
-        
-        // If still relevant (less than 24 hours old), requeue the request
-        const ONE_DAY = 24 * 60 * 60 * 1000;
-        if (Date.now() - request.timestamp < ONE_DAY) {
-          this.pendingRequests.push(request);
-        }
-      }
+  /**
+   * PUT request
+   */
+  public async put(url: string, body?: any): Promise<any> {
+    return this.makeRequest(url, 'PUT', body);
+  }
+
+  /**
+   * DELETE request
+   */
+  public async delete(url: string): Promise<any> {
+    return this.makeRequest(url, 'DELETE');
+  }
+
+  /**
+   * PATCH request
+   */
+  public async patch(url: string, body?: any): Promise<any> {
+    return this.makeRequest(url, 'PATCH', body);
+  }
+
+  /**
+   * Get the number of pending offline requests
+   */
+  public getPendingRequestsCount(): number {
+    return this.offlineQueue.length;
+  }
+
+  /**
+   * Force processing the offline queue
+   */
+  public async forceSyncOfflineQueue(): Promise<boolean> {
+    if (!this.isConnected) {
+      return false;
     }
     
-    // Save any requests that couldn't be processed
-    if (this.pendingRequests.length > 0) {
-      await AsyncStorage.setItem('pendingRequests', JSON.stringify(this.pendingRequests));
-    }
+    await this.processOfflineQueue();
+    return true;
   }
 }

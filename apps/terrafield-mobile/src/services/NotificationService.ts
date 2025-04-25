@@ -1,45 +1,31 @@
+import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+
+// Configure notifications globally
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
+
 /**
- * Notification Service for handling in-app notifications
- * in the TerraField Mobile application
+ * Service to handle notifications for the app
  */
-
-// Notification Types
-export enum NotificationType {
-  SYNC_STARTED = 'sync_started',
-  SYNC_COMPLETED = 'sync_completed',
-  SYNC_FAILED = 'sync_failed',
-  FIELD_NOTE_ADDED = 'field_note_added',
-  FIELD_NOTE_DELETED = 'field_note_deleted',
-  FIELD_NOTE_UPDATED = 'field_note_updated',
-  CONFLICT_DETECTED = 'conflict_detected',
-  PROPERTY_UPDATED = 'property_updated',
-  REPORT_GENERATED = 'report_generated',
-  PHOTO_ENHANCED = 'photo_enhanced',
-  MEASUREMENT_COMPLETED = 'measurement_completed',
-}
-
-// Notification interface
-export interface Notification {
-  id: string;
-  userId: number;
-  type: NotificationType;
-  title: string;
-  message: string;
-  timestamp: string;
-  read: boolean;
-  data?: any;
-}
-
-// Notification service using the singleton pattern
 export class NotificationService {
   private static instance: NotificationService;
-  private notifications: Map<string, Notification> = new Map();
-  private listeners: ((notifications: Notification[]) => void)[] = [];
+  private isInitialized: boolean = false;
 
-  // Private constructor to prevent direct instantiation
+  /**
+   * Private constructor for singleton pattern
+   */
   private constructor() {}
 
-  // Get singleton instance
+  /**
+   * Get instance of NotificationService (Singleton)
+   */
   public static getInstance(): NotificationService {
     if (!NotificationService.instance) {
       NotificationService.instance = new NotificationService();
@@ -47,129 +33,190 @@ export class NotificationService {
     return NotificationService.instance;
   }
 
-  // Register a listener for notification updates
-  public registerListener(callback: (notifications: Notification[]) => void): () => void {
-    this.listeners.push(callback);
-    
-    // Return unregister function
-    return () => {
-      const index = this.listeners.indexOf(callback);
-      if (index !== -1) {
-        this.listeners.splice(index, 1);
-      }
-    };
-  }
-
-  // Notify all registered listeners
-  private notifyListeners(): void {
-    const notificationsList = Array.from(this.notifications.values());
-    this.listeners.forEach(listener => listener(notificationsList));
-  }
-
-  // Send a notification
-  public sendNotification(
-    userId: number,
-    type: NotificationType,
-    title: string,
-    message: string,
-    data?: any
-  ): Notification {
-    const id = `notification_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
-    const timestamp = new Date().toISOString();
-    
-    const notification: Notification = {
-      id,
-      userId,
-      type,
-      title,
-      message,
-      timestamp,
-      read: false,
-      data,
-    };
-    
-    this.notifications.set(id, notification);
-    this.notifyListeners();
-    
-    // Display the notification (in a real app, this would use the OS notification system)
-    console.log(`NOTIFICATION: ${title} - ${message}`);
-    
-    return notification;
-  }
-
-  // Get all notifications for a user
-  public getNotificationsByUser(userId: number): Notification[] {
-    return Array.from(this.notifications.values())
-      .filter(notification => notification.userId === userId)
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-  }
-
-  // Get unread notifications count for a user
-  public getUnreadCount(userId: number): number {
-    return this.getNotificationsByUser(userId)
-      .filter(notification => !notification.read)
-      .length;
-  }
-
-  // Mark a notification as read
-  public markAsRead(notificationId: string): boolean {
-    const notification = this.notifications.get(notificationId);
-    
-    if (notification) {
-      notification.read = true;
-      this.notifications.set(notificationId, notification);
-      this.notifyListeners();
+  /**
+   * Initialize the notification service
+   */
+  public async initialize(): Promise<boolean> {
+    if (this.isInitialized) {
       return true;
     }
-    
-    return false;
-  }
 
-  // Mark all notifications as read for a user
-  public markAllAsRead(userId: number): number {
-    let count = 0;
-    
-    this.getNotificationsByUser(userId).forEach(notification => {
-      if (!notification.read) {
-        notification.read = true;
-        this.notifications.set(notification.id, notification);
-        count++;
+    try {
+      // Request permissions
+      const { status: existingStatus } = await Notifications.getPermissionsAsync();
+      let finalStatus = existingStatus;
+
+      // If we don't have permission, request it
+      if (existingStatus !== 'granted') {
+        const { status } = await Notifications.requestPermissionsAsync();
+        finalStatus = status;
       }
-    });
-    
-    if (count > 0) {
-      this.notifyListeners();
-    }
-    
-    return count;
-  }
 
-  // Delete a notification
-  public deleteNotification(notificationId: string): boolean {
-    const deleted = this.notifications.delete(notificationId);
-    
-    if (deleted) {
-      this.notifyListeners();
-    }
-    
-    return deleted;
-  }
-
-  // Clear all notifications for a user
-  public clearNotifications(userId: number): number {
-    const userNotifications = this.getNotificationsByUser(userId);
-    let count = 0;
-    
-    userNotifications.forEach(notification => {
-      if (this.notifications.delete(notification.id)) {
-        count++;
+      if (finalStatus !== 'granted') {
+        console.warn('Failed to get push token for notifications');
+        return false;
       }
-    });
-    
-    if (count > 0) {
-      this.notifyListeners();
+
+      // Set up notification listener
+      Notifications.addNotificationReceivedListener(this.handleNotification);
+
+      this.isInitialized = true;
+      return true;
+    } catch (error) {
+      console.error('Error initializing notifications:', error);
+      return false;
     }
+  }
+
+  /**
+   * Send a local notification
+   */
+  public async sendLocalNotification(
+    title: string,
+    body: string,
+    data: any = {}
+  ): Promise<void> {
+    try {
+      // Check if notifications are enabled in user preferences
+      const notificationsEnabled = await this.areNotificationsEnabled();
+      
+      if (!notificationsEnabled) {
+        console.log('Notifications are disabled by user');
+        return;
+      }
+
+      await this.initialize();
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          data,
+          sound: true,
+        },
+        trigger: null, // Show immediately
+      });
+    } catch (error) {
+      console.error('Error sending notification:', error);
+    }
+  }
+
+  /**
+   * Send a field note update notification
+   */
+  public async sendFieldNoteUpdateNotification(
+    propertyAddress: string,
+    updaterName: string
+  ): Promise<void> {
+    await this.sendLocalNotification(
+      'Field Notes Updated',
+      `${updaterName} updated notes for ${propertyAddress}`,
+      {
+        type: 'field_note_update',
+        propertyAddress,
+        updaterName,
+      }
+    );
+  }
+
+  /**
+   * Send a sync error notification
+   */
+  public async sendSyncErrorNotification(
+    propertyAddress: string,
+    pendingChanges: number
+  ): Promise<void> {
+    await this.sendLocalNotification(
+      'Sync Error',
+      `Failed to sync ${pendingChanges} changes for ${propertyAddress}. They will be synced when connection is restored.`,
+      {
+        type: 'sync_error',
+        propertyAddress,
+        pendingChanges,
+      }
+    );
+  }
+
+  /**
+   * Send a sync success notification
+   */
+  public async sendSyncSuccessNotification(
+    propertyAddress: string,
+    changesCount: number
+  ): Promise<void> {
+    if (changesCount <= 0) return;
+
+    await this.sendLocalNotification(
+      'Sync Complete',
+      `Successfully synced ${changesCount} changes for ${propertyAddress}.`,
+      {
+        type: 'sync_success',
+        propertyAddress,
+        changesCount,
+      }
+    );
+  }
+
+  /**
+   * Send a notification when someone else is editing the same document
+   */
+  public async sendCollaborationNotification(
+    propertyAddress: string,
+    collaboratorName: string
+  ): Promise<void> {
+    await this.sendLocalNotification(
+      'New Collaborator',
+      `${collaboratorName} is now editing notes for ${propertyAddress}.`,
+      {
+        type: 'new_collaborator',
+        propertyAddress,
+        collaboratorName,
+      }
+    );
+  }
+
+  /**
+   * Handle incoming notifications
+   */
+  private handleNotification = (notification: Notifications.Notification) => {
+    console.log('Notification received:', notification);
     
-    return count;
+    // Handle specific notification types
+    const data = notification.request.content.data;
+    
+    if (data?.type === 'field_note_update') {
+      // Could trigger a refresh of field notes
+      console.log('Field note update notification received');
+    }
+  };
+
+  /**
+   * Check if notifications are enabled in user preferences
+   */
+  public async areNotificationsEnabled(): Promise<boolean> {
+    try {
+      const notificationsPreference = await AsyncStorage.getItem(
+        'notificationsEnabled'
+      );
+      // Default to enabled if preference not set
+      return notificationsPreference !== 'false';
+    } catch (error) {
+      console.error('Error checking notification preference:', error);
+      return true; // Default to enabled
+    }
+  }
+
+  /**
+   * Set notifications enabled/disabled
+   */
+  public async setNotificationsEnabled(enabled: boolean): Promise<void> {
+    try {
+      await AsyncStorage.setItem(
+        'notificationsEnabled',
+        enabled ? 'true' : 'false'
+      );
+    } catch (error) {
+      console.error('Error setting notification preference:', error);
+    }
   }
 }

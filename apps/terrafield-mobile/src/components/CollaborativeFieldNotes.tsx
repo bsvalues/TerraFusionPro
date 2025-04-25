@@ -1,431 +1,483 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
+  StyleSheet,
   TextInput,
   TouchableOpacity,
-  FlatList,
-  StyleSheet,
-  Alert,
   ActivityIndicator,
-  KeyboardAvoidingView,
-  Platform
+  Alert,
 } from 'react-native';
 import { Feather } from '@expo/vector-icons';
+import * as Y from 'yjs';
+import NetInfo from '@react-native-community/netinfo';
 import { useAuth } from '../hooks/useAuth';
+import { ApiService } from '../services/ApiService';
 import { DataSyncService } from '../services/DataSyncService';
-import { NotificationService, NotificationType } from '../services/NotificationService';
 import * as Colors from '../constants/Colors';
 
-// Define Field Note interface
-interface FieldNote {
-  id?: string;
-  parcelId: string;
-  text: string;
-  createdAt?: string;
-  createdBy: string;
-  userId: number;
-}
-
-// Props for note item component
-interface NoteItemProps {
-  note: FieldNote;
-  isCurrentUser: boolean;
-  onDelete: (noteId: string) => void;
-}
-
-// Main component props
 interface CollaborativeFieldNotesProps {
   parcelId: string;
-  onNotesChanged?: (notes: FieldNote[]) => void;
+  initialNotes?: string;
+  onUpdate?: (notes: string) => void;
+  readOnly?: boolean;
+  minHeight?: number;
+  placeholder?: string;
 }
 
-// Note Item component
-const NoteItem: React.FC<NoteItemProps> = ({ note, isCurrentUser, onDelete }) => {
-  const formattedDate = note.createdAt 
-    ? new Date(note.createdAt).toLocaleString('en-US', {
-        month: 'short',
-        day: 'numeric',
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true
-      })
-    : 'Just now';
-  
+/**
+ * CollaborativeFieldNotes component
+ * A reusable component for collaborative field notes using CRDT technology
+ */
+const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
+  parcelId,
+  initialNotes = '',
+  onUpdate,
+  readOnly = false,
+  minHeight = 120,
+  placeholder = 'Enter field notes here...',
+}) => {
+  // State
+  const [notesText, setNotesText] = useState(initialNotes);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [isConnected, setIsConnected] = useState(true);
+  const [syncStatus, setSyncStatus] = useState<'synced' | 'pending' | 'error'>('synced');
+  const [lastSynced, setLastSynced] = useState<Date | null>(null);
+  const [collaborators, setCollaborators] = useState<string[]>([]);
+
+  // Refs and services
+  const ydoc = useRef<Y.Doc>(new Y.Doc());
+  const apiService = ApiService.getInstance();
+  const dataSyncService = DataSyncService.getInstance();
+  const { user } = useAuth();
+
+  // Initialize and clean up
+  useEffect(() => {
+    const doc = ydoc.current;
+    const ytext = doc.getText('notes');
+
+    // Set initial text if provided
+    if (initialNotes && ytext.toString() !== initialNotes) {
+      ytext.delete(0, ytext.length);
+      ytext.insert(0, initialNotes);
+    }
+
+    // Set up CRDT document with sync service
+    dataSyncService.registerDocument(parcelId, doc, 'fieldNotes');
+
+    // Observer for text changes
+    const observer = () => {
+      const updatedText = ytext.toString();
+      setNotesText(updatedText);
+      if (onUpdate) {
+        onUpdate(updatedText);
+      }
+    };
+
+    // Listen for text updates
+    ytext.observe(observer);
+
+    // Set up network connectivity listener
+    const unsubscribeNetInfo = NetInfo.addEventListener(state => {
+      setIsConnected(state.isConnected ?? false);
+      
+      // If we're back online and have pending changes, trigger sync
+      if (state.isConnected && syncStatus === 'pending') {
+        syncNotes(true);
+      }
+    });
+
+    // Load initial notes
+    loadNotes();
+
+    // Clean up
+    return () => {
+      ytext.unobserve(observer);
+      unsubscribeNetInfo();
+    };
+  }, [parcelId]);
+
+  // Update CRDT document when notes text changes
+  useEffect(() => {
+    if (!loading && !readOnly) {
+      const ytext = ydoc.current.getText('notes');
+      if (notesText !== ytext.toString()) {
+        setSyncStatus('pending');
+        
+        // Apply changes to Yjs document
+        ydoc.current.transact(() => {
+          ytext.delete(0, ytext.length);
+          ytext.insert(0, notesText);
+        });
+      }
+    }
+  }, [notesText, loading, readOnly]);
+
+  // Load notes from server
+  const loadNotes = async () => {
+    setLoading(true);
+    try {
+      // Get notes from server
+      const response = await apiService.get(`/api/parcels/${parcelId}/notes`);
+      
+      if (response) {
+        // Parse collaborators
+        if (response.collaborators) {
+          setCollaborators(response.collaborators);
+        }
+        
+        // Update last synced time
+        setLastSynced(new Date());
+        
+        // Update sync status
+        setSyncStatus('synced');
+        
+        // Apply updates to the document if content exists
+        if (response.content) {
+          const ytext = ydoc.current.getText('notes');
+          ydoc.current.transact(() => {
+            ytext.delete(0, ytext.length);
+            ytext.insert(0, response.content);
+          });
+          
+          // Update the text input
+          setNotesText(response.content);
+          
+          // Notify parent if callback provided
+          if (onUpdate) {
+            onUpdate(response.content);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error loading field notes:', error);
+      
+      // Update sync status
+      setSyncStatus('error');
+      
+      // Alert user if connected but still got an error
+      if (isConnected) {
+        Alert.alert(
+          'Error Loading Notes',
+          'There was an issue loading the field notes from the server.',
+          [{ text: 'OK' }]
+        );
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Sync notes to server
+  const syncNotes = async (silent = false) => {
+    if (!isConnected) {
+      setSyncStatus('pending');
+      return;
+    }
+    
+    if (!silent) {
+      setSaving(true);
+    }
+
+    try {
+      const ytext = ydoc.current.getText('notes');
+      const content = ytext.toString();
+      
+      // Send updates to server
+      await apiService.put(`/api/parcels/${parcelId}/notes`, {
+        content,
+        userId: user?.id,
+        username: user?.name,
+      });
+      
+      // Update sync status and last synced time
+      setSyncStatus('synced');
+      setLastSynced(new Date());
+      
+      // Get latest collaborators
+      try {
+        const response = await apiService.get(`/api/parcels/${parcelId}/sync`);
+        if (response && response.collaborators) {
+          setCollaborators(response.collaborators);
+        }
+      } catch (error) {
+        console.error('Error syncing collaborators:', error);
+      }
+    } catch (error) {
+      console.error('Error syncing notes:', error);
+      setSyncStatus('error');
+      
+      if (!silent) {
+        Alert.alert(
+          'Sync Error',
+          'Failed to sync changes to the server. Changes will be saved locally and synced when connection is restored.',
+          [{ text: 'OK' }]
+        );
+      }
+    } finally {
+      if (!silent) {
+        setSaving(false);
+      }
+    }
+  };
+
+  // Format last synced time
+  const formatSyncTime = () => {
+    if (!lastSynced) return 'Never';
+    
+    // If less than a minute ago, show "Just now"
+    const diffMs = Date.now() - lastSynced.getTime();
+    if (diffMs < 60000) return 'Just now';
+    
+    // If less than an hour ago, show minutes
+    if (diffMs < 3600000) {
+      const minutes = Math.floor(diffMs / 60000);
+      return `${minutes} minute${minutes === 1 ? '' : 's'} ago`;
+    }
+    
+    // Otherwise show time
+    return lastSynced.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  };
+
+  // Get sync status text and icon
+  const getSyncStatusDetails = () => {
+    if (!isConnected) {
+      return {
+        text: 'Offline',
+        color: Colors.offline,
+        icon: 'wifi-off',
+      };
+    }
+    
+    switch (syncStatus) {
+      case 'synced':
+        return {
+          text: `Synced ${formatSyncTime()}`,
+          color: Colors.online,
+          icon: 'check-circle',
+        };
+      case 'pending':
+        return {
+          text: 'Changes pending',
+          color: Colors.syncing,
+          icon: 'clock',
+        };
+      case 'error':
+        return {
+          text: 'Sync error',
+          color: Colors.error,
+          icon: 'alert-circle',
+        };
+      default:
+        return {
+          text: 'Unknown',
+          color: Colors.textLight,
+          icon: 'help-circle',
+        };
+    }
+  };
+
+  // Handle manual save
+  const handleSave = () => {
+    syncNotes();
+  };
+
+  // Handle refresh
+  const handleRefresh = () => {
+    loadNotes();
+  };
+
+  const syncDetails = getSyncStatusDetails();
+
+  // Render component
   return (
-    <View style={[
-      styles.noteContainer,
-      isCurrentUser ? styles.currentUserNote : styles.otherUserNote
-    ]}>
-      <View style={styles.noteHeader}>
-        <Text style={styles.noteAuthor}>{note.createdBy}</Text>
-        <Text style={styles.noteDate}>{formattedDate}</Text>
+    <View style={styles.container}>
+      {/* Status Bar */}
+      <View style={styles.statusBar}>
+        <View style={styles.syncStatus}>
+          <Feather name={syncDetails.icon} size={14} color={syncDetails.color} />
+          <Text style={[styles.syncStatusText, { color: syncDetails.color }]}>
+            {syncDetails.text}
+          </Text>
+        </View>
+
+        {/* Collaborators */}
+        <View style={styles.collaborators}>
+          {collaborators.length > 0 ? (
+            <>
+              <Feather name="users" size={14} color={Colors.textLight} />
+              <Text style={styles.collaboratorsText}>
+                {collaborators.length === 1
+                  ? '1 collaborator'
+                  : `${collaborators.length} collaborators`}
+              </Text>
+            </>
+          ) : (
+            <Text style={styles.collaboratorsText}>No collaborators</Text>
+          )}
+        </View>
       </View>
-      
-      <Text style={styles.noteText}>{note.text}</Text>
-      
-      {isCurrentUser && (
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => note.id && onDelete(note.id)}
-        >
-          <Feather name="trash-2" size={16} color={Colors.errorText} />
-        </TouchableOpacity>
+
+      {/* Content */}
+      {loading ? (
+        <View style={[styles.loadingContainer, { minHeight }]}>
+          <ActivityIndicator size="small" color={Colors.primary} />
+          <Text style={styles.loadingText}>Loading notes...</Text>
+        </View>
+      ) : (
+        <View style={styles.notesContainer}>
+          <TextInput
+            style={[styles.notesInput, { minHeight }]}
+            value={notesText}
+            onChangeText={setNotesText}
+            multiline
+            editable={!readOnly}
+            placeholder={placeholder}
+            placeholderTextColor={Colors.placeholderText}
+          />
+        </View>
+      )}
+
+      {/* Actions */}
+      {!readOnly && (
+        <View style={styles.actionsContainer}>
+          <TouchableOpacity
+            style={styles.actionButton}
+            onPress={handleRefresh}
+            disabled={loading || saving}
+          >
+            <Feather name="refresh-cw" size={18} color={Colors.primary} />
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[
+              styles.saveButton,
+              (saving || syncStatus === 'synced' || !isConnected) && styles.saveButtonDisabled,
+            ]}
+            onPress={handleSave}
+            disabled={saving || syncStatus === 'synced' || !isConnected}
+          >
+            {saving ? (
+              <ActivityIndicator size="small" color={Colors.white} />
+            ) : (
+              <>
+                <Feather
+                  name="save"
+                  size={16}
+                  color={
+                    saving || syncStatus === 'synced' || !isConnected
+                      ? Colors.disabledText
+                      : Colors.white
+                  }
+                />
+                <Text
+                  style={[
+                    styles.saveButtonText,
+                    (saving || syncStatus === 'synced' || !isConnected) && styles.saveButtonTextDisabled,
+                  ]}
+                >
+                  {syncStatus === 'synced'
+                    ? 'Saved'
+                    : !isConnected
+                    ? 'Offline'
+                    : 'Save'}
+                </Text>
+              </>
+            )}
+          </TouchableOpacity>
+        </View>
       )}
     </View>
   );
 };
 
-// Main CollaborativeFieldNotes Component
-const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({ 
-  parcelId,
-  onNotesChanged
-}) => {
-  // Services
-  const dataSyncService = DataSyncService.getInstance();
-  const notificationService = NotificationService.getInstance();
-  
-  // State
-  const [notes, setNotes] = useState<FieldNote[]>([]);
-  const [newNote, setNewNote] = useState('');
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSending, setIsSending] = useState(false);
-  
-  // Auth and user info
-  const user = useAuth();
-  const currentUserId = user?.id || 1; // Fallback to a default user ID
-  const currentUserName = user?.name || 'Me';
-  
-  // Refs
-  const flatListRef = useRef<FlatList>(null);
-  
-  // Load notes
-  useEffect(() => {
-    const loadNotes = async () => {
-      setIsLoading(true);
-      try {
-        const fieldNotes = await dataSyncService.getFieldNotes(parcelId);
-        setNotes(fieldNotes);
-        if (onNotesChanged) {
-          onNotesChanged(fieldNotes);
-        }
-      } catch (error) {
-        console.error('Error loading field notes:', error);
-        Alert.alert(
-          'Error',
-          'Failed to load field notes. Please try again.'
-        );
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
-    loadNotes();
-    
-    // Set up periodic refresh
-    const refreshInterval = setInterval(loadNotes, 30000); // Refresh every 30 seconds
-    
-    return () => {
-      clearInterval(refreshInterval);
-    };
-  }, [parcelId]);
-  
-  // Add note
-  const handleAddNote = useCallback(async () => {
-    if (!newNote.trim()) return;
-    
-    setIsSending(true);
-    try {
-      const noteData: FieldNote = {
-        parcelId,
-        text: newNote.trim(),
-        createdBy: currentUserName,
-        userId: currentUserId
-      };
-      
-      const success = await dataSyncService.addFieldNote(noteData);
-      
-      if (success) {
-        // Refresh notes
-        const updatedNotes = await dataSyncService.getFieldNotes(parcelId);
-        setNotes(updatedNotes);
-        if (onNotesChanged) {
-          onNotesChanged(updatedNotes);
-        }
-        
-        // Clear input
-        setNewNote('');
-        
-        // Scroll to bottom
-        setTimeout(() => {
-          flatListRef.current?.scrollToEnd({ animated: true });
-        }, 100);
-      } else {
-        Alert.alert(
-          'Error',
-          'Failed to add note. Please try again.'
-        );
-      }
-    } catch (error) {
-      console.error('Error adding field note:', error);
-      Alert.alert(
-        'Error',
-        'Failed to add note. Please try again.'
-      );
-    } finally {
-      setIsSending(false);
-    }
-  }, [newNote, parcelId, currentUserId, currentUserName]);
-  
-  // Delete note
-  const handleDeleteNote = useCallback(async (noteId: string) => {
-    Alert.alert(
-      'Delete Note',
-      'Are you sure you want to delete this note?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel'
-        },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              const success = await dataSyncService.deleteFieldNote(parcelId, noteId);
-              
-              if (success) {
-                // Refresh notes
-                const updatedNotes = await dataSyncService.getFieldNotes(parcelId);
-                setNotes(updatedNotes);
-                if (onNotesChanged) {
-                  onNotesChanged(updatedNotes);
-                }
-                
-                // Send notification
-                notificationService.sendNotification(
-                  currentUserId,
-                  NotificationType.FIELD_NOTE_DELETED,
-                  'Note Deleted',
-                  'Your field note has been deleted.'
-                );
-              } else {
-                Alert.alert(
-                  'Error',
-                  'Failed to delete note. Please try again.'
-                );
-              }
-            } catch (error) {
-              console.error('Error deleting field note:', error);
-              Alert.alert(
-                'Error',
-                'Failed to delete note. Please try again.'
-              );
-            }
-          }
-        }
-      ]
-    );
-  }, [parcelId, currentUserId]);
-  
-  // Render empty state
-  const renderEmptyState = () => {
-    if (isLoading) {
-      return (
-        <View style={styles.emptyContainer}>
-          <ActivityIndicator size="large" color={Colors.primary} />
-          <Text style={styles.emptyText}>Loading field notes...</Text>
-        </View>
-      );
-    }
-    
-    return (
-      <View style={styles.emptyContainer}>
-        <Feather name="file-text" size={48} color={Colors.textLight} />
-        <Text style={styles.emptyTitle}>No Notes Yet</Text>
-        <Text style={styles.emptyText}>
-          Add notes about this property that will sync between devices and team members.
-        </Text>
-      </View>
-    );
-  };
-  
-  // Render note item
-  const renderNoteItem = ({ item }: { item: FieldNote }) => (
-    <NoteItem
-      note={item}
-      isCurrentUser={item.userId === currentUserId}
-      onDelete={handleDeleteNote}
-    />
-  );
-  
-  return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      keyboardVerticalOffset={100}
-    >
-      <FlatList
-        ref={flatListRef}
-        data={notes}
-        renderItem={renderNoteItem}
-        keyExtractor={(item) => item.id || `temp-${Date.now()}`}
-        contentContainerStyle={styles.notesList}
-        ListEmptyComponent={renderEmptyState}
-      />
-      
-      <View style={styles.inputContainer}>
-        <TextInput
-          style={styles.input}
-          placeholder="Add a note..."
-          placeholderTextColor={Colors.textLight}
-          value={newNote}
-          onChangeText={setNewNote}
-          multiline
-          maxLength={1000}
-          returnKeyType="done"
-          blurOnSubmit={true}
-        />
-        
-        <TouchableOpacity
-          style={[
-            styles.sendButton,
-            (!newNote.trim() || isSending) && styles.disabledButton
-          ]}
-          onPress={handleAddNote}
-          disabled={!newNote.trim() || isSending}
-        >
-          {isSending ? (
-            <ActivityIndicator size="small" color={Colors.white} />
-          ) : (
-            <Feather name="send" size={20} color={Colors.white} />
-          )}
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
-  );
-};
-
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    backgroundColor: Colors.background,
-  },
-  notesList: {
-    flexGrow: 1,
-    paddingHorizontal: 16,
-    paddingBottom: 80,
-  },
-  emptyContainer: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 20,
-    marginTop: 48,
-  },
-  emptyTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: Colors.text,
-    marginTop: 12,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
-    color: Colors.textLight,
-    textAlign: 'center',
-    maxWidth: '80%',
-  },
-  noteContainer: {
-    padding: 12,
+    backgroundColor: Colors.white,
     borderRadius: 8,
-    marginVertical: 8,
-    maxWidth: '80%',
-  },
-  currentUserNote: {
-    backgroundColor: Colors.lightPrimary,
-    borderTopRightRadius: 2,
-    alignSelf: 'flex-end',
-    marginLeft: '20%',
-  },
-  otherUserNote: {
-    backgroundColor: Colors.cardBackground,
-    borderTopLeftRadius: 2,
-    alignSelf: 'flex-start',
-    marginRight: '20%',
     borderWidth: 1,
     borderColor: Colors.border,
+    overflow: 'hidden',
   },
-  noteHeader: {
+  statusBar: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    backgroundColor: Colors.background,
+    borderBottomWidth: 1,
+    borderBottomColor: Colors.border,
   },
-  noteAuthor: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: Colors.primary,
-  },
-  noteDate: {
-    fontSize: 11,
-    color: Colors.textLight,
-    marginLeft: 8,
-  },
-  noteText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: Colors.text,
-  },
-  deleteButton: {
-    position: 'absolute',
-    right: -8,
-    top: -8,
-    backgroundColor: Colors.cardBackground,
-    padding: 4,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  inputContainer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  syncStatus: {
     flexDirection: 'row',
-    padding: 12,
-    backgroundColor: Colors.white,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    elevation: 2,
-    shadowColor: Colors.shadow,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    alignItems: 'center',
   },
-  input: {
-    flex: 1,
-    backgroundColor: Colors.cardBackground,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
+  syncStatusText: {
+    fontSize: 12,
+    marginLeft: 6,
+  },
+  collaborators: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  collaboratorsText: {
+    fontSize: 12,
+    color: Colors.textLight,
+    marginLeft: 4,
+  },
+  notesContainer: {
+    padding: 2,
+  },
+  notesInput: {
+    padding: 10,
+    fontSize: 14,
     color: Colors.text,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    fontSize: 15,
-    maxHeight: 100,
+    textAlignVertical: 'top',
   },
-  sendButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
+  loadingContainer: {
     justifyContent: 'center',
     alignItems: 'center',
-    marginLeft: 8,
+    padding: 20,
   },
-  disabledButton: {
+  loadingText: {
+    marginTop: 8,
+    fontSize: 14,
+    color: Colors.textLight,
+  },
+  actionsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 8,
+    backgroundColor: Colors.background,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  actionButton: {
+    padding: 6,
+    borderRadius: 4,
+  },
+  saveButton: {
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  saveButtonDisabled: {
     backgroundColor: Colors.disabledButton,
+  },
+  saveButtonText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: '500',
+    marginLeft: 6,
+  },
+  saveButtonTextDisabled: {
+    color: Colors.disabledText,
   },
 });
 
