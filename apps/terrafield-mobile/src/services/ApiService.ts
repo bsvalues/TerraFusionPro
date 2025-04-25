@@ -1,263 +1,151 @@
 /**
- * API Service for TerraField Mobile
- * 
- * This service handles all communication with the AppraisalCore backend
- * and provides methods for REST and WebSocket connections
+ * ApiService for handling HTTP requests
+ * in the TerraField Mobile application
  */
 
+// API service configuration
 interface ApiConfig {
   baseUrl: string;
-  wsBaseUrl: string;
-  timeoutMs: number;
+  headers: Record<string, string>;
+  timeout: number;
 }
 
+// Default API configuration
+const DEFAULT_API_CONFIG: ApiConfig = {
+  baseUrl: 'https://appraisalcore.replit.app/api',
+  headers: {
+    'Content-Type': 'application/json',
+    'Accept': 'application/json',
+  },
+  timeout: 30000, // 30 seconds
+};
+
+// API service using the singleton pattern
 export class ApiService {
   private static instance: ApiService;
   private config: ApiConfig;
-  private authToken: string | null = null;
   
-  private constructor(config: ApiConfig) {
-    this.config = config;
+  // Private constructor to prevent direct instantiation
+  private constructor(config: ApiConfig = DEFAULT_API_CONFIG) {
+    this.config = { ...config };
   }
   
-  /**
-   * Get a singleton instance of the API service
-   */
-  public static getInstance(config?: Partial<ApiConfig>): ApiService {
+  // Get singleton instance
+  public static getInstance(config?: ApiConfig): ApiService {
     if (!ApiService.instance) {
-      const defaultConfig: ApiConfig = {
-        baseUrl: 'https://terrafield-api.example.com',
-        wsBaseUrl: 'wss://terrafield-api.example.com',
-        timeoutMs: 10000
-      };
-      
-      ApiService.instance = new ApiService({
-        ...defaultConfig,
-        ...config
-      });
+      ApiService.instance = new ApiService(config);
     }
-    
     return ApiService.instance;
   }
   
-  /**
-   * Set authentication token for API requests
-   */
-  public setAuthToken(token: string): void {
-    this.authToken = token;
-  }
-  
-  /**
-   * Clear authentication token
-   */
-  public clearAuthToken(): void {
-    this.authToken = null;
-  }
-  
-  /**
-   * Get current authentication status
-   */
-  public isAuthenticated(): boolean {
-    return !!this.authToken;
-  }
-  
-  /**
-   * Create HTTP headers with authentication
-   */
-  private createHeaders(): Headers {
-    const headers = new Headers({
-      'Content-Type': 'application/json',
-    });
-    
-    if (this.authToken) {
-      headers.append('Authorization', `Bearer ${this.authToken}`);
+  // Set authentication token
+  public setAuthToken(token: string | null): void {
+    if (token) {
+      this.config.headers['Authorization'] = `Bearer ${token}`;
+    } else {
+      delete this.config.headers['Authorization'];
     }
-    
-    return headers;
   }
   
-  /**
-   * Handle API response and error cases
-   */
+  // Update API configuration
+  public updateConfig(config: Partial<ApiConfig>): void {
+    this.config = { ...this.config, ...config };
+  }
+  
+  // Create full API URL
+  private createUrl(endpoint: string): string {
+    return endpoint.startsWith('http')
+      ? endpoint
+      : `${this.config.baseUrl}${endpoint.startsWith('/') ? endpoint : `/${endpoint}`}`;
+  }
+  
+  // Handle API response
   private async handleResponse<T>(response: Response): Promise<T> {
     if (!response.ok) {
-      let errorMessage = `API Error: ${response.status} ${response.statusText}`;
-      
+      // Try to get error details from response
       try {
         const errorData = await response.json();
-        if (errorData.message) {
-          errorMessage = errorData.message;
-        }
-      } catch (e) {
-        // Ignore JSON parsing errors
+        throw new Error(errorData.message || `HTTP Error ${response.status}`);
+      } catch (error) {
+        // If error response isn't valid JSON
+        throw new Error(`HTTP Error ${response.status}`);
       }
-      
-      throw new Error(errorMessage);
     }
     
-    return await response.json() as T;
+    // Handle different response types
+    const contentType = response.headers.get('content-type');
+    
+    if (contentType?.includes('application/json')) {
+      return response.json() as Promise<T>;
+    } else if (contentType?.includes('text/')) {
+      const text = await response.text();
+      return text as unknown as T;
+    } else {
+      // Return the raw response for other content types (like blobs)
+      return response as unknown as T;
+    }
   }
   
-  /**
-   * Make a GET request to the API
-   */
-  public async get<T>(path: string, queryParams?: Record<string, string>): Promise<T> {
-    const url = new URL(`${this.config.baseUrl}${path}`);
+  // Generic request method
+  private async request<T>(method: string, endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
+    const url = this.createUrl(endpoint);
+    const config = { ...this.config, ...customConfig };
     
-    if (queryParams) {
-      Object.entries(queryParams).forEach(([key, value]) => {
-        url.searchParams.append(key, value);
-      });
+    // Set up request options
+    const options: RequestInit = {
+      method,
+      headers: config.headers,
+    };
+    
+    // Add body if method is not GET or HEAD
+    if (method !== 'GET' && method !== 'HEAD' && data) {
+      options.body = typeof data === 'string' ? data : JSON.stringify(data);
     }
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
     
     try {
-      const response = await fetch(url.toString(), {
-        method: 'GET',
-        headers: this.createHeaders(),
-        signal: controller.signal
-      });
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), config.timeout);
+      options.signal = controller.signal;
       
-      return await this.handleResponse<T>(response);
-    } finally {
-      clearTimeout(timeoutId);
-    }
-  }
-  
-  /**
-   * Make a POST request to the API
-   */
-  public async post<T>(path: string, data: any): Promise<T> {
-    const url = `${this.config.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
-    
-    try {
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: this.createHeaders(),
-        body: JSON.stringify(data),
-        signal: controller.signal
-      });
+      // Make the request
+      const response = await fetch(url, options);
       
-      return await this.handleResponse<T>(response);
-    } finally {
+      // Clear timeout
       clearTimeout(timeoutId);
-    }
-  }
-  
-  /**
-   * Make a PUT request to the API
-   */
-  public async put<T>(path: string, data: any): Promise<T> {
-    const url = `${this.config.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
-    
-    try {
-      const response = await fetch(url, {
-        method: 'PUT',
-        headers: this.createHeaders(),
-        body: JSON.stringify(data),
-        signal: controller.signal
-      });
       
-      return await this.handleResponse<T>(response);
-    } finally {
-      clearTimeout(timeoutId);
+      // Handle response
+      return this.handleResponse<T>(response);
+    } catch (error) {
+      if (error.name === 'AbortError') {
+        throw new Error(`Request timeout after ${config.timeout}ms`);
+      }
+      throw error;
     }
   }
   
-  /**
-   * Make a DELETE request to the API
-   */
-  public async delete<T>(path: string): Promise<T> {
-    const url = `${this.config.baseUrl}${path}`;
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), this.config.timeoutMs);
-    
-    try {
-      const response = await fetch(url, {
-        method: 'DELETE',
-        headers: this.createHeaders(),
-        signal: controller.signal
-      });
-      
-      return await this.handleResponse<T>(response);
-    } finally {
-      clearTimeout(timeoutId);
-    }
+  // GET request
+  public async get<T = any>(endpoint: string, customConfig?: Partial<ApiConfig>): Promise<T> {
+    return this.request<T>('GET', endpoint, undefined, customConfig);
   }
   
-  /**
-   * Create a WebSocket connection for real-time updates
-   */
-  public createWebSocket(path: string): WebSocket {
-    const url = `${this.config.wsBaseUrl}${path}`;
-    const ws = new WebSocket(url);
-    
-    // Add auth token if available
-    if (this.authToken) {
-      ws.onopen = () => {
-        ws.send(JSON.stringify({ 
-          type: 'auth', 
-          token: this.authToken 
-        }));
-      };
-    }
-    
-    return ws;
+  // POST request
+  public async post<T = any>(endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
+    return this.request<T>('POST', endpoint, data, customConfig);
   }
   
-  /**
-   * CRDT-Specific API: Sync parcel notes
-   */
-  public async syncParcelNotes(parcelId: string, update: string): Promise<{
-    mergedUpdate: string;
-    data: any;
-  }> {
-    return this.post<{ mergedUpdate: string; data: any }>(
-      `/api/sync/parcels/${parcelId}/notes`, 
-      { update }
-    );
+  // PUT request
+  public async put<T = any>(endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
+    return this.request<T>('PUT', endpoint, data, customConfig);
   }
   
-  /**
-   * CRDT-Specific API: Get current parcel notes state
-   */
-  public async getParcelNotes(parcelId: string): Promise<{
-    update: string;
-    data: any;
-  }> {
-    return this.get<{ update: string; data: any }>(
-      `/api/sync/parcels/${parcelId}/notes`
-    );
+  // PATCH request
+  public async patch<T = any>(endpoint: string, data?: any, customConfig?: Partial<ApiConfig>): Promise<T> {
+    return this.request<T>('PATCH', endpoint, data, customConfig);
   }
   
-  /**
-   * CRDT-Specific API: Sync photos for a report
-   */
-  public async syncReportPhotos(reportId: string, update: string): Promise<{
-    mergedUpdate: string;
-    photos: any[];
-  }> {
-    return this.post<{ mergedUpdate: string; photos: any[] }>(
-      `/api/sync/reports/${reportId}/photos`, 
-      { update }
-    );
-  }
-  
-  /**
-   * CRDT-Specific API: Get current photos state for a report
-   */
-  public async getReportPhotos(reportId: string): Promise<{
-    update: string;
-    photos: any[];
-  }> {
-    return this.get<{ update: string; photos: any[] }>(
-      `/api/sync/reports/${reportId}/photos`
-    );
+  // DELETE request
+  public async delete<T = any>(endpoint: string, customConfig?: Partial<ApiConfig>): Promise<T> {
+    return this.request<T>('DELETE', endpoint, undefined, customConfig);
   }
 }

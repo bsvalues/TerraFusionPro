@@ -1,107 +1,82 @@
 /**
- * App color palette
+ * Colors used throughout the TerraField Mobile application
  */
 
 // Primary colors
-export const primary = '#2563EB';
-export const secondary = '#475569';
-export const accent = '#8B5CF6';
-export const success = '#22C55E';
-export const warning = '#F59E0B';
-export const error = '#EF4444';
-export const info = '#3B82F6';
+export const primary = '#3366FF';
+export const primaryDark = '#254EDB';
+export const primaryLight = '#EEF3FF';
+export const lightPrimary = '#E3EAFF';
 
-// Light variations
-export const lightPrimary = '#DBEAFE';
-export const lightSecondary = '#F1F5F9';
-export const lightAccent = '#EDE9FE';
-export const lightSuccess = '#DCFCE7';
-export const lightWarning = '#FEF3C7';
-export const lightError = '#FEE2E2';
-export const lightInfo = '#E0F2FE';
+// Background colors
+export const background = '#F7F9FC';
+export const cardBackground = '#FFFFFF';
+export const white = '#FFFFFF';
+export const black = '#000000';
 
 // Text colors
-export const text = '#1E293B';
-export const textLight = '#64748B';
-export const textDark = '#0F172A';
-export const textInverted = '#F8FAFC';
+export const text = '#2E3A59';
+export const textLight = '#8F9BB3';
+export const textDisabled = '#C5CEE0';
 
-// UI colors
-export const border = '#E2E8F0';
-export const card = '#FFFFFF';
-export const divider = '#CBD5E1';
-export const background = '#F8FAFC';
-export const highlight = '#F1F5F9';
-export const cardBackground = '#FFFFFF';
+// Accent colors
+export const accent = '#FF3D71';
+export const accentLight = '#FFE5ED';
 
 // Status colors
-export const active = '#22C55E';
-export const inactive = '#94A3B8';
-export const pending = '#F59E0B';
-export const canceled = '#DC2626';
+export const success = '#00E096';
+export const successLight = '#CCFBE5';
+export const successBackground = '#E6FFF5';
+export const successText = '#00875A';
 
-// Input colors
-export const inputBackground = '#F1F5F9';
-export const inputText = '#1E293B';
-export const inputPlaceholder = '#94A3B8';
-export const inputBorder = '#CBD5E1';
+export const info = '#0095FF';
+export const infoLight = '#CCE9FF';
+export const infoBackground = '#E6F4FF';
+export const infoText = '#006BB3';
 
-// Gray palette
-export const white = '#FFFFFF';
-export const gray = '#64748B';
-export const lightGray = '#94A3B8';
-export const darkGray = '#475569';
-export const black = '#0F172A';
+export const warning = '#FFAA00';
+export const warningLight = '#FFEACC';
+export const warningBackground = '#FFF5E6';
+export const warningText = '#B37800';
 
-// Transparent colors
-export const transparent = 'transparent';
-export const semiTransparent = 'rgba(0, 0, 0, 0.1)';
-export const overlay = 'rgba(0, 0, 0, 0.5)';
+export const error = '#FF3D71';
+export const errorLight = '#FFE5ED';
+export const errorBackground = '#FFF1F5';
+export const errorText = '#DB2C66';
 
-// Functional colors
-export const shadow = 'rgba(0, 0, 0, 0.1)';
-export const link = '#2563EB';
-export const visited = '#8B5CF6';
-export const focus = '#3B82F6';
-export const disabled = '#E2E8F0';
+// Border color
+export const border = '#EDF1F7';
+export const divider = '#F1F4FA';
 
-// App-specific colors
-export const photo = '#3B82F6';
-export const fieldNote = '#8B5CF6';
-export const measurement = '#22C55E';
-export const comparable = '#F59E0B';
-export const adjustment = '#EC4899';
-export const chart = '#2563EB';
-export const sync = '#8B5CF6';
-export const offline = '#F59E0B';
-export const online = '#22C55E';
-export const collaborate = '#3B82F6';
+// Button colors
+export const buttonPrimary = primary;
+export const buttonSecondary = '#F7F9FC';
+export const buttonSuccess = success;
+export const buttonInfo = info;
+export const buttonWarning = warning;
+export const buttonDanger = error;
+export const disabledButton = '#E4E9F2';
 
-// Export a theme object for easy access
-export const theme = {
-  colors: {
-    primary,
-    secondary,
-    accent,
-    success,
-    warning,
-    error,
-    info,
-    text,
-    background,
-    card,
-    border,
-    notification: accent,
-  }
+// Shadow
+export const shadow = 'rgba(46, 58, 89, 0.1)';
+
+// Gradient
+export const gradient = {
+  start: '#3366FF',
+  end: '#254EDB',
 };
 
-// Export dark mode colors (for future use)
-export const dark = {
-  primary: '#3B82F6',
-  secondary: '#94A3B8',
-  accent: '#A78BFA',
-  background: '#0F172A',
-  card: '#1E293B',
-  text: '#F8FAFC',
-  border: '#334155',
-};
+// Chart colors
+export const chartColors = [
+  '#3366FF',
+  '#00E096',
+  '#FF3D71',
+  '#FFAA00',
+  '#0095FF',
+  '#8F9BB3',
+];
+
+// Map pin colors
+export const mapPinSubject = '#3366FF';
+export const mapPinComparable = '#00E096';
+export const mapPinCustom = '#FF3D71';

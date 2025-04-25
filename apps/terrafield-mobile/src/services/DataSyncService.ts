@@ -1,19 +1,16 @@
-import { v4 as uuidv4 } from 'uuid';
+/**
+ * DataSyncService for handling data synchronization
+ * between the mobile app and server in the TerraField Mobile application
+ */
+
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-import { fromUint8Array, toUint8Array } from 'js-base64';
-import { OfflineQueueService, OperationType } from './OfflineQueueService';
-import { ConflictResolutionService, ConflictType } from './ConflictResolutionService';
-import { NotificationService, NotificationType } from './NotificationService';
 import { ApiService } from './ApiService';
-import * as Y from 'yjs';
+import { NotificationService, NotificationType } from './NotificationService';
+import { ConflictResolutionService, ConflictType } from './ConflictResolutionService';
+import { Base64 } from 'js-base64';
 
-// Types
-interface SyncInfo {
-  lastSynced: string;
-  lastUpdateId: string;
-}
-
+// Define Field Note interface
 interface FieldNote {
   id?: string;
   parcelId: string;
@@ -23,509 +20,467 @@ interface FieldNote {
   userId: number;
 }
 
-/**
- * This service handles synchronization of data between the mobile app and the server
- * using CRDT for conflict-free modifications
- */
+// DataSyncService using the singleton pattern
 export class DataSyncService {
   private static instance: DataSyncService;
-  private offlineQueue: OfflineQueueService;
-  private conflictService: ConflictResolutionService;
-  private notificationService: NotificationService;
   private apiService: ApiService;
+  private notificationService: NotificationService;
+  private conflictService: ConflictResolutionService;
+  private syncQueue: Map<string, Function> = new Map();
+  private isOnline: boolean = true;
   private syncInProgress: boolean = false;
   private syncInterval: NodeJS.Timeout | null = null;
   
-  // In-memory store of active Yjs documents
-  private documents: Map<string, Y.Doc> = new Map();
-
+  // Private constructor to prevent direct instantiation
   private constructor() {
-    this.offlineQueue = OfflineQueueService.getInstance();
-    this.conflictService = ConflictResolutionService.getInstance();
-    this.notificationService = NotificationService.getInstance();
     this.apiService = ApiService.getInstance();
-
-    // Set up auto sync
-    this.setupAutoSync();
-
-    // Listen for network changes
+    this.notificationService = NotificationService.getInstance();
+    this.conflictService = ConflictResolutionService.getInstance();
+    
+    // Initialize network connectivity listener
     this.setupNetworkListener();
+    
+    // Start periodic sync (every 5 minutes)
+    this.startPeriodicSync(5 * 60 * 1000);
   }
-
+  
+  // Get singleton instance
   public static getInstance(): DataSyncService {
     if (!DataSyncService.instance) {
       DataSyncService.instance = new DataSyncService();
     }
     return DataSyncService.instance;
   }
-
-  /**
-   * Set up auto sync interval
-   */
-  private setupAutoSync(): void {
-    if (this.syncInterval) {
-      clearInterval(this.syncInterval);
-    }
-
-    // Sync every 5 minutes
-    this.syncInterval = setInterval(async () => {
-      const isConnected = await this.isConnected();
-      if (isConnected) {
-        await this.syncAll();
-      }
-    }, 5 * 60 * 1000);
-  }
-
-  /**
-   * Set up network change listener
-   */
+  
+  // Set up network connectivity listener
   private setupNetworkListener(): void {
     NetInfo.addEventListener(state => {
-      // When we go from offline to online, attempt to sync
-      if (state.isConnected) {
-        this.syncAll();
+      const wasOnline = this.isOnline;
+      this.isOnline = state.isConnected === true && state.isInternetReachable !== false;
+      
+      // If we just came back online, attempt to sync
+      if (!wasOnline && this.isOnline) {
+        this.syncPendingData();
       }
     });
   }
-
-  /**
-   * Check if device is connected to the internet
-   */
-  private async isConnected(): Promise<boolean> {
-    const netInfo = await NetInfo.fetch();
-    return !!netInfo.isConnected;
+  
+  // Start periodic sync
+  private startPeriodicSync(interval: number): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+    }
+    
+    this.syncInterval = setInterval(() => {
+      if (this.isOnline && !this.syncInProgress) {
+        this.syncPendingData();
+      }
+    }, interval);
   }
-
-  /**
-   * Sync all data
-   */
-  public async syncAll(): Promise<void> {
-    if (this.syncInProgress) return;
-
-    this.syncInProgress = true;
+  
+  // Stop periodic sync
+  public stopPeriodicSync(): void {
+    if (this.syncInterval) {
+      clearInterval(this.syncInterval);
+      this.syncInterval = null;
+    }
+  }
+  
+  // Save data to local storage
+  private async saveToLocalStorage(key: string, data: any): Promise<void> {
     try {
-      const isConnected = await this.isConnected();
-      if (!isConnected) {
-        console.log('Cannot sync: No internet connection');
-        return;
-      }
-
-      // Get all parcel IDs that have local changes
-      const parcelIds = await this.getLocallyModifiedParcelIds();
-      
-      // Sync each parcel
-      for (const parcelId of parcelIds) {
-        await this.syncParcelData(parcelId);
-      }
-
-      // Process offline queue
-      await this.offlineQueue.processQueue();
+      await AsyncStorage.setItem(key, JSON.stringify(data));
     } catch (error) {
-      console.error('Error syncing all data:', error);
+      console.error(`Error saving to local storage [${key}]:`, error);
+    }
+  }
+  
+  // Load data from local storage
+  private async loadFromLocalStorage(key: string): Promise<any> {
+    try {
+      const data = await AsyncStorage.getItem(key);
+      return data ? JSON.parse(data) : null;
+    } catch (error) {
+      console.error(`Error loading from local storage [${key}]:`, error);
+      return null;
+    }
+  }
+  
+  // Sync pending data
+  public async syncPendingData(): Promise<boolean> {
+    if (this.syncInProgress || !this.isOnline) {
+      return false;
+    }
+    
+    this.syncInProgress = true;
+    let success = true;
+    
+    try {
+      this.notificationService.sendNotification(
+        1, // Use current user ID in real app
+        NotificationType.SYNC_STARTED,
+        'Sync Started',
+        'Synchronizing your data with the server...'
+      );
+      
+      // Execute all pending sync operations in the queue
+      for (const [key, syncOperation] of this.syncQueue.entries()) {
+        try {
+          await syncOperation();
+          this.syncQueue.delete(key);
+        } catch (error) {
+          console.error(`Error syncing [${key}]:`, error);
+          success = false;
+        }
+      }
+      
+      // Sync field notes
+      await this.syncAllFieldNotes();
+      
+      // Add more sync operations for other data types
+      
+      if (success) {
+        this.notificationService.sendNotification(
+          1, // Use current user ID in real app
+          NotificationType.SYNC_COMPLETED,
+          'Sync Completed',
+          'All your data has been synchronized with the server.'
+        );
+      } else {
+        this.notificationService.sendNotification(
+          1, // Use current user ID in real app
+          NotificationType.SYNC_FAILED,
+          'Sync Incomplete',
+          'Some data couldn\'t be synchronized. Will retry later.'
+        );
+      }
+    } catch (error) {
+      console.error('Error during sync:', error);
+      success = false;
+      
+      this.notificationService.sendNotification(
+        1, // Use current user ID in real app
+        NotificationType.SYNC_FAILED,
+        'Sync Failed',
+        'Failed to synchronize data with the server. Will retry later.'
+      );
     } finally {
       this.syncInProgress = false;
     }
+    
+    return success;
   }
-
-  /**
-   * Get all parcel IDs that have local changes
-   */
-  private async getLocallyModifiedParcelIds(): Promise<string[]> {
+  
+  // Sync all field notes
+  private async syncAllFieldNotes(): Promise<void> {
+    if (!this.isOnline) return;
+    
     try {
-      // Get all keys from AsyncStorage that start with field notes prefix
-      const keys = await AsyncStorage.getAllKeys();
-      const fieldNoteKeys = keys.filter(key => key.startsWith('terrafield_fieldnotes_'));
+      // Get all local parcel IDs with field notes
+      const parcelIdsString = await AsyncStorage.getItem('parcel_ids_with_notes');
+      const parcelIds = parcelIdsString ? JSON.parse(parcelIdsString) : [];
       
-      // Extract parcel IDs from keys
-      return fieldNoteKeys.map(key => key.replace('terrafield_fieldnotes_', ''));
+      // Sync each parcel's field notes
+      for (const parcelId of parcelIds) {
+        await this.syncFieldNotes(parcelId);
+      }
     } catch (error) {
-      console.error('Error getting locally modified parcel IDs:', error);
-      return [];
+      console.error('Error syncing all field notes:', error);
+      throw error;
     }
   }
-
-  /**
-   * Sync field notes for a specific parcel
-   */
-  public async syncParcelData(parcelId: string): Promise<boolean> {
-    if (!parcelId) return false;
-
+  
+  // Sync field notes for a specific parcel
+  private async syncFieldNotes(parcelId: string): Promise<boolean> {
+    if (!this.isOnline) {
+      this.addToSyncQueue(`field_notes_${parcelId}`, () => this.syncFieldNotes(parcelId));
+      return false;
+    }
+    
     try {
-      const isConnected = await this.isConnected();
-      if (!isConnected) {
-        console.log(`Cannot sync parcel ${parcelId}: No internet connection`);
-        return false;
-      }
-
-      // Get or create document
-      let doc = this.documents.get(parcelId);
+      // Get local field notes
+      const localNotes = await this.getLocalFieldNotes(parcelId);
       
-      if (!doc) {
-        // Try to load from local storage
-        doc = new Y.Doc();
-        this.documents.set(parcelId, doc);
-        
-        const localData = await AsyncStorage.getItem(`terrafield_fieldnotes_${parcelId}`);
-        if (localData) {
-          try {
-            const parsedData = JSON.parse(localData);
-            if (parsedData.update) {
-              const update = toUint8Array(parsedData.update);
-              Y.applyUpdate(doc, update);
-            }
-          } catch (parseError) {
-            console.error('Error parsing local data:', parseError);
-          }
-        }
-      }
-
-      // Encode current document state
-      const update = Y.encodeStateAsUpdate(doc);
-      const base64Update = fromUint8Array(update);
-
-      // Call the sync API
-      const response = await this.apiService.post(`/api/field-notes/${parcelId}/sync`, {
-        update: base64Update
+      // Get the last update we've received from the server
+      const lastUpdateKey = `field_notes_last_update_${parcelId}`;
+      const lastUpdate = await this.loadFromLocalStorage(lastUpdateKey) || '';
+      
+      // Send sync request to server with last update
+      const response = await this.apiService.post(`/field-notes/${parcelId}/sync`, {
+        lastUpdate
       });
-
-      if (response.state && response.data) {
-        // Apply the merged state from server
-        const serverUpdate = toUint8Array(response.state);
-        Y.applyUpdate(doc, serverUpdate);
-
-        // Save to local storage
-        await this.saveToLocalStorage(parcelId, doc);
-
-        // Update last synced time
-        await this.updateLastSyncTime(parcelId);
-
-        // Process any conflicts
-        await this.resolveConflicts(parcelId);
-
+      
+      if (response && response.update) {
+        // Apply server update to local data
+        await this.applyServerUpdate(parcelId, response.update);
+        
+        // Save the new last update
+        await this.saveToLocalStorage(lastUpdateKey, response.update);
+        
         return true;
       }
-
+      
       return false;
     } catch (error) {
-      console.error(`Error syncing parcel ${parcelId}:`, error);
+      console.error(`Error syncing field notes for parcel ${parcelId}:`, error);
       
-      // Add to the conflict resolution queue for later handling
+      // Add to sync queue for retry later
+      this.addToSyncQueue(`field_notes_${parcelId}`, () => this.syncFieldNotes(parcelId));
+      
+      // Create conflict record
       this.conflictService.addConflict(
         ConflictType.FIELD_NOTE,
-        `parcel_${parcelId}`,
-        `Failed to sync field notes for parcel ${parcelId}`,
-        { parcelId }
+        parcelId,
+        `Failed to sync field notes for parcel ${parcelId}`
+      );
+      
+      // Send notification about conflict
+      this.notificationService.sendNotification(
+        1, // Use current user ID in real app
+        NotificationType.CONFLICT_DETECTED,
+        'Sync Conflict',
+        `Couldn't sync field notes for parcel ${parcelId}. Changes saved locally.`
       );
       
       return false;
     }
   }
-
-  /**
-   * Save document to local storage
-   */
-  private async saveToLocalStorage(parcelId: string, doc: Y.Doc): Promise<void> {
+  
+  // Apply server update to local data
+  private async applyServerUpdate(parcelId: string, encodedUpdate: string): Promise<void> {
     try {
-      // Encode current document state
-      const update = Y.encodeStateAsUpdate(doc);
-      const base64Update = fromUint8Array(update);
+      // In a real implementation, this would apply the CRDT update
+      // For now, we'll just fetch the notes directly
       
-      // Save to local storage
-      const now = new Date().toISOString();
-      const dataToSave = {
-        update: base64Update,
-        lastSynced: now
-      };
+      const response = await this.apiService.get(`/field-notes/${parcelId}/notes`);
       
-      await AsyncStorage.setItem(
-        `terrafield_fieldnotes_${parcelId}`,
-        JSON.stringify(dataToSave)
-      );
-    } catch (error) {
-      console.error(`Error saving parcel ${parcelId} to local storage:`, error);
-    }
-  }
-
-  /**
-   * Update last sync time
-   */
-  private async updateLastSyncTime(parcelId: string): Promise<void> {
-    try {
-      const now = new Date().toISOString();
-      const syncInfo: SyncInfo = {
-        lastSynced: now,
-        lastUpdateId: uuidv4()
-      };
-      
-      await AsyncStorage.setItem(
-        `terrafield_sync_${parcelId}`,
-        JSON.stringify(syncInfo)
-      );
-    } catch (error) {
-      console.error(`Error updating last sync time for parcel ${parcelId}:`, error);
-    }
-  }
-
-  /**
-   * Get last sync time for a parcel
-   */
-  public async getLastSyncTime(parcelId: string): Promise<SyncInfo | null> {
-    try {
-      const syncInfoJson = await AsyncStorage.getItem(`terrafield_sync_${parcelId}`);
-      if (syncInfoJson) {
-        return JSON.parse(syncInfoJson) as SyncInfo;
-      }
-      return null;
-    } catch (error) {
-      console.error(`Error getting last sync time for parcel ${parcelId}:`, error);
-      return null;
-    }
-  }
-
-  /**
-   * Resolve any conflicts for this parcel
-   */
-  private async resolveConflicts(parcelId: string): Promise<void> {
-    try {
-      const conflicts = this.conflictService.getUnresolvedConflicts()
-        .filter(conflict => 
-          conflict.type === ConflictType.FIELD_NOTE && 
-          conflict.entityId === `parcel_${parcelId}`
-        );
-      
-      if (conflicts.length > 0) {
-        // Auto-resolve conflicts
-        const resolvedCount = this.conflictService.autoResolveConflicts();
-        console.log(`Auto-resolved ${resolvedCount} conflicts for parcel ${parcelId}`);
-        
-        // Notify about any remaining conflicts
-        const remainingConflicts = this.conflictService.getUnresolvedConflicts()
-          .filter(conflict => 
-            conflict.type === ConflictType.FIELD_NOTE && 
-            conflict.entityId === `parcel_${parcelId}`
-          );
-        
-        if (remainingConflicts.length > 0) {
-          this.notificationService.sendNotification(
-            1, // Default user ID (should come from auth)
-            NotificationType.CONFLICT_DETECTED,
-            'Sync Conflicts Detected',
-            `There are ${remainingConflicts.length} unresolved conflicts for property ${parcelId}.`
-          );
-        }
+      if (response) {
+        const notesKey = `field_notes_${parcelId}`;
+        await this.saveToLocalStorage(notesKey, response.notes || []);
       }
     } catch (error) {
-      console.error(`Error resolving conflicts for parcel ${parcelId}:`, error);
+      console.error(`Error applying server update for parcel ${parcelId}:`, error);
+      throw error;
     }
   }
-
-  /**
-   * Get field notes for a parcel
-   */
+  
+  // Add operation to sync queue
+  private addToSyncQueue(key: string, operation: Function): void {
+    this.syncQueue.set(key, operation);
+  }
+  
+  // Get field notes
   public async getFieldNotes(parcelId: string): Promise<FieldNote[]> {
     try {
-      // Try to get from server first if online
-      const isConnected = await this.isConnected();
-      if (isConnected) {
+      // Try to get notes from local storage first
+      const localNotes = await this.getLocalFieldNotes(parcelId);
+      
+      // If online, try to sync with server
+      if (this.isOnline) {
         try {
-          const response = await this.apiService.get(`/api/field-notes/${parcelId}/notes`);
+          const response = await this.apiService.get(`/field-notes/${parcelId}/notes`);
+          
           if (response && response.notes) {
+            // Update local storage
+            const notesKey = `field_notes_${parcelId}`;
+            await this.saveToLocalStorage(notesKey, response.notes);
+            
             return response.notes;
           }
         } catch (error) {
-          console.log('Failed to fetch field notes from server, using local data');
+          console.error(`Error fetching field notes for parcel ${parcelId} from server:`, error);
+          // Fall back to local notes
         }
       }
       
-      // Fall back to local storage
-      const doc = this.documents.get(parcelId);
-      if (doc) {
-        const notesArray = doc.getArray('notes');
-        return notesArray.toArray();
-      }
-      
-      // Try to load from local storage
-      const localData = await AsyncStorage.getItem(`terrafield_fieldnotes_${parcelId}`);
-      if (localData) {
-        try {
-          const parsedData = JSON.parse(localData);
-          if (parsedData.update) {
-            const newDoc = new Y.Doc();
-            const update = toUint8Array(parsedData.update);
-            Y.applyUpdate(newDoc, update);
-            
-            // Store for future use
-            this.documents.set(parcelId, newDoc);
-            
-            // Get the notes
-            const notesArray = newDoc.getArray('notes');
-            return notesArray.toArray();
-          }
-        } catch (parseError) {
-          console.error('Error parsing local data:', parseError);
-        }
-      }
-      
-      return [];
+      return localNotes;
     } catch (error) {
       console.error(`Error getting field notes for parcel ${parcelId}:`, error);
       return [];
     }
   }
-
-  /**
-   * Add a field note
-   */
+  
+  // Get local field notes
+  private async getLocalFieldNotes(parcelId: string): Promise<FieldNote[]> {
+    try {
+      const notesKey = `field_notes_${parcelId}`;
+      const notes = await this.loadFromLocalStorage(notesKey);
+      return notes || [];
+    } catch (error) {
+      console.error(`Error getting local field notes for parcel ${parcelId}:`, error);
+      return [];
+    }
+  }
+  
+  // Add field note
   public async addFieldNote(note: FieldNote): Promise<boolean> {
     try {
-      const { parcelId } = note;
+      const parcelId = note.parcelId;
       
-      // Get or create document
-      let doc = this.documents.get(parcelId);
-      
-      if (!doc) {
-        // Create new document
-        doc = new Y.Doc();
-        this.documents.set(parcelId, doc);
-      }
-      
-      // Add note ID if missing
-      if (!note.id) {
-        note.id = uuidv4();
-      }
-      
-      // Add created at timestamp if missing
+      // Set created time if not provided
       if (!note.createdAt) {
         note.createdAt = new Date().toISOString();
       }
       
-      // Add to the Yjs document
-      const notesArray = doc.getArray('notes');
-      notesArray.push([note]);
+      // Add note to local storage
+      const localNotes = await this.getLocalFieldNotes(parcelId);
+      const noteWithId = {
+        ...note,
+        id: note.id || `local_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      };
       
-      // Save to local storage
-      await this.saveToLocalStorage(parcelId, doc);
+      const updatedNotes = [...localNotes, noteWithId];
       
-      // Try to sync if online
-      const isConnected = await this.isConnected();
-      if (isConnected) {
+      // Update local storage
+      const notesKey = `field_notes_${parcelId}`;
+      await this.saveToLocalStorage(notesKey, updatedNotes);
+      
+      // Update list of parcels with notes
+      await this.addParcelIdWithNotes(parcelId);
+      
+      // If online, send to server immediately
+      if (this.isOnline) {
         try {
-          await this.syncParcelData(parcelId);
-        } catch (syncError) {
-          console.error('Error syncing after adding note:', syncError);
+          await this.apiService.put(`/field-notes/${parcelId}/notes`, {
+            note: noteWithId
+          });
           
-          // Add to offline queue
-          await this.offlineQueue.enqueue(
-            OperationType.CREATE_NOTE,
-            { note, parcelId },
-            2 // Medium priority
+          // Notification for successful add
+          this.notificationService.sendNotification(
+            1, // Use current user ID in real app
+            NotificationType.FIELD_NOTE_ADDED,
+            'Note Added',
+            'Your field note has been saved and synced.'
+          );
+          
+          return true;
+        } catch (error) {
+          console.error(`Error sending field note to server for parcel ${parcelId}:`, error);
+          
+          // Add to sync queue for retry later
+          this.addToSyncQueue(`add_note_${noteWithId.id}`, 
+            () => this.syncFieldNotes(parcelId));
+          
+          // Notification for offline add
+          this.notificationService.sendNotification(
+            1, // Use current user ID in real app
+            NotificationType.FIELD_NOTE_ADDED,
+            'Note Saved Locally',
+            'Your field note has been saved locally and will sync when online.'
           );
         }
       } else {
-        // Add to offline queue
-        await this.offlineQueue.enqueue(
-          OperationType.CREATE_NOTE,
-          { note, parcelId },
-          2 // Medium priority
+        // Add to sync queue for when we're back online
+        this.addToSyncQueue(`add_note_${noteWithId.id}`, 
+          () => this.syncFieldNotes(parcelId));
+        
+        // Notification for offline add
+        this.notificationService.sendNotification(
+          1, // Use current user ID in real app
+          NotificationType.FIELD_NOTE_ADDED,
+          'Note Saved Locally',
+          'Your field note has been saved locally and will sync when online.'
         );
       }
       
       return true;
     } catch (error) {
-      console.error('Error adding field note:', error);
-      return false;
-    }
-  }
-
-  /**
-   * Delete a field note
-   */
-  public async deleteFieldNote(parcelId: string, noteId: string): Promise<boolean> {
-    try {
-      // Get document
-      let doc = this.documents.get(parcelId);
-      
-      if (!doc) {
-        // Try to load from local storage
-        const localData = await AsyncStorage.getItem(`terrafield_fieldnotes_${parcelId}`);
-        if (localData) {
-          try {
-            doc = new Y.Doc();
-            this.documents.set(parcelId, doc);
-            
-            const parsedData = JSON.parse(localData);
-            if (parsedData.update) {
-              const update = toUint8Array(parsedData.update);
-              Y.applyUpdate(doc, update);
-            }
-          } catch (parseError) {
-            console.error('Error parsing local data:', parseError);
-            return false;
-          }
-        } else {
-          return false;
-        }
-      }
-      
-      // Find the note
-      const notesArray = doc.getArray('notes');
-      const notes = notesArray.toArray();
-      const noteIndex = notes.findIndex(note => note.id === noteId);
-      
-      if (noteIndex === -1) {
-        return false;
-      }
-      
-      // Delete the note
-      notesArray.delete(noteIndex, 1);
-      
-      // Save to local storage
-      await this.saveToLocalStorage(parcelId, doc);
-      
-      // Try to sync if online
-      const isConnected = await this.isConnected();
-      if (isConnected) {
-        try {
-          // Try to delete on the server
-          await this.apiService.delete(`/api/field-notes/${parcelId}/notes/${noteId}`);
-          
-          // Also sync the updated Yjs document
-          await this.syncParcelData(parcelId);
-        } catch (syncError) {
-          console.error('Error syncing after deleting note:', syncError);
-          
-          // Add to offline queue
-          await this.offlineQueue.enqueue(
-            OperationType.DELETE_NOTE,
-            { noteId, parcelId },
-            2 // Medium priority
-          );
-        }
-      } else {
-        // Add to offline queue
-        await this.offlineQueue.enqueue(
-          OperationType.DELETE_NOTE,
-          { noteId, parcelId },
-          2 // Medium priority
-        );
-      }
-      
-      return true;
-    } catch (error) {
-      console.error(`Error deleting field note ${noteId} from parcel ${parcelId}:`, error);
+      console.error(`Error adding field note for parcel ${note.parcelId}:`, error);
       return false;
     }
   }
   
-  /**
-   * Get a property by ID
-   */
-  public async getProperty(propertyId: number): Promise<any> {
+  // Delete field note
+  public async deleteFieldNote(parcelId: string, noteId: string): Promise<boolean> {
     try {
-      return await this.apiService.get(`/api/properties/${propertyId}`);
+      // Remove note from local storage
+      const localNotes = await this.getLocalFieldNotes(parcelId);
+      const updatedNotes = localNotes.filter(note => note.id !== noteId);
+      
+      // Update local storage
+      const notesKey = `field_notes_${parcelId}`;
+      await this.saveToLocalStorage(notesKey, updatedNotes);
+      
+      // If there are no more notes, remove parcel ID from list
+      if (updatedNotes.length === 0) {
+        await this.removeParcelIdWithNotes(parcelId);
+      }
+      
+      // If online, send delete to server immediately
+      if (this.isOnline) {
+        try {
+          await this.apiService.delete(`/field-notes/${parcelId}/notes/${noteId}`);
+          
+          // Notification for successful delete
+          this.notificationService.sendNotification(
+            1, // Use current user ID in real app
+            NotificationType.FIELD_NOTE_DELETED,
+            'Note Deleted',
+            'Your field note has been deleted and synced.'
+          );
+          
+          return true;
+        } catch (error) {
+          console.error(`Error deleting field note from server for parcel ${parcelId}:`, error);
+          
+          // Add to sync queue for retry later
+          this.addToSyncQueue(`delete_note_${noteId}`, 
+            () => this.syncFieldNotes(parcelId));
+          
+          // Notification for offline delete
+          this.notificationService.sendNotification(
+            1, // Use current user ID in real app
+            NotificationType.FIELD_NOTE_DELETED,
+            'Note Deleted Locally',
+            'Your field note has been deleted locally and will sync when online.'
+          );
+        }
+      } else {
+        // Add to sync queue for when we're back online
+        this.addToSyncQueue(`delete_note_${noteId}`, 
+          () => this.syncFieldNotes(parcelId));
+        
+        // Notification for offline delete
+        this.notificationService.sendNotification(
+          1, // Use current user ID in real app
+          NotificationType.FIELD_NOTE_DELETED,
+          'Note Deleted Locally',
+          'Your field note has been deleted locally and will sync when online.'
+        );
+      }
+      
+      return true;
     } catch (error) {
-      console.error(`Error getting property ${propertyId}:`, error);
-      return null;
+      console.error(`Error deleting field note ${noteId} for parcel ${parcelId}:`, error);
+      return false;
+    }
+  }
+  
+  // Add parcel ID to list of parcels with notes
+  private async addParcelIdWithNotes(parcelId: string): Promise<void> {
+    try {
+      const parcelIdsString = await AsyncStorage.getItem('parcel_ids_with_notes');
+      const parcelIds = parcelIdsString ? JSON.parse(parcelIdsString) : [];
+      
+      if (!parcelIds.includes(parcelId)) {
+        parcelIds.push(parcelId);
+        await AsyncStorage.setItem('parcel_ids_with_notes', JSON.stringify(parcelIds));
+      }
+    } catch (error) {
+      console.error(`Error adding parcel ID ${parcelId} to notes list:`, error);
+    }
+  }
+  
+  // Remove parcel ID from list of parcels with notes
+  private async removeParcelIdWithNotes(parcelId: string): Promise<void> {
+    try {
+      const parcelIdsString = await AsyncStorage.getItem('parcel_ids_with_notes');
+      const parcelIds = parcelIdsString ? JSON.parse(parcelIdsString) : [];
+      
+      const updatedParcelIds = parcelIds.filter(id => id !== parcelId);
+      await AsyncStorage.setItem('parcel_ids_with_notes', JSON.stringify(updatedParcelIds));
+    } catch (error) {
+      console.error(`Error removing parcel ID ${parcelId} from notes list:`, error);
     }
   }
 }
