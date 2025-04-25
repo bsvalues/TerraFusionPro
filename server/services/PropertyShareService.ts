@@ -10,16 +10,16 @@ export class PropertyShareService {
    * @param shareData The data for the new share link
    * @returns The created share link
    */
-  async createShareLink(shareData: Omit<InsertPropertyShareLink, "shareToken">): Promise<PropertyShareLink> {
+  async createShareLink(shareData: Omit<InsertPropertyShareLink, "token">): Promise<PropertyShareLink> {
     // Generate a unique token
-    const shareToken = await this.generateUniqueToken();
+    const token = await this.generateUniqueToken();
     
     // Insert the share link
     const [shareLink] = await db
       .insert(propertyShareLinks)
       .values({
         ...shareData,
-        shareToken,
+        token,
         viewCount: 0,
         createdAt: new Date(),
         updatedAt: new Date()
@@ -38,7 +38,7 @@ export class PropertyShareService {
     const [shareLink] = await db
       .select()
       .from(propertyShareLinks)
-      .where(eq(propertyShareLinks.shareToken, token));
+      .where(eq(propertyShareLinks.token, token));
     
     return shareLink;
   }
@@ -214,7 +214,7 @@ export class PropertyShareService {
       const [existingLink] = await db
         .select()
         .from(propertyShareLinks)
-        .where(eq(propertyShareLinks.shareToken, token));
+        .where(eq(propertyShareLinks.token, token));
       
       if (!existingLink) {
         isUnique = true;

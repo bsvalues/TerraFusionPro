@@ -54,8 +54,10 @@ export default function PropertyShareDialog({
   // Create new share link
   const createShareLinkMutation = useMutation({
     mutationFn: async (shareData: ShareLinkData) => {
-      const response = await apiRequest("POST", `/api/properties/${propertyId}/share`, shareData);
-      return await response.json();
+      return await apiRequest(`/api/properties/${propertyId}/share`, {
+        method: "POST",
+        data: shareData
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/properties/${propertyId}/share-links`] });
@@ -94,7 +96,9 @@ export default function PropertyShareDialog({
   // Delete share link
   const deleteShareLinkMutation = useMutation({
     mutationFn: async (shareLinkId: number) => {
-      await apiRequest("DELETE", `/api/property-shares/${shareLinkId}`);
+      await apiRequest(`/api/property-shares/${shareLinkId}`, {
+        method: "DELETE"
+      });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [`/api/properties/${propertyId}/share-links`] });
