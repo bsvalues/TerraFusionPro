@@ -909,7 +909,7 @@ export function PropertyDataWizard({ propertyId, onComplete }: PropertyDataWizar
 
               {/* Warnings for missing optional data */}
               {(!formData.latitude || !formData.longitude || !formData.yearBuilt || !formData.squareFeet) && (
-                <Alert variant="warning">
+                <Alert>
                   <AlertTriangle className="h-4 w-4" />
                   <AlertTitle>Missing Optional Information</AlertTitle>
                   <AlertDescription>

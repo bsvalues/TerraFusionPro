@@ -15,6 +15,7 @@ import CompliancePage from './pages/CompliancePage';
 import AIValuationPage from './pages/AIValuationPage';
 import EmailOrderPage from './pages/EmailOrderPage';
 import PropertyDataPage from './pages/PropertyDataPage';
+import PropertyEntryPage from './pages/PropertyEntryPage';
 import UADFormPage from './pages/UADFormPage';
 import { ComparablePropertiesPage } from './pages/ComparablePropertiesPage';
 import ImportPage from './pages/ImportPage';
@@ -65,6 +66,8 @@ export default function EnhancedApp2() {
           <Route path="/email-order" component={EmailOrderPage} />
           <Route path="/property-data" component={PropertyDataPage} />
           <Route path="/property/:id" component={PropertyDataPage} />
+          <Route path="/property-entry" component={PropertyEntryPage} />
+          <Route path="/property-entry/:id" component={PropertyEntryPage} />
           <Route path="/uad-form" component={UADFormPageComponent} />
           <Route path="/uad-form/:id" component={UADFormPageComponent} />
           <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />

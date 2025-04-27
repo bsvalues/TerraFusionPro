@@ -251,7 +251,7 @@ export default function EnhancedHome() {
             variant="outline" 
             onClick={() => {
               console.log("Create New Report clicked");
-              setLocation('/form');
+              setLocation('/property-entry');
             }}
             className="hidden sm:flex"
           >

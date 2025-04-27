@@ -25,10 +25,8 @@ export default function PropertyEntryPage() {
       description={propertyId 
         ? "Update existing property information" 
         : "Create a new property entry with our step-by-step wizard"}
-      backLink={{
-        href: '/',
-        label: 'Back to Dashboard'
-      }}
+      backUrl="/"
+      backText="Back to Dashboard"
     >
       {isCompleted ? (
         <div className="max-w-4xl mx-auto">
