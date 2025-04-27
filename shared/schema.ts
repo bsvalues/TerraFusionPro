@@ -273,7 +273,7 @@ export const photos = pgTable("photos", {
   dateTaken: timestamp("date_taken"),
   latitude: numeric("latitude"),
   longitude: numeric("longitude"),
-  metadata: text("metadata", { mode: "json" }),
+  metadata: text("metadata"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

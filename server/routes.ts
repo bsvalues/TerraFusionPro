@@ -625,11 +625,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Make sure metadata is stringified if it's an object
+      if (data.metadata && typeof data.metadata === 'object') {
+        data.metadata = JSON.stringify(data.metadata);
+      }
+      
       const validatedData = insertPhotoSchema.parse(data);
       const newPhoto = await storage.createPhoto(validatedData);
       res.status(201).json(newPhoto);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
       console.error("Error creating photo:", error);
@@ -651,6 +657,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
         }
       }
       
+      // Make sure metadata is stringified if it's an object
+      if (data.metadata && typeof data.metadata === 'object') {
+        data.metadata = JSON.stringify(data.metadata);
+      }
+      
       const validatedData = insertPhotoSchema.partial().parse(data);
       
       const updatedPhoto = await storage.updatePhoto(photoId, validatedData);
@@ -662,6 +673,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json(updatedPhoto);
     } catch (error) {
       if (error instanceof z.ZodError) {
+        console.error("Validation error:", error.errors);
         return res.status(400).json({ message: "Validation error", errors: error.errors });
       }
       console.error("Error updating photo:", error);
