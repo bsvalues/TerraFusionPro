@@ -52,25 +52,27 @@ function NavLink({ item }: { item: NavItem }) {
   const isActive = location === item.href || item.active;
 
   return (
-    <Link href={item.href}>
-      <a
-        className={cn(
-          "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
-          isActive 
-            ? "bg-accent text-accent-foreground font-medium" 
-            : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-        )}
-        onClick={() => console.log(`${item.label} clicked`)}
-      >
-        {item.icon}
-        <span>{item.label}</span>
-        {item.badge && (
-          <Badge variant={item.badge.variant} className="ml-auto">
-            {item.badge.text}
-          </Badge>
-        )}
-      </a>
-    </Link>
+    <div className="flex items-center">
+      <Link href={item.href}>
+        <div
+          className={cn(
+            "flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors cursor-pointer",
+            isActive 
+              ? "bg-accent text-accent-foreground font-medium" 
+              : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+          )}
+          onClick={() => console.log(`${item.label} clicked`)}
+        >
+          {item.icon}
+          <span>{item.label}</span>
+          {item.badge && (
+            <Badge variant={item.badge.variant} className="ml-auto">
+              {item.badge.text}
+            </Badge>
+          )}
+        </div>
+      </Link>
+    </div>
   );
 }
 

@@ -26,24 +26,28 @@ import PhotoEnhancementPage from './pages/PhotoEnhancementPage';
 import PhotoSyncTestPage from './pages/PhotoSyncTestPage';
 import NotificationTestPage from './pages/NotificationTestPage';
 
-// If enhanced versions of pages exist, use those instead
+// Import the enhanced versions of pages
+import EnhancedHome from './pages/Home.enhanced';
 import EnhancedAIValuationPage from './pages/AIValuationPage.enhanced';
 import EnhancedCompliancePage from './pages/CompliancePage.enhanced';
 import EnhancedPhotosPage from './pages/PhotosPage.enhanced';
 import EnhancedSketchesPage from './pages/SketchesPage.enhanced';
+import EnhancedPhotoSyncTestPage from './pages/PhotoSyncTestPage.enhanced';
 
 // Use the enhanced versions
+const HomeComponent = EnhancedHome;
 const AIValuationPageComponent = EnhancedAIValuationPage;
 const CompliancePageComponent = EnhancedCompliancePage;
 const PhotosPageComponent = EnhancedPhotosPage;
 const SketchesPageComponent = EnhancedSketchesPage;
+const PhotoSyncTestPageComponent = EnhancedPhotoSyncTestPage;
 
 export default function EnhancedApp2() {
   return (
     <AppProvider>
       <TooltipProvider>
         <AppShell>
-          <Route path="/" component={Home} />
+          <Route path="/" component={HomeComponent} />
           <Route path="/form" component={FormPage} />
           <Route path="/form/:id" component={FormPage} />
           <Route path="/comps" component={CompsPage} />
@@ -66,7 +70,7 @@ export default function EnhancedApp2() {
           <Route path="/import" component={ImportPage} />
           <Route path="/crdt-test" component={CRDTTestPage} />
           <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
-          <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
+          <Route path="/photo-sync-test" component={PhotoSyncTestPageComponent} />
           <Route path="/notification-test" component={NotificationTestPage} />
           <Route path="/shared/:token" component={SharedPropertyPage} />
           <Route path="/:rest*" component={NotFound} />
