@@ -327,4 +327,135 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.fileImportResults.userId, userId))
       .orderBy(schema.fileImportResults.dateImported);
   }
+
+  // RealEstateTerm methods
+  async getRealEstateTerm(id: number): Promise<schema.RealEstateTerm | undefined> {
+    const [term] = await db
+      .select()
+      .from(schema.realEstateTerms)
+      .where(eq(schema.realEstateTerms.id, id));
+    return term;
+  }
+
+  async getRealEstateTermByName(term: string): Promise<schema.RealEstateTerm | undefined> {
+    const [result] = await db
+      .select()
+      .from(schema.realEstateTerms)
+      .where(eq(schema.realEstateTerms.term, term));
+    return result;
+  }
+
+  async getAllRealEstateTerms(): Promise<schema.RealEstateTerm[]> {
+    return await db
+      .select()
+      .from(schema.realEstateTerms)
+      .orderBy(schema.realEstateTerms.term);
+  }
+
+  async getRealEstateTermsByCategory(category: string): Promise<schema.RealEstateTerm[]> {
+    return await db
+      .select()
+      .from(schema.realEstateTerms)
+      .where(eq(schema.realEstateTerms.category, category))
+      .orderBy(schema.realEstateTerms.term);
+  }
+
+  async getTermsByNames(termNames: string[]): Promise<schema.RealEstateTerm[]> {
+    // Using an 'in' condition with drizzle
+    return await db
+      .select()
+      .from(schema.realEstateTerms)
+      .where(schema.realEstateTerms.term.in(termNames));
+  }
+
+  async createRealEstateTerm(termData: schema.InsertRealEstateTerm): Promise<schema.RealEstateTerm> {
+    const [term] = await db
+      .insert(schema.realEstateTerms)
+      .values(termData)
+      .returning();
+    return term;
+  }
+
+  async updateRealEstateTerm(id: number, termData: Partial<schema.InsertRealEstateTerm>): Promise<schema.RealEstateTerm | undefined> {
+    const [updatedTerm] = await db
+      .update(schema.realEstateTerms)
+      .set(termData)
+      .where(eq(schema.realEstateTerms.id, id))
+      .returning();
+    return updatedTerm;
+  }
+
+  async deleteRealEstateTerm(id: number): Promise<boolean> {
+    await db.delete(schema.realEstateTerms).where(eq(schema.realEstateTerms.id, id));
+    return true;
+  }
+  
+  // Alias methods to maintain compatibility with existing code
+  async getPropertiesByUser(userId: number) {
+    return this.getPropertiesByUserId(userId);
+  }
+  
+  async getAppraisalReportsByUser(userId: number) {
+    return this.getAppraisalReportsByUserId(userId);
+  }
+  
+  async getAppraisalReportsByProperty(propertyId: number) {
+    return this.getAppraisalReportsByPropertyId(propertyId);
+  }
+  
+  async getComparablesByReport(reportId: number) {
+    return this.getComparablesByReportId(reportId);
+  }
+  
+  async getAdjustmentsByComparable(comparableId: number) {
+    return this.getAdjustmentsByComparableId(comparableId);
+  }
+  
+  async getSketchesByReport(reportId: number) {
+    return this.getSketchesByReportId(reportId);
+  }
+  
+  async getComplianceChecksByReport(reportId: number) {
+    return this.getComplianceChecksByReportId(reportId);
+  }
+  
+  async getAdjustmentModelsByReport(reportId: number) {
+    return this.getAdjustmentModelsByReportId(reportId);
+  }
+  
+  async getModelAdjustmentsByModel(modelId: number) {
+    return this.getModelAdjustmentsByModelId(modelId);
+  }
+  
+  async getModelAdjustmentsByComparable(comparableId: number, modelId?: number) {
+    if (modelId !== undefined) {
+      return await db
+        .select()
+        .from(schema.modelAdjustments)
+        .where(eq(schema.modelAdjustments.comparableId, comparableId))
+        .where(eq(schema.modelAdjustments.modelId, modelId));
+    }
+    return this.getModelAdjustmentsByComparableId(comparableId);
+  }
+  
+  // Delete file import - stub for IStorage interface
+  async deleteFileImportResult(id: string): Promise<boolean> {
+    await db.delete(schema.fileImportResults).where(eq(schema.fileImportResults.id, id));
+    return true;
+  }
+  
+  // Save import result - stub for IStorage interface
+  async saveImportResult(result: InsertFileImportResult): Promise<FileImportResult> {
+    return this.createFileImportResult(result);
+  }
+  
+  // Property address search for imports
+  async getPropertiesByAddress(address: string, city: string, state: string): Promise<schema.Property[]> {
+    return await db
+      .select()
+      .from(schema.properties)
+      .where(eq(schema.properties.address, address))
+      .where(eq(schema.properties.city, city))
+      .where(eq(schema.properties.state, state));
+  }
 }

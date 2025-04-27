@@ -610,6 +610,65 @@ export class MemStorage implements IStorage {
   async deleteComplianceCheck(id: number): Promise<boolean> {
     return this.complianceChecks.delete(id);
   }
+  
+  // Real Estate Term methods
+  async getRealEstateTerm(id: number): Promise<RealEstateTerm | undefined> {
+    return this.realEstateTerms.get(id);
+  }
+  
+  async getRealEstateTermByName(term: string): Promise<RealEstateTerm | undefined> {
+    return Array.from(this.realEstateTerms.values()).find(
+      (realEstateTerm) => realEstateTerm.term.toLowerCase() === term.toLowerCase()
+    );
+  }
+  
+  async getAllRealEstateTerms(): Promise<RealEstateTerm[]> {
+    return Array.from(this.realEstateTerms.values());
+  }
+  
+  async getRealEstateTermsByCategory(category: string): Promise<RealEstateTerm[]> {
+    return Array.from(this.realEstateTerms.values()).filter(
+      (term) => term.category.toLowerCase() === category.toLowerCase()
+    );
+  }
+  
+  async getTermsByNames(termNames: string[]): Promise<RealEstateTerm[]> {
+    const lowerTermNames = termNames.map(name => name.toLowerCase());
+    return Array.from(this.realEstateTerms.values()).filter(
+      (term) => lowerTermNames.includes(term.term.toLowerCase())
+    );
+  }
+  
+  async createRealEstateTerm(insertTerm: InsertRealEstateTerm): Promise<RealEstateTerm> {
+    const id = this.currentRealEstateTermId++;
+    const now = new Date();
+    const term: RealEstateTerm = {
+      ...insertTerm,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.realEstateTerms.set(id, term);
+    return term;
+  }
+  
+  async updateRealEstateTerm(id: number, updateData: Partial<InsertRealEstateTerm>): Promise<RealEstateTerm | undefined> {
+    const term = this.realEstateTerms.get(id);
+    if (!term) return undefined;
+    
+    const updatedTerm: RealEstateTerm = {
+      ...term,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.realEstateTerms.set(id, updatedTerm);
+    return updatedTerm;
+  }
+  
+  async deleteRealEstateTerm(id: number): Promise<boolean> {
+    return this.realEstateTerms.delete(id);
+  }
 }
 
 import { DatabaseStorage } from "./database-storage";
