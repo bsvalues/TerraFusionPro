@@ -33,6 +33,7 @@ import EnhancedCompliancePage from './pages/CompliancePage.enhanced';
 import EnhancedPhotosPage from './pages/PhotosPage.enhanced';
 import EnhancedSketchesPage from './pages/SketchesPage.enhanced';
 import EnhancedPhotoSyncTestPage from './pages/PhotoSyncTestPage.enhanced';
+import EnhancedUADFormPage from './pages/UADFormPage.enhanced';
 
 // Use the enhanced versions
 const HomeComponent = EnhancedHome;
@@ -41,6 +42,7 @@ const CompliancePageComponent = EnhancedCompliancePage;
 const PhotosPageComponent = EnhancedPhotosPage;
 const SketchesPageComponent = EnhancedSketchesPage;
 const PhotoSyncTestPageComponent = EnhancedPhotoSyncTestPage;
+const UADFormPageComponent = EnhancedUADFormPage;
 
 export default function EnhancedApp2() {
   return (
@@ -63,8 +65,8 @@ export default function EnhancedApp2() {
           <Route path="/email-order" component={EmailOrderPage} />
           <Route path="/property-data" component={PropertyDataPage} />
           <Route path="/property/:id" component={PropertyDataPage} />
-          <Route path="/uad-form" component={UADFormPage} />
-          <Route path="/uad-form/:id" component={UADFormPage} />
+          <Route path="/uad-form" component={UADFormPageComponent} />
+          <Route path="/uad-form/:id" component={UADFormPageComponent} />
           <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
           <Route path="/terms" component={TermsPage} />
           <Route path="/import" component={ImportPage} />
