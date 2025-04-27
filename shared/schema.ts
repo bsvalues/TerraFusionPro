@@ -267,13 +267,14 @@ export type Adjustment = typeof adjustments.$inferSelect;
 export const photos = pgTable("photos", {
   id: serial("id").primaryKey(),
   reportId: integer("report_id").notNull().references(() => appraisalReports.id),
-  photoUrl: text("photo_url").notNull(),
-  photoTitle: text("photo_title").notNull(),
-  photoDescription: text("photo_description"),
-  photoCategory: text("photo_category").default("general"),
-  photoOrder: integer("photo_order").default(0),
+  url: text("url").notNull(),
+  caption: text("caption").notNull(),
+  photoType: text("photo_type"),
+  dateTaken: timestamp("date_taken"),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
+  metadata: text("metadata", { mode: "json" }),
   createdAt: timestamp("created_at").defaultNow(),
-  updatedAt: timestamp("updated_at").defaultNow(),
 });
 
 export const photosRelations = relations(photos, ({ one }) => ({
@@ -285,11 +286,13 @@ export const photosRelations = relations(photos, ({ one }) => ({
 
 export const insertPhotoSchema = createInsertSchema(photos).pick({
   reportId: true,
-  photoUrl: true,
-  photoTitle: true,
-  photoDescription: true,
-  photoCategory: true,
-  photoOrder: true,
+  url: true,
+  caption: true,
+  photoType: true,
+  dateTaken: true,
+  latitude: true,
+  longitude: true,
+  metadata: true,
 });
 
 export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
