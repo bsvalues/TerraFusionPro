@@ -13,12 +13,16 @@ import { PageLayout } from '@/components/layout/page-layout';
 import { useApp } from '@/contexts/AppContext';
 
 export default function EnhancedUADFormPage() {
+  console.log('Rendering EnhancedUADFormPage');
+  
   const { id } = useParams<{ id?: string }>();
   const [location, setLocation] = useLocation();
   const [activeTab, setActiveTab] = useState('form');
   
   // Get global app context for centralized state management
   const { startLoading, stopLoading, setError, clearError } = useApp();
+  
+  console.log('UAD Form Page ID:', id);
   
   // Convert ID to number if it exists
   const propertyId = id ? parseInt(id) : undefined;
