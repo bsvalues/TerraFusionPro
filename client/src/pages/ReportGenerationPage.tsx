@@ -1,190 +1,67 @@
-import React, { useState } from 'react';
-import { useLocation, useParams } from 'wouter';
-import { PageLayout } from '@/components/layout/page-layout';
-import { ReportGeneration } from '@/components/workflow/ReportGeneration';
+import React from 'react';
+import { useParams } from 'wouter';
+import { ReportGeneration, ReportFormat, ReportOutputFormat } from '@/components/workflow/report-generation';
+import { PageHeader } from '../components/ui/page-header';
+import { FileText, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from "@/components/ui/card";
-import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  ArrowLeft, 
-  Check, 
-  AlertTriangle, 
-  ChevronRight,
-  Download
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useQueryClient } from '@tanstack/react-query';
+import { enhancedToast } from '@/components/ui/enhanced-toast';
 
-export default function ReportGenerationPage() {
-  const [_, setLocation] = useLocation();
-  const params = useParams();
-  const reportId = params?.reportId || 'apr-1001';
-  const { toast } = useToast();
+export function ReportGenerationPage() {
+  const { reportId } = useParams<{ reportId: string }>();
+  const queryClient = useQueryClient();
   
-  // Mock property address
-  const [propertyAddress, setPropertyAddress] = useState('123 Main St, Cityville, CA 90210');
-  
-  // Mock compliance state
-  const [isCompliant, setIsCompliant] = useState(true);
-  
-  // Handler for PDF generation
-  const handleGeneratePdf = () => {
-    toast({
-      title: "PDF Generated Successfully",
-      description: "Your appraisal report PDF is ready for download or delivery.",
-      variant: "default"
+  const handleGenerateReport = async (
+    reportId: string, 
+    format: ReportFormat, 
+    outputFormats: ReportOutputFormat[], 
+    options: any
+  ) => {
+    // In a real implementation, we'd make an API call here
+    console.log('Generating report with options:', { reportId, format, outputFormats, options });
+    
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Example error handling
+    if (Math.random() > 0.9) {
+      throw new Error('Failed to connect to report generation service');
+    }
+    
+    // Successfully generated
+    enhancedToast.success({
+      title: 'Report Generated',
+      description: `Generated ${outputFormats.length} format(s) for report #${reportId}`
     });
-  };
-  
-  // Handler for XML generation
-  const handleGenerateXml = () => {
-    toast({
-      title: "MISMO XML Generated",
-      description: "The XML file is ready for submission to GSE systems.",
-      variant: "default"
-    });
-  };
-  
-  // Handler for email sending
-  const handleSendEmail = () => {
-    toast({
-      title: "Email Delivery Initiated",
-      description: "Your report is being sent to the client.",
-      variant: "default"
-    });
-  };
-  
-  // Handler for printing
-  const handlePrint = () => {
-    toast({
-      title: "Preparing Print Version",
-      description: "The report is being prepared for printing.",
-      variant: "default"
-    });
-  };
-  
-  // Handler for CSV export
-  const handleExportCsv = () => {
-    toast({
-      title: "CSV Export Ready",
-      description: "Your data has been exported in CSV format.",
-      variant: "default"
-    });
+    
+    // Invalidate report cache queries if needed
+    queryClient.invalidateQueries({ queryKey: [`/api/reports/${reportId}`] });
+    
+    return Promise.resolve();
   };
   
   return (
-    <PageLayout
-      title="Report Generation"
-      description="Generate and deliver your appraisal report"
-      backUrl={`/workflow/${reportId}`}
-      backText="Return to Workflow"
-      actions={
-        <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => {
-              setLocation(`/workflow/${reportId}`);
-            }}
-            className="hidden sm:flex"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Workflow
-          </Button>
-          <Button 
-            onClick={() => {
-              setLocation(`/compliance/${reportId}`);
-            }}
-          >
-            {isCompliant ? (
-              <>
-                <Check className="mr-2 h-4 w-4" />
-                Compliance Verified
-              </>
-            ) : (
-              <>
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Review Compliance
-              </>
-            )}
-          </Button>
-        </div>
-      }
-    >
-      <div className="space-y-6">
-        {/* Property Info Summary */}
-        <Card>
-          <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle>Generate Report for Property</CardTitle>
-              <Badge variant="outline">Report #{reportId}</Badge>
-            </div>
-            <CardDescription>{propertyAddress}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center gap-2">
-              <Badge 
-                variant={isCompliant ? "default" : "destructive"} 
-                className={`px-2 py-1 ${isCompliant ? 'bg-green-100 text-green-700' : ''}`}>
-                {isCompliant ? (
-                  <>
-                    <Check className="mr-1 h-3 w-3" />
-                    <span>Compliant</span>
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle className="mr-1 h-3 w-3" />
-                    <span>Non-Compliant</span>
-                  </>
-                )}
-              </Badge>
-              
-              <Badge variant="outline" className="px-2 py-1">
-                Single Family
-              </Badge>
-              
-              <Badge variant="outline" className="px-2 py-1">
-                Form 1004
-              </Badge>
-            </div>
-          </CardContent>
-        </Card>
-        
-        {/* Report Generation Component */}
+    <div className="container mx-auto py-6 max-w-screen-xl">
+      <PageHeader
+        title="Generate Appraisal Report"
+        description="Configure and generate your appraisal report in various formats"
+        icon={<FileText className="h-6 w-6" />}
+      >
+        <Button variant="outline" size="sm" asChild>
+          <a href="/appraisal/workflow">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Workflow
+          </a>
+        </Button>
+      </PageHeader>
+      
+      <div className="mt-6">
         <ReportGeneration 
-          reportId={reportId}
-          propertyAddress={propertyAddress}
-          isCompliant={isCompliant}
-          onGeneratePdf={handleGeneratePdf}
-          onGenerateXml={handleGenerateXml}
-          onSendEmail={handleSendEmail}
-          onPrint={handlePrint}
-          onExportCsv={handleExportCsv}
+          reportId={reportId} 
+          onGenerate={handleGenerateReport}
+          defaultFormat={ReportFormat.UAD_GPAR}
         />
-        
-        {/* Navigation Buttons */}
-        <div className="flex justify-between mt-8">
-          <Button 
-            variant="outline"
-            onClick={() => setLocation(`/workflow/${reportId}`)}
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            Return to Workflow
-          </Button>
-          <Button 
-            onClick={() => setLocation(`/delivery/${reportId}`)}
-          >
-            Proceed to Delivery
-            <ChevronRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
       </div>
-    </PageLayout>
+    </div>
   );
 }
