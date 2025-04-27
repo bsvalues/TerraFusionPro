@@ -335,14 +335,22 @@ export default function EnhancedHome() {
                 </div>
                 <h3 className="font-medium mb-1">Property Data</h3>
                 <p className="text-xs text-muted-foreground">Collect property details and sync with mobile inspection data</p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => setLocation('/property-data')}
-                >
-                  Enter data
-                </Button>
+                <div className="flex gap-2 mt-2 justify-center">
+                  <Button 
+                    variant="link" 
+                    size="sm"
+                    onClick={() => setLocation('/property-data')}
+                  >
+                    Classic Entry
+                  </Button>
+                  <Button 
+                    variant="link" 
+                    size="sm"
+                    onClick={() => setLocation('/property-entry')}
+                  >
+                    Enhanced Entry
+                  </Button>
+                </div>
               </div>
               
               <div className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20">
@@ -408,7 +416,7 @@ export default function EnhancedHome() {
                       variant="outline" 
                       onClick={() => {
                         console.log("Create New Report clicked");
-                        setLocation('/form');
+                        setLocation('/property-entry');
                       }}
                     >
                       <Plus className="mr-2 h-4 w-4" />
