@@ -318,15 +318,16 @@ export default function EnhancedPhotoSyncTestPage() {
         title: 'Sync Complete',
         description: 'All pending updates have been synced',
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error syncing updates:', error);
-      setSyncStatus(`Error syncing updates: ${error.message}`);
+      const errorMsg = error.message || 'Unknown error';
+      setSyncStatus(`Error syncing updates: ${errorMsg}`);
       
-      setError('Sync Error', `Failed to sync updates: ${error.message}`);
+      setError('Sync Error', `Failed to sync updates: ${errorMsg}`);
       
       toast({
         title: 'Sync Error',
-        description: error.message,
+        description: errorMsg,
         variant: 'destructive',
       });
     } finally {
