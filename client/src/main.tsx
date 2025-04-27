@@ -15,7 +15,7 @@ console.log("main.tsx executing, rendering App component");
 
 // Use the enhanced app with the new UI components
 // Change this to <App /> to use the original app
-const UseEnhancedUI = false; // Temporarily using original app for testing
+const UseEnhancedUI = true; // Using enhanced UI with updated components
 
 // Then render the actual app with all necessary providers
 root.render(
