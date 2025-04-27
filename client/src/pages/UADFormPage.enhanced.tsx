@@ -14,7 +14,8 @@ import {
   RefreshCw 
 } from 'lucide-react';
 import { PageLayout } from '@/components/layout/page-layout';
-import { useApp } from '@/contexts/AppContext';
+// Import removed to avoid context dependency error
+// import { useApp } from '@/contexts/AppContext';
 
 export default function EnhancedUADFormPage() {
   console.log('Rendering EnhancedUADFormPage in simplified form');
@@ -22,8 +23,8 @@ export default function EnhancedUADFormPage() {
   const { id } = useParams<{ id?: string }>();
   const [location, setLocation] = useLocation();
   
-  // Get global app context for centralized state management
-  const { setError } = useApp();
+  // Removed App context dependency
+  // const { setError } = useApp();
   
   console.log('UAD Form Page ID:', id);
   

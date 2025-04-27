@@ -2,12 +2,14 @@ import React, { ReactNode } from 'react';
 import { cn } from '@/lib/utils';
 import { ErrorBanner } from '@/components/ui/error-banner';
 import { LoadingOverlay } from '@/components/ui/loading-overlay';
-import { SyncStatus } from '@/components/ui/sync-status';
+// Removed SyncStatus temporarily to avoid AppContext dependency
+// import { SyncStatus } from '@/components/ui/sync-status';
 import { 
   ArrowLeft, 
   HelpCircle, 
   Settings,
-  MoreHorizontal
+  MoreHorizontal,
+  Cloud
 } from 'lucide-react';
 import { Link } from 'wouter';
 import {
@@ -20,6 +22,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 export interface PageHeaderProps {
   // Page title
@@ -67,7 +70,12 @@ export function PageHeader({
           )}
         </div>
         <div className="flex items-center gap-2">
-          {showSyncStatus && <SyncStatus />}
+          {showSyncStatus && (
+            <Badge variant="outline" className="flex items-center gap-1">
+              <Cloud className="h-3 w-3 mr-1" />
+              <span>Synced</span>
+            </Badge>
+          )}
           {actions}
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
