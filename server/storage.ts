@@ -16,6 +16,10 @@ import {
   adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
   collaborationComments, CollaborationComment, InsertCollaborationComment,
   marketData, MarketData, InsertMarketData,
+  // Terminology entities
+  realEstateTerms, RealEstateTerm, InsertRealEstateTerm,
+  // Field Notes entities
+  fieldNotes, 
   // Gamification system entities
   achievementDefinitions, AchievementDefinition, InsertAchievementDefinition,
   userAchievements, UserAchievement, InsertUserAchievement,
@@ -233,6 +237,16 @@ export interface IStorage {
   // Property search operations for imports
   getPropertiesByAddress(address: string, city: string, state: string): Promise<Property[]>;
   saveImportResult(result: InsertFileImportResult): Promise<FileImportResult>;
+  
+  // Real Estate Term operations
+  getRealEstateTerm(id: number): Promise<RealEstateTerm | undefined>;
+  getRealEstateTermByName(term: string): Promise<RealEstateTerm | undefined>;
+  getAllRealEstateTerms(): Promise<RealEstateTerm[]>;
+  getRealEstateTermsByCategory(category: string): Promise<RealEstateTerm[]>;
+  getTermsByNames(termNames: string[]): Promise<RealEstateTerm[]>;
+  createRealEstateTerm(term: InsertRealEstateTerm): Promise<RealEstateTerm>;
+  updateRealEstateTerm(id: number, term: Partial<InsertRealEstateTerm>): Promise<RealEstateTerm | undefined>;
+  deleteRealEstateTerm(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -244,6 +258,7 @@ export class MemStorage implements IStorage {
   private photos: Map<number, Photo>;
   private sketches: Map<number, Sketch>;
   private complianceChecks: Map<number, ComplianceCheck>;
+  private realEstateTerms: Map<number, RealEstateTerm>;
   
   private currentUserId: number;
   private currentPropertyId: number;
@@ -253,6 +268,7 @@ export class MemStorage implements IStorage {
   private currentPhotoId: number;
   private currentSketchId: number;
   private currentComplianceCheckId: number;
+  private currentRealEstateTermId: number;
 
   constructor() {
     this.users = new Map();
@@ -263,6 +279,7 @@ export class MemStorage implements IStorage {
     this.photos = new Map();
     this.sketches = new Map();
     this.complianceChecks = new Map();
+    this.realEstateTerms = new Map();
     
     this.currentUserId = 1;
     this.currentPropertyId = 1;
@@ -272,6 +289,7 @@ export class MemStorage implements IStorage {
     this.currentPhotoId = 1;
     this.currentSketchId = 1;
     this.currentComplianceCheckId = 1;
+    this.currentRealEstateTermId = 1;
     
     // Add demo user
     this.users.set(1, {

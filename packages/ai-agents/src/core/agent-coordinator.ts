@@ -1,230 +1,118 @@
-import { Agent, AgentTask, AgentTaskResult } from '../interfaces/agent';
+import { AgentBase, AgentTask } from '../interfaces/agent';
+import { BaseAgent } from './base-agent';
+import { ValuationAgent } from '../agents/valuation-agent';
+import { DataProcessingAgent } from '../agents/data-processing-agent';
+import { TerminologyAgent } from '../agents/terminology-agent';
 
 /**
  * Agent Coordinator
  * 
- * Manages a group of AI agents, routes tasks to the appropriate agent,
- * and handles agent communication and coordination.
+ * Responsible for coordinating tasks between different AI agents
+ * and ensuring they work together effectively.
  */
 export class AgentCoordinator {
-  private agents: Map<string, Agent> = new Map();
-  private taskQueue: AgentTask<any>[] = [];
-  private processing: boolean = false;
-  private taskResults: Map<string, AgentTaskResult<any>> = new Map();
-  
+  private static instance: AgentCoordinator;
+  private agents: Map<string, AgentBase>;
+  private logger: Console;
+
+  private constructor() {
+    this.agents = new Map<string, AgentBase>();
+    this.logger = console;
+    
+    // Register built-in agents
+    this.registerBuiltInAgents();
+  }
+
   /**
-   * Register an agent with the coordinator
+   * Get the singleton instance of the AgentCoordinator
+   */
+  public static getInstance(): AgentCoordinator {
+    if (!AgentCoordinator.instance) {
+      AgentCoordinator.instance = new AgentCoordinator();
+    }
+    return AgentCoordinator.instance;
+  }
+
+  /**
+   * Register a new agent with the coordinator
    * @param agent The agent to register
    */
-  registerAgent(agent: Agent): void {
-    if (this.agents.has(agent.id)) {
-      throw new Error(`Agent with ID ${agent.id} is already registered`);
-    }
-    
+  public registerAgent(agent: AgentBase): void {
+    this.logger.info(`[Agent Coordinator] Registering agent "${agent.name}" (${agent.id})`);
     this.agents.set(agent.id, agent);
-    console.log(`[Agent Coordinator] Registering agent "${agent.name}" (${agent.id})`);
   }
-  
+
   /**
-   * Unregister an agent from the coordinator
-   * @param agentId The ID of the agent to unregister
-   */
-  unregisterAgent(agentId: string): boolean {
-    console.log(`[Agent Coordinator] Unregistering agent with ID ${agentId}`);
-    return this.agents.delete(agentId);
-  }
-  
-  /**
-   * Get an agent by ID
+   * Get an agent by its ID
    * @param agentId The ID of the agent to get
    */
-  getAgent(agentId: string): Agent | undefined {
+  public getAgent(agentId: string): AgentBase | undefined {
     return this.agents.get(agentId);
   }
-  
+
   /**
    * Get all registered agents
    */
-  getAgents(): Agent[] {
+  public getAllAgents(): AgentBase[] {
     return Array.from(this.agents.values());
   }
-  
+
   /**
-   * Submit a task to be executed by the appropriate agent
-   * @param task The task to submit
+   * Dispatch a task to the appropriate agent
+   * @param task The task to dispatch
+   * @param agentId Optional specific agent ID to dispatch to
    */
-  async submitTask<T = any, R = any>(task: AgentTask<T>): Promise<string> {
-    // Add a created timestamp if not provided
-    const taskWithTimestamp = {
-      ...task,
-      createdAt: task.createdAt || new Date(),
-    };
-    
-    // Add the task to the queue
-    this.taskQueue.push(taskWithTimestamp);
-    
-    // Sort the queue by priority
-    this.taskQueue.sort((a, b) => a.priority - b.priority);
-    
-    // Start processing if not already running
-    if (!this.processing) {
-      this.processTasks();
-    }
-    
-    // Return the task ID
-    return task.id;
-  }
-  
-  /**
-   * Process tasks in the queue
-   */
-  private async processTasks(): Promise<void> {
-    // Set processing flag to true
-    this.processing = true;
-    
-    // Process tasks until the queue is empty
-    while (this.taskQueue.length > 0) {
-      // Get the next task
-      const task = this.taskQueue.shift();
-      
-      if (!task) {
-        continue;
-      }
-      
-      // Check if the task is scheduled for the future
-      if (task.scheduledFor && task.scheduledFor > new Date()) {
-        // Put it back in the queue
-        this.taskQueue.push(task);
-        
-        // Sort the queue again
-        this.taskQueue.sort((a, b) => a.priority - b.priority);
-        
-        // Wait a bit before checking again
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        continue;
-      }
-      
-      // Find an agent that can handle the task
-      const agent = this.findAgentForTask(task);
-      
+  public async dispatchTask<T, R>(task: AgentTask<T>, agentId?: string): Promise<R> {
+    if (agentId) {
+      const agent = this.getAgent(agentId);
       if (!agent) {
-        // No agent can handle this task
-        const result: AgentTaskResult<any> = {
-          id: `result-${task.id}`,
-          taskId: task.id,
-          success: false,
-          error: `No agent available to handle task of type ${task.type}`,
-          startedAt: new Date(),
-          completedAt: new Date(),
-        };
-        
-        this.taskResults.set(task.id, result);
-        continue;
+        throw new Error(`Agent with ID ${agentId} not found`);
       }
-      
-      try {
-        // Execute the task with the agent
-        const result = await agent.executeTask(task);
-        
-        // Store the result
-        this.taskResults.set(task.id, result);
-      } catch (error) {
-        // Create an error result
-        const result: AgentTaskResult<any> = {
-          id: `result-${task.id}`,
-          taskId: task.id,
-          success: false,
-          error: error.message || 'Unknown error',
-          startedAt: new Date(),
-          completedAt: new Date(),
-        };
-        
-        // Store the result
-        this.taskResults.set(task.id, result);
-      }
+      return await agent.processTask(task) as R;
     }
-    
-    // Set processing flag to false
-    this.processing = false;
+
+    // Find the best agent for this task type
+    const bestAgent = this.findBestAgentForTask(task);
+    if (!bestAgent) {
+      throw new Error(`No agent found for task type: ${task.type}`);
+    }
+
+    return await bestAgent.processTask(task) as R;
   }
-  
+
   /**
-   * Find an agent that can handle a specific task
+   * Find the best agent to handle a given task
    * @param task The task to find an agent for
    */
-  private findAgentForTask(task: AgentTask<any>): Agent | undefined {
-    // If a specific agent is requested in the context, use that
-    if (task.context?.agentId) {
-      const agent = this.agents.get(task.context.agentId);
-      
-      if (agent && agent.canHandleTask(task)) {
-        return agent;
-      }
-    }
-    
-    // Otherwise, find the first agent that can handle the task
+  private findBestAgentForTask<T>(task: AgentTask<T>): AgentBase | undefined {
+    // This is a simple implementation that just returns the first agent
+    // that can handle the task. In a real system, this would be more sophisticated.
     for (const agent of this.agents.values()) {
-      if (agent.canHandleTask(task)) {
-        return agent;
+      if (agent instanceof BaseAgent) {
+        if (agent.canHandleTask(task)) {
+          return agent;
+        }
       }
     }
-    
-    // No agent can handle this task
     return undefined;
   }
-  
+
   /**
-   * Get the result of a task
-   * @param taskId The ID of the task
+   * Register the built-in agents
    */
-  getTaskResult<R = any>(taskId: string): AgentTaskResult<R> | undefined {
-    return this.taskResults.get(taskId) as AgentTaskResult<R> | undefined;
-  }
-  
-  /**
-   * Check if a task has been completed
-   * @param taskId The ID of the task
-   */
-  isTaskComplete(taskId: string): boolean {
-    return this.taskResults.has(taskId);
-  }
-  
-  /**
-   * Wait for a task to complete and get the result
-   * @param taskId The ID of the task
-   * @param timeout Optional timeout in milliseconds
-   */
-  async waitForTaskCompletion<R = any>(
-    taskId: string,
-    timeout?: number
-  ): Promise<AgentTaskResult<R>> {
-    // Check if the task is already complete
-    if (this.isTaskComplete(taskId)) {
-      return this.getTaskResult<R>(taskId)!;
-    }
+  private registerBuiltInAgents(): void {
+    // Register the valuation agent
+    this.registerAgent(new ValuationAgent());
     
-    // Set up a promise that resolves when the task completes
-    return new Promise<AgentTaskResult<R>>((resolve, reject) => {
-      // Set up a timeout if provided
-      const timeoutId = timeout
-        ? setTimeout(() => {
-            clearInterval(intervalId);
-            reject(new Error(`Task ${taskId} timed out after ${timeout}ms`));
-          }, timeout)
-        : undefined;
-      
-      // Check for task completion periodically
-      const intervalId = setInterval(() => {
-        if (this.isTaskComplete(taskId)) {
-          clearInterval(intervalId);
-          
-          if (timeoutId) {
-            clearTimeout(timeoutId);
-          }
-          
-          resolve(this.getTaskResult<R>(taskId)!);
-        }
-      }, 100);
-    });
+    // Register the data processing agent
+    this.registerAgent(new DataProcessingAgent());
+    
+    // Register the terminology agent
+    this.registerAgent(new TerminologyAgent());
+    
+    // Add more built-in agents as needed
   }
 }
+
+// Export a singleton instance of the coordinator
+export const agentCoordinator = AgentCoordinator.getInstance();

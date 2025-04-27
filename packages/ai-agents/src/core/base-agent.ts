@@ -10,6 +10,7 @@ export abstract class BaseAgent implements Agent {
   description: string;
   supportedTasks: string[];
   protected config: AgentConfig;
+  protected taskHandlers: Map<string, (task: AgentTask<any>) => Promise<any>> = new Map();
   
   /**
    * Constructor
@@ -188,5 +189,29 @@ export abstract class BaseAgent implements Agent {
    */
   protected async afterTaskExecution<T, R>(task: AgentTask<T>, result: R): Promise<void> {
     // Default implementation does nothing
+  }
+  
+  /**
+   * Register a handler for a specific task type
+   * @param taskType The type of task to handle
+   * @param handler The handler function
+   */
+  protected registerTaskHandler(taskType: string, handler: (task: AgentTask<any>) => Promise<any>): void {
+    // Add to supported tasks
+    if (!this.supportedTasks.includes(taskType)) {
+      this.supportedTasks.push(taskType);
+    }
+    
+    // Register the handler
+    this.taskHandlers.set(taskType, handler);
+  }
+  
+  /**
+   * Get a handler for a specific task type
+   * @param taskType The type of task to get a handler for
+   * @returns The handler function or undefined if not found
+   */
+  protected getTaskHandler(taskType: string): ((task: AgentTask<any>) => Promise<any>) | undefined {
+    return this.taskHandlers.get(taskType);
   }
 }
