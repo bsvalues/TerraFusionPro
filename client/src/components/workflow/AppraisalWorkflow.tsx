@@ -261,11 +261,12 @@ export function AppraisalWorkflow({
                     <Badge 
                       variant={
                         completedSteps.includes(step.id) 
-                          ? 'success' 
+                          ? 'default'
                           : currentStep === step.id 
                             ? 'secondary'
                             : 'outline'
                       }
+                      className={completedSteps.includes(step.id) ? 'bg-green-100 text-green-700' : ''}
                     >
                       {completedSteps.includes(step.id) 
                         ? 'Completed' 
@@ -310,7 +311,7 @@ export function AppraisalWorkflow({
                           </div>
                           <CardTitle className="text-base">{step.title}</CardTitle>
                         </div>
-                        <Badge variant="success">Completed</Badge>
+                        <Badge variant="default" className="bg-green-100 text-green-700">Completed</Badge>
                       </div>
                       <CardDescription className="mt-1">{step.description}</CardDescription>
                     </CardHeader>

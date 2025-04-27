@@ -39,7 +39,7 @@ export default function ReportGenerationPage() {
     toast({
       title: "PDF Generated Successfully",
       description: "Your appraisal report PDF is ready for download or delivery.",
-      variant: "success"
+      variant: "default"
     });
   };
   
@@ -48,7 +48,7 @@ export default function ReportGenerationPage() {
     toast({
       title: "MISMO XML Generated",
       description: "The XML file is ready for submission to GSE systems.",
-      variant: "success"
+      variant: "default"
     });
   };
   
@@ -129,7 +129,9 @@ export default function ReportGenerationPage() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center gap-2">
-              <Badge variant={isCompliant ? "success" : "destructive"} className="px-2 py-1">
+              <Badge 
+                variant={isCompliant ? "default" : "destructive"} 
+                className={`px-2 py-1 ${isCompliant ? 'bg-green-100 text-green-700' : ''}`}>
                 {isCompliant ? (
                   <>
                     <Check className="mr-1 h-3 w-3" />
