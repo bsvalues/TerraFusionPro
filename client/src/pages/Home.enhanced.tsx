@@ -214,7 +214,7 @@ export default function EnhancedHome() {
       <CardFooter className="pt-1">
         <Button 
           variant="ghost" 
-          className="text-xs h-8 px-2 mr-2"
+          className="text-xs h-8 px-2 mr-1"
           onClick={() => setLocation(`/property/${report.id}`)}
         >
           <Building2 className="h-3.5 w-3.5 mr-1" />
@@ -222,11 +222,11 @@ export default function EnhancedHome() {
         </Button>
         <Button 
           variant="ghost" 
-          className="text-xs h-8 px-2 mr-2"
-          onClick={() => setLocation(`/uad-form/${report.id}`)}
+          className="text-xs h-8 px-2 mr-1"
+          onClick={() => setLocation(`/workflow/${report.id}`)}
         >
-          <ClipboardList className="h-3.5 w-3.5 mr-1" />
-          Form
+          <Layers className="h-3.5 w-3.5 mr-1" />
+          Workflow
         </Button>
         <Button 
           variant="ghost" 
@@ -273,14 +273,46 @@ export default function EnhancedHome() {
       <div className="space-y-6">
         {/* Workflow Overview Panel */}
         <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-3">
-            <CardTitle>Appraisal Workflow</CardTitle>
-            <CardDescription>
-              The TerraFusion Platform guides you through every step of the appraisal process
-            </CardDescription>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Appraisal Workflow</CardTitle>
+              <CardDescription>
+                The TerraFusion Platform guides you through every step of the appraisal process
+              </CardDescription>
+            </div>
+            <Button 
+              variant="default" 
+              className="hidden md:flex"
+              onClick={() => setLocation('/workflow')}
+            >
+              <Layers className="mr-2 h-4 w-4" />
+              Open Guided Workflow
+            </Button>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+              <div 
+                className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors"
+                onClick={() => setLocation('/workflow')}
+              >
+                <div className="bg-primary/10 p-3 rounded-full mb-2">
+                  <Layers className="h-6 w-6 text-primary" />
+                </div>
+                <h3 className="font-medium mb-1">Guided Workflow</h3>
+                <p className="text-xs text-muted-foreground">Follow our step-by-step process for complete appraisals</p>
+                <Button 
+                  variant="link" 
+                  size="sm" 
+                  className="mt-2"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setLocation('/workflow');
+                  }}
+                >
+                  Start workflow
+                </Button>
+              </div>
+              
               <div className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20">
                 <div className="bg-primary/10 p-3 rounded-full mb-2">
                   <MailPlus className="h-6 w-6 text-primary" />
@@ -310,22 +342,6 @@ export default function EnhancedHome() {
                   onClick={() => setLocation('/property-data')}
                 >
                   Enter data
-                </Button>
-              </div>
-              
-              <div className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20">
-                <div className="bg-primary/10 p-3 rounded-full mb-2">
-                  <FileBarChart2 className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-medium mb-1">Comparables</h3>
-                <p className="text-xs text-muted-foreground">Select and adjust comparable properties for accurate valuation</p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => setLocation('/comps')}
-                >
-                  Manage comps
                 </Button>
               </div>
               
@@ -381,11 +397,12 @@ export default function EnhancedHome() {
                   <div className="flex gap-4">
                     <Button
                       onClick={() => {
-                        console.log("Load Demo Report clicked");
-                        setLocation('/form');
+                        console.log("Start Guided Workflow clicked");
+                        setLocation('/workflow');
                       }}
                     >
-                      Load Demo Report
+                      <Layers className="mr-2 h-4 w-4" />
+                      Start Guided Workflow
                     </Button>
                     <Button 
                       variant="outline" 
@@ -394,6 +411,7 @@ export default function EnhancedHome() {
                         setLocation('/form');
                       }}
                     >
+                      <Plus className="mr-2 h-4 w-4" />
                       Create New Report
                     </Button>
                   </div>
