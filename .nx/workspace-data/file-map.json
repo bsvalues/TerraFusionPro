@@ -1,0 +1,2155 @@
+{
+  "version": "6.0",
+  "nxVersion": "20.8.1",
+  "pathMappings": {
+    "@/*": [
+      "./client/src/*"
+    ],
+    "@shared/*": [
+      "./shared/*"
+    ]
+  },
+  "nxJsonPlugins": [],
+  "pluginsConfig": {
+    "@nx/js": {
+      "analyzeSourceFiles": false
+    }
+  },
+  "fileMap": {
+    "projectFileMap": {},
+    "nonProjectFiles": [
+      {
+        "file": ".cache/electron/76646e1e65f010a990c8f26afaf071d50541776122573500b30bcb44f0ebc73a/electron-v35.1.5-linux-x64.zip",
+        "hash": "18158565065694291528"
+      },
+      {
+        "file": ".cache/replit/env/latest",
+        "hash": "10550921768034907734"
+      },
+      {
+        "file": ".cache/replit/env/latest.json",
+        "hash": "3299880323643086926"
+      },
+      {
+        "file": ".cache/replit/modules.stamp",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": ".cache/replit/modules/nodejs-20",
+        "hash": "3866072026253627773"
+      },
+      {
+        "file": ".cache/replit/modules/nodejs-20.res",
+        "hash": "6843720027138789403"
+      },
+      {
+        "file": ".cache/replit/modules/postgresql-16",
+        "hash": "3904920722867709622"
+      },
+      {
+        "file": ".cache/replit/modules/postgresql-16.res",
+        "hash": "8986245039465790482"
+      },
+      {
+        "file": ".cache/replit/modules/replit",
+        "hash": "1252036184991861832"
+      },
+      {
+        "file": ".cache/replit/modules/replit.res",
+        "hash": "2750567012741544503"
+      },
+      {
+        "file": ".cache/replit/modules/web",
+        "hash": "16045154605633922537"
+      },
+      {
+        "file": ".cache/replit/modules/web.res",
+        "hash": "14977130166695572791"
+      },
+      {
+        "file": ".cache/replit/nix/dotreplitenv.json",
+        "hash": "4956057216960628244"
+      },
+      {
+        "file": ".cache/replit/toolchain.json",
+        "hash": "15322112440529318126"
+      },
+      {
+        "file": ".gitignore",
+        "hash": "8178466323767038439"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_020a3dd80313c517e8763b8eaa1a6eb6d0965cdb.bin",
+        "hash": "5687623400098078123"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_0229fafe48ab644d62bfc12333744c5b97a563b7.bin",
+        "hash": "17344642881340813326"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_0365f446e8961c5606e2e1b37bdebb98659b32b0.bin",
+        "hash": "14310206657112228215"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_05add13a9fd9cfff28fa10fbf3aca07fd8af13dc.bin",
+        "hash": "4569312293045539914"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_05bd25bf7ce335778aedfb85e79379d34245dbbb.bin",
+        "hash": "6041030939340258645"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_071d976ffed86389d3eebe2b25d17ac1fca2aacf.bin",
+        "hash": "5370365103330133700"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_0a07c59371f2fc88869205cd0870c0d2a40824fd.bin",
+        "hash": "15450484501995050052"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_0b40931b16adc2e6ea47493e30cd1af407941e4b.bin",
+        "hash": "8996883349242587606"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_0bad0e91953e1b4090533e0fafbbc3ff1d2b36dc.bin",
+        "hash": "15306649964866490785"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_10057262daec6bcec01eda48c773c5e3e58423e8.bin",
+        "hash": "16875109837546003715"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1028c1f5e9a2062a2be2ae7ae221807ae8737992.bin",
+        "hash": "10242172278377238967"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_12c31a386d9c991e9e43c8013224f10a2ced36e5.bin",
+        "hash": "889988887436655"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1415097bf76cc8f680ac8da074128046d1690eec.bin",
+        "hash": "1330985136101058887"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_15e6575928f996b54c5b7824aeacd96acd1fd937.bin",
+        "hash": "3361810603779886512"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1728e6dcd01d1194c0f82175bc7d9038e3557bd1.bin",
+        "hash": "2632299710606760249"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_18a1e1c6afa1eff1baa758d47e8d07c528e2df46.bin",
+        "hash": "17643999372252174590"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1a2b16ef6586949852221e948175aa5ab89439fb.bin",
+        "hash": "4290528976857499916"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1aabeccab6bb5b4a1e6d17349c415e11ef5c59cc.bin",
+        "hash": "6361608545718437270"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1ae74982ced46f54f6c20f6f5f8158cb87f89a32.bin",
+        "hash": "13297490761353289425"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1af2a13d93becfc5a78a1be42b9d9d075dc039cd.bin",
+        "hash": "4695072927311676193"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1c28d79e2ac736e88bab8dcec5e118f2fc23f925.bin",
+        "hash": "13977266030623967525"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1cb116a9b37163dcb83a36d39decd3af549c7988.bin",
+        "hash": "16167985269116554268"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1e1d403b247f2c1024ea361eb3e292ed63d7bcfc.bin",
+        "hash": "3654206809379398121"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1e28be5ee2695f54e7f52bd6cb416106e12483db.bin",
+        "hash": "17990788764591585820"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1e74fe0a61631d8547f8c787c8550421c2757de2.bin",
+        "hash": "5603503478991957741"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1f1e12299fd309ffdee929ba46ca2f288d0e3675.bin",
+        "hash": "15358385190562325868"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_1f35bb115fbb14de2e34610b28051759d8c021ce.bin",
+        "hash": "1373558702563885425"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_207dc94d9efde265453dc49fc5bc1723a964901d.bin",
+        "hash": "16893518766227712052"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_24fe84f5113f75dd07594694f004a0164551d1d3.bin",
+        "hash": "5157739619254352808"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_25e6fb3b410b1925a4e8d1b0953ee497a035d1ef.bin",
+        "hash": "557847449222667089"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_263d0ffd4051ae48d42bd810fad3f77c866e00b9.bin",
+        "hash": "8787084696327793576"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_28878b5afc0b4a7219138910ed04f11c56672cb6.bin",
+        "hash": "16188501588636481086"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_28ace8ce794f7f4c7749bae6db8a9dc9ef2f152c.bin",
+        "hash": "8853610253887853037"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_2ed700013b409ff1908ced672251dc2fd834861b.bin",
+        "hash": "10182272378880267629"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_314031865fc9b4d1b2f04170f4fa71decaf2bb8b.bin",
+        "hash": "4752048171546525047"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_364ff8e1a6f961fd22502172c24dd8fdee5ec533.bin",
+        "hash": "2603147927003267936"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_368ed66d53d39d2897ff555ef2f0def0c173a748.bin",
+        "hash": "12939211729645065057"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_36f960f87248710c3b9ae7dbb76babbcca64219b.bin",
+        "hash": "12540583248400453477"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_37941e15580ad2fdd217e301950356080ba3ffa8.bin",
+        "hash": "15382070044293360990"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_37fec01029b00863ffcdd32617888952c59012da.bin",
+        "hash": "17225459920341925388"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3966f82503c3158ffb07bb386d3073776e40c153.bin",
+        "hash": "12171014286702149423"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3a64ce75b825d025be187cc3e1801fff2931f78b.bin",
+        "hash": "3779370295412932372"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3a8ba46d63c2efb7a5bf0f0edad9cc8898a795b6.bin",
+        "hash": "15225143045956637396"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3b32b9e24958d49b3f5d0d3d4a77cedf120065cd.bin",
+        "hash": "10108574673215916747"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3c4de0245633d25e73309866db4abe689705ffd8.bin",
+        "hash": "5102729201306730875"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3cdf2931e01e6f12094bacce8035fd6b67037600.bin",
+        "hash": "16581349364589415378"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3e7a9237abb336ad9fef11852ee295d7ff50fbbc.bin",
+        "hash": "13784903109278969049"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_3eb9ec9c5f2c9b167bf2e8e1b6ba55fee9090263.bin",
+        "hash": "603254976630967863"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4000ee48cad46d00cc3e9e7930a0adc1fb090572.bin",
+        "hash": "11014318842799457958"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_41d4a97290716e8722c0235791ec34b081262aea.bin",
+        "hash": "5216728694921988991"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_445d366c7872e74b263447b52c9d43af8cde0739.bin",
+        "hash": "8290308324426501881"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4477b27f0370f5ac6c4c8b3215e2c13741bf06fa.bin",
+        "hash": "5848096919518903717"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_447bed7d9b3073e7efe1907b35caf94cc799134a.bin",
+        "hash": "12244741668908250251"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_448bcd1cef1d85f9d0cae495846a258414bf1a85.bin",
+        "hash": "18292208975319992098"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4802736bf1510500b49ce50785f64e2005785e27.bin",
+        "hash": "8657020202176069879"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4891b7814af72b233f0a28bb9563d473aa9045c3.bin",
+        "hash": "4798457876242592881"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4959b1f5e0aeb53792a6f55ac6e191ccb82cd03a.bin",
+        "hash": "11666003396958162280"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_49c87537628b7d4b75f7ea7b02e247ba24dfb653.bin",
+        "hash": "10627506190076155857"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_49fc2dcbde63f29a71cda4061ae9713fdb0a3cb0.bin",
+        "hash": "11067000901885050390"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4b711e235d8b22f94623b24f0ef496b8c0cb0e98.bin",
+        "hash": "2958509621900622730"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4e4439cb52320b21ec53acc4c038d3126ded4808.bin",
+        "hash": "17955799502039987418"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_4f2e0bd48dc45abf075e10324ee4ecbda0917beb.bin",
+        "hash": "11870766057806522046"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_535917cf8611b6b76bc8e26c120b73c523a6122e.bin",
+        "hash": "1526492852393730100"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_53a984c7929e172d1d2d18de522cfcd162843085.bin",
+        "hash": "656978642668702287"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_555c79ee1c8bf8d674a2fd8c714072aaee5a2b35.bin",
+        "hash": "8536591733117565122"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_57b3694c7540545c7c587ea298c8b754d69e813d.bin",
+        "hash": "5773323137347868548"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_59ed9f1d2a00ebaaec27de558fbc0e4d3a6e98eb.bin",
+        "hash": "15637143736246361651"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_5b148b6cfdbf60f7433987b04e797cbeb7baa49e.bin",
+        "hash": "1355869098710999044"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_63f64a34265d67fdf70bdc2f0bef25a1398f5fc0.bin",
+        "hash": "6081290215096297169"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_64332860c28033be08592c3a455e8b0c834b45c1.bin",
+        "hash": "11475798641608576652"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_66e5b3e1bb60c47dae5b7246631d40589a5bc0a1.bin",
+        "hash": "4701463568310645638"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_67c1a66dcc7470e899df5511c20b2018af72f81f.bin",
+        "hash": "9943761713624045901"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_682ac659fb81acb26c94b2d0b256ca268818f016.bin",
+        "hash": "6766087862592570303"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_69f18569e3bde6e885f6a46510136947ae4696c2.bin",
+        "hash": "16837637620651003789"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_69f46f34e71ab00f862992b6baad9ec3d011076d.bin",
+        "hash": "15686480551677409445"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_6b1370d5a58c056f4b00865d8bfef1fbd4fb1f97.bin",
+        "hash": "8579915513573079987"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_6b18158e3c2ede9deb23d615aa819c0a68f49022.bin",
+        "hash": "4126979476133487714"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_6b95a9374e8fd8c043bd5cf1bb60e5bb89234c9c.bin",
+        "hash": "11720641528998996500"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_6c8d65b606ed64e072a4957180405e2c4eb0e8b9.bin",
+        "hash": "9761561767080833968"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7063d520ae6b676897872154b9731d4bc9f5f36a.bin",
+        "hash": "16658588195781361513"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_711144807162635c6f00986b723a2b9530ffffb3.bin",
+        "hash": "15944057551259719795"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7128d01623b266939d7bab8fca11f66f04f99204.bin",
+        "hash": "13110101997682114742"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_71463dfd0196e0dd9aa26225dc7de3a1273cb1b7.bin",
+        "hash": "7176282056115095028"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_721af5dd65eb24993e1172a142f6dd722edfcc45.bin",
+        "hash": "26212028358984035"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_729481ea4b93eab9210dd098e56fa7f91beebafe.bin",
+        "hash": "15482726485411595192"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7298285c412ef2c8d95d9a1c7feafded8b40e5f3.bin",
+        "hash": "11243044811198796105"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_73177f54e878dae933950572069088b83dbd62c7.bin",
+        "hash": "3182132898886737279"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_793fc1569e6a0ea2462c6aa6ee79041680001c99.bin",
+        "hash": "12944727770524462608"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_799a04354d6838f496d6b1cbebb225c67ef147f7.bin",
+        "hash": "12951555174372311557"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7a5293c6f14ed8897c2ef23b3a36574dd0e33bcb.bin",
+        "hash": "4399731758648599080"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7b9041709904c12c9a676dab23b2641c39334dd2.bin",
+        "hash": "17052048562754285171"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7d483ada3b31048dc7667da62ab04c89d206ad18.bin",
+        "hash": "16801717849793823882"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7d633e20a688d09851198dc6318b42829d3a6e93.bin",
+        "hash": "3880252159955985034"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7eb7917a31d36cff119b000d6d15cbd74f1636e4.bin",
+        "hash": "1871100043923666244"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7efbb03aa190e69ae2e2110e6eb4dc36ee5281e3.bin",
+        "hash": "8033439346667207687"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7f1769acd2bfb753b79d2ec4e24cde07591920ed.bin",
+        "hash": "7111594382976804625"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_7f8667ee242325ede4fe2257318cce3234d19484.bin",
+        "hash": "6966609347540755325"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_8045be7673b620c6e7f292bc45723958cecfe955.bin",
+        "hash": "2451785382741705563"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_808e1991bf323de9a40b1176daaf94c086e32be3.bin",
+        "hash": "676242890754049635"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_80ffa7481aea315c7cc2dc333e1a8b79060aebf8.bin",
+        "hash": "1608048684472871024"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_818ae1168926e8d23e50d14df5271edb6d1d1d73.bin",
+        "hash": "12218936057195186314"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_822598ea41083b7a4d42ff7b069b1062bfb23121.bin",
+        "hash": "12605355407837163960"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_8466595ed9eed7c2cf6644abf9f375e7ad84f41c.bin",
+        "hash": "11263100109111079613"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_855863405e4360ed3740161392b4419bc2ed13b3.bin",
+        "hash": "15516122564389653726"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_857ded46eda3d945072d0a61007f887651ac0104.bin",
+        "hash": "12839649717065593508"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_8a82b1e8632b5aa3524ffe6c5578d3e40552640f.bin",
+        "hash": "3760524250718611288"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_8b92bb990fe31c9eb159da2ef89c9896ebbec7df.bin",
+        "hash": "7467277816597661919"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_8e5ef719ccc7a2df7b3098cceee4060fe9cfe4c4.bin",
+        "hash": "7164847900606794238"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_90012c85ef16af67edbe2ae5ade7fd38120b61c5.bin",
+        "hash": "12917332623299291747"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_90071e080c303d6a5f1d8a6d4f994ca0e29ad02c.bin",
+        "hash": "1034223201056010408"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_91d12ae1b49fdfe0a4a6bf9c53892b6c4bbc309c.bin",
+        "hash": "12203398008405634309"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_92ec0af32f8ba1dbfe641eef7299a50dec36664e.bin",
+        "hash": "13364834340665457634"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_92f291bb6040a7c1f785d226ab834b8f7e191035.bin",
+        "hash": "4513573157065838001"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_99901ce612dd17aa50791e4df0dca0fe94e7ac8d.bin",
+        "hash": "17276577159308034322"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_9a5bba2eb5e30b3148a2a52ccdbfa008469b5d27.bin",
+        "hash": "11759510269370686285"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_9d78c7f9fafa38f1d37e3012b4b24c9c9a8651f0.bin",
+        "hash": "541322496429377220"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a0c255446605fdd1a00041f91a77aec8bfe25cca.bin",
+        "hash": "11731789947894134947"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a151ce8f97b3bffb632a9bbfe063e8898eadc840.bin",
+        "hash": "16686031196211533840"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a1a7816e62fff38f874639e9f18a76c492bdc07a.bin",
+        "hash": "3634104891273731508"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a44b3214c9dd912e6c3ece378a055011c1f2c9b7.bin",
+        "hash": "5498589026878793169"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a68298ff9d814516a2f4b3282940da2579650e27.bin",
+        "hash": "13244625910734870861"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a6891ea9363377244898f8bda69e4ffdf98be90e.bin",
+        "hash": "13335798290364069166"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a68e770ed6298fb4dda4d664c24cb2cb377a30d0.bin",
+        "hash": "777124809081900827"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a7bd8ad97c8466d232bd424754f3dcb08f171d51.bin",
+        "hash": "10329562769864542798"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a7f748e80428459b63d0962db852e5937c4e2cf3.bin",
+        "hash": "11621512265505824971"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a87c934ba70a89939631ed980cb20bca7491a2ed.bin",
+        "hash": "7687689831057665516"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a8fd15edee8ddfe3382f53d5e90166c023ea6afe.bin",
+        "hash": "4365150128958161159"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_a9fda57969c3b51ad5c375e9fdca4afc36fd34db.bin",
+        "hash": "18098304002514392190"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_aaac28efef8ad6cbe5bf25c7906561b5750ad6db.bin",
+        "hash": "17846373843242837762"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_aae7b39dfbb4359ade192e6b328bbc08a108abd2.bin",
+        "hash": "18355667567500877516"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ac1d14f7b86173bcf2dcb1532ca8fdcee1f4256b.bin",
+        "hash": "15932225180645500302"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ac67d770130b77805be965bbfdb37aaf1a1cece2.bin",
+        "hash": "12044869257251787691"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ad1ebfae83265786c0372f2b853ca0bfd329aac7.bin",
+        "hash": "9656199732980639214"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ae5b3716e019718ec3558d5516dff532a3ea4010.bin",
+        "hash": "4119464443780740402"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_b3a8ac7d2200b2193d1562b2efd688d9650788d5.bin",
+        "hash": "5813598671221016882"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_b76687d267e2f3fa5c4cc94bb604ec3790a5c8d1.bin",
+        "hash": "15957963335070752216"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_b8673b112f8b02fec2239f3b584d2b9815709e1f.bin",
+        "hash": "14538692514252614462"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_bb62897a064f5306a0a914a40dd80bc971c3e992.bin",
+        "hash": "15629558049989617975"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_bb87ba5f52ff76e4d65f78ad69fff9c8c2dc1c23.bin",
+        "hash": "7283798205633140477"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_bbc82b4be491a8fd4070aa66d0593c861cff4863.bin",
+        "hash": "14704342919855953935"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_bda8f11d0a1fb691fbda715bb9ae5de46c562e16.bin",
+        "hash": "13561312870130873128"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_bf2f51af9c371b09e5513aac60e6f265b9a72e3a.bin",
+        "hash": "15366384392921917889"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_bf5dbdea36ef04ab0d434dde558b704b9d1660a8.bin",
+        "hash": "7074421525129843143"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c123a8749b8f040f5b0a9a2ae7c90a43b516cbb3.bin",
+        "hash": "17049110557423336986"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c284979552e8c32563c00f8bcf613bbbe44e07e1.bin",
+        "hash": "640190394561088159"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c29aec9f65b7d0eaa04565e46127c767c65c4ee3.bin",
+        "hash": "15675398941890941327"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c4fa9bff437653314cabda082c961763f055074c.bin",
+        "hash": "10229851579543193513"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c570845f20a4babcd7dccbf2e26b984ae53c418e.bin",
+        "hash": "4501517264043540314"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c5b4b0548dda97b7b5507406ec6246afaa7c7150.bin",
+        "hash": "9355560578637336909"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_c6eeb8424d602cf1c2c26b8c37dc00f3de51acda.bin",
+        "hash": "15134213234124060169"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ca6e3e5847e599e50fc7d23156ccd31164b4c747.bin",
+        "hash": "11893716892069637150"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_cb3defa028744a62e82855e05f3dfd962c50a87c.bin",
+        "hash": "8193843087678118821"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_cbca8c85151654b9d3b165b090e93c7b195bec2f.bin",
+        "hash": "5212572029772047487"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ce8566013be3dc8b5172c489d3565f1c0aa1aa3b.bin",
+        "hash": "16560741157871821089"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d167955840e2b92af51a723587008899bf7f0f13.bin",
+        "hash": "10017405658682436427"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d1b2605ececb79baeb32e47c0834f333d24ef49d.bin",
+        "hash": "13429194426242767760"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d22aa4927d92239335f8e5128ebb527d63332d02.bin",
+        "hash": "1541318819444859969"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d364d3c9567ff66080f437ac3d9bd80475867e75.bin",
+        "hash": "9839824603423007157"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d49874499c36646b20822d2774fe2b8541590f45.bin",
+        "hash": "12128887376486142422"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d5373a169148af588463f2e08f4869eb1badb7b6.bin",
+        "hash": "14568679065322250000"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d55a2055cb276afc3e4dfba1075e318783a8fa94.bin",
+        "hash": "10768839936500986486"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d5ce63d5187be811e13e78096efac481e451bce9.bin",
+        "hash": "1127946751262942857"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d5e6a5a1a823f1ea2ff43e3992878acdb9a33618.bin",
+        "hash": "475589634520687926"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d6d024e8e8380f2613ef3fb628f6a472932f049c.bin",
+        "hash": "5279254765672162781"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d7230e56e500d120eaefc6a746bd12368df652df.bin",
+        "hash": "2657679402081584722"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d86e3187f4e14593eb91ba5ab50b3b964965f076.bin",
+        "hash": "2120159354241027060"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_d8c990431a8b91556172f4357111029ce22c5588.bin",
+        "hash": "13419303532832174271"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_da71ffb0145c209c7940d5dae86902dc30377f16.bin",
+        "hash": "5905743717391664297"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_e0c10bd40cf4477bc1702f4afb8285ba39493ac7.bin",
+        "hash": "4734976496200371571"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_e1a8697f023f3526373eeb9986eb2c3981569287.bin",
+        "hash": "14312821533792779171"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_e22dd4ce48aab9733be274557c21afb4819cc406.bin",
+        "hash": "16780609161985054232"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_e39142b4f816c1987ee464d1512ed1ff3e2bd506.bin",
+        "hash": "7831086479950787158"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_e5dee64e2e7687237a920fa85fb88eade5103f7c.bin",
+        "hash": "8380327557169380293"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_e75e479c6fd24ae19d1550ddabfc823e9b49458d.bin",
+        "hash": "10229222662805094208"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_eb748a61b4a8b1e8f52c233447b7c2eadfe5eb15.bin",
+        "hash": "11563135066649555388"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ebb3902e4145277a1ecd10061b7acb712982d640.bin",
+        "hash": "7226041449426360318"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ef0f958b6f96f7da1ce68f3989f04a50dd726148.bin",
+        "hash": "3486032300415821977"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_ef5caa01fab7e007f2e0f364c92a705e65714616.bin",
+        "hash": "6806849014996260063"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f07c5bcf25af73e39ea085b932decab6dcd7e988.bin",
+        "hash": "8242284013210249226"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f11c414a42672153f888283c287e58d4b268d563.bin",
+        "hash": "15731355335183497346"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f234962cd5b3573066ac1f9173b2c01d66482b22.bin",
+        "hash": "4479333648321216884"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f348a68cfebd83224e0521ac1e10dcf3ed922d8a.bin",
+        "hash": "13073335198558649489"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f4be3141eeba6522aa162fd7940bad9f0a19dceb.bin",
+        "hash": "16267710014819823080"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f4df8d5192101f5fc2336937fa440f9dc2ade67b.bin",
+        "hash": "10889572141514765821"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f6a5ca72d51e4c3e28d7047b32c0d28d2bf3685e.bin",
+        "hash": "15953816291834180443"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f71c8e6c499ba3d6fd74af764ffe974cb586e4de.bin",
+        "hash": "3430961777852647420"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f79c8dfde362311f808e20346270ac8d5fb2d1b5.bin",
+        "hash": "14760151034434233943"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f8817956070c593f8281ccea51ec52e84f376df0.bin",
+        "hash": "17859396252438380945"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_f902d1f818a1132b45d05d66555c7014a2e5ffc4.bin",
+        "hash": "5911224527425616488"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_fe3f294e461020ee373df1e8820115d49d3dc1e8.bin",
+        "hash": "8245293953489418555"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_fec815107dbb90f691e65f3ac2edabe455596288.bin",
+        "hash": "9346382225364604028"
+      },
+      {
+        "file": ".local/state/replit/agent/.agent_state_main.bin",
+        "hash": "15334766804995149875"
+      },
+      {
+        "file": ".local/state/replit/agent/.latest.json",
+        "hash": "3688231244080053223"
+      },
+      {
+        "file": ".local/state/replit/agent/rapid_build_started",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": ".local/state/replit/agent/rapid_build_success",
+        "hash": "3244421341483603138"
+      },
+      {
+        "file": ".local/state/replit/agent/repl_state.bin",
+        "hash": "17924922110419455098"
+      },
+      {
+        "file": ".replit",
+        "hash": "2458844943588557753"
+      },
+      {
+        "file": ".upm/store.json",
+        "hash": "9011595027546526953"
+      },
+      {
+        "file": "README-TerraField.md",
+        "hash": "9796996399363233469"
+      },
+      {
+        "file": "apps/terrafield-mobile/README.md",
+        "hash": "12775635766916530407"
+      },
+      {
+        "file": "apps/terrafield-mobile/index.js",
+        "hash": "7220002063951816408"
+      },
+      {
+        "file": "apps/terrafield-mobile/package.json",
+        "hash": "2237286316371098505"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/App.tsx",
+        "hash": "2737892277908286557"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/AnimatedSparkline.tsx",
+        "hash": "12588746215750645191"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/CollaborativeFieldNotes.tsx",
+        "hash": "10847809526601932530"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ComplianceDocumentButton.tsx",
+        "hash": "9436298337489336532"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ErrorBoundary.tsx",
+        "hash": "10072177484208011699"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ErrorReporting.tsx",
+        "hash": "5129023984776569114"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/OfflineCapabilityProvider.tsx",
+        "hash": "10354218456433011748"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/PropertyComparisonTool.tsx",
+        "hash": "1696455266093805702"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/PropertyInspectionWorkflow.tsx",
+        "hash": "6568717426031372395"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/PropertyValueTrend.tsx",
+        "hash": "7041326209715948393"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/photo/EnhancedPhotoGallery.tsx",
+        "hash": "16451836989935098716"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/ConditionRating.tsx",
+        "hash": "9733171707578793690"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/FormComponents.tsx",
+        "hash": "9760141574411171748"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/LocationPicker.tsx",
+        "hash": "1814548676720454734"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/RoomMeasurement.tsx",
+        "hash": "15405466293516539732"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/SketchTool.tsx",
+        "hash": "17332983689865912478"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/VoiceInput.tsx",
+        "hash": "13969043405671416723"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/VoiceInputFAB.tsx",
+        "hash": "17024107208718224887"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/components/ui/VoiceNotes.tsx",
+        "hash": "10071028626522706381"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/constants/Colors.ts",
+        "hash": "8207401923621751718"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/hooks/useAuth.ts",
+        "hash": "4784492835126813046"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/hooks/useAuth.tsx",
+        "hash": "12536682143352379510"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/navigation/AppNavigator.tsx",
+        "hash": "9485549528469280886"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/navigation/MainNavigator.tsx",
+        "hash": "6488185997802660430"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/navigation/types.ts",
+        "hash": "5499715661471305097"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ARMeasurementScreen.tsx",
+        "hash": "18324620727111335172"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/CollaborationScreen.tsx",
+        "hash": "6951315215772068318"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ComparableSearchScreen.tsx",
+        "hash": "1916882412245731567"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ComplianceDocumentScreen.tsx",
+        "hash": "15010440887288650446"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ConflictResolutionScreen.tsx",
+        "hash": "5352010655571917939"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ExternalDataScreen.tsx",
+        "hash": "16778389152802118633"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/FieldDataVerificationScreen.tsx",
+        "hash": "14270337095340451130"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/FieldInspectionScreen.tsx",
+        "hash": "16092494690330486996"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/FieldNotesScreen.tsx",
+        "hash": "11234440970780296981"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/HomeScreen.tsx",
+        "hash": "16732341325207923467"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/LoginScreen.tsx",
+        "hash": "1903370549309432431"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/NotificationScreen.tsx",
+        "hash": "6315089283636404464"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ParcelDetailScreen.tsx",
+        "hash": "14458976490926718064"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ParcelNoteScreen.tsx",
+        "hash": "12607621436648229666"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/PhotoEnhancementScreen.tsx",
+        "hash": "4263795007413244102"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/PropertyComparisonDashboard.tsx",
+        "hash": "16401469518383944023"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/PropertyDetailsScreen.tsx",
+        "hash": "5191610096458085677"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/ReportGenerationScreen.tsx",
+        "hash": "14160324601351794438"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/SecuritySettingsScreen.tsx",
+        "hash": "8943068074323060365"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/SignupScreen.tsx",
+        "hash": "971623330342023428"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/SyncStatusScreen.tsx",
+        "hash": "11128256649773749519"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/screens/VoicePropertyFormScreen.tsx",
+        "hash": "13939768016417962584"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ARMeasurementService.ts",
+        "hash": "15172978276477303583"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ApiService.ts",
+        "hash": "9511157512239438388"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/AuthService.ts",
+        "hash": "12441800969612961700"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/CollaborationService.ts",
+        "hash": "16486563420432327293"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ComparableService.ts",
+        "hash": "18115169386765209785"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ComplianceDocumentService.ts",
+        "hash": "7107598609141598029"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ConflictResolutionService.ts",
+        "hash": "5576042748067044622"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/DataSyncService.ts",
+        "hash": "1227405221497995680"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ExternalDataService.ts",
+        "hash": "7344804763096262105"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/FieldDataVerificationService.ts",
+        "hash": "107850089917992036"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ImageCompressionService.ts",
+        "hash": "9937591934218734240"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/NotificationService.ts",
+        "hash": "9129615649826088434"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/OfflineQueueService.ts",
+        "hash": "7751740642134234571"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/OfflineServiceInitializer.ts",
+        "hash": "4236677885509658896"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/PhotoEnhancementService.ts",
+        "hash": "5478369056096108684"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/PhotoSyncService.ts",
+        "hash": "9985874232671035259"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/PropertyComparisonService.ts",
+        "hash": "2914099848637319758"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/PropertyValueHistoryService.ts",
+        "hash": "12845248121001393654"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/ReportGenerationService.ts",
+        "hash": "8451604098499425583"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/SecureStorageService.ts",
+        "hash": "9947615603491034264"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/SelectiveSyncService.ts",
+        "hash": "14254162466638523869"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/VoiceRecognitionService.ts",
+        "hash": "5724392642212915175"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/handlers/PhotoEnhancementHandler.ts",
+        "hash": "790582205188173195"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/handlers/PhotoUploadHandler.ts",
+        "hash": "1768779915810064645"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/handlers/PropertyUpdateHandler.ts",
+        "hash": "16088708890935768011"
+      },
+      {
+        "file": "apps/terrafield-mobile/src/services/types.ts",
+        "hash": "514301984272614614"
+      },
+      {
+        "file": "apps/terrafield-mobile/tsconfig.json",
+        "hash": "3746919943490311376"
+      },
+      {
+        "file": "attached_assets/ICSF AI-Driven DevOps Framework.md",
+        "hash": "10093212782438866906"
+      },
+      {
+        "file": "attached_assets/Pasted--TerraField-Mobile-Integration-Bootstrap-Kit-This-bootstrap-kit-contains-ready-to-paste-instruct-1745434674402.txt",
+        "hash": "16801909822905987750"
+      },
+      {
+        "file": "attached_assets/Pasted--TerraField-Mobile-Integration-Bootstrap-Kit-This-bootstrap-kit-contains-ready-to-paste-instruct-1745518244750.txt",
+        "hash": "16801909822905987750"
+      },
+      {
+        "file": "attached_assets/Pasted-Here-s-a-structured-multi-phase-set-of-natural-language-prompts-you-can-feed-to-your-Replit-AI-Agen-1744920376507.txt",
+        "hash": "6192131275844071137"
+      },
+      {
+        "file": "attached_assets/Pasted-I-ll-help-you-guide-a-Replit-AI-agent-through-implementing-your-TerraField-mobile-integration-Let-s-1745518150186.txt",
+        "hash": "8806914856818402861"
+      },
+      {
+        "file": "attached_assets/Pasted-TerraFusionPro-s-front-end-currently-suffers-from-inconsistent-UI-patterns-opaque-data-flows-and-u-1745713152365.txt",
+        "hash": "17151682025172235683"
+      },
+      {
+        "file": "attached_assets/Pasted-The-above-error-occurred-in-the-SelectItem-component-at-https-0a70841c-2a8a-41f9-be07-c9-1745008107011.txt",
+        "hash": "10157639438106970108"
+      },
+      {
+        "file": "attached_assets/Pasted-You-are-a-Professional-DevOps-Engineer-Senior-Frontend-Developer-and-Senior-Project-Manager-workin-1745774884230.txt",
+        "hash": "424690021226155139"
+      },
+      {
+        "file": "client/index.html",
+        "hash": "18356585134329928712"
+      },
+      {
+        "file": "client/public/manifest.json",
+        "hash": "1853488327658134739"
+      },
+      {
+        "file": "client/src/App.tsx",
+        "hash": "3013148468029499463"
+      },
+      {
+        "file": "client/src/DirectApp.tsx",
+        "hash": "8615241423026848324"
+      },
+      {
+        "file": "client/src/EnhancedApp.tsx",
+        "hash": "6358652864694630478"
+      },
+      {
+        "file": "client/src/EnhancedApp2.tsx",
+        "hash": "4896124952681208020"
+      },
+      {
+        "file": "client/src/MinimalApp.tsx",
+        "hash": "16346024020828078388"
+      },
+      {
+        "file": "client/src/TestApp.tsx",
+        "hash": "2486331029808198780"
+      },
+      {
+        "file": "client/src/components/AdjustmentModelSelector.tsx",
+        "hash": "7082985070201260972"
+      },
+      {
+        "file": "client/src/components/ComparableAdjustments.tsx",
+        "hash": "1067875656231368390"
+      },
+      {
+        "file": "client/src/components/MarketAnalysisDashboard.tsx",
+        "hash": "11803324169812561610"
+      },
+      {
+        "file": "client/src/components/ai/AIAssistantContent.tsx",
+        "hash": "2412814683910599668"
+      },
+      {
+        "file": "client/src/components/ai/assistant-panel.tsx",
+        "hash": "11811840934526713653"
+      },
+      {
+        "file": "client/src/components/appraisal/ComparablesTable.tsx",
+        "hash": "1573740617235249293"
+      },
+      {
+        "file": "client/src/components/appraisal/MarketValueWorksheetCard.tsx",
+        "hash": "10918701399297393333"
+      },
+      {
+        "file": "client/src/components/appraisal/PropertyAddressCard.tsx",
+        "hash": "5612061718130321434"
+      },
+      {
+        "file": "client/src/components/appraisal/PropertyCharacteristicsCard.tsx",
+        "hash": "540870982712120068"
+      },
+      {
+        "file": "client/src/components/layout/AppShell.tsx",
+        "hash": "3763532303028750517"
+      },
+      {
+        "file": "client/src/components/layout/Header.tsx",
+        "hash": "15553626930136935276"
+      },
+      {
+        "file": "client/src/components/layout/Sidebar.tsx",
+        "hash": "3310252075398974619"
+      },
+      {
+        "file": "client/src/components/layout/app-shell.tsx",
+        "hash": "12397022245019561067"
+      },
+      {
+        "file": "client/src/components/layout/page-layout.tsx",
+        "hash": "12835139170635142771"
+      },
+      {
+        "file": "client/src/components/property/PropertyDataRetrieval.tsx",
+        "hash": "2088875592969498668"
+      },
+      {
+        "file": "client/src/components/property/PropertyInfoCard.tsx",
+        "hash": "16384416570923255248"
+      },
+      {
+        "file": "client/src/components/property/PropertyShareDialog.tsx",
+        "hash": "14910730945214693636"
+      },
+      {
+        "file": "client/src/components/uad/UADForm.tsx",
+        "hash": "3968170891880057880"
+      },
+      {
+        "file": "client/src/components/uad/UADFormField.tsx",
+        "hash": "2142503315787580669"
+      },
+      {
+        "file": "client/src/components/uad/UADFormSection.tsx",
+        "hash": "11333047139084398449"
+      },
+      {
+        "file": "client/src/components/uad/constants.ts",
+        "hash": "13974088101449695803"
+      },
+      {
+        "file": "client/src/components/ui/accordion.tsx",
+        "hash": "3167988994528357415"
+      },
+      {
+        "file": "client/src/components/ui/alert-dialog.tsx",
+        "hash": "12931732376882220959"
+      },
+      {
+        "file": "client/src/components/ui/alert.tsx",
+        "hash": "1861621377426642757"
+      },
+      {
+        "file": "client/src/components/ui/api-call-wrapper.tsx",
+        "hash": "4386741408410427616"
+      },
+      {
+        "file": "client/src/components/ui/aspect-ratio.tsx",
+        "hash": "12340592216594228921"
+      },
+      {
+        "file": "client/src/components/ui/avatar.tsx",
+        "hash": "8660661188500548189"
+      },
+      {
+        "file": "client/src/components/ui/badge.tsx",
+        "hash": "875993094407652218"
+      },
+      {
+        "file": "client/src/components/ui/breadcrumb.tsx",
+        "hash": "16363177524338459737"
+      },
+      {
+        "file": "client/src/components/ui/button.tsx",
+        "hash": "11257389123344437734"
+      },
+      {
+        "file": "client/src/components/ui/calendar.tsx",
+        "hash": "17652249983854643459"
+      },
+      {
+        "file": "client/src/components/ui/card.tsx",
+        "hash": "8258172798928960664"
+      },
+      {
+        "file": "client/src/components/ui/carousel.tsx",
+        "hash": "16025284428382211109"
+      },
+      {
+        "file": "client/src/components/ui/chart.tsx",
+        "hash": "9175543328576303872"
+      },
+      {
+        "file": "client/src/components/ui/checkbox.tsx",
+        "hash": "5277313382263280533"
+      },
+      {
+        "file": "client/src/components/ui/collapsible.tsx",
+        "hash": "11550741736187478023"
+      },
+      {
+        "file": "client/src/components/ui/command.tsx",
+        "hash": "3585024763164368713"
+      },
+      {
+        "file": "client/src/components/ui/context-menu.tsx",
+        "hash": "14294026152839214859"
+      },
+      {
+        "file": "client/src/components/ui/data-aware-form.tsx",
+        "hash": "14516594792290737456"
+      },
+      {
+        "file": "client/src/components/ui/data-query-wrapper.tsx",
+        "hash": "3621151305569284966"
+      },
+      {
+        "file": "client/src/components/ui/data-table.tsx",
+        "hash": "1689369541246747018"
+      },
+      {
+        "file": "client/src/components/ui/dialog.tsx",
+        "hash": "6257434488129205118"
+      },
+      {
+        "file": "client/src/components/ui/draggable-panel.tsx",
+        "hash": "16338267023911971258"
+      },
+      {
+        "file": "client/src/components/ui/drawer.tsx",
+        "hash": "12662813428787543576"
+      },
+      {
+        "file": "client/src/components/ui/dropdown-menu.tsx",
+        "hash": "3863589042374472212"
+      },
+      {
+        "file": "client/src/components/ui/enhanced-toast.tsx",
+        "hash": "15922866250571335370"
+      },
+      {
+        "file": "client/src/components/ui/error-banner.tsx",
+        "hash": "11632797357371761865"
+      },
+      {
+        "file": "client/src/components/ui/error-state.tsx",
+        "hash": "1159140025587352554"
+      },
+      {
+        "file": "client/src/components/ui/form.tsx",
+        "hash": "14373301194178947649"
+      },
+      {
+        "file": "client/src/components/ui/hover-card.tsx",
+        "hash": "17757139602879340400"
+      },
+      {
+        "file": "client/src/components/ui/input-otp.tsx",
+        "hash": "14550022367864184989"
+      },
+      {
+        "file": "client/src/components/ui/input.tsx",
+        "hash": "667422176216627357"
+      },
+      {
+        "file": "client/src/components/ui/label.tsx",
+        "hash": "575553755677390382"
+      },
+      {
+        "file": "client/src/components/ui/loading-overlay.tsx",
+        "hash": "4238018502154675327"
+      },
+      {
+        "file": "client/src/components/ui/loading-state.tsx",
+        "hash": "11191307035169797349"
+      },
+      {
+        "file": "client/src/components/ui/menubar.tsx",
+        "hash": "4060921458695533966"
+      },
+      {
+        "file": "client/src/components/ui/navigation-menu.tsx",
+        "hash": "2908858029814184805"
+      },
+      {
+        "file": "client/src/components/ui/page-header.tsx",
+        "hash": "18272390528618574341"
+      },
+      {
+        "file": "client/src/components/ui/pagination.tsx",
+        "hash": "12933609959293049490"
+      },
+      {
+        "file": "client/src/components/ui/popover.tsx",
+        "hash": "15312171688123978149"
+      },
+      {
+        "file": "client/src/components/ui/progress.tsx",
+        "hash": "17647409214643394547"
+      },
+      {
+        "file": "client/src/components/ui/radio-group.tsx",
+        "hash": "12574634384370595430"
+      },
+      {
+        "file": "client/src/components/ui/resizable-panels.tsx",
+        "hash": "2497945352600223254"
+      },
+      {
+        "file": "client/src/components/ui/resizable.tsx",
+        "hash": "7119411678047791219"
+      },
+      {
+        "file": "client/src/components/ui/scroll-area.tsx",
+        "hash": "7372559361306884482"
+      },
+      {
+        "file": "client/src/components/ui/select.tsx",
+        "hash": "17609257409882469506"
+      },
+      {
+        "file": "client/src/components/ui/separator.tsx",
+        "hash": "9152929968593344539"
+      },
+      {
+        "file": "client/src/components/ui/sheet.tsx",
+        "hash": "1045531335628912137"
+      },
+      {
+        "file": "client/src/components/ui/sidebar.tsx",
+        "hash": "11005982684288456909"
+      },
+      {
+        "file": "client/src/components/ui/skeleton.tsx",
+        "hash": "7739192301396167804"
+      },
+      {
+        "file": "client/src/components/ui/slider.tsx",
+        "hash": "13517559721624315127"
+      },
+      {
+        "file": "client/src/components/ui/spinner.tsx",
+        "hash": "8623293208931126190"
+      },
+      {
+        "file": "client/src/components/ui/success-state.tsx",
+        "hash": "13379128929210353360"
+      },
+      {
+        "file": "client/src/components/ui/switch.tsx",
+        "hash": "6768244898163120696"
+      },
+      {
+        "file": "client/src/components/ui/sync-status.tsx",
+        "hash": "10282991169572772011"
+      },
+      {
+        "file": "client/src/components/ui/table.tsx",
+        "hash": "12220893068497995597"
+      },
+      {
+        "file": "client/src/components/ui/tabs.tsx",
+        "hash": "13475387194805012451"
+      },
+      {
+        "file": "client/src/components/ui/textarea.tsx",
+        "hash": "11500692197031149961"
+      },
+      {
+        "file": "client/src/components/ui/theme-provider.tsx",
+        "hash": "2395879563240378545"
+      },
+      {
+        "file": "client/src/components/ui/toast.tsx",
+        "hash": "6988934579205312909"
+      },
+      {
+        "file": "client/src/components/ui/toaster.tsx",
+        "hash": "7061958449706272295"
+      },
+      {
+        "file": "client/src/components/ui/toggle-group.tsx",
+        "hash": "12069551333688425799"
+      },
+      {
+        "file": "client/src/components/ui/toggle.tsx",
+        "hash": "11798874654733838872"
+      },
+      {
+        "file": "client/src/components/ui/tooltip-term.tsx",
+        "hash": "1638314561557157076"
+      },
+      {
+        "file": "client/src/components/ui/tooltip.tsx",
+        "hash": "13615976415397195500"
+      },
+      {
+        "file": "client/src/components/ui/worksheet-cell.tsx",
+        "hash": "16299542789848543133"
+      },
+      {
+        "file": "client/src/components/workflow/AppraisalWorkflow.tsx",
+        "hash": "540549739901260509"
+      },
+      {
+        "file": "client/src/components/workflow/ReportGeneration.tsx",
+        "hash": "17567970394235291181"
+      },
+      {
+        "file": "client/src/components/workflow/report-generation.tsx",
+        "hash": "15096208055786473801"
+      },
+      {
+        "file": "client/src/components/workflow/smart-checklist.tsx",
+        "hash": "6159957623791639397"
+      },
+      {
+        "file": "client/src/contexts/AppContext.tsx",
+        "hash": "7440989118006509508"
+      },
+      {
+        "file": "client/src/contexts/AppraisalContext.tsx",
+        "hash": "5397750408867999817"
+      },
+      {
+        "file": "client/src/contexts/MinimalContext.tsx",
+        "hash": "9783508020993291880"
+      },
+      {
+        "file": "client/src/contexts/SimpleAppraisalContext.tsx",
+        "hash": "16668117049982512425"
+      },
+      {
+        "file": "client/src/contexts/TooltipContext.tsx",
+        "hash": "15437347385690275469"
+      },
+      {
+        "file": "client/src/contexts/UADFormContext.tsx",
+        "hash": "5555105057735276171"
+      },
+      {
+        "file": "client/src/electron.main.ts",
+        "hash": "267967041586589878"
+      },
+      {
+        "file": "client/src/hooks/use-mobile.tsx",
+        "hash": "14900138732519213047"
+      },
+      {
+        "file": "client/src/hooks/use-toast.ts",
+        "hash": "1037374254426475233"
+      },
+      {
+        "file": "client/src/hooks/useAIAssistant.ts",
+        "hash": "18078181423016845365"
+      },
+      {
+        "file": "client/src/hooks/useAdjustmentModels.ts",
+        "hash": "10858285491114498590"
+      },
+      {
+        "file": "client/src/hooks/useMarketAnalysis.ts",
+        "hash": "12502932283277717576"
+      },
+      {
+        "file": "client/src/hooks/usePropertyData.ts",
+        "hash": "3434286873131190644"
+      },
+      {
+        "file": "client/src/hooks/useUADFormData.ts",
+        "hash": "2906757435450304962"
+      },
+      {
+        "file": "client/src/index.css",
+        "hash": "3411754731913400952"
+      },
+      {
+        "file": "client/src/lib/calculations.ts",
+        "hash": "18026657550292946534"
+      },
+      {
+        "file": "client/src/lib/electron.ts",
+        "hash": "12936709492534527609"
+      },
+      {
+        "file": "client/src/lib/mismo.ts",
+        "hash": "16348249547245816396"
+      },
+      {
+        "file": "client/src/lib/queryClient.ts",
+        "hash": "7303766168290263537"
+      },
+      {
+        "file": "client/src/lib/utils.ts",
+        "hash": "7559012436968567657"
+      },
+      {
+        "file": "client/src/main.tsx",
+        "hash": "2095104979179897242"
+      },
+      {
+        "file": "client/src/pages/AIValuationPage.enhanced.tsx",
+        "hash": "11712966631155223140"
+      },
+      {
+        "file": "client/src/pages/AIValuationPage.tsx",
+        "hash": "15483091732347396297"
+      },
+      {
+        "file": "client/src/pages/CRDTTestPage.tsx",
+        "hash": "14145229414434617322"
+      },
+      {
+        "file": "client/src/pages/ComparablePropertiesPage.tsx",
+        "hash": "17985652328813980159"
+      },
+      {
+        "file": "client/src/pages/CompliancePage.enhanced.tsx",
+        "hash": "11456815908334781989"
+      },
+      {
+        "file": "client/src/pages/CompliancePage.tsx",
+        "hash": "3074849952170119138"
+      },
+      {
+        "file": "client/src/pages/CompsPage.tsx",
+        "hash": "4003698086456493596"
+      },
+      {
+        "file": "client/src/pages/EmailOrderPage.tsx",
+        "hash": "7735665117252732248"
+      },
+      {
+        "file": "client/src/pages/FormPage.tsx",
+        "hash": "1585283129250962067"
+      },
+      {
+        "file": "client/src/pages/Home.enhanced.tsx",
+        "hash": "7524934190657649622"
+      },
+      {
+        "file": "client/src/pages/Home.tsx",
+        "hash": "11786004692887627337"
+      },
+      {
+        "file": "client/src/pages/ImportPage.tsx",
+        "hash": "9515164072522822308"
+      },
+      {
+        "file": "client/src/pages/NotificationTestPage.tsx",
+        "hash": "5981837151580593129"
+      },
+      {
+        "file": "client/src/pages/PhotoEnhancementPage.tsx",
+        "hash": "3984158926711839832"
+      },
+      {
+        "file": "client/src/pages/PhotoSyncTestPage.enhanced.tsx",
+        "hash": "4588275112234418602"
+      },
+      {
+        "file": "client/src/pages/PhotoSyncTestPage.tsx",
+        "hash": "8904649888226244539"
+      },
+      {
+        "file": "client/src/pages/PhotosPage.enhanced.tsx",
+        "hash": "15453865858233247287"
+      },
+      {
+        "file": "client/src/pages/PhotosPage.tsx",
+        "hash": "15377617717164407423"
+      },
+      {
+        "file": "client/src/pages/PropertyDataPage.tsx",
+        "hash": "2213849722833169607"
+      },
+      {
+        "file": "client/src/pages/ReportGenerationPage.tsx",
+        "hash": "13163948789220689621"
+      },
+      {
+        "file": "client/src/pages/ReportsPage.tsx",
+        "hash": "1528122996534279634"
+      },
+      {
+        "file": "client/src/pages/SharedPropertyPage.tsx",
+        "hash": "14730361624209767371"
+      },
+      {
+        "file": "client/src/pages/SketchesPage.enhanced.tsx",
+        "hash": "8186594354012820547"
+      },
+      {
+        "file": "client/src/pages/SketchesPage.tsx",
+        "hash": "13872644444748621730"
+      },
+      {
+        "file": "client/src/pages/TermsPage.tsx",
+        "hash": "15355306762145060159"
+      },
+      {
+        "file": "client/src/pages/UADFormPage.enhanced.tsx",
+        "hash": "14757153469304878975"
+      },
+      {
+        "file": "client/src/pages/UADFormPage.tsx",
+        "hash": "4221336561270111100"
+      },
+      {
+        "file": "client/src/pages/WorkflowPage.tsx",
+        "hash": "4006817038526445574"
+      },
+      {
+        "file": "client/src/pages/not-found.tsx",
+        "hash": "14651278839397333329"
+      },
+      {
+        "file": "docs/TerraFieldMobileIntegration.md",
+        "hash": "761467788885384418"
+      },
+      {
+        "file": "docs/TerraFieldPhotoEnhancement.md",
+        "hash": "12373682251049886483"
+      },
+      {
+        "file": "drizzle.config.ts",
+        "hash": "5821457968997086548"
+      },
+      {
+        "file": "generated-icon.png",
+        "hash": "8976142366048489887"
+      },
+      {
+        "file": "nx.json",
+        "hash": "14823728321074464386"
+      },
+      {
+        "file": "package-lock.json",
+        "hash": "11710343829340487608"
+      },
+      {
+        "file": "package.json",
+        "hash": "12172241091946100636"
+      },
+      {
+        "file": "packages/crdt/coverage/clover.xml",
+        "hash": "1578397812613190358"
+      },
+      {
+        "file": "packages/crdt/coverage/coverage-final.json",
+        "hash": "10488781570482861675"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/base.css",
+        "hash": "6204767174569381253"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/block-navigation.js",
+        "hash": "1801078621803424330"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/favicon.png",
+        "hash": "13402560043085226048"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/index.html",
+        "hash": "13760788773421741232"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/index.ts.html",
+        "hash": "12128470805462307464"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/prettify.css",
+        "hash": "8163588510556258587"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/prettify.js",
+        "hash": "15884788582061322779"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/sort-arrow-sprite.png",
+        "hash": "254831142482329146"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov-report/sorter.js",
+        "hash": "17053119163225536857"
+      },
+      {
+        "file": "packages/crdt/coverage/lcov.info",
+        "hash": "17035833957614466774"
+      },
+      {
+        "file": "packages/crdt/jest.config.js",
+        "hash": "3757151071824231747"
+      },
+      {
+        "file": "packages/crdt/package.json",
+        "hash": "13445492681083413301"
+      },
+      {
+        "file": "packages/crdt/src/__tests__/crdt.test.ts",
+        "hash": "15522187448176914510"
+      },
+      {
+        "file": "packages/crdt/src/__tests__/parcel-notes.test.ts",
+        "hash": "3451566310159397287"
+      },
+      {
+        "file": "packages/crdt/src/index.ts",
+        "hash": "2721035714619091765"
+      },
+      {
+        "file": "packages/crdt/src/photo-sync.ts",
+        "hash": "7175507799699655817"
+      },
+      {
+        "file": "packages/crdt/tsconfig.json",
+        "hash": "1645520570591983469"
+      },
+      {
+        "file": "postcss.config.js",
+        "hash": "1121830044826443979"
+      },
+      {
+        "file": "server/controllers/photo-enhancement-controller.ts",
+        "hash": "1303731630536868867"
+      },
+      {
+        "file": "server/database-storage.ts",
+        "hash": "11030553212278602924"
+      },
+      {
+        "file": "server/db.ts",
+        "hash": "15558053961947178274"
+      },
+      {
+        "file": "server/index.ts",
+        "hash": "8001401115632727223"
+      },
+      {
+        "file": "server/lib/agents/base-agent.ts",
+        "hash": "10838834836012912438"
+      },
+      {
+        "file": "server/lib/agents/compliance-agent.ts",
+        "hash": "17769872621979482736"
+      },
+      {
+        "file": "server/lib/agents/coordinator.ts",
+        "hash": "13619392649858397319"
+      },
+      {
+        "file": "server/lib/agents/data-extraction-agent.ts",
+        "hash": "18400324231200533094"
+      },
+      {
+        "file": "server/lib/agents/index.ts",
+        "hash": "12503017218717492927"
+      },
+      {
+        "file": "server/lib/agents/market-analysis-agent.ts",
+        "hash": "7369516260432847576"
+      },
+      {
+        "file": "server/lib/agents/narrative-agent.ts",
+        "hash": "7220338496415666692"
+      },
+      {
+        "file": "server/lib/agents/types.ts",
+        "hash": "9476427571906779871"
+      },
+      {
+        "file": "server/lib/agents/valuation-agent.ts",
+        "hash": "6174618644669487070"
+      },
+      {
+        "file": "server/lib/ai-agent.mock.ts",
+        "hash": "2138232500492369203"
+      },
+      {
+        "file": "server/lib/ai-agent.ts",
+        "hash": "6119045707053330863"
+      },
+      {
+        "file": "server/lib/ai-orchestrator.ts",
+        "hash": "16757087950418186673"
+      },
+      {
+        "file": "server/lib/anthropic-image-analysis.ts",
+        "hash": "8907692629843171152"
+      },
+      {
+        "file": "server/lib/anthropic.ts",
+        "hash": "12774987153985277370"
+      },
+      {
+        "file": "server/lib/compliance-rules.ts",
+        "hash": "4142036957085552850"
+      },
+      {
+        "file": "server/lib/data-extraction.ts",
+        "hash": "4310304144353720208"
+      },
+      {
+        "file": "server/lib/email-integration.ts",
+        "hash": "16946026380042270868"
+      },
+      {
+        "file": "server/lib/file-parsers/csv-parser.ts",
+        "hash": "15608066421021218513"
+      },
+      {
+        "file": "server/lib/file-parsers/index.ts",
+        "hash": "14660375879597914705"
+      },
+      {
+        "file": "server/lib/file-parsers/json-parser.ts",
+        "hash": "4320957601918686209"
+      },
+      {
+        "file": "server/lib/file-parsers/mismo-xml-parser.ts",
+        "hash": "1859433179778420622"
+      },
+      {
+        "file": "server/lib/file-parsers/pdf-parser.ts",
+        "hash": "3905892746488235039"
+      },
+      {
+        "file": "server/lib/file-parsers/types.ts",
+        "hash": "7136807817088913328"
+      },
+      {
+        "file": "server/lib/file-parsers/work-file-parser.ts",
+        "hash": "5690016223774884551"
+      },
+      {
+        "file": "server/lib/image-enhancement.ts",
+        "hash": "18207211626123866432"
+      },
+      {
+        "file": "server/lib/import-service.ts",
+        "hash": "5754844078874774068"
+      },
+      {
+        "file": "server/lib/mcp/client.ts",
+        "hash": "10344776469364306241"
+      },
+      {
+        "file": "server/lib/mcp/index.ts",
+        "hash": "3306448898351458455"
+      },
+      {
+        "file": "server/lib/mcp/server.ts",
+        "hash": "13960417766480559590"
+      },
+      {
+        "file": "server/lib/mcp/types.ts",
+        "hash": "10341802514318480711"
+      },
+      {
+        "file": "server/lib/mismo.ts",
+        "hash": "13903734713053383493"
+      },
+      {
+        "file": "server/lib/openai.ts",
+        "hash": "10895443061101453677"
+      },
+      {
+        "file": "server/lib/pdf-generator.ts",
+        "hash": "553091314783466240"
+      },
+      {
+        "file": "server/lib/public-data-service.ts",
+        "hash": "7293349315926080130"
+      },
+      {
+        "file": "server/lib/types.ts",
+        "hash": "2377022122048413362"
+      },
+      {
+        "file": "server/lib/utils.ts",
+        "hash": "17619212740666628139"
+      },
+      {
+        "file": "server/routes.ts",
+        "hash": "14907781991863922694"
+      },
+      {
+        "file": "server/routes/field-notes-routes.ts",
+        "hash": "5418584552857076831"
+      },
+      {
+        "file": "server/routes/gamification.ts",
+        "hash": "14850175922089984382"
+      },
+      {
+        "file": "server/routes/import-routes.ts",
+        "hash": "6764130224460548889"
+      },
+      {
+        "file": "server/routes/notification-routes.ts",
+        "hash": "430155845503305901"
+      },
+      {
+        "file": "server/routes/photo-enhancement-routes.ts",
+        "hash": "6848838374293635377"
+      },
+      {
+        "file": "server/routes/photo-sync-routes.ts",
+        "hash": "11111471492295509017"
+      },
+      {
+        "file": "server/routes/tooltips.ts",
+        "hash": "579162263875386295"
+      },
+      {
+        "file": "server/services/PropertyShareService.ts",
+        "hash": "4265052920743018344"
+      },
+      {
+        "file": "server/services/notification-service.ts",
+        "hash": "3573304687716531411"
+      },
+      {
+        "file": "server/services/photo-enhancement-service.ts",
+        "hash": "10509062059497808428"
+      },
+      {
+        "file": "server/storage.ts",
+        "hash": "15298724423935560244"
+      },
+      {
+        "file": "server/vite.ts",
+        "hash": "5614648677501624302"
+      },
+      {
+        "file": "server/websocket-server.ts",
+        "hash": "8289750334219847486"
+      },
+      {
+        "file": "shared/schema.ts",
+        "hash": "9042032233630754670"
+      },
+      {
+        "file": "tailwind.config.ts",
+        "hash": "6902204717068884072"
+      },
+      {
+        "file": "theme.json",
+        "hash": "6566695290860262687"
+      },
+      {
+        "file": "tsconfig.json",
+        "hash": "564899936568602827"
+      },
+      {
+        "file": "vite.config.ts",
+        "hash": "9239648190821034265"
+      }
+    ]
+  }
+}

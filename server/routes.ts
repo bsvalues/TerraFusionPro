@@ -19,17 +19,18 @@ import { photoSyncRouter } from './routes/photo-sync-routes';
 import fieldNotesRouter from './routes/field-notes-routes';
 import { 
   insertUserSchema, 
-  insertPropertySchema, 
-  insertAppraisalReportSchema, 
-  insertComparableSchema, 
-  insertAdjustmentSchema, 
-  insertPhotoSchema, 
-  insertSketchSchema, 
-  insertComplianceCheckSchema, 
-  insertAdjustmentModelSchema, 
-  insertModelAdjustmentSchema,
+  insertPropertySchema,
   insertRealEstateTermSchema,
-  insertPropertyShareLinkSchema
+  // Other schemas that will be implemented later
+  // insertAppraisalReportSchema, 
+  // insertComparableSchema, 
+  // insertAdjustmentSchema, 
+  // insertPhotoSchema, 
+  // insertSketchSchema, 
+  // insertComplianceCheckSchema, 
+  // insertAdjustmentModelSchema, 
+  // insertModelAdjustmentSchema,
+  // insertPropertyShareLinkSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { generatePDF } from "./lib/pdf-generator";

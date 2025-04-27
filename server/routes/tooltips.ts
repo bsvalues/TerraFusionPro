@@ -1,6 +1,6 @@
 import { Router, Request, Response } from "express";
 import { storage } from "../storage";
-import { insertRealEstateTermSchema } from "@shared/schema";
+import { insertRealEstateTermSchema, RealEstateTerm } from "@shared/schema";
 import { z } from "zod";
 import OpenAI from "openai";
 
