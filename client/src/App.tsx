@@ -22,6 +22,8 @@ import CRDTTestPage from "./pages/CRDTTestPage";
 import PhotoEnhancementPage from "./pages/PhotoEnhancementPage";
 import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
+import WorkflowPage from "./pages/WorkflowPage";
+import ReportGenerationPage from "./pages/ReportGenerationPage";
 import { AppProvider } from "./contexts/AppContext";
 import { AppShell } from "./components/layout/app-shell";
 import { useState, useEffect } from "react";
@@ -80,6 +82,9 @@ function App() {
             <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
             <Route path="/notification-test" component={NotificationTestPage} />
             <Route path="/shared/:token" component={SharedPropertyPage} />
+            <Route path="/workflow" component={WorkflowPage} />
+            <Route path="/workflow/:reportId" component={WorkflowPage} />
+            <Route path="/reports/:reportId" component={ReportGenerationPage} />
             <Route component={NotFound} />
           </Switch>
         </AppShell>
