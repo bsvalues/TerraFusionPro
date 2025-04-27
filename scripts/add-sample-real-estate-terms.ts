@@ -1,6 +1,5 @@
 import { db } from '../server/db';
-import { realEstateTerms } from '../shared/schema';
-import { eq } from 'drizzle-orm';
+import { sql } from 'drizzle-orm';
 
 const sampleTerms = [
   {
@@ -76,25 +75,39 @@ async function addSampleRealEstateTerms() {
     
     // Check each term and add it if it doesn't exist
     for (const term of sampleTerms) {
-      // Check if the term already exists
-      const existingTerm = await db.select()
-        .from(realEstateTerms)
-        .where(eq(realEstateTerms.term, term.term));
-      
-      if (existingTerm.length === 0) {
-        // Term doesn't exist, add it
-        await db.insert(realEstateTerms).values({
-          term: term.term,
-          short_definition: term.shortDefinition,
-          long_definition: term.longDefinition,
-          category: term.category,
-          examples: term.examples,
-          related_terms: term.relatedTerms,
-          metadata: term.metadata
-        });
-        console.log(`Added term: ${term.term}`);
-      } else {
-        console.log(`Term already exists: ${term.term}`);
+      try {
+        // Check if the term already exists
+        const existingResult = await db.execute(sql`
+          SELECT id FROM real_estate_terms WHERE term = ${term.term}
+        `);
+        
+        if (existingResult.rows.length === 0) {
+          // Term doesn't exist, add it
+          await db.execute(sql`
+            INSERT INTO real_estate_terms (
+              term, 
+              short_definition, 
+              long_definition, 
+              category, 
+              examples, 
+              related_terms, 
+              metadata
+            ) VALUES (
+              ${term.term}, 
+              ${term.shortDefinition}, 
+              ${term.longDefinition}, 
+              ${term.category}, 
+              ${JSON.stringify(term.examples)}, 
+              ${JSON.stringify(term.relatedTerms)}, 
+              ${JSON.stringify(term.metadata)}
+            )
+          `);
+          console.log(`Added term: ${term.term}`);
+        } else {
+          console.log(`Term already exists: ${term.term}`);
+        }
+      } catch (termError) {
+        console.error(`Error processing term "${term.term}":`, termError);
       }
     }
     
