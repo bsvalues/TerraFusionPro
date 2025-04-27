@@ -10,6 +10,7 @@ import AIValuationPage from "./pages/AIValuationPage";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import UADFormPage from "./pages/UADFormPage";
+import EnhancedUADFormPage from "./pages/UADFormPage.enhanced";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import ImportPage from "./pages/ImportPage";
 import NotFound from "./pages/not-found";
@@ -78,8 +79,8 @@ function App() {
             <Route path="/email-order" component={EmailOrderPage} />
             <Route path="/property-data" component={PropertyDataPage} />
             <Route path="/property/:id" component={PropertyDataPage} />
-            <Route path="/uad-form" component={UADFormPage} />
-            <Route path="/uad-form/:id" component={UADFormPage} />
+            <Route path="/uad-form" component={EnhancedUADFormPage} />
+            <Route path="/uad-form/:id" component={EnhancedUADFormPage} />
             <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
             <Route path="/terms" component={TermsPage} />
             <Route path="/import" component={ImportPage} />
