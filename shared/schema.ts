@@ -16,6 +16,8 @@ import {
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
 
+export type Json = unknown;
+
 // User and Authentication
 export const userRoleEnum = pgEnum("user_role", [
   "admin",
@@ -266,6 +268,59 @@ export const photos = pgTable("photos", {
   metadata: jsonb("metadata")
 });
 
+// Sketch types enum
+export const sketchTypeEnum = pgEnum("sketch_type", [
+  "floor_plan",
+  "site_plan",
+  "elevation",
+  "detail"
+]);
+
+// Sketches table definition
+export const sketches = pgTable("sketches", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  sketchUrl: text("sketch_url"),
+  sketchData: text("sketch_data"),
+  sketchType: sketchTypeEnum("sketch_type").default("floor_plan"),
+  squareFootage: integer("square_footage"),
+  scale: text("scale"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Compliance check result enum
+export const checkResultEnum = pgEnum("check_result", [
+  "pass",
+  "fail",
+  "warning",
+  "info"
+]);
+
+// Compliance check severity enum
+export const severityEnum = pgEnum("severity", [
+  "high",
+  "medium",
+  "low"
+]);
+
+// Compliance checks table definition
+export const complianceChecks = pgTable("compliance_checks", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull(),
+  checkType: text("check_type").notNull(),
+  checkResult: checkResultEnum("check_result").default("info"),
+  severity: severityEnum("severity").default("low"),
+  description: text("description").notNull(),
+  details: text("details"),
+  rule: text("rule"),
+  recommendation: text("recommendation"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
+});
+
 // API Keys for external access
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
@@ -506,15 +561,25 @@ export const selectRealEstateTermSchema = createSelectSchema(realEstateTerms);
 export type RealEstateTerm = z.infer<typeof selectRealEstateTermSchema>;
 export type InsertRealEstateTerm = z.infer<typeof insertRealEstateTermSchema>;
 
-export const insertFieldNoteSchema = createInsertSchema(fieldNotes).omit({ createdAt: true });
-export const selectFieldNoteSchema = createSelectSchema(fieldNotes);
-export type FieldNote = z.infer<typeof selectFieldNoteSchema>;
-export type InsertFieldNote = z.infer<typeof insertFieldNoteSchema>;
-
 export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true, createdAt: true });
 export const selectPhotoSchema = createSelectSchema(photos);
 export type Photo = z.infer<typeof selectPhotoSchema>;
 export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
+
+export const insertSketchSchema = createInsertSchema(sketches).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectSketchSchema = createSelectSchema(sketches);
+export type Sketch = z.infer<typeof selectSketchSchema>;
+export type InsertSketch = z.infer<typeof insertSketchSchema>;
+
+export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).omit({ id: true, createdAt: true });
+export const selectComplianceCheckSchema = createSelectSchema(complianceChecks);
+export type ComplianceCheck = z.infer<typeof selectComplianceCheckSchema>;
+export type InsertComplianceCheck = z.infer<typeof insertComplianceCheckSchema>;
+
+export const insertFieldNoteSchema = createInsertSchema(fieldNotes).omit({ createdAt: true });
+export const selectFieldNoteSchema = createSelectSchema(fieldNotes);
+export type FieldNote = z.infer<typeof selectFieldNoteSchema>;
+export type InsertFieldNote = z.infer<typeof insertFieldNoteSchema>;
 
 // Zod validation schema for field notes validation
 export const fieldNoteSchema = z.object({
