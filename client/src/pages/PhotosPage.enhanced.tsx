@@ -74,13 +74,30 @@ export default function EnhancedPhotosPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Fetch photos for the report
-  const { data: photos = [], isLoading, isError } = useQuery<Photo[]>({
+  const { data: photosFromAPI = [], isLoading, isError } = useQuery<PhotoFromAPI[]>({
     queryKey: ['/api/reports', reportId, 'photos'],
     queryFn: () => apiRequest(`/api/reports/${reportId}/photos`),
   });
   
-  // Categories for filtering
-  const allCategories = ['all', ...Array.from(new Set(photos.map(photo => photo.category)))];
+  // Transform API data to UI format
+  const photos: Photo[] = photosFromAPI.map(apiPhoto => ({
+    id: apiPhoto.id,
+    reportId: apiPhoto.reportId,
+    title: apiPhoto.caption || `Photo ${apiPhoto.id}`,
+    description: null,
+    imageUrl: apiPhoto.url,
+    category: apiPhoto.photoType,
+    viewpoint: null,
+    tags: null,
+    createdAt: apiPhoto.createdAt
+  }));
+  
+  // Categories for filtering with null check
+  const photoCategories = photos
+    .map(photo => photo.category)
+    .filter(category => category !== null && category !== undefined) as string[];
+  
+  const allCategories = ['all', ...Array.from(new Set(photoCategories))];
   
   // Filtered photos based on active category
   const filteredPhotos = activeCategory === 'all' 
@@ -89,10 +106,10 @@ export default function EnhancedPhotosPage() {
   
   // Upload photo mutation
   const uploadPhotoMutation = useMutation({
-    mutationFn: (data: FormData) => 
+    mutationFn: (formData: FormData) => 
       apiRequest(`/api/photos`, {
         method: 'POST',
-        body: data,
+        data: formData,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'photos'] });
@@ -103,11 +120,19 @@ export default function EnhancedPhotosPage() {
   
   // Update photo mutation
   const updatePhotoMutation = useMutation({
-    mutationFn: ({ photoId, data }: { photoId: number, data: z.infer<typeof photoSchema> }) => 
-      apiRequest(`/api/photos/${photoId}`, {
+    mutationFn: ({ photoId, data }: { photoId: number, data: z.infer<typeof photoSchema> }) => {
+      // Transform the UI data to match the API expectations
+      const apiData = {
+        caption: data.title,
+        photoType: data.category,
+        // Include any other fields that the API expects
+      };
+      
+      return apiRequest(`/api/photos/${photoId}`, {
         method: 'PUT',
-        data,
-      }),
+        data: apiData,
+      });
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'photos'] });
       setIsEditing(false);
@@ -168,14 +193,20 @@ export default function EnhancedPhotosPage() {
   const onUploadSubmit = (data: z.infer<typeof photoSchema>) => {
     if (!uploadedImage || !fileInputRef.current?.files?.[0]) return;
     
+    // Map UI concepts to API concepts
     const formData = new FormData();
     formData.append('reportId', reportId.toString());
     formData.append('image', fileInputRef.current.files[0]);
-    formData.append('title', data.title);
-    formData.append('description', data.description || '');
-    formData.append('category', data.category);
-    formData.append('viewpoint', data.viewpoint || '');
-    formData.append('tags', data.tags || '');
+    formData.append('caption', data.title); // title -> caption
+    formData.append('photoType', data.category); // category -> photoType
+    
+    // Add additional data as metadata
+    const metadata = {
+      description: data.description || '',
+      viewpoint: data.viewpoint || '',
+      tags: data.tags || '',
+    };
+    formData.append('metadata', JSON.stringify(metadata));
     
     uploadPhotoMutation.mutate(formData);
   };
