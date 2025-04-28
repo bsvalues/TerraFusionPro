@@ -1,3 +1,4 @@
+import React, { useEffect } from 'react';
 import {
   useQuery,
   useMutation,
@@ -42,7 +43,7 @@ export function useApiQuery<TData = unknown, TError = Error>(
   const { error, status } = result;
   
   // Show error toast only once when status becomes 'error'
-  React.useEffect(() => {
+  useEffect(() => {
     if (status === 'error' && error && showErrorToast) {
       toast({
         title: 'Error',

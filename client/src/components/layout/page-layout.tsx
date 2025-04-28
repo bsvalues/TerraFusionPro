@@ -1,145 +1,224 @@
 import React from 'react';
 import { Helmet } from 'react-helmet';
-import { Card, CardContent } from '@/components/ui/card';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
-import { Skeleton } from '@/components/ui/skeleton';
+import { SyncStatus, SyncState } from '../ui/sync-status';
+import { Button } from '../ui/button';
+import { ChevronLeft, Home, Menu, MoreHorizontal } from 'lucide-react';
+import { useLocation, Link } from 'wouter';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '../ui/dropdown-menu';
 
-export interface PageLayoutProps {
+interface PageLayoutProps {
   /**
-   * Page title
+   * Page title (for browser title bar and SEO)
    */
   title: string;
-
+  
   /**
-   * Page description
+   * Page subtitle (optional)
    */
-  description?: string;
-
+  subtitle?: string;
+  
   /**
-   * Action buttons to display in the page header
-   */
-  actions?: React.ReactNode;
-
-  /**
-   * Show sync status
-   */
-  showSyncStatus?: boolean;
-
-  /**
-   * Is the page loading
-   */
-  isLoading?: boolean;
-
-  /**
-   * Error message if any
-   */
-  error?: Error | string | null;
-
-  /**
-   * Success message if any
-   */
-  success?: string | null;
-
-  /**
-   * Page content
+   * Main content
    */
   children: React.ReactNode;
-
+  
   /**
-   * Additional classes to apply to the root container
+   * Back button URL (optional - if provided, shows a back button)
    */
-  className?: string;
+  backUrl?: string;
+  
+  /**
+   * Whether to show the home button
+   */
+  showHomeButton?: boolean;
+  
+  /**
+   * Actions to display in the top-right
+   */
+  actions?: React.ReactNode;
+  
+  /**
+   * Whether the page is loading
+   */
+  isLoading?: boolean;
+  
+  /**
+   * Whether the content is being edited
+   */
+  isEditing?: boolean;
+  
+  /**
+   * Current sync state
+   */
+  syncState?: SyncState;
+  
+  /**
+   * Last synced time
+   */
+  lastSynced?: Date | string | null;
+  
+  /**
+   * Sync error message (if syncState is 'error')
+   */
+  syncErrorMessage?: string;
+  
+  /**
+   * Handler for sync retry
+   */
+  onSyncRetry?: () => void;
+  
+  /**
+   * Menu items to display in the overflow menu (optional)
+   */
+  menuItems?: Array<{
+    label: string;
+    onClick: () => void;
+    icon?: React.ReactNode;
+    isDanger?: boolean;
+  }>;
+  
+  /**
+   * Whether to show full-width content
+   */
+  fullWidth?: boolean;
+  
+  /**
+   * Extra classes for the content area
+   */
+  contentClassName?: string;
 }
 
 /**
- * StandardizedPageLayout component provides a consistent layout for all pages
+ * PageLayout component for consistent page layouts throughout the application
  */
 export function PageLayout({
   title,
-  description,
-  actions,
-  showSyncStatus = false,
-  isLoading = false,
-  error = null,
-  success = null,
+  subtitle,
   children,
-  className = ''
+  backUrl,
+  showHomeButton = false,
+  actions,
+  isLoading = false,
+  isEditing = false,
+  syncState,
+  lastSynced,
+  syncErrorMessage,
+  onSyncRetry,
+  menuItems,
+  fullWidth = false,
+  contentClassName = '',
 }: PageLayoutProps) {
-  // Convert error object to string if needed
-  const errorMessage = error instanceof Error ? error.message : error;
-
+  const [, navigate] = useLocation();
+  
+  // Handle back button click
+  const handleBackClick = () => {
+    if (backUrl) {
+      navigate(backUrl);
+    } else {
+      window.history.back();
+    }
+  };
+  
   return (
-    <div className={`container mx-auto py-8 ${className}`}>
+    <>
       <Helmet>
         <title>{`${title} | TerraFusionPlatform`}</title>
-        <meta name="description" content={description || `${title} page in TerraFusionPlatform`} />
       </Helmet>
-
-      {/* Page Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{title}</h1>
-          {description && (
-            <p className="text-muted-foreground mt-1">
-              {description}
-            </p>
-          )}
-        </div>
-        {actions && (
+      
+      <div className="flex flex-col h-full">
+        {/* Header */}
+        <header className="bg-card border-b px-4 py-3 flex items-center justify-between sticky top-0 z-10">
           <div className="flex items-center gap-2">
-            {actions}
-          </div>
-        )}
-      </div>
-
-      {/* Sync Status */}
-      {showSyncStatus && (
-        <div className="mb-4 flex items-center text-sm text-muted-foreground">
-          <div className="flex items-center gap-1.5">
-            <div className="h-2 w-2 rounded-full bg-green-500"></div>
-            <span>All changes synced</span>
-          </div>
-        </div>
-      )}
-
-      {/* Loading State */}
-      {isLoading && (
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="space-y-4">
-              <Skeleton className="h-8 w-3/4" />
-              <Skeleton className="h-4 w-1/2" />
-              <Skeleton className="h-32 w-full" />
+            {backUrl !== undefined && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={handleBackClick}
+                className="mr-1"
+              >
+                <ChevronLeft className="h-5 w-5" />
+              </Button>
+            )}
+            
+            {showHomeButton && (
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                asChild
+              >
+                <Link to="/">
+                  <Home className="h-5 w-5" />
+                </Link>
+              </Button>
+            )}
+            
+            <div>
+              <h1 className="text-xl font-semibold leading-tight">{title}</h1>
+              {subtitle && (
+                <p className="text-sm text-muted-foreground">{subtitle}</p>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Error Message */}
-      {errorMessage && !isLoading && (
-        <Alert variant="destructive" className="mb-6">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            {errorMessage}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Success Message */}
-      {success && !isLoading && !errorMessage && (
-        <Alert variant="default" className="mb-6 bg-green-50 text-green-800 border-green-200">
-          <CheckCircle className="h-4 w-4" />
-          <AlertTitle>Success</AlertTitle>
-          <AlertDescription>
-            {success}
-          </AlertDescription>
-        </Alert>
-      )}
-
-      {/* Page Content */}
-      {!isLoading && !errorMessage && children}
-    </div>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {syncState && (
+              <SyncStatus
+                state={syncState}
+                lastSynced={lastSynced}
+                errorMessage={syncErrorMessage}
+                onRetry={onSyncRetry}
+                compact
+                className="mr-2"
+              />
+            )}
+            
+            {isEditing && (
+              <div className="bg-amber-100 text-amber-700 px-2 py-0.5 text-xs rounded-full mr-2">
+                Editing
+              </div>
+            )}
+            
+            {actions}
+            
+            {menuItems && menuItems.length > 0 && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon">
+                    <MoreHorizontal className="h-5 w-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {menuItems.map((item, index) => (
+                    <React.Fragment key={index}>
+                      <DropdownMenuItem
+                        onClick={item.onClick}
+                        className={item.isDanger ? 'text-red-600' : ''}
+                      >
+                        {item.icon && (
+                          <span className="mr-2">{item.icon}</span>
+                        )}
+                        {item.label}
+                      </DropdownMenuItem>
+                      {index < menuItems.length - 1 && <DropdownMenuSeparator />}
+                    </React.Fragment>
+                  ))}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
+          </div>
+        </header>
+        
+        {/* Main content */}
+        <main className={`flex-1 overflow-auto ${fullWidth ? 'p-0' : 'p-4 max-w-7xl mx-auto w-full'} ${contentClassName}`}>
+          {children}
+        </main>
+      </div>
+    </>
   );
 }
