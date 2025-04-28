@@ -206,7 +206,8 @@ const uadCategories: ComplianceCategory[] = [
 ];
 
 export default function EnhancedCompliancePage() {
-  const { reportId: paramReportId } = useParams<{ reportId?: string }>();
+  const params = useParams<{ reportId?: string }>();
+  const paramReportId = params.reportId;
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const reportId = Number(paramReportId) || 1;
@@ -246,13 +247,10 @@ export default function EnhancedCompliancePage() {
     mutationFn: ({ reportId, checkType, aiProvider }: { reportId: number, checkType: string, aiProvider: string }) => 
       apiRequest(`/api/reports/${reportId}/validate-compliance`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        data: {
           checkType,
           aiProvider,
-        }),
+        },
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'compliance'] });
@@ -277,10 +275,7 @@ export default function EnhancedCompliancePage() {
     mutationFn: (data: { reportId: number, checkType: string, checkResult: string, severity: string, description: string, details?: string, rule?: string, recommendation?: string }) => 
       apiRequest(`/api/compliance`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        data,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'compliance'] });

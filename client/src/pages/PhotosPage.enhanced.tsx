@@ -92,10 +92,7 @@ export default function EnhancedPhotosPage() {
     mutationFn: ({ photoId, data }: { photoId: number, data: z.infer<typeof photoSchema> }) => 
       apiRequest(`/api/photos/${photoId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        data,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'photos'] });

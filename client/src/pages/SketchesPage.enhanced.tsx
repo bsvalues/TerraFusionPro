@@ -101,7 +101,8 @@ interface Shape {
 }
 
 export default function EnhancedSketchesPage() {
-  const { reportId: paramReportId } = useParams<{ reportId?: string }>();
+  const params = useParams<{ reportId?: string }>();
+  const paramReportId = params.reportId;
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const reportId = Number(paramReportId) || 1;
@@ -148,14 +149,11 @@ export default function EnhancedSketchesPage() {
     mutationFn: (data: z.infer<typeof sketchSchema>) => 
       apiRequest(`/api/sketches`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+        data: {
           ...data,
           reportId,
           sketchData: JSON.stringify([]),
-        }),
+        },
       }),
     onSuccess: (newSketch) => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'sketches'] });
@@ -172,10 +170,7 @@ export default function EnhancedSketchesPage() {
     mutationFn: ({ sketchId, data }: { sketchId: number, data: any }) => 
       apiRequest(`/api/sketches/${sketchId}`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(data),
+        data,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'sketches'] });
