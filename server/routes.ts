@@ -608,10 +608,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/:reportId/photos", async (req: Request, res: Response) => {
     try {
       const reportId = Number(req.params.reportId);
+      console.log(`Fetching photos for report ID: ${reportId}`);
       const photos = await storage.getPhotosByReport(reportId);
-      res.status(200).json(photos);
+      console.log(`Returning ${photos?.length || 0} photos`);
+      res.status(200).json(photos || []);
     } catch (error) {
-      res.status(500).json({ message: "Server error fetching photos" });
+      console.error(`Error in GET /api/reports/:reportId/photos:`, error);
+      res.status(500).json({ message: "Server error fetching photos", error: String(error) });
     }
   });
   

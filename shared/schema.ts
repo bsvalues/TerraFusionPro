@@ -9,7 +9,9 @@ import {
   boolean,
   json,
   real,
-  uuid
+  uuid,
+  jsonb,
+  numeric
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";

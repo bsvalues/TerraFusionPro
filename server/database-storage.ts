@@ -161,12 +161,26 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPhotosByReportId(reportId: number) {
-    return await db.select().from(schema.photos).where(eq(schema.photos.reportId, reportId));
+    try {
+      console.log(`Getting photos for report ID: ${reportId}`);
+      const photos = await db.select().from(schema.photos).where(eq(schema.photos.reportId, reportId));
+      console.log(`Found ${photos.length} photos for report ID: ${reportId}`);
+      return photos;
+    } catch (error) {
+      console.error(`Error in getPhotosByReportId:`, error);
+      throw error;
+    }
   }
   
   // Alias for getPhotosByReportId to match storage interface
   async getPhotosByReport(reportId: number) {
-    return this.getPhotosByReportId(reportId);
+    try {
+      console.log(`Using getPhotosByReport for report ID: ${reportId}`);
+      return this.getPhotosByReportId(reportId);
+    } catch (error) {
+      console.error(`Error in getPhotosByReport:`, error);
+      throw error;
+    }
   }
   
   // Add updatePhoto method
