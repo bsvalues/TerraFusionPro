@@ -1,75 +1,104 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import { Loader2 } from 'lucide-react';
+import { Skeleton } from './skeleton';
+import { Card, CardContent, CardHeader, CardTitle } from './card';
 
-type LoadingStateProps = {
-  isLoading: boolean;
-  loadingText?: string;
+interface LoadingStateProps {
+  /**
+   * The message to display while loading
+   */
+  message?: string;
+  
+  /**
+   * The variant of the loading state
+   */
+  variant?: 'default' | 'inline' | 'card' | 'skeleton' | 'minimal';
+  
+  /**
+   * Number of skeleton items to display (only used with skeleton variant)
+   */
+  count?: number;
+  
+  /**
+   * Height of each skeleton item (only used with skeleton variant)
+   */
+  height?: string;
+  
+  /**
+   * Width of each skeleton item (only used with skeleton variant)
+   */
+  width?: string;
+
+  /**
+   * Additional className to apply
+   */
   className?: string;
-  children: React.ReactNode;
-  size?: 'sm' | 'md' | 'lg';
-  variant?: 'overlay' | 'inline' | 'skeleton';
-};
+}
 
+/**
+ * LoadingState component to provide consistent loading UI across the application
+ */
 export function LoadingState({
-  isLoading,
-  loadingText = 'Loading...',
-  className,
-  children,
-  size = 'md',
-  variant = 'overlay'
+  message = 'Loading...',
+  variant = 'default',
+  count = 3,
+  height = '2rem',
+  width = '100%',
+  className = ''
 }: LoadingStateProps) {
-  const sizeClasses = {
-    sm: 'h-4 w-4',
-    md: 'h-8 w-8',
-    lg: 'h-12 w-12'
-  };
-
-  // If not loading, just render children
-  if (!isLoading) {
-    return <>{children}</>;
-  }
-
-  if (variant === 'skeleton') {
+  // Default spinner with message
+  if (variant === 'default') {
     return (
-      <div className="animate-pulse">
-        <div className="flex space-x-4 w-full">
-          <div className="flex-1 space-y-4 py-1">
-            <div className="h-4 bg-muted rounded w-3/4"></div>
-            <div className="space-y-2">
-              <div className="h-4 bg-muted rounded"></div>
-              <div className="h-4 bg-muted rounded w-5/6"></div>
-            </div>
-          </div>
-        </div>
+      <div className={`w-full flex flex-col items-center justify-center py-8 ${className}`}>
+        <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+        <p className="text-muted-foreground">{message}</p>
       </div>
     );
   }
-
+  
+  // Inline spinner with message
   if (variant === 'inline') {
     return (
-      <div className="flex items-center gap-2 text-muted-foreground">
-        <div className={cn("animate-spin rounded-full border-2 border-current border-t-transparent", sizeClasses[size])}
-             aria-hidden="true"
-             role="status"
-             data-testid="loading-spinner"></div>
-        <span>{loadingText}</span>
+      <div className={`flex items-center gap-2 ${className}`}>
+        <Loader2 className="h-4 w-4 animate-spin text-primary" />
+        <span className="text-sm text-muted-foreground">{message}</span>
       </div>
     );
   }
-
-  // Default overlay variant
-  return (
-    <div className="relative">
-      {children}
-      <div className="absolute inset-0 flex flex-col items-center justify-center bg-background/80 z-10 backdrop-blur-sm">
-        <div 
-          className={cn("animate-spin rounded-full border-2 border-primary border-t-transparent", sizeClasses[size])} 
-          aria-hidden="true"
-          role="status"
-          data-testid="loading-spinner"
-        />
-        {loadingText && <p className="mt-2 text-sm text-muted-foreground">{loadingText}</p>}
+  
+  // Card with spinner
+  if (variant === 'card') {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Loading</CardTitle>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center justify-center py-6">
+          <Loader2 className="h-8 w-8 animate-spin text-primary mb-2" />
+          <p className="text-muted-foreground">{message}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Skeleton loading (useful for content placeholders)
+  if (variant === 'skeleton') {
+    return (
+      <div className={`space-y-2 ${className}`}>
+        {Array.from({ length: count }).map((_, i) => (
+          <Skeleton 
+            key={i} 
+            style={{ height, width }} 
+            className={i === 0 ? 'bg-muted/80' : 'bg-muted/60'} 
+          />
+        ))}
       </div>
+    );
+  }
+  
+  // Minimal spinner (just the spinner, no text)
+  return (
+    <div className={`flex justify-center ${className}`}>
+      <Loader2 className="h-6 w-6 animate-spin text-primary" />
     </div>
   );
 }

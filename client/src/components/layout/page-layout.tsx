@@ -1,204 +1,145 @@
-import React, { ReactNode } from 'react';
-import { cn } from '@/lib/utils';
-import { ErrorBanner } from '@/components/ui/error-banner';
-import { LoadingOverlay } from '@/components/ui/loading-overlay';
-// Removed SyncStatus temporarily to avoid AppContext dependency
-// import { SyncStatus } from '@/components/ui/sync-status';
-import { 
-  ArrowLeft, 
-  HelpCircle, 
-  Settings,
-  MoreHorizontal,
-  Cloud
-} from 'lucide-react';
-import { Link } from 'wouter';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
+import React from 'react';
+import { Helmet } from 'react-helmet';
+import { Card, CardContent } from '@/components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, AlertTriangle, CheckCircle } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Badge } from '@/components/ui/badge';
 
-export interface PageHeaderProps {
-  // Page title
+export interface PageLayoutProps {
+  /**
+   * Page title
+   */
   title: string;
-  // Page description
+
+  /**
+   * Page description
+   */
   description?: string;
-  // Back link URL
-  backUrl?: string;
-  // Back link text
-  backText?: string;
-  // Right area content (buttons, actions)
-  actions?: ReactNode;
-  // Additional CSS classes
-  className?: string;
-  // Whether to show the sync status
+
+  /**
+   * Action buttons to display in the page header
+   */
+  actions?: React.ReactNode;
+
+  /**
+   * Show sync status
+   */
   showSyncStatus?: boolean;
+
+  /**
+   * Is the page loading
+   */
+  isLoading?: boolean;
+
+  /**
+   * Error message if any
+   */
+  error?: Error | string | null;
+
+  /**
+   * Success message if any
+   */
+  success?: string | null;
+
+  /**
+   * Page content
+   */
+  children: React.ReactNode;
+
+  /**
+   * Additional classes to apply to the root container
+   */
+  className?: string;
 }
 
-export function PageHeader({
+/**
+ * StandardizedPageLayout component provides a consistent layout for all pages
+ */
+export function PageLayout({
   title,
   description,
-  backUrl,
-  backText = 'Back',
   actions,
-  className,
   showSyncStatus = false,
-}: PageHeaderProps) {
+  isLoading = false,
+  error = null,
+  success = null,
+  children,
+  className = ''
+}: PageLayoutProps) {
+  // Convert error object to string if needed
+  const errorMessage = error instanceof Error ? error.message : error;
+
   return (
-    <div className={cn("mb-6", className)}>
-      <div className="flex items-center justify-between">
+    <div className={`container mx-auto py-8 ${className}`}>
+      <Helmet>
+        <title>{`${title} | TerraFusionPlatform`}</title>
+        <meta name="description" content={description || `${title} page in TerraFusionPlatform`} />
+      </Helmet>
+
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
         <div>
-          {backUrl && (
-            <Link href={backUrl}>
-              <Button variant="ghost" size="sm" className="mb-2 -ml-2">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                {backText}
-              </Button>
-            </Link>
-          )}
-          <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
+          <h1 className="text-3xl font-bold">{title}</h1>
           {description && (
-            <p className="text-sm text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1">
               {description}
             </p>
           )}
         </div>
-        <div className="flex items-center gap-2">
-          {showSyncStatus && (
-            <Badge variant="outline" className="flex items-center gap-1">
-              <Cloud className="h-3 w-3 mr-1" />
-              <span>Synced</span>
-            </Badge>
-          )}
-          {actions}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="icon">
-                <MoreHorizontal className="h-4 w-4" />
-                <span className="sr-only">More options</span>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <DropdownMenuLabel>Page Actions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem>
-                <HelpCircle className="mr-2 h-4 w-4" />
-                <span>Help</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-        </div>
+        {actions && (
+          <div className="flex items-center gap-2">
+            {actions}
+          </div>
+        )}
       </div>
-    </div>
-  );
-}
 
-export interface PageLayoutProps {
-  // Page title
-  title: string;
-  // Page description
-  description?: string;
-  // Back link URL
-  backUrl?: string;
-  // Back link text
-  backText?: string;
-  // Right area content (buttons, actions)
-  actions?: ReactNode;
-  // Page content
-  children: ReactNode;
-  // Whether to show the loading overlay
-  loading?: boolean;
-  // Custom loading message
-  loadingMessage?: string;
-  // Error message to display
-  error?: string;
-  // Error description
-  errorDescription?: string;
-  // Whether to show a full-screen loading overlay
-  fullScreenLoading?: boolean;
-  // Additional CSS classes for the header
-  headerClassName?: string;
-  // Additional CSS classes for the content
-  contentClassName?: string;
-  // Whether to show the sync status
-  showSyncStatus?: boolean;
-}
-
-export function PageLayout({
-  title,
-  description,
-  backUrl,
-  backText,
-  actions,
-  children,
-  loading,
-  loadingMessage,
-  error,
-  errorDescription,
-  fullScreenLoading = false,
-  headerClassName,
-  contentClassName,
-  showSyncStatus = true,
-}: PageLayoutProps) {
-  return (
-    <div className="container mx-auto py-6 space-y-6">
-      <PageHeader
-        title={title}
-        description={description}
-        backUrl={backUrl}
-        backText={backText}
-        actions={actions}
-        className={headerClassName}
-        showSyncStatus={showSyncStatus}
-      />
-      
-      {error && (
-        <ErrorBanner 
-          title={error} 
-          description={errorDescription} 
-        />
-      )}
-      
-      {loading && fullScreenLoading ? (
-        <LoadingOverlay 
-          show={loading} 
-          message={loadingMessage} 
-          fullScreen={fullScreenLoading} 
-        />
-      ) : loading ? (
-        <LoadingPlaceholder />
-      ) : (
-        <div className={cn("", contentClassName)}>
-          {children}
+      {/* Sync Status */}
+      {showSyncStatus && (
+        <div className="mb-4 flex items-center text-sm text-muted-foreground">
+          <div className="flex items-center gap-1.5">
+            <div className="h-2 w-2 rounded-full bg-green-500"></div>
+            <span>All changes synced</span>
+          </div>
         </div>
       )}
-    </div>
-  );
-}
 
-function LoadingPlaceholder() {
-  return (
-    <div className="space-y-4">
-      <div className="space-y-2">
-        <Skeleton className="h-8 w-[200px]" />
-        <Skeleton className="h-4 w-full" />
-        <Skeleton className="h-4 w-[80%]" />
-      </div>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        <Skeleton className="h-[200px] rounded-md" />
-        <Skeleton className="h-[200px] rounded-md" />
-        <Skeleton className="h-[200px] rounded-md" />
-      </div>
+      {/* Loading State */}
+      {isLoading && (
+        <Card className="mb-6">
+          <CardContent className="p-6">
+            <div className="space-y-4">
+              <Skeleton className="h-8 w-3/4" />
+              <Skeleton className="h-4 w-1/2" />
+              <Skeleton className="h-32 w-full" />
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Error Message */}
+      {errorMessage && !isLoading && (
+        <Alert variant="destructive" className="mb-6">
+          <AlertCircle className="h-4 w-4" />
+          <AlertTitle>Error</AlertTitle>
+          <AlertDescription>
+            {errorMessage}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Success Message */}
+      {success && !isLoading && !errorMessage && (
+        <Alert variant="default" className="mb-6 bg-green-50 text-green-800 border-green-200">
+          <CheckCircle className="h-4 w-4" />
+          <AlertTitle>Success</AlertTitle>
+          <AlertDescription>
+            {success}
+          </AlertDescription>
+        </Alert>
+      )}
+
+      {/* Page Content */}
+      {!isLoading && !errorMessage && children}
     </div>
   );
 }

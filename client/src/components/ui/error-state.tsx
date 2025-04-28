@@ -1,92 +1,75 @@
 import React from 'react';
-import { AlertTriangle, RefreshCw, AlertCircle } from 'lucide-react';
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Button } from "@/components/ui/button";
-import { cn } from '@/lib/utils';
-
-type ErrorSeverity = 'warning' | 'error' | 'critical';
+import { AlertTriangle, RefreshCw } from 'lucide-react';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './card';
+import { Button } from './button';
 
 interface ErrorStateProps {
+  /**
+   * Error to display
+   */
+  error: Error | string | null;
+  
+  /**
+   * Title for the error card
+   */
   title?: string;
-  message: string;
+  
+  /**
+   * Callback for retry action
+   */
   onRetry?: () => void;
-  severity?: ErrorSeverity;
+  
+  /**
+   * Custom actions to render instead of the default retry button
+   */
+  actions?: React.ReactNode;
+  
+  /**
+   * Additional CSS classes
+   */
   className?: string;
-  showRetry?: boolean;
-  errorCode?: string | number;
 }
 
+/**
+ * ErrorState component for standardized error display
+ */
 export function ErrorState({
-  title,
-  message,
+  error,
+  title = 'An error occurred',
   onRetry,
-  severity = 'error',
-  className,
-  showRetry = true,
-  errorCode
+  actions,
+  className = ''
 }: ErrorStateProps) {
-  const getIcon = () => {
-    switch (severity) {
-      case 'warning':
-        return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-      case 'critical':
-        return <AlertCircle className="h-5 w-5 text-destructive" />;
-      default:
-        return <AlertTriangle className="h-5 w-5 text-destructive" />;
-    }
-  };
-
-  const getDefaultTitle = () => {
-    switch (severity) {
-      case 'warning':
-        return 'Warning';
-      case 'critical':
-        return 'Critical Error';
-      default:
-        return 'Error Occurred';
-    }
-  };
-
-  const getVariant = () => {
-    switch (severity) {
-      case 'warning':
-        return 'default';
-      default:
-        return 'destructive';
-    }
-  };
-
+  // Convert error to string if it's an Error object
+  const errorMessage = error instanceof Error ? error.message : error;
+  
   return (
-    <Alert 
-      variant={getVariant()} 
-      className={cn("flex flex-col items-start", className)}
-    >
-      <div className="flex items-start">
-        <div className="flex-shrink-0 mr-3">
-          {getIcon()}
-        </div>
-        <div className="flex-1">
-          <AlertTitle className="text-base font-medium">
-            {title || getDefaultTitle()}
-            {errorCode && <span className="ml-2 text-xs opacity-70">({errorCode})</span>}
-          </AlertTitle>
-          <AlertDescription className="mt-1">
-            {message}
-          </AlertDescription>
-        </div>
-      </div>
-      
-      {showRetry && onRetry && (
-        <Button 
-          variant="outline" 
-          size="sm" 
-          className="mt-3 ml-8 flex items-center"
-          onClick={onRetry}
-        >
-          <RefreshCw className="mr-2 h-3.5 w-3.5" />
-          Try Again
-        </Button>
+    <Card className={`border-red-200 ${className}`}>
+      <CardHeader className="bg-red-50 border-b border-red-100">
+        <CardTitle className="text-red-700 flex items-center gap-2">
+          <AlertTriangle className="h-5 w-5" />
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="py-6">
+        <p className="text-gray-700">
+          {errorMessage || 'Something went wrong. Please try again or contact support if the problem persists.'}
+        </p>
+      </CardContent>
+      {(onRetry || actions) && (
+        <CardFooter className="border-t border-red-100 bg-red-50/50 flex justify-end py-3">
+          {actions || (
+            <Button 
+              onClick={onRetry} 
+              variant="outline" 
+              className="gap-2 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800"
+            >
+              <RefreshCw className="h-4 w-4" />
+              Try Again
+            </Button>
+          )}
+        </CardFooter>
       )}
-    </Alert>
+    </Card>
   );
 }
