@@ -54,35 +54,36 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Appraisal report methods
-  async createAppraisalReport(reportData: schema.InsertAppraisalReport) {
-    const [report] = await db.insert(schema.appraisalReports).values(reportData).returning();
+  async createAppraisalReport(reportData: schema.InsertValuation) {
+    const [report] = await db.insert(schema.valuations).values(reportData).returning();
     return report;
   }
 
   async getAppraisalReport(id: number) {
-    const [report] = await db.select().from(schema.appraisalReports).where(eq(schema.appraisalReports.id, id));
+    const [report] = await db.select().from(schema.valuations).where(eq(schema.valuations.id, id));
     return report;
   }
 
-  async updateAppraisalReport(id: number, reportData: Partial<schema.InsertAppraisalReport>) {
+  async updateAppraisalReport(id: number, reportData: Partial<schema.InsertValuation>) {
     const [updatedReport] = await db
-      .update(schema.appraisalReports)
+      .update(schema.valuations)
       .set(reportData)
-      .where(eq(schema.appraisalReports.id, id))
+      .where(eq(schema.valuations.id, id))
       .returning();
     return updatedReport;
   }
 
   async deleteAppraisalReport(id: number) {
-    await db.delete(schema.appraisalReports).where(eq(schema.appraisalReports.id, id));
+    await db.delete(schema.valuations).where(eq(schema.valuations.id, id));
+    return true;
   }
 
   async getAppraisalReportsByUserId(userId: number) {
-    return await db.select().from(schema.appraisalReports).where(eq(schema.appraisalReports.userId, userId));
+    return await db.select().from(schema.valuations).where(eq(schema.valuations.userId, userId));
   }
 
   async getAppraisalReportsByPropertyId(propertyId: number) {
-    return await db.select().from(schema.appraisalReports).where(eq(schema.appraisalReports.propertyId, propertyId));
+    return await db.select().from(schema.valuations).where(eq(schema.valuations.propertyId, propertyId));
   }
 
   // Comparable methods
@@ -156,8 +157,9 @@ export class DatabaseStorage implements IStorage {
     return photo;
   }
 
-  async deletePhoto(id: number) {
+  async deletePhoto(id: number): Promise<boolean> {
     await db.delete(schema.photos).where(eq(schema.photos.id, id));
+    return true;
   }
 
   async getPhotosByReportId(reportId: number) {
@@ -213,8 +215,9 @@ export class DatabaseStorage implements IStorage {
     return updatedSketch;
   }
 
-  async deleteSketch(id: number) {
+  async deleteSketch(id: number): Promise<boolean> {
     await db.delete(schema.sketches).where(eq(schema.sketches.id, id));
+    return true;
   }
 
   async getSketchesByReportId(reportId: number) {
@@ -232,8 +235,9 @@ export class DatabaseStorage implements IStorage {
     return check;
   }
 
-  async deleteComplianceCheck(id: number) {
+  async deleteComplianceCheck(id: number): Promise<boolean> {
     await db.delete(schema.complianceChecks).where(eq(schema.complianceChecks.id, id));
+    return true;
   }
 
   async getComplianceChecksByReportId(reportId: number) {
