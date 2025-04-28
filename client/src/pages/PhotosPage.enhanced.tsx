@@ -42,7 +42,8 @@ interface Photo {
 }
 
 export default function EnhancedPhotosPage() {
-  const { reportId: paramReportId } = useParams<{ reportId?: string }>();
+  const params = useParams<{ reportId?: string }>();
+  const paramReportId = params.reportId;
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const reportId = Number(paramReportId) || 1;
