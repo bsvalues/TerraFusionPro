@@ -475,6 +475,24 @@ export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
   })
 }));
 
+// Relations for sketches
+export const sketchesRelations = relations(sketches, ({ one }) => ({
+  report: one(valuations, {
+    fields: [sketches.reportId],
+    references: [valuations.id],
+    relationName: "reportSketches"
+  })
+}));
+
+// Relations for compliance checks
+export const complianceChecksRelations = relations(complianceChecks, ({ one }) => ({
+  report: one(valuations, {
+    fields: [complianceChecks.reportId],
+    references: [valuations.id],
+    relationName: "reportComplianceChecks"
+  })
+}));
+
 // Real Estate Term Glossary
 export const realEstateTerms = pgTable("real_estate_terms", {
   id: serial("id").primaryKey(),
