@@ -42,10 +42,10 @@ interface Photo {
 }
 
 export default function EnhancedPhotosPage() {
-  const [_, params] = useParams();
+  const { reportId: paramReportId } = useParams<{ reportId?: string }>();
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const reportId = Number(params?.reportId) || 1;
+  const reportId = Number(paramReportId) || 1;
   
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [isViewerOpen, setIsViewerOpen] = useState(false);

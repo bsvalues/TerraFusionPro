@@ -101,10 +101,10 @@ interface Shape {
 }
 
 export default function EnhancedSketchesPage() {
-  const [_, params] = useParams();
+  const { reportId: paramReportId } = useParams<{ reportId?: string }>();
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const reportId = Number(params?.reportId) || 1;
+  const reportId = Number(paramReportId) || 1;
   
   const [selectedSketch, setSelectedSketch] = useState<Sketch | null>(null);
   const [isEditorOpen, setIsEditorOpen] = useState(false);

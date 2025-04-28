@@ -206,10 +206,10 @@ const uadCategories: ComplianceCategory[] = [
 ];
 
 export default function EnhancedCompliancePage() {
-  const [_, params] = useParams();
+  const { reportId: paramReportId } = useParams<{ reportId?: string }>();
   const [location, setLocation] = useLocation();
   const queryClient = useQueryClient();
-  const reportId = Number(params?.reportId) || 1;
+  const reportId = Number(paramReportId) || 1;
   
   const [activeTab, setActiveTab] = useState<string>("uspap");
   const [isAiChecking, setIsAiChecking] = useState(false);
