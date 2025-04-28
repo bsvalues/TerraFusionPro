@@ -28,7 +28,21 @@ const photoSchema = z.object({
   tags: z.string().optional(),
 });
 
-// Define type for photo data
+// Define type for photo data from API
+interface PhotoFromAPI {
+  id: number;
+  reportId: number;
+  photoType: string;
+  url: string;
+  caption: string | null;
+  dateTaken: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  createdAt: string | null;
+  metadata: any | null;
+}
+
+// Define type for photo data as used in the UI
 interface Photo {
   id: number;
   reportId: number;

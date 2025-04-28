@@ -242,6 +242,30 @@ export const aiAgents = pgTable("ai_agents", {
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
 });
 
+// Photo types enum
+export const photoTypeEnum = pgEnum("photo_type", [
+  "subject_front",
+  "subject_rear",
+  "subject_interior",
+  "comparable",
+  "neighborhood",
+  "other"
+]);
+
+// Photos table definition
+export const photos = pgTable("photos", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").notNull(),
+  photoType: photoTypeEnum("photo_type").default("subject_front"),
+  url: text("url").notNull(),
+  caption: text("caption"),
+  dateTaken: timestamp("date_taken", { mode: "date" }),
+  latitude: numeric("latitude"),
+  longitude: numeric("longitude"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  metadata: jsonb("metadata")
+});
+
 // API Keys for external access
 export const apiKeys = pgTable("api_keys", {
   id: serial("id").primaryKey(),
@@ -486,6 +510,11 @@ export const insertFieldNoteSchema = createInsertSchema(fieldNotes).omit({ creat
 export const selectFieldNoteSchema = createSelectSchema(fieldNotes);
 export type FieldNote = z.infer<typeof selectFieldNoteSchema>;
 export type InsertFieldNote = z.infer<typeof insertFieldNoteSchema>;
+
+export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true, createdAt: true });
+export const selectPhotoSchema = createSelectSchema(photos);
+export type Photo = z.infer<typeof selectPhotoSchema>;
+export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
 
 // Zod validation schema for field notes validation
 export const fieldNoteSchema = z.object({
