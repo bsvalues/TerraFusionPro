@@ -746,7 +746,7 @@ export default function EnhancedSketchesPage() {
                   
                   <div>
                     <span className="text-xs text-muted-foreground block">Created</span>
-                    <span className="text-sm">{formatDate(selectedSketch?.createdAt)}</span>
+                    <span className="text-sm">{selectedSketch?.createdAt ? formatDate(selectedSketch.createdAt) : 'Unknown'}</span>
                   </div>
                 </CardContent>
               </Card>
@@ -965,7 +965,7 @@ export default function EnhancedSketchesPage() {
                     )}
                   </CardContent>
                   <CardFooter className="p-4 pt-0 flex justify-between text-xs text-muted-foreground">
-                    <span>{formatDate(sketch.createdAt)}</span>
+                    <span>{sketch.createdAt ? formatDate(sketch.createdAt) : 'Unknown'}</span>
                     {sketch.squareFootage && <span>{sketch.squareFootage} sq ft</span>}
                   </CardFooter>
                 </Card>

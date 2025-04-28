@@ -272,10 +272,10 @@ export default function EnhancedCompliancePage() {
   
   // Create new compliance check
   const createComplianceCheckMutation = useMutation({
-    mutationFn: (data: { reportId: number, checkType: string, checkResult: string, severity: string, description: string, details?: string, rule?: string, recommendation?: string }) => 
+    mutationFn: (reqData: { reportId: number, checkType: string, checkResult: string, severity: string, description: string, details?: string, rule?: string, recommendation?: string }) => 
       apiRequest(`/api/compliance`, {
         method: 'POST',
-        data,
+        data: reqData,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['/api/reports', reportId, 'compliance'] });
