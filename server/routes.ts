@@ -22,13 +22,9 @@ import {
   insertPropertySchema,
   insertRealEstateTermSchema,
   insertAppraisalReportSchema,
-  insertComparableSchema, 
-  insertAdjustmentSchema, 
   insertPhotoSchema, 
   insertSketchSchema, 
-  insertComplianceCheckSchema, 
-  insertAdjustmentModelSchema, 
-  insertModelAdjustmentSchema
+  insertComplianceCheckSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { generatePDF } from "./lib/pdf-generator";
@@ -703,10 +699,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/:reportId/sketches", async (req: Request, res: Response) => {
     try {
       const reportId = Number(req.params.reportId);
+      console.log(`API endpoint called: GET /api/reports/${reportId}/sketches`);
       const sketches = await storage.getSketchesByReport(reportId);
-      res.status(200).json(sketches);
+      console.log(`Successfully fetched sketches, returning ${sketches ? sketches.length : 0} sketches`);
+      res.status(200).json(sketches || []);
     } catch (error) {
-      res.status(500).json({ message: "Server error fetching sketches" });
+      console.error("Error in /api/reports/:reportId/sketches endpoint:", error);
+      res.status(500).json({ message: "Server error fetching sketches", error: String(error) });
     }
   });
   
@@ -762,10 +761,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/:reportId/compliance", async (req: Request, res: Response) => {
     try {
       const reportId = Number(req.params.reportId);
+      console.log(`API endpoint called: GET /api/reports/${reportId}/compliance`);
       const complianceChecks = await storage.getComplianceChecksByReport(reportId);
-      res.status(200).json(complianceChecks);
+      console.log(`Successfully fetched compliance checks, returning ${complianceChecks ? complianceChecks.length : 0} checks`);
+      res.status(200).json(complianceChecks || []);
     } catch (error) {
-      res.status(500).json({ message: "Server error fetching compliance checks" });
+      console.error("Error in /api/reports/:reportId/compliance endpoint:", error);
+      res.status(500).json({ message: "Server error fetching compliance checks", error: String(error) });
     }
   });
   

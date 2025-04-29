@@ -221,7 +221,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getSketchesByReportId(reportId: number) {
-    return await db.select().from(schema.sketches).where(eq(schema.sketches.reportId, reportId));
+    try {
+      console.log(`Fetching sketches for report ID: ${reportId}`);
+      const sketches = await db.select().from(schema.sketches).where(eq(schema.sketches.reportId, reportId));
+      console.log(`Found ${sketches.length} sketches for report ID: ${reportId}`);
+      return sketches;
+    } catch (error) {
+      console.error(`Error fetching sketches for report ID ${reportId}:`, error);
+      throw error;
+    }
   }
 
   // Compliance check methods
@@ -241,7 +249,15 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getComplianceChecksByReportId(reportId: number) {
-    return await db.select().from(schema.complianceChecks).where(eq(schema.complianceChecks.reportId, reportId));
+    try {
+      console.log(`Fetching compliance checks for report ID: ${reportId}`);
+      const checks = await db.select().from(schema.complianceChecks).where(eq(schema.complianceChecks.reportId, reportId));
+      console.log(`Found ${checks.length} compliance checks for report ID: ${reportId}`);
+      return checks;
+    } catch (error) {
+      console.error(`Error fetching compliance checks for report ID ${reportId}:`, error);
+      throw error;
+    }
   }
 
   // Adjustment model methods
