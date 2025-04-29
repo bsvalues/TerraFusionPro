@@ -48,6 +48,7 @@ import photoEnhancementRoutes from './routes/photo-enhancement-routes';
 import notificationRouter from './routes/notification-routes';
 import fieldNotesRoutes from './routes/field-notes-routes';
 import terminologyRoutes from './routes/terminology-routes';
+import compsRouter from './routes/comps-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2632,6 +2633,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Field notes collaboration
   app.use('/api/field-notes', fieldNotesRoutes);
   app.use('/api/terminology', terminologyRoutes);
+  app.use('/api/comps', compsRouter);
   
   // Serve uploaded files (for enhanced photos)
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
