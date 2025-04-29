@@ -534,6 +534,12 @@ export const selectValuationSchema = createSelectSchema(valuations);
 export type Valuation = z.infer<typeof selectValuationSchema>;
 export type InsertValuation = z.infer<typeof insertValuationSchema>;
 
+// Alias for appraisal reports (valuations are used as appraisal reports in the system)
+export const insertAppraisalReportSchema = insertValuationSchema;
+export const selectAppraisalReportSchema = selectValuationSchema;
+export type AppraisalReport = Valuation;
+export type InsertAppraisalReport = InsertValuation;
+
 export const insertTaxBillSchema = createInsertSchema(taxBills).omit({ id: true, createdAt: true, updatedAt: true });
 export const selectTaxBillSchema = createSelectSchema(taxBills);
 export type TaxBill = z.infer<typeof selectTaxBillSchema>;

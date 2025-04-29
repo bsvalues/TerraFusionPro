@@ -21,16 +21,14 @@ import {
   insertUserSchema, 
   insertPropertySchema,
   insertRealEstateTermSchema,
-  // Other schemas that will be implemented later
-  // insertAppraisalReportSchema, 
-  // insertComparableSchema, 
-  // insertAdjustmentSchema, 
-  // insertPhotoSchema, 
-  // insertSketchSchema, 
-  // insertComplianceCheckSchema, 
-  // insertAdjustmentModelSchema, 
-  // insertModelAdjustmentSchema,
-  // insertPropertyShareLinkSchema
+  insertAppraisalReportSchema,
+  insertComparableSchema, 
+  insertAdjustmentSchema, 
+  insertPhotoSchema, 
+  insertSketchSchema, 
+  insertComplianceCheckSchema, 
+  insertAdjustmentModelSchema, 
+  insertModelAdjustmentSchema
 } from "@shared/schema";
 import { z } from "zod";
 import { generatePDF } from "./lib/pdf-generator";

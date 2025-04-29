@@ -25,7 +25,9 @@ import {
   LogOut,
   FileJson,
   Pin,
-  Laptop
+  Laptop,
+  Home,
+  FileText
 } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
