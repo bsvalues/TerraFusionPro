@@ -152,7 +152,7 @@ export function CompsMap({
           strokeColor: '#ffffff',
           strokeWeight: 2,
         },
-        animation: google.maps.Animation.DROP,
+        animation: 2, // 2 corresponds to google.maps.Animation.DROP
         zIndex: records.length - index,
       });
       

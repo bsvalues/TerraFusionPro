@@ -90,14 +90,6 @@ export function CompsGrid({
     
     // Then sort
     return [...filtered].sort((a, b) => {
-      const fieldA = a[sortField];
-      const fieldB = b[sortField];
-      
-      // Handle undefined values
-      if (fieldA === undefined && fieldB === undefined) return 0;
-      if (fieldA === undefined) return sortDirection === "asc" ? -1 : 1;
-      if (fieldB === undefined) return sortDirection === "asc" ? 1 : -1;
-      
       // Special handling for dates
       if (sortField === "saleDate") {
         const dateA = new Date(a.saleDate).getTime();
@@ -105,8 +97,17 @@ export function CompsGrid({
         return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
       }
       
+      // Handle numeric fields
+      const fieldA = a[sortField as keyof typeof a] as number | undefined;
+      const fieldB = b[sortField as keyof typeof b] as number | undefined;
+      
+      // Handle undefined values
+      if (fieldA === undefined && fieldB === undefined) return 0;
+      if (fieldA === undefined) return sortDirection === "asc" ? -1 : 1;
+      if (fieldB === undefined) return sortDirection === "asc" ? 1 : -1;
+      
       // Normal numeric comparison
-      return sortDirection === "asc" ? fieldA - fieldB : fieldB - fieldA;
+      return sortDirection === "asc" ? Number(fieldA) - Number(fieldB) : Number(fieldB) - Number(fieldA);
     });
   }, [records, sortField, sortDirection, filterText]);
   

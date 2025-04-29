@@ -68,6 +68,7 @@ function App() {
             <Route path="/" component={EnhancedHome} />
             <Route path="/form" component={FormPage} />
             <Route path="/comps" component={CompsPage} />
+            <Route path="/comps-search" component={CompsSearchPage} />
             <Route path="/photos" component={PhotosPage} />
             <Route path="/sketches" component={SketchesPage} />
             <Route path="/reports" component={ReportsPage} />
