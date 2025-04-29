@@ -24,6 +24,11 @@ interface PageLayoutProps {
   subtitle?: string;
   
   /**
+   * Page description (optional) - appears below the title
+   */
+  description?: string;
+  
+  /**
    * Main content
    */
   children: React.ReactNode;
@@ -52,6 +57,11 @@ interface PageLayoutProps {
    * Whether the content is being edited
    */
   isEditing?: boolean;
+  
+  /**
+   * Whether to show the sync status
+   */
+  showSyncStatus?: boolean;
   
   /**
    * Current sync state
@@ -100,12 +110,14 @@ interface PageLayoutProps {
 export function PageLayout({
   title,
   subtitle,
+  description,
   children,
   backUrl,
   showHomeButton = false,
   actions,
   isLoading = false,
   isEditing = false,
+  showSyncStatus = false,
   syncState,
   lastSynced,
   syncErrorMessage,
@@ -162,6 +174,9 @@ export function PageLayout({
               <h1 className="text-xl font-semibold leading-tight">{title}</h1>
               {subtitle && (
                 <p className="text-sm text-muted-foreground">{subtitle}</p>
+              )}
+              {description && (
+                <p className="text-sm text-muted-foreground mt-0.5">{description}</p>
               )}
             </div>
           </div>

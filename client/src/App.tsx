@@ -24,6 +24,9 @@ import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { ReportGenerationPage } from "./pages/ReportGenerationPage";
+import MarketAnalysisPage from "./pages/MarketAnalysisPage";
+import SettingsPage from "./pages/SettingsPage";
+import HelpSupportPage from "./pages/HelpSupportPage";
 import { AppProvider } from "./contexts/AppContext";
 import { AppShell } from "./components/layout/app-shell";
 import { useState, useEffect } from "react";
@@ -85,6 +88,9 @@ function App() {
             <Route path="/workflow" component={WorkflowPage} />
             <Route path="/workflow/:reportId" component={WorkflowPage} />
             <Route path="/reports/:reportId" component={ReportGenerationPage} />
+            <Route path="/ai-analysis" component={MarketAnalysisPage} />
+            <Route path="/settings" component={SettingsPage} />
+            <Route path="/help" component={HelpSupportPage} />
             <Route component={NotFound} />
           </Switch>
         </AppShell>
