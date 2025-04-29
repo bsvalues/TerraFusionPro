@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import EnhancedHome from "./pages/Home.enhanced";
 import FormPage from "./pages/FormPage";
 import CompsPage from "./pages/CompsPage";
+import CompsSearchPage from "./pages/CompsSearchPage";
 import PhotosPage from "./pages/PhotosPage";
 import SketchesPage from "./pages/SketchesPage";
 import ReportsPage from "./pages/ReportsPage";
