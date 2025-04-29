@@ -223,7 +223,23 @@ export class DatabaseStorage implements IStorage {
   async getSketchesByReportId(reportId: number) {
     try {
       console.log(`Fetching sketches for report ID: ${reportId}`);
-      const sketches = await db.select().from(schema.sketches).where(eq(schema.sketches.reportId, reportId));
+      // Only select columns that exist in the database
+      const sketches = await db.select({
+        id: schema.sketches.id,
+        reportId: schema.sketches.reportId,
+        // Add other fields that exist in the database and comment out those that don't
+        // title: schema.sketches.title,
+        // description: schema.sketches.description,
+        // sketchUrl: schema.sketches.sketchUrl,
+        // sketchData: schema.sketches.sketchData,
+        // sketchType: schema.sketches.sketchType,
+        // squareFootage: schema.sketches.squareFootage,
+        // scale: schema.sketches.scale,
+        // notes: schema.sketches.notes,
+        createdAt: schema.sketches.createdAt,
+        updatedAt: schema.sketches.updatedAt
+      }).from(schema.sketches).where(eq(schema.sketches.reportId, reportId));
+      
       console.log(`Found ${sketches.length} sketches for report ID: ${reportId}`);
       return sketches;
     } catch (error) {
@@ -251,7 +267,25 @@ export class DatabaseStorage implements IStorage {
   async getComplianceChecksByReportId(reportId: number) {
     try {
       console.log(`Fetching compliance checks for report ID: ${reportId}`);
-      const checks = await db.select().from(schema.complianceChecks).where(eq(schema.complianceChecks.reportId, reportId));
+      // Only select columns that exist in the database
+      const checks = await db.select({
+        id: schema.complianceChecks.id,
+        reportId: schema.complianceChecks.reportId,
+        // Use proper column names from the database, comment out those that don't exist
+        checkType: schema.complianceChecks.checkType,
+        // status: schema.complianceChecks.status, // Might be named differently in the database
+        severity: schema.complianceChecks.severity,
+        // message: schema.complianceChecks.message, // Might be description in the database
+        description: schema.complianceChecks.description,
+        details: schema.complianceChecks.details,
+        rule: schema.complianceChecks.rule,
+        recommendation: schema.complianceChecks.recommendation,
+        checkResult: schema.complianceChecks.checkResult,
+        // field: schema.complianceChecks.field, // Might not exist in the database
+        createdAt: schema.complianceChecks.createdAt,
+        updatedAt: schema.complianceChecks.updatedAt
+      }).from(schema.complianceChecks).where(eq(schema.complianceChecks.reportId, reportId));
+      
       console.log(`Found ${checks.length} compliance checks for report ID: ${reportId}`);
       return checks;
     } catch (error) {
