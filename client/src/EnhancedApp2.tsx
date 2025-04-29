@@ -8,6 +8,7 @@ import { AppShell } from './components/layout/app-shell';
 import Home from './pages/Home';
 import FormPage from './pages/FormPage';
 import CompsPage from './pages/CompsPage';
+import CompsSearchPage from './pages/CompsSearchPage';
 import PhotosPage from './pages/PhotosPage';
 import SketchesPage from './pages/SketchesPage';
 import ReportsPage from './pages/ReportsPage';
@@ -54,6 +55,7 @@ export default function EnhancedApp2() {
           <Route path="/form" component={FormPage} />
           <Route path="/form/:id" component={FormPage} />
           <Route path="/comps" component={CompsPage} />
+          <Route path="/comps-search" component={CompsSearchPage} />
           <Route path="/photos" component={PhotosPageComponent} />
           <Route path="/photos/:reportId" component={PhotosPageComponent} />
           <Route path="/sketches" component={SketchesPageComponent} />
