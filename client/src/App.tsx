@@ -64,37 +64,38 @@ function App() {
     <AppProvider>
       <TooltipProvider>
         <AppShell>
-          <Switch>
-            <Route path="/" component={EnhancedHome} />
-            <Route path="/form" component={FormPage} />
-            <Route path="/comps" component={CompsPage} />
-            <Route path="/comps-search" component={CompsSearchPage} />
-            <Route path="/photos" component={PhotosPage} />
-            <Route path="/sketches" component={SketchesPage} />
-            <Route path="/reports" component={ReportsPage} />
-            <Route path="/compliance" component={CompliancePage} />
-            <Route path="/ai-valuation" component={AIValuationPage} />
-            <Route path="/email-order" component={EmailOrderPage} />
-            <Route path="/property-data" component={PropertyDataPage} />
-            <Route path="/property/:id" component={PropertyDataPage} />
-            <Route path="/uad-form" component={EnhancedUADFormPage} />
-            <Route path="/uad-form/:id" component={EnhancedUADFormPage} />
-            <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
-            <Route path="/terms" component={TermsPage} />
-            <Route path="/import" component={ImportPage} />
-            <Route path="/crdt-test" component={CRDTTestPage} />
-            <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
-            <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
-            <Route path="/notification-test" component={NotificationTestPage} />
-            <Route path="/shared/:token" component={SharedPropertyPage} />
-            <Route path="/workflow" component={WorkflowPage} />
-            <Route path="/workflow/:reportId" component={WorkflowPage} />
-            <Route path="/reports/:reportId" component={ReportGenerationPage} />
-            <Route path="/ai-analysis" component={MarketAnalysisPage} />
-            <Route path="/settings" component={SettingsPage} />
-            <Route path="/help" component={HelpSupportPage} />
-            <Route component={NotFound} />
-          </Switch>
+          {/* Explicit routes first */}
+          <Route path="/" component={EnhancedHome} />
+          <Route path="/form" component={FormPage} />
+          <Route path="/comps" component={CompsPage} />
+          <Route path="/comps-search">
+            {() => <CompsSearchPage />}
+          </Route>
+          <Route path="/photos" component={PhotosPage} />
+          <Route path="/sketches" component={SketchesPage} />
+          <Route path="/reports" component={ReportsPage} />
+          <Route path="/compliance" component={CompliancePage} />
+          <Route path="/ai-valuation" component={AIValuationPage} />
+          <Route path="/email-order" component={EmailOrderPage} />
+          <Route path="/property-data" component={PropertyDataPage} />
+          <Route path="/property/:id" component={PropertyDataPage} />
+          <Route path="/uad-form" component={EnhancedUADFormPage} />
+          <Route path="/uad-form/:id" component={EnhancedUADFormPage} />
+          <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
+          <Route path="/terms" component={TermsPage} />
+          <Route path="/import" component={ImportPage} />
+          <Route path="/crdt-test" component={CRDTTestPage} />
+          <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
+          <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
+          <Route path="/notification-test" component={NotificationTestPage} />
+          <Route path="/shared/:token" component={SharedPropertyPage} />
+          <Route path="/workflow" component={WorkflowPage} />
+          <Route path="/workflow/:reportId" component={WorkflowPage} />
+          <Route path="/reports/:reportId" component={ReportGenerationPage} />
+          <Route path="/ai-analysis" component={MarketAnalysisPage} />
+          <Route path="/settings" component={SettingsPage} />
+          <Route path="/help" component={HelpSupportPage} />
+          <Route path="/:rest*" component={NotFound} />
         </AppShell>
       </TooltipProvider>
     </AppProvider>
