@@ -33,7 +33,8 @@ import {
   FolderSync,
   Images,
   Cog,
-  Inbox
+  Inbox,
+  Search
 } from 'lucide-react';
 import { SyncStatus } from '@/components/ui/sync-status';
 import { Button } from '@/components/ui/button';
@@ -192,6 +193,13 @@ export function AppShell({ children }: AppShellProps) {
       label: "Comparables", 
       icon: <FileLineChart className="h-4 w-4" />,
       description: "Manage comparable properties for your appraisal"
+    },
+    { 
+      href: "/comps-search", 
+      label: "Comps Search", 
+      icon: <Search className="h-4 w-4" />,
+      badge: { text: "New", variant: "secondary" },
+      description: "Search and analyze comparable properties"
     },
   ];
   
