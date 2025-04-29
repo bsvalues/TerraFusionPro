@@ -3,19 +3,48 @@ import { createWebSocketConnection } from '../lib/websocket';
 
 export default function CompsSearchPage() {
   console.log("Basic CompsSearchPage rendering");
-  const [connectionStatus, setConnectionStatus] = useState('Not connected');
+  const [connectionStatus, setConnectionStatus] = useState('Connecting...');
   
   useEffect(() => {
     console.log("CompsSearchPage useEffect running");
     
-    // Don't create WebSocket connection in this simplified version
-    // Just set a success status after a short delay to simulate connection
-    const timer = setTimeout(() => {
-      setConnectionStatus('Connection simulated (WebSockets disabled)');
-    }, 1000);
+    // Create a WebSocket connection to the server
+    const socket = createWebSocketConnection('/ws');
+    
+    if (socket) {
+      // Set up event handlers
+      socket.onopen = () => {
+        console.log("WebSocket connection established");
+        setConnectionStatus('Connected to server');
+      };
+      
+      socket.onclose = (event) => {
+        console.log(`WebSocket connection closed: ${event.code}`);
+        setConnectionStatus(`Disconnected (Code: ${event.code})`);
+      };
+      
+      socket.onerror = (error) => {
+        console.error("WebSocket error:", error);
+        setConnectionStatus('Connection error');
+      };
+      
+      // Send a test message
+      socket.addEventListener('open', () => {
+        socket.send(JSON.stringify({
+          type: 'register',
+          client: 'comps-search',
+          timestamp: Date.now()
+        }));
+      });
+    } else {
+      setConnectionStatus('WebSocket not available');
+    }
     
     return () => {
-      clearTimeout(timer);
+      // Clean up the WebSocket connection when component unmounts
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.close();
+      }
       console.log("CompsSearchPage cleanup");
     };
   }, []);
