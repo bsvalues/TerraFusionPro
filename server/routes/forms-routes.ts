@@ -3,7 +3,8 @@ import { z } from 'zod';
 import { updateCRDTForm, getCRDTFormState, takeFormSnapshot } from '../services/crdt';
 import { getSnapshotById } from '../services/comps';
 
-export const formsRouter = express.Router();
+const formsRouter = express.Router();
+export default formsRouter;
 
 // Schema for validating push requests
 const PushRequest = z.object({

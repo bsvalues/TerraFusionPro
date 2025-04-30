@@ -49,6 +49,7 @@ import notificationRouter from './routes/notification-routes';
 import fieldNotesRoutes from './routes/field-notes-routes';
 import terminologyRoutes from './routes/terminology-routes';
 import compsRouter from './routes/comps-routes';
+import formsRouter from './routes/forms-routes';
 import { marketAnalysisRouter } from './routes/market-analysis-routes';
 
 // Define the type for AI Valuation Response
@@ -2635,6 +2636,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/field-notes', fieldNotesRoutes);
   app.use('/api/terminology', terminologyRoutes);
   app.use('/api/comps', compsRouter);
+  app.use('/api', formsRouter);
   app.use('/api/market-analysis', marketAnalysisRouter);
   
   // Serve uploaded files (for enhanced photos)
