@@ -18,6 +18,7 @@ import EmailOrderPage from './pages/EmailOrderPage';
 import PropertyDataPage from './pages/PropertyDataPage';
 import PropertyEntryPage from './pages/PropertyEntryPage';
 import UADFormPage from './pages/UADFormPage';
+import MarketAnalysisPage from './pages/MarketAnalysisPage';
 import { ComparablePropertiesPage } from './pages/ComparablePropertiesPage';
 import ImportPage from './pages/ImportPage';
 import NotFound from './pages/not-found';
@@ -72,6 +73,7 @@ export default function EnhancedApp2() {
           <Route path="/property-entry/:id" component={PropertyEntryPage} />
           <Route path="/uad-form" component={UADFormPageComponent} />
           <Route path="/uad-form/:id" component={UADFormPageComponent} />
+          <Route path="/market-analysis" component={MarketAnalysisPage} />
           <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
           <Route path="/terms" component={TermsPage} />
           <Route path="/import" component={ImportPage} />

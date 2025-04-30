@@ -240,7 +240,7 @@ export function AppShell({ children }: AppShellProps) {
       description: "Get AI-powered property valuations"
     },
     { 
-      href: "/ai-analysis", 
+      href: "/market-analysis", 
       label: "Market Analysis", 
       icon: <Lightbulb className="h-4 w-4" />,
       badge: { text: "New", variant: "secondary" },
