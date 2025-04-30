@@ -102,11 +102,11 @@ marketAnalysisRouter.get('/', async (req: Request, res: Response) => {
     ];
     
     return res.status(200).json(analyses);
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error fetching market analyses:", error);
     return res.status(500).json({ 
       message: "Failed to fetch market analyses",
-      error: error.message 
+      error: error.message || 'Unknown error'
     });
   }
 });
@@ -137,11 +137,11 @@ marketAnalysisRouter.get('/:id', async (req: Request, res: Response) => {
     };
     
     return res.status(200).json(analysis);
-  } catch (error) {
+  } catch (error: any) {
     console.error(`Error fetching market analysis ${req.params.id}:`, error);
     return res.status(500).json({ 
       message: "Failed to fetch market analysis",
-      error: error.message 
+      error: error.message || 'Unknown error'
     });
   }
 });

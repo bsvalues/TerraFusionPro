@@ -258,7 +258,12 @@ export default function MarketAnalysisPage() {
 
               <div className="space-y-2">
                 <label className="text-sm font-medium">AI Provider</label>
-                <Select value={selectedAIProvider} onValueChange={setSelectedAIProvider}>
+                <Select
+                  value={selectedAIProvider}
+                  onValueChange={(value: string) => {
+                    setSelectedAIProvider(value as 'auto' | 'openai' | 'anthropic');
+                  }}
+                >
                   <SelectTrigger>
                     <SelectValue placeholder="Select AI provider" />
                   </SelectTrigger>
@@ -271,6 +276,36 @@ export default function MarketAnalysisPage() {
               </div>
             </div>
           </CardContent>
+          <CardFooter className="flex justify-end">
+            <Button 
+              onClick={() => {
+                marketAnalysisMutation.mutate({
+                  location: selectedLocation,
+                  propertyType,
+                  timeframe: `${dateRange} months`,
+                  provider: selectedAIProvider,
+                  additionalContext: `Market scope: ${selectedMarket}`
+                });
+                toast({
+                  title: "Generating Analysis",
+                  description: `Using ${selectedAIProvider === 'auto' ? 'auto-selected AI provider' : selectedAIProvider} for market analysis...`,
+                });
+              }}
+              disabled={marketAnalysisMutation.isPending}
+            >
+              {marketAnalysisMutation.isPending ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Analysis
+                </>
+              )}
+            </Button>
+          </CardFooter>
         </Card>
         
         {/* Market Analysis Tabs */}
