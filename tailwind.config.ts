@@ -79,10 +79,38 @@ export default {
             height: "0",
           },
         },
+        "spin": {
+          to: {
+            transform: "rotate(360deg)",
+          },
+        },
+        "pulse-opacity": {
+          "0%, 100%": {
+            opacity: "1",
+          },
+          "50%": {
+            opacity: "0.5",
+          },
+        },
+        "progress-bar": {
+          "0%": {
+            width: "0%",
+          },
+          "100%": {
+            width: "100%",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
+        "spin": "spin 1s linear infinite",
+        "spin-slow": "spin 2s linear infinite",
+        "spin-fast": "spin 0.5s linear infinite",
+        "pulse-opacity": "pulse-opacity 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
+        "progress-bar-slow": "progress-bar 3s ease-in-out",
+        "progress-bar-medium": "progress-bar 1.5s ease-in-out",
+        "progress-bar-fast": "progress-bar 0.8s ease-in-out",
       },
     },
   },
