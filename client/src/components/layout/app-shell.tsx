@@ -34,7 +34,9 @@ import {
   Images,
   Cog,
   Inbox,
-  Search
+  Search,
+  Activity,
+  Zap
 } from 'lucide-react';
 import { SyncStatus } from '@/components/ui/sync-status';
 import { Button } from '@/components/ui/button';
@@ -289,6 +291,12 @@ export function AppShell({ children }: AppShellProps) {
       label: "Terminology", 
       icon: <Book className="h-4 w-4" />,
       description: "Real estate terminology reference"
+    },
+    { 
+      href: "/system-monitor", 
+      label: "System Monitor", 
+      icon: <Activity className="h-4 w-4" />,
+      description: "Monitor system health and performance"
     },
     { 
       href: "/settings", 

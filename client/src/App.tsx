@@ -18,6 +18,7 @@ import ImportPage from "./pages/ImportPage";
 import NotFound from "./pages/not-found";
 import SharedPropertyPage from "./pages/SharedPropertyPage";
 import SnapshotViewerPage from "./pages/SnapshotViewerPage";
+import SystemMonitorPage from "./pages/SystemMonitorPage";
 import { TooltipProvider } from "./contexts/TooltipContext";
 import TermsPage from "./pages/TermsPage";
 import CRDTTestPage from "./pages/CRDTTestPage";
@@ -103,6 +104,8 @@ function App() {
           <Route path="/help" component={HelpSupportPage} />
           <Route path="/snapshots" component={SnapshotViewerPage} />
           <Route path="/snapshots/:propertyId" component={SnapshotViewerPage} />
+          <Route path="/system-monitor" component={SystemMonitorPage} />
+          <Route path="/system-status" component={SystemMonitorPage} />
           <Route path="/debug/performance">
             {() => {
               // Only import PerformanceDebugger in development
