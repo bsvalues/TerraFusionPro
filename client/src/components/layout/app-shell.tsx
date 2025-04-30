@@ -28,8 +28,8 @@ import {
   FileLineChart,
   Building2,
   FileCheck,
-  Lightbulb,
   Smartphone,
+  Lightbulb,
   FolderSync,
   Images,
   Cog,
@@ -411,7 +411,11 @@ export function AppShell({ children }: AppShellProps) {
           </div>
           
           <div className="flex flex-1 items-center justify-end gap-4">
-            <SyncStatus />
+            {/* SyncStatus with default values */}
+            <SyncStatus 
+              state="synced" 
+              lastSynced={new Date()} 
+            />
             
             {/* Help button */}
             <TooltipProvider>

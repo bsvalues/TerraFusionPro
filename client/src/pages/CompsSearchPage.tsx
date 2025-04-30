@@ -1,161 +1,256 @@
 import React, { useState } from 'react';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { LoadingCard } from '@/components/ui/loading-spinner';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useWebSocketResource } from '@/hooks/use-websocket-resource';
+import { useWebSocket } from '@/contexts/WebSocketContext';
+import { Search, Map, Grid3X3, RefreshCw } from 'lucide-react';
 
-// Sample property data for demonstration
-const sampleProperties = [
-  { id: 1, address: '123 Main St', city: 'Austin', state: 'TX', price: 450000, sqft: 2200, beds: 4, baths: 3 },
-  { id: 2, address: '456 Oak Ave', city: 'Austin', state: 'TX', price: 520000, sqft: 2500, beds: 4, baths: 2.5 },
-  { id: 3, address: '789 Pine Ln', city: 'Austin', state: 'TX', price: 380000, sqft: 1800, beds: 3, baths: 2 },
-  { id: 4, address: '101 Cedar Rd', city: 'Austin', state: 'TX', price: 495000, sqft: 2300, beds: 4, baths: 3.5 },
-  { id: 5, address: '202 Elm Blvd', city: 'Austin', state: 'TX', price: 405000, sqft: 2100, beds: 3, baths: 2.5 },
-];
-
-export default function CompsSearchPage() {
-  console.log("Basic CompsSearchPage rendering");
-  const [searchTerm, setSearchTerm] = useState('');
-  const [properties, setProperties] = useState([]);
-  const [searching, setSearching] = useState(false);
+// Search form component with error boundary
+const CompsSearchForm = () => {
+  const [searchParams, setSearchParams] = useState({
+    address: '',
+    city: '',
+    state: 'TX',
+    radius: '1',
+    minPrice: '',
+    maxPrice: '',
+  });
   
-  // Handle search form submission
-  const handleSearch = (e) => {
+  const { isConnected } = useWebSocket();
+  
+  const { 
+    data: searchResults, 
+    isLoading, 
+    error, 
+    refetch 
+  } = useWebSocketResource({
+    resource: 'comps',
+    params: searchParams,
+    autoFetch: false,
+    enabled: isConnected
+  });
+  
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSearchParams(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSelectChange = (name: string, value: string) => {
+    setSearchParams(prev => ({ ...prev, [name]: value }));
+  };
+  
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setSearching(true);
-    
-    // Simulate API call delay
-    setTimeout(() => {
-      setProperties(sampleProperties);
-      setSearching(false);
-    }, 1000);
+    refetch();
   };
   
   return (
-    <div style={{ padding: '20px' }}>
-      <h1 style={{ fontSize: '1.75rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-        Comparable Property Search
-      </h1>
-      <p style={{ color: '#4b5563', marginBottom: '1.5rem' }}>
-        Search and analyze comparable properties in your market area
-      </p>
+    <div className="container py-6 space-y-6">
+      <div className="flex flex-col gap-2">
+        <h1 className="text-3xl font-bold tracking-tight">Comparable Property Search</h1>
+        <p className="text-muted-foreground">
+          Search for comparable properties based on location and parameters
+        </p>
+      </div>
       
-      {/* Search Form */}
-      <form onSubmit={handleSearch} style={{ 
-        display: 'flex', 
-        flexDirection: 'column',
-        gap: '1rem',
-        backgroundColor: '#f9fafb',
-        padding: '1rem',
-        borderRadius: '0.5rem',
-        border: '1px solid #e5e7eb',
-        marginBottom: '1.5rem'
-      }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap' }}>
-          <div style={{ flex: '1', minWidth: '200px' }}>
-            <label style={{ display: 'block', marginBottom: '0.25rem', fontSize: '0.875rem', fontWeight: '500' }}>
-              Location
-            </label>
-            <input
-              type="text"
-              placeholder="Address, City, or ZIP"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '0.5rem',
-                border: '1px solid #d1d5db',
-                borderRadius: '0.25rem'
-              }}
-            />
-          </div>
-          
-          <div style={{ 
-            display: 'flex', 
-            alignItems: 'flex-end',
-            marginTop: '1.5rem'
-          }}>
-            <button 
-              type="submit"
-              style={{ 
-                padding: '0.5rem 1rem', 
-                backgroundColor: '#4f46e5', 
-                color: 'white', 
-                border: 'none', 
-                borderRadius: '0.25rem',
-                cursor: searching ? 'not-allowed' : 'pointer',
-                opacity: searching ? 0.7 : 1
-              }}
-              disabled={searching}
-            >
-              {searching ? 'Searching...' : 'Search Properties'}
-            </button>
-          </div>
-        </div>
-      </form>
+      <Card>
+        <CardHeader>
+          <CardTitle>Search Parameters</CardTitle>
+          <CardDescription>
+            Enter property details to find comparable sales
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="address">Address</Label>
+                <Input
+                  id="address"
+                  name="address"
+                  placeholder="123 Main St"
+                  value={searchParams.address}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="city">City</Label>
+                <Input
+                  id="city"
+                  name="city"
+                  placeholder="Austin"
+                  value={searchParams.city}
+                  onChange={handleInputChange}
+                  required
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="state">State</Label>
+                <Select 
+                  value={searchParams.state}
+                  onValueChange={(value) => handleSelectChange('state', value)}
+                >
+                  <SelectTrigger id="state">
+                    <SelectValue placeholder="Select state" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="TX">Texas</SelectItem>
+                    <SelectItem value="CA">California</SelectItem>
+                    <SelectItem value="NY">New York</SelectItem>
+                    <SelectItem value="FL">Florida</SelectItem>
+                    <SelectItem value="IL">Illinois</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="radius">Search Radius (miles)</Label>
+                <Select 
+                  value={searchParams.radius}
+                  onValueChange={(value) => handleSelectChange('radius', value)}
+                >
+                  <SelectTrigger id="radius">
+                    <SelectValue placeholder="Select radius" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="0.5">0.5 miles</SelectItem>
+                    <SelectItem value="1">1 mile</SelectItem>
+                    <SelectItem value="2">2 miles</SelectItem>
+                    <SelectItem value="5">5 miles</SelectItem>
+                    <SelectItem value="10">10 miles</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="minPrice">Minimum Price</Label>
+                <Input
+                  id="minPrice"
+                  name="minPrice"
+                  type="number"
+                  placeholder="300000"
+                  value={searchParams.minPrice}
+                  onChange={handleInputChange}
+                />
+              </div>
+              
+              <div className="space-y-2">
+                <Label htmlFor="maxPrice">Maximum Price</Label>
+                <Input
+                  id="maxPrice"
+                  name="maxPrice"
+                  type="number"
+                  placeholder="800000"
+                  value={searchParams.maxPrice}
+                  onChange={handleInputChange}
+                />
+              </div>
+            </div>
+            
+            <div className="flex justify-end">
+              <Button type="submit" disabled={isLoading || !isConnected}>
+                {isLoading ? (
+                  <>
+                    <RefreshCw className="mr-2 h-4 w-4 animate-spin" />
+                    Searching...
+                  </>
+                ) : (
+                  <>
+                    <Search className="mr-2 h-4 w-4" />
+                    Search Comparables
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </CardContent>
+      </Card>
       
-      {/* Results Table */}
-      {properties.length > 0 && (
-        <div style={{ overflowX: 'auto' }}>
-          <table style={{ 
-            width: '100%', 
-            borderCollapse: 'collapse',
-            fontSize: '0.875rem'
-          }}>
-            <thead>
-              <tr style={{ backgroundColor: '#f9fafb' }}>
-                <th style={{ padding: '0.75rem', textAlign: 'left', borderBottom: '1px solid #e5e7eb' }}>Address</th>
-                <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Price</th>
-                <th style={{ padding: '0.75rem', textAlign: 'right', borderBottom: '1px solid #e5e7eb' }}>Sq Ft</th>
-                <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #e5e7eb' }}>Beds</th>
-                <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #e5e7eb' }}>Baths</th>
-                <th style={{ padding: '0.75rem', textAlign: 'center', borderBottom: '1px solid #e5e7eb' }}>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {properties.map((property) => (
-                <tr key={property.id} style={{ borderBottom: '1px solid #e5e7eb' }}>
-                  <td style={{ padding: '0.75rem' }}>
-                    <div>{property.address}</div>
-                    <div style={{ color: '#6b7280', fontSize: '0.75rem' }}>{property.city}, {property.state}</div>
-                  </td>
-                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>${property.price.toLocaleString()}</td>
-                  <td style={{ padding: '0.75rem', textAlign: 'right' }}>{property.sqft.toLocaleString()}</td>
-                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>{property.beds}</td>
-                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>{property.baths}</td>
-                  <td style={{ padding: '0.75rem', textAlign: 'center' }}>
-                    <button style={{ 
-                      padding: '0.375rem 0.75rem', 
-                      backgroundColor: '#f3f4f6', 
-                      color: '#4b5563', 
-                      border: '1px solid #d1d5db', 
-                      borderRadius: '0.25rem',
-                      cursor: 'pointer',
-                      fontSize: '0.75rem'
-                    }}>
-                      View Details
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      )}
-      
-      {/* Empty State */}
-      {properties.length === 0 && !searching && (
-        <div style={{ 
-          textAlign: 'center', 
-          padding: '3rem 1rem',
-          backgroundColor: '#f9fafb', 
-          borderRadius: '0.5rem',
-          border: '1px solid #e5e7eb'
-        }}>
-          <div style={{ fontSize: '1.125rem', fontWeight: '500', marginBottom: '0.5rem' }}>
-            No properties found
+      {/* Results section */}
+      <div className="space-y-4">
+        {isLoading ? (
+          <LoadingCard />
+        ) : error ? (
+          <Card className="border-red-300 bg-red-50">
+            <CardHeader>
+              <CardTitle className="text-red-700">Error Loading Comparables</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-red-700">{error.message}</p>
+            </CardContent>
+            <CardFooter>
+              <Button variant="outline" onClick={refetch}>
+                <RefreshCw className="mr-2 h-4 w-4" />
+                Retry
+              </Button>
+            </CardFooter>
+          </Card>
+        ) : searchResults ? (
+          <div className="space-y-4">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-semibold">
+                Search Results ({searchResults.length || 0} found)
+              </h2>
+              <div className="flex items-center gap-2">
+                <Button variant="outline" size="sm">
+                  <Map className="mr-2 h-4 w-4" />
+                  Map View
+                </Button>
+                <Button variant="outline" size="sm">
+                  <Grid3X3 className="mr-2 h-4 w-4" />
+                  Grid View
+                </Button>
+              </div>
+            </div>
+            
+            {searchResults.length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {searchResults.map((comp: any) => (
+                  <Card key={comp.id} className="overflow-hidden">
+                    <div className="aspect-video bg-muted"></div>
+                    <CardContent className="p-4">
+                      <h3 className="font-semibold truncate">{comp.address}</h3>
+                      <p className="text-sm text-muted-foreground">
+                        {comp.city}, {comp.state}
+                      </p>
+                      <p className="text-lg font-bold mt-2">
+                        ${comp.price?.toLocaleString() || 'N/A'}
+                      </p>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            ) : (
+              <Card className="bg-muted/50">
+                <CardContent className="p-8 flex flex-col items-center justify-center text-center">
+                  <Search className="h-8 w-8 text-muted-foreground mb-2" />
+                  <h3 className="font-medium text-lg">No results found</h3>
+                  <p className="text-muted-foreground max-w-md mt-1">
+                    Try adjusting your search criteria or expanding the search radius to find more comparable properties.
+                  </p>
+                </CardContent>
+              </Card>
+            )}
           </div>
-          <p style={{ color: '#6b7280' }}>
-            Enter an address, city, or ZIP code to search for comparable properties.
-          </p>
-        </div>
-      )}
+        ) : null}
+      </div>
     </div>
+  );
+};
+
+// Main export with error boundary
+export default function CompsSearchPage() {
+  return (
+    <ErrorBoundary>
+      <CompsSearchForm />
+    </ErrorBoundary>
   );
 }
