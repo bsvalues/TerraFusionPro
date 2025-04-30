@@ -15,8 +15,15 @@ export class WebSocketManager {
   private intentionalDisconnect = false;
   
   constructor(path = '/ws') {
+    // Build WebSocket URL with a distinct path to avoid conflicts with Vite's HMR
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    this.url = `${protocol}//${window.location.host}${path}`;
+    const host = window.location.host;
+    
+    // In development, we need to use the raw WebSocket endpoint
+    // Format: ws://host/ws
+    this.url = `${protocol}//${host}${path}`;
+    
+    console.log(`WebSocket URL: ${this.url}`);
   }
   
   /**
