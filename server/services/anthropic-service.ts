@@ -1,9 +1,12 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { MarketAnalysisRequest, MarketAnalysisResult } from './openai-service';
 
-// Create Anthropic client
+// the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+const MODEL = "claude-3-7-sonnet-20250219";
+
+// Initialize Anthropic client
 const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY
+  apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
 /**
@@ -13,73 +16,62 @@ const anthropic = new Anthropic({
  * @returns Structured market analysis data
  */
 export async function generateMarketAnalysisWithClaude(params: MarketAnalysisRequest): Promise<MarketAnalysisResult> {
-  const { location, propertyType, timeframe, additionalContext } = params;
-  
-  const prompt = `
-Generate a comprehensive real estate market analysis for ${location}, focusing on ${propertyType} properties over the ${timeframe} timeframe.
-${additionalContext ? `Additional context: ${additionalContext}` : ''}
-
-Provide the analysis in a structured JSON format with the following sections:
-1. A concise summary of market conditions
-2. 3-5 key insights about the market
-3. Price trends data points (month and average price)
-4. Inventory trends data points (month and inventory count)
-5. Risk assessment (level: low, moderate, or high, and factors)
-6. 2-3 recommendations for stakeholders
-
-Format the response as valid JSON with these exact keys:
-{
-  "summary": "string",
-  "keyInsights": ["string"],
-  "priceTrends": [{"date": "YYYY-MM", "value": number}],
-  "inventoryTrends": [{"date": "YYYY-MM", "value": number}],
-  "riskAssessment": {
-    "level": "low|moderate|high",
-    "factors": ["string"]
-  },
-  "recommendations": ["string"]
-}
-`;
-
   try {
-    // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025. Do not change this unless explicitly requested by the user.
+    const { location, propertyType, timeframe, additionalContext } = params;
+    
+    const systemPrompt = `You are an expert real estate market analyst with deep knowledge of property markets across the United States. 
+    Your task is to provide a structured market analysis.
+    
+    Analyze ${propertyType} properties in ${location} over the ${timeframe} timeframe.
+    ${additionalContext ? `Additional context to consider: ${additionalContext}` : ''}`;
+    
+    const userPrompt = `Please provide a detailed market analysis for ${propertyType} properties in ${location} over the ${timeframe} timeframe.
+    
+    Format your response as a JSON object with the following structure:
+    {
+      "summary": "A concise summary of the overall market conditions",
+      "keyInsights": ["Array of 3-5 key insights about this market"],
+      "priceTrends": [{"date": "YYYY-MM", "value": numericValue}, ...],
+      "inventoryTrends": [{"date": "YYYY-MM", "value": numericValue}, ...],
+      "riskAssessment": {
+        "level": "low"|"moderate"|"high",
+        "factors": ["Array of factors contributing to the risk assessment"]
+      },
+      "recommendations": ["Array of 2-4 actionable recommendations for investors or appraisers"]
+    }
+    
+    Generate realistic but simulated market data for the charts based on your market knowledge.`;
+    
     const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 2000,
-      system: 'You are a real estate market analyst with expertise in property valuation, market trends, and economic analysis. Provide accurate and insightful market analysis in JSON format.',
+      model: MODEL,
+      system: systemPrompt,
+      max_tokens: 4000,
+      temperature: 0.5,
       messages: [
-        { role: 'user', content: prompt }
+        { role: 'user', content: userPrompt }
       ]
     });
 
-    // Parse the response content
-    const content = response.content[0].text;
-    let result;
+    // Extract the content from the response
+    const content = response.content[0];
     
-    try {
-      // Try to extract JSON from the response if it's not already in JSON format
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/{[\s\S]*}/);
-      const jsonContent = jsonMatch ? jsonMatch[0].replace(/```json|```/g, '') : content;
-      result = JSON.parse(jsonContent);
-    } catch (parseError) {
-      console.error("Error parsing JSON from Claude response:", parseError);
-      throw new Error("Failed to parse JSON from Claude response");
+    if (!content || typeof content.text !== 'string') {
+      throw new Error("Invalid response format from Anthropic");
     }
     
-    return {
-      summary: result.summary || "Market analysis unavailable",
-      keyInsights: result.keyInsights || [],
-      priceTrends: result.priceTrends || [],
-      inventoryTrends: result.inventoryTrends || [],
-      riskAssessment: {
-        level: result.riskAssessment?.level || "moderate",
-        factors: result.riskAssessment?.factors || []
-      },
-      recommendations: result.recommendations || []
-    };
+    // Extract the JSON from the response
+    const textContent = content.text.trim();
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error("Could not extract JSON from Anthropic response");
+    }
+    
+    const jsonString = jsonMatch[0];
+    return JSON.parse(jsonString) as MarketAnalysisResult;
   } catch (error) {
-    console.error("Error generating market analysis with Claude:", error);
-    throw new Error(`Failed to generate market analysis with Claude: ${error.message}`);
+    console.error("Error generating market analysis with Anthropic Claude:", error);
+    throw new Error(`Failed to generate market analysis with Claude: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
 
@@ -94,66 +86,60 @@ export async function generateComplianceAssessment(
   reportData: any,
   complianceStandards: string[]
 ): Promise<any> {
-  const reportJson = JSON.stringify(reportData);
-  const standardsJson = JSON.stringify(complianceStandards);
-  
-  const prompt = `
-Evaluate this appraisal report for compliance with the following standards:
-${standardsJson}
-
-Report data:
-${reportJson}
-
-Generate a detailed compliance assessment, including:
-1. Overall compliance status
-2. List of potential compliance issues
-3. Suggested corrections
-4. Risk level of each issue
-
-Format the response as JSON with these keys:
-{
-  "complianceStatus": "compliant|minor_issues|major_issues|non_compliant",
-  "issues": [
-    {
-      "standard": "string",
-      "description": "string",
-      "riskLevel": "low|medium|high",
-      "correction": "string"
-    }
-  ],
-  "summary": "string",
-  "overallRisk": "low|medium|high"
-}
-`;
-
   try {
-    // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025. Do not change this unless explicitly requested by the user.
+    const systemPrompt = `You are an expert in real estate appraisal compliance with deep knowledge of industry standards and regulations.
+    Your task is to evaluate if an appraisal report meets compliance standards.`;
+    
+    const userPrompt = `Please evaluate the following appraisal report against these compliance standards:
+    ${complianceStandards.join('\n')}
+    
+    Here is the appraisal report data:
+    ${JSON.stringify(reportData, null, 2)}
+    
+    Format your response as a JSON object with the following structure:
+    {
+      "overallCompliance": "compliant"|"non-compliant"|"partially-compliant",
+      "score": numbericValueFrom0To100,
+      "findings": [
+        {
+          "standard": "Name of standard",
+          "status": "met"|"not-met"|"partially-met",
+          "issue": "Description of compliance issue if any",
+          "recommendation": "How to address the issue"
+        }
+      ],
+      "summary": "Overall assessment summary"
+    }`;
+    
     const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
-      max_tokens: 2000,
-      system: 'You are a real estate compliance expert with deep knowledge of appraisal standards and regulations. Provide detailed compliance analysis in JSON format.',
+      model: MODEL,
+      system: systemPrompt,
+      max_tokens: 4000,
+      temperature: 0.2,
       messages: [
-        { role: 'user', content: prompt }
+        { role: 'user', content: userPrompt }
       ]
     });
     
-    // Extract and parse the response
-    const content = response.content[0].text;
-    let result;
+    // Extract the content from the response
+    const content = response.content[0];
     
-    try {
-      // Try to extract JSON from the response if it's not already in JSON format
-      const jsonMatch = content.match(/```json\s*([\s\S]*?)\s*```/) || content.match(/{[\s\S]*}/);
-      const jsonContent = jsonMatch ? jsonMatch[0].replace(/```json|```/g, '') : content;
-      result = JSON.parse(jsonContent);
-    } catch (parseError) {
-      console.error("Error parsing JSON from Claude response:", parseError);
-      throw new Error("Failed to parse JSON from Claude response");
+    if (!content || typeof content.text !== 'string') {
+      throw new Error("Invalid response format from Anthropic");
     }
     
-    return result;
+    // Extract the JSON from the response
+    const textContent = content.text.trim();
+    const jsonMatch = textContent.match(/\{[\s\S]*\}/);
+    
+    if (!jsonMatch) {
+      throw new Error("Could not extract JSON from Anthropic response");
+    }
+    
+    const jsonString = jsonMatch[0];
+    return JSON.parse(jsonString);
   } catch (error) {
-    console.error("Error generating compliance assessment:", error);
-    throw new Error(`Failed to generate compliance assessment: ${error.message}`);
+    console.error("Error generating compliance assessment with Claude:", error);
+    throw new Error(`Failed to generate compliance assessment: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 }
