@@ -28,28 +28,15 @@ export class WebSocketManager {
     // Build WebSocket URL with a distinct path to avoid conflicts with Vite's HMR
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     
-    // For Replit, we need to determine if we're in a Replit environment and use the same host
+    // Simplified URL construction that works across environments
+    // Use the current host to ensure same-origin policy
     const host = window.location.host;
     
-    // Get domain parts
-    const hostnameParts = window.location.hostname.split('.');
+    // On Replit, we always use the same host without specifying port
+    // This ensures we connect to the correct endpoint regardless of environment
+    this.url = `${protocol}//${host}${path}`;
     
-    // Determine if we're in development or production
-    const isDevelopment = process.env.NODE_ENV === 'development' ||
-      window.location.hostname === 'localhost' ||
-      window.location.hostname.includes('replit.dev');
-    
-    // Try to address CORS issues on Replit by using the same origin
-    if (hostnameParts.length >= 3 && hostnameParts.includes('replit')) {
-      // We're on Replit - use port 5000 explicitly to connect to the server
-      const baseHostname = window.location.hostname;
-      this.url = `${protocol}//${baseHostname}:5000${path}`;
-    } else {
-      // Use standard connection
-      this.url = `${protocol}//${host}${path}`;
-    }
-    
-    console.log(`WebSocket URL: ${this.url} (${isDevelopment ? 'development' : 'production'} mode)`);
+    console.log(`WebSocket URL: ${this.url} (${process.env.NODE_ENV || 'unknown'} mode)`);
   }
   
   /**

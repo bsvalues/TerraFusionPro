@@ -16,14 +16,25 @@ export function setupWebSocketServer(httpServer: Server) {
   // Log the server configuration for debugging
   console.log(`[WebSocket] Setting up WebSocket server on path /ws`);
   
-  // Add more robust configuration to the WebSocket server
+  // Configure server timeouts to prevent abrupt disconnects
+  httpServer.keepAliveTimeout = 65000; // 65 seconds (higher than default 60s)
+  httpServer.headersTimeout = 66000; // 66 seconds (slightly higher than keepAliveTimeout)
+  
+  // Log HTTP server configuration
+  console.log(`[WebSocket] HTTP Server timeouts configured: keepAliveTimeout=${httpServer.keepAliveTimeout}ms, headersTimeout=${httpServer.headersTimeout}ms`);
+  
+  // Create a WebSocket server with simplified configuration
+  // The perMessageDeflate is disabled to avoid potential issues with compression
+  // and we're explicitly setting the path to /ws to avoid conflicts with Vite's HMR
   const wss = new WebSocketServer({ 
     server: httpServer,
     path: '/ws',
-    // Enable connection timeout checking
     clientTracking: true,
-    // Simpler configuration to avoid potential issues
-    perMessageDeflate: false
+    perMessageDeflate: false,
+    // Additional configuration to handle potential connection issues
+    // This increases stability by allowing more connections and setting timeouts
+    maxPayload: 1024 * 1024, // 1MB max message size
+    skipUTF8Validation: false // Always validate proper UTF8
   });
   
   // Track clients with additional metadata
@@ -367,21 +378,23 @@ export function setupWebSocketServer(httpServer: Server) {
   // Get connection statistics
   function getConnectionStats() {
     const now = Date.now();
+    const clientsArray = Array.from(clients.values());
+    
     const stats = {
       totalConnections: wss.clients.size,
-      activeUsers: new Set([...clients.values()].filter(c => c.userId).map(c => c.userId)).size,
+      activeUsers: new Set(clientsArray.filter(c => c.userId).map(c => c.userId as number)).size,
       connectionsByUserAgent: {} as Record<string, number>,
       averageSessionDuration: 0
     };
     
     // Calculate average session duration and count by user agent
     let totalDuration = 0;
-    let count = 0;
+    const count = clientsArray.length;
     
-    clients.forEach(client => {
+    // Use the array of clients instead of Map iterator
+    for (const client of clientsArray) {
       const duration = now - client.sessionStartTime;
       totalDuration += duration;
-      count++;
       
       // Count by user agent
       const userAgent = client.userAgent || 'unknown';
@@ -391,7 +404,7 @@ export function setupWebSocketServer(httpServer: Server) {
         
       stats.connectionsByUserAgent[shortUserAgent] = 
         (stats.connectionsByUserAgent[shortUserAgent] || 0) + 1;
-    });
+    }
     
     stats.averageSessionDuration = count > 0
       ? Math.round(totalDuration / count / 1000) // in seconds
@@ -436,7 +449,8 @@ export function setupWebSocketServer(httpServer: Server) {
       return wss.clients.size;
     },
     getActiveUserCount: () => {
-      return new Set([...clients.values()].filter(c => c.userId).map(c => c.userId)).size;
+      const clientsArray = Array.from(clients.values());
+      return new Set(clientsArray.filter(c => c.userId).map(c => c.userId as number)).size;
     },
     getConnectionStats: () => {
       return getConnectionStats();
