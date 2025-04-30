@@ -55,12 +55,11 @@ export default function SnapshotViewerPage() {
         </BreadcrumbItem>
       </Breadcrumb>
       
-      <PageHeader className="mb-6">
-        <PageHeaderHeading>Snapshot History</PageHeaderHeading>
-        <PageHeaderDescription>
-          View and compare historical snapshots of property data over time
-        </PageHeaderDescription>
-      </PageHeader>
+      <PageHeader 
+        className="mb-6"
+        title="Snapshot History"
+        description="View and compare historical snapshots of property data over time"
+      />
       
       <SnapshotViewer 
         propertyId={params.propertyId}
