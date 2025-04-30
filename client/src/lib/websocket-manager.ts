@@ -31,13 +31,23 @@ export class WebSocketManager {
     // For Replit, we need to determine if we're in a Replit environment and use the same host
     const host = window.location.host;
     
+    // Get domain parts
+    const hostnameParts = window.location.hostname.split('.');
+    
     // Determine if we're in development or production
     const isDevelopment = process.env.NODE_ENV === 'development' ||
       window.location.hostname === 'localhost' ||
       window.location.hostname.includes('replit.dev');
     
-    // In development on Replit, WebSocket is served from the same origin
-    this.url = `${protocol}//${host}${path}`;
+    // Try to address CORS issues on Replit by using the same origin
+    if (hostnameParts.length >= 3 && hostnameParts.includes('replit')) {
+      // We're on Replit - use port 5000 explicitly to connect to the server
+      const baseHostname = window.location.hostname;
+      this.url = `${protocol}//${baseHostname}:5000${path}`;
+    } else {
+      // Use standard connection
+      this.url = `${protocol}//${host}${path}`;
+    }
     
     console.log(`WebSocket URL: ${this.url} (${isDevelopment ? 'development' : 'production'} mode)`);
   }
