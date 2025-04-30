@@ -18,17 +18,25 @@ export default function WebSocketTestPage() {
   
   // Force polling mode by default since WebSockets keep failing
   useEffect(() => {
-    // Short delay to let the component mount fully
+    // Immediately force polling mode without waiting for WebSocket failures
     const timer = setTimeout(() => {
-      realtime.forcePolling();
-      setReceivedMessages((prev) => [
-        ...prev, 
-        'Auto-switched to polling mode due to known WebSocket issues in Replit environment'
-      ]);
-    }, 1000);
+      console.log('Forcing polling mode for better reliability');
+      
+      // Force polling mode
+      try {
+        realtime.forcePolling();
+        setReceivedMessages([
+          'Auto-switched to polling mode due to known WebSocket issues in Replit environment',
+          `Current connection method: ${realtime.connectionMethod}`,
+          `Current connection status: ${realtime.connectionStatus}`
+        ]);
+      } catch (err) {
+        console.error('Error switching to polling mode:', err);
+      }
+    }, 500);
     
     return () => clearTimeout(timer);
-  }, []);
+  }, [realtime]);
   
   // Status badge colors based on connection status
   const getStatusColor = (status: string): string => {

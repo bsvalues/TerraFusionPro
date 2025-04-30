@@ -59,9 +59,21 @@ export const RealtimeProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     };
   }, [connectionMethod, connectionStatus]);
   
-  // Initial connection
+  // Initial connection with polling fallback
   useEffect(() => {
-    realtimeService.connect();
+    // Detect Replit environment to apply appropriate strategy
+    const isReplitEnv = window.location.host.includes('replit');
+    
+    if (isReplitEnv) {
+      // In Replit, start with polling directly to avoid WebSocket errors
+      console.log('Replit environment detected - using polling by default');
+      realtimeService.forcePolling();
+      setConnectionMethod('polling');
+      setConnectionStatus('polling');
+    } else {
+      // In other environments, try WebSockets first
+      realtimeService.connect();
+    }
     
     return () => {
       realtimeService.disconnect();
