@@ -16,6 +16,20 @@ export default function WebSocketTestPage() {
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [pollInterval, setPollInterval] = useState<number>(10000);
   
+  // Force polling mode by default since WebSockets keep failing
+  useEffect(() => {
+    // Short delay to let the component mount fully
+    const timer = setTimeout(() => {
+      realtime.forcePolling();
+      setReceivedMessages((prev) => [
+        ...prev, 
+        'Auto-switched to polling mode due to known WebSocket issues in Replit environment'
+      ]);
+    }, 1000);
+    
+    return () => clearTimeout(timer);
+  }, []);
+  
   // Status badge colors based on connection status
   const getStatusColor = (status: string): string => {
     switch (status) {
