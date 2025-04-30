@@ -8,14 +8,14 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
-import { Lightbulb, ArrowRight, TrendingUp, MapPin, Home, RefreshCw, FileBarChart2, Brain, AlertCircle } from 'lucide-react';
+import { Lightbulb, ArrowRight, TrendingUp, MapPin, Home, RefreshCw, FileBarChart2, Brain, AlertCircle, Loader2, Sparkles } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Mock data for demonstration
-const marketTrendData = [
+const defaultMarketTrendData = [
   { month: 'Jan', medianPrice: 285000, inventory: 214, daysOnMarket: 32 },
   { month: 'Feb', medianPrice: 290000, inventory: 195, daysOnMarket: 35 },
   { month: 'Mar', medianPrice: 298000, inventory: 223, daysOnMarket: 30 },
@@ -82,6 +82,7 @@ export default function MarketAnalysisPage() {
   const [marketInsights, setMarketInsights] = useState(defaultMarketInsights);
   const [marketAnalysisResult, setMarketAnalysisResult] = useState<MarketAnalysisResult | null>(null);
   const [selectedAIProvider, setSelectedAIProvider] = useState<'openai' | 'anthropic' | 'auto'>('auto');
+  const [marketTrendData, setMarketTrendData] = useState(defaultMarketTrendData);
   const { toast } = useToast();
   
   // Market Analysis Query - don't execute automatically, we'll trigger it manually
