@@ -7,9 +7,19 @@ export class WebSocketManager {
   private socket: WebSocket | null = null;
   private url: string;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10; // Increased to handle more reconnection attempts
-  private reconnectInterval = 3000;
+  private maxReconnectAttempts = 12; // Increased to handle more reconnection attempts
+  private baseReconnectDelay = 1000; // Start with 1 second
+  private maxReconnectDelay = 60000; // Max 60 seconds delay between attempts
+  private reconnectBackoffFactor = 1.5; // Exponential backoff multiplier
+  private reconnectJitter = 0.1; // Add randomness to prevent all clients reconnecting simultaneously
   private reconnectTimeoutId: number | null = null;
+  
+  // Heartbeat mechanism
+  private heartbeatInterval = 15000; // Send a heartbeat every 15 seconds
+  private heartbeatTimeoutId: number | null = null;
+  private lastHeartbeatResponse: number | null = null;
+  private heartbeatTimeout = 30000; // If no heartbeat response in 30 seconds, consider connection dead
+  
   private listeners: Map<string, Function[]> = new Map();
   private connectionState: 'connecting' | 'connected' | 'disconnected' | 'error' = 'disconnected';
   private intentionalDisconnect = false;
@@ -70,6 +80,9 @@ export class WebSocketManager {
         this.connectionState = 'connected';
         this.reconnectAttempts = 0;
         this.emit('connection', { status: 'connected' });
+        
+        // Start heartbeat on successful connection
+        this.startHeartbeat();
       };
       
       this.socket.onclose = (event) => {
@@ -83,13 +96,19 @@ export class WebSocketManager {
         
         // Only attempt to reconnect if not intentionally disconnected
         if (!this.intentionalDisconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
-          console.log(`Attempting to reconnect (${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})...`);
+          this.reconnectAttempts++;
+          const attemptDisplay = `${this.reconnectAttempts}/${this.maxReconnectAttempts}`;
           
-          // Use exponential backoff for reconnection
-          const delay = Math.min(30000, this.reconnectInterval * Math.pow(1.5, this.reconnectAttempts));
+          // Calculate delay with exponential backoff and jitter
+          // Calculate backoff delay using the formula: initialDelay * (backoffFactor ^ attemptCount)
+          const exponentialDelay = this.baseReconnectDelay * Math.pow(this.reconnectBackoffFactor, this.reconnectAttempts - 1);
+          // Add jitter to prevent all clients reconnecting at the same time (thundering herd)
+          const jitterFactor = 1 + (Math.random() * this.reconnectJitter * 2 - this.reconnectJitter);
+          const delay = Math.min(this.maxReconnectDelay, exponentialDelay * jitterFactor);
+          
+          console.log(`Attempting to reconnect (${attemptDisplay})... Waiting ${Math.round(delay / 1000)}s before next attempt`);
           
           this.reconnectTimeoutId = window.setTimeout(() => {
-            this.reconnectAttempts++;
             this.connect();
           }, delay);
         } else if (this.reconnectAttempts >= this.maxReconnectAttempts) {
@@ -136,10 +155,18 @@ export class WebSocketManager {
       
       // Still try to reconnect on connection creation error
       if (!this.intentionalDisconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
+        this.reconnectAttempts++;
+        
+        // Use the same backoff algorithm for consistency
+        const exponentialDelay = this.baseReconnectDelay * Math.pow(this.reconnectBackoffFactor, this.reconnectAttempts - 1);
+        const jitterFactor = 1 + (Math.random() * this.reconnectJitter * 2 - this.reconnectJitter);
+        const delay = Math.min(this.maxReconnectDelay, exponentialDelay * jitterFactor);
+        
+        console.log(`Connection creation failed. Trying again in ${Math.round(delay / 1000)}s (${this.reconnectAttempts}/${this.maxReconnectAttempts})`);
+        
         this.reconnectTimeoutId = window.setTimeout(() => {
-          this.reconnectAttempts++;
           this.connect();
-        }, this.reconnectInterval);
+        }, delay);
       }
     }
   }
