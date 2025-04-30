@@ -3,6 +3,8 @@ import { AppProvider } from './contexts/AppContext';
 import { TooltipProvider } from "./contexts/TooltipContext";
 import { Toaster } from './components/ui/toaster';
 import { AppShell } from './components/layout/app-shell';
+import { ErrorBoundary } from './components/error-boundary';
+import { WebSocketProvider } from './contexts/WebSocketContext';
 
 // Import pages
 import Home from './pages/Home';
@@ -48,45 +50,84 @@ const SketchesPageComponent = BasicSketchesPage;
 const PhotoSyncTestPageComponent = EnhancedPhotoSyncTestPage;
 const UADFormPageComponent = EnhancedUADFormPage;
 
+import { ErrorBoundary } from './components/error-boundary';
+import { WebSocketProvider } from './contexts/WebSocketContext';
+
 export default function EnhancedApp2() {
   return (
     <AppProvider>
-      <TooltipProvider>
-        <AppShell>
-          <Route path="/" component={HomeComponent} />
-          <Route path="/form" component={FormPage} />
-          <Route path="/form/:id" component={FormPage} />
-          <Route path="/comps" component={CompsPage} />
-          <Route path="/comps-search" component={CompsSearchPage} />
-          <Route path="/photos" component={PhotosPageComponent} />
-          <Route path="/photos/:reportId" component={PhotosPageComponent} />
-          <Route path="/sketches" component={SketchesPageComponent} />
-          <Route path="/sketches/:reportId" component={SketchesPageComponent} />
-          <Route path="/reports" component={ReportsPage} />
-          <Route path="/reports/:id" component={ReportsPage} />
-          <Route path="/compliance" component={CompliancePageComponent} />
-          <Route path="/compliance/:reportId" component={CompliancePageComponent} />
-          <Route path="/ai-valuation" component={AIValuationPageComponent} />
-          <Route path="/email-order" component={EmailOrderPage} />
-          <Route path="/property-data" component={PropertyDataPage} />
-          <Route path="/property/:id" component={PropertyDataPage} />
-          <Route path="/property-entry" component={PropertyEntryPage} />
-          <Route path="/property-entry/:id" component={PropertyEntryPage} />
-          <Route path="/uad-form" component={UADFormPageComponent} />
-          <Route path="/uad-form/:id" component={UADFormPageComponent} />
-          <Route path="/market-analysis" component={MarketAnalysisPage} />
-          <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
-          <Route path="/terms" component={TermsPage} />
-          <Route path="/import" component={ImportPage} />
-          <Route path="/crdt-test" component={CRDTTestPage} />
-          <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
-          <Route path="/photo-sync-test" component={PhotoSyncTestPageComponent} />
-          <Route path="/notification-test" component={NotificationTestPage} />
-          <Route path="/shared/:token" component={SharedPropertyPage} />
-          <Route path="/:rest*" component={NotFound} />
-          <Toaster />
-        </AppShell>
-      </TooltipProvider>
+      <WebSocketProvider>
+        <TooltipProvider>
+          <ErrorBoundary>
+            <AppShell>
+              <Route path="/" component={HomeComponent} />
+              <Route path="/form" component={FormPage} />
+              <Route path="/form/:id" component={FormPage} />
+              <Route path="/comps" component={CompsPage} />
+              <Route path="/comps-search" component={CompsSearchPage} />
+              <Route path="/photos" component={() => (
+                <ErrorBoundary>
+                  <PhotosPageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/photos/:reportId" component={() => (
+                <ErrorBoundary>
+                  <PhotosPageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/sketches" component={SketchesPageComponent} />
+              <Route path="/sketches/:reportId" component={SketchesPageComponent} />
+              <Route path="/reports" component={ReportsPage} />
+              <Route path="/reports/:id" component={ReportsPage} />
+              <Route path="/compliance" component={() => (
+                <ErrorBoundary>
+                  <CompliancePageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/compliance/:reportId" component={() => (
+                <ErrorBoundary>
+                  <CompliancePageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/ai-valuation" component={() => (
+                <ErrorBoundary>
+                  <AIValuationPageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/email-order" component={EmailOrderPage} />
+              <Route path="/property-data" component={PropertyDataPage} />
+              <Route path="/property/:id" component={PropertyDataPage} />
+              <Route path="/property-entry" component={PropertyEntryPage} />
+              <Route path="/property-entry/:id" component={PropertyEntryPage} />
+              <Route path="/uad-form" component={() => (
+                <ErrorBoundary>
+                  <UADFormPageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/uad-form/:id" component={() => (
+                <ErrorBoundary>
+                  <UADFormPageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/market-analysis" component={MarketAnalysisPage} />
+              <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
+              <Route path="/terms" component={TermsPage} />
+              <Route path="/import" component={ImportPage} />
+              <Route path="/crdt-test" component={CRDTTestPage} />
+              <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
+              <Route path="/photo-sync-test" component={() => (
+                <ErrorBoundary>
+                  <PhotoSyncTestPageComponent />
+                </ErrorBoundary>
+              )} />
+              <Route path="/notification-test" component={NotificationTestPage} />
+              <Route path="/shared/:token" component={SharedPropertyPage} />
+              <Route path="/:rest*" component={NotFound} />
+              <Toaster />
+            </AppShell>
+          </ErrorBoundary>
+        </TooltipProvider>
+      </WebSocketProvider>
     </AppProvider>
   );
 }
