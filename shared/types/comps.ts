@@ -1,49 +1,86 @@
 /**
- * Types for comparable property data and snapshot management
+ * Type definitions for comparable properties and snapshots
  */
 
 /**
- * Represents a snapshot of a property's data at a point in time
+ * A record of fields and their values for a comparable property
+ * This is flexible to accommodate different property types and data sources
+ */
+export interface ComparableFields {
+  [key: string]: any;
+}
+
+/**
+ * Represents a comparable property snapshot at a point in time
  */
 export interface ComparableSnapshot {
+  /**
+   * Unique identifier for the snapshot
+   */
   id: string;
+  
+  /**
+   * The property ID this snapshot belongs to
+   */
   propertyId: string;
+  
+  /**
+   * Version number of the snapshot (if applicable)
+   */
+  version?: number;
+  
+  /**
+   * Source of the snapshot (e.g., "MLS Import", "Manual Edit", "Form Push", "API Update")
+   */
   source: string;
+  
+  /**
+   * ISO string timestamp when the snapshot was created
+   */
   createdAt: string;
-  fields: Record<string, any>;
+  
+  /**
+   * Property fields and their values at this point in time
+   */
+  fields: ComparableFields;
 }
 
 /**
- * Represents an added or removed field in a snapshot comparison
+ * Request to push snapshot data to a form
  */
-export interface FieldChange {
-  field: string;
-  value: any;
-}
-
-/**
- * Represents a changed field between two snapshots
- */
-export interface FieldValueChange {
-  field: string;
-  fromValue: any;
-  toValue: any;
-}
-
-/**
- * Represents the difference between two snapshots
- */
-export interface SnapshotDifference {
-  added: FieldChange[];
-  removed: FieldChange[];
-  changed: FieldValueChange[];
-}
-
-/**
- * Maps snapshot fields to form fields
- */
-export interface FieldMapping {
-  formId: string;
+export interface PushSnapshotRequest {
+  /**
+   * ID of the snapshot to push
+   */
   snapshotId: string;
+  
+  /**
+   * ID of the form to push to
+   */
+  formId: string;
+  
+  /**
+   * Mapping of form field IDs to snapshot field names
+   */
   fieldMappings: Record<string, string>;
+}
+
+/**
+ * Response from pushing a snapshot to a form
+ */
+export interface PushSnapshotResponse {
+  /**
+   * Whether the push was successful
+   */
+  success: boolean;
+  
+  /**
+   * Optional error message if the push failed
+   */
+  error?: string;
+  
+  /**
+   * New snapshot created as a result of the push
+   */
+  newSnapshot?: ComparableSnapshot;
 }

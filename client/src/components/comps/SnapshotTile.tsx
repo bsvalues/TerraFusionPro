@@ -1,22 +1,32 @@
 /**
  * SnapshotTile Component
  * 
- * Displays a snapshot card with key information and actions
+ * Displays a single snapshot as a card with summary information
  */
 import React from 'react';
-import { ComparableSnapshot } from '@shared/types/comps';
-import { formatDistanceToNow } from 'date-fns';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
+import { ComparableSnapshot } from '../../../shared/types/comps';
+import { Card, CardContent, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Clock, Database, ExternalLink, Eye, ArrowRightLeft } from 'lucide-react';
+import { formatRelative } from 'date-fns';
+import { 
+  ArrowLeftRight, 
+  FileOutput, 
+  Home, 
+  CalendarClock,
+  Users,
+  Asterisk,
+  MapPin,
+  Hash,
+  DollarSign
+} from 'lucide-react';
 
-interface SnapshotTileProps {
+export interface SnapshotTileProps {
   snapshot: ComparableSnapshot;
-  isSelected?: boolean;
-  onSelect?: (snapshot: ComparableSnapshot) => void;
-  onCompare?: (snapshot: ComparableSnapshot) => void;
-  onPush?: (snapshot: ComparableSnapshot) => void;
+  isSelected: boolean;
+  onSelect: () => void;
+  onCompare?: () => void;
+  onPush?: () => void;
 }
 
 export function SnapshotTile({ 
@@ -24,131 +34,119 @@ export function SnapshotTile({
   isSelected, 
   onSelect, 
   onCompare, 
-  onPush
+  onPush 
 }: SnapshotTileProps) {
-  const createdAtDate = new Date(snapshot.createdAt);
-  const timeAgo = formatDistanceToNow(createdAtDate, { addSuffix: true });
+  // Format relative date
+  const formattedDate = formatRelative(
+    new Date(snapshot.createdAt),
+    new Date()
+  );
   
-  // Get count of fields in the snapshot
-  const fieldCount = Object.keys(snapshot.fields).length;
-  
-  // Get a title for the snapshot from field data if available
-  const getSnapshotTitle = () => {
-    const { address, propertyAddress } = snapshot.fields;
-    if (address) return address;
-    if (propertyAddress) return propertyAddress;
-    return `Snapshot ${snapshot.id.substring(0, 8)}`;
-  };
-  
-  // Get key metrics to display
-  const getKeyMetrics = () => {
-    const metrics = [];
+  // Get key stats from the snapshot to display
+  const getDisplayFields = (snapshot: ComparableSnapshot) => {
+    const fields = snapshot.fields;
+    const results = [];
     
-    if (snapshot.fields.salePrice) {
-      metrics.push({
+    // Check for address
+    if (fields.address) {
+      results.push({
+        label: 'Address',
+        value: fields.address,
+        icon: <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+      });
+    }
+    
+    // Check for source
+    results.push({
+      label: 'Source',
+      value: snapshot.source,
+      icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />
+    });
+    
+    // Check for price
+    if (fields.price || fields.salePrice || fields.listPrice) {
+      const price = fields.price || fields.salePrice || fields.listPrice;
+      results.push({
         label: 'Price',
-        value: new Intl.NumberFormat('en-US', {
-          style: 'currency',
-          currency: 'USD',
-          maximumFractionDigits: 0
-        }).format(snapshot.fields.salePrice)
+        value: typeof price === 'number' 
+          ? `$${price.toLocaleString()}` 
+          : `$${price}`,
+        icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
       });
     }
     
-    if (snapshot.fields.gla || snapshot.fields.grossLivingArea) {
-      metrics.push({
-        label: 'GLA',
-        value: `${snapshot.fields.gla || snapshot.fields.grossLivingArea} SF`
-      });
-    }
+    // Check for ID 
+    results.push({
+      label: 'ID',
+      value: snapshot.id,
+      icon: <Hash className="h-3.5 w-3.5 text-muted-foreground" />
+    });
     
-    if (snapshot.fields.bedrooms) {
-      metrics.push({
-        label: 'Beds',
-        value: snapshot.fields.bedrooms
-      });
-    }
+    // Calculate total fields
+    results.push({
+      label: 'Fields',
+      value: Object.keys(fields).length,
+      icon: <Asterisk className="h-3.5 w-3.5 text-muted-foreground" />
+    });
     
-    if (snapshot.fields.bathrooms) {
-      metrics.push({
-        label: 'Baths',
-        value: snapshot.fields.bathrooms
-      });
-    }
-    
-    return metrics;
+    return results;
   };
+  
+  const displayFields = getDisplayFields(snapshot);
   
   return (
-    <Card className={`w-full transition-all ${isSelected ? 'ring-2 ring-primary' : ''}`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <CardTitle className="text-lg font-medium truncate" title={getSnapshotTitle()}>
-            {getSnapshotTitle()}
-          </CardTitle>
-          <Badge variant={isSelected ? "default" : "outline"}>
-            {snapshot.source}
+    <Card 
+      className={`
+        overflow-hidden transition-all
+        ${isSelected ? 'ring-2 ring-primary' : 'hover:shadow-md'}
+        cursor-pointer
+      `}
+      onClick={onSelect}
+    >
+      <div className="p-3">
+        <div className="flex items-center justify-between mb-2">
+          <Badge variant={isSelected ? "default" : "outline"} className="h-5 text-xs">
+            {snapshot.version ? `v${snapshot.version}` : "Snapshot"}
           </Badge>
-        </div>
-        <CardDescription className="flex items-center mt-1">
-          <Clock className="h-3 w-3 mr-1" />
-          {timeAgo}
-        </CardDescription>
-      </CardHeader>
-      
-      <CardContent>
-        <div className="flex flex-wrap gap-3 mt-1">
-          {getKeyMetrics().map((metric, index) => (
-            <div key={index} className="flex flex-col">
-              <span className="text-sm text-muted-foreground">{metric.label}</span>
-              <span className="font-medium">{metric.value}</span>
-            </div>
-          ))}
-          
-          <div className="flex flex-col">
-            <span className="text-sm text-muted-foreground">Fields</span>
-            <span className="font-medium flex items-center">
-              <Database className="h-3 w-3 mr-1" />
-              {fieldCount}
-            </span>
+          <div className="flex items-center text-xs text-muted-foreground">
+            <CalendarClock className="h-3 w-3 mr-1" />
+            {formattedDate}
           </div>
         </div>
-      </CardContent>
-      
-      <CardFooter className="pt-1 flex justify-between">
-        <Button 
-          variant="ghost" 
-          size="sm" 
-          onClick={() => onSelect?.(snapshot)}
-          className={isSelected ? 'bg-secondary/50' : ''}
-        >
-          <Eye className="h-4 w-4 mr-1" />
-          {isSelected ? 'Selected' : 'View'}
-        </Button>
         
-        <div className="flex gap-1">
-          {onCompare && (
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={() => onCompare(snapshot)}
-            >
-              <ArrowRightLeft className="h-4 w-4 mr-1" />
-              Compare
-            </Button>
-          )}
-          
-          {onPush && (
-            <Button 
-              variant="default" 
-              size="sm"
-              onClick={() => onPush(snapshot)}
-            >
-              <ExternalLink className="h-4 w-4 mr-1" />
-              Push to Form
-            </Button>
-          )}
+        <div className="space-y-2">
+          {displayFields.map((field, index) => (
+            <div key={index} className="flex items-start gap-2 text-sm">
+              {field.icon}
+              <div className="flex-1 min-w-0">
+                <p className="text-xs text-muted-foreground">{field.label}</p>
+                <p className="font-medium truncate">{field.value}</p>
+              </div>
+            </div>
+          ))}
         </div>
+      </div>
+      
+      <CardFooter className="flex justify-between p-2 border-t bg-muted/30">
+        {onCompare && (
+          <Button variant="ghost" size="sm" onClick={(e) => {
+            e.stopPropagation();
+            onCompare();
+          }}>
+            <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">Compare</span>
+          </Button>
+        )}
+        
+        {onPush && (
+          <Button variant="ghost" size="sm" onClick={(e) => {
+            e.stopPropagation();
+            onPush();
+          }}>
+            <FileOutput className="h-3.5 w-3.5 mr-1" />
+            <span className="text-xs">Push</span>
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );

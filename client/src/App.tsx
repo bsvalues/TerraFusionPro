@@ -17,6 +17,7 @@ import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import ImportPage from "./pages/ImportPage";
 import NotFound from "./pages/not-found";
 import SharedPropertyPage from "./pages/SharedPropertyPage";
+import SnapshotViewerPage from "./pages/SnapshotViewerPage";
 import { TooltipProvider } from "./contexts/TooltipContext";
 import TermsPage from "./pages/TermsPage";
 import CRDTTestPage from "./pages/CRDTTestPage";
@@ -95,6 +96,8 @@ function App() {
           <Route path="/ai-analysis" component={MarketAnalysisPage} />
           <Route path="/settings" component={SettingsPage} />
           <Route path="/help" component={HelpSupportPage} />
+          <Route path="/snapshots" component={SnapshotViewerPage} />
+          <Route path="/snapshots/:propertyId" component={SnapshotViewerPage} />
           <Route path="/:rest*" component={NotFound} />
         </AppShell>
       </TooltipProvider>

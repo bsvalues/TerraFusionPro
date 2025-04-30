@@ -53,3 +53,13 @@ export async function apiRequest<T = any>(
   
   return response.json();
 }
+
+/**
+ * Get a query function for use with useQuery
+ * Simplifies creating consistent query functions
+ */
+export function getQueryFn<T = any>(url: string, options: ApiRequestOptions = {}): () => Promise<T> {
+  return async () => {
+    return apiRequest<T>(url, options);
+  };
+}

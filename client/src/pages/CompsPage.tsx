@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useLocation } from 'wouter';
 
 // Sample report data for demonstration
 const sampleReports = [
@@ -16,6 +17,7 @@ const sampleComparables = [
 
 export default function CompsPage() {
   console.log("CompsPage rendering");
+  const [, setLocation] = useLocation();
   const [selectedReport, setSelectedReport] = useState<number | null>(1);
   const [comparables, setComparables] = useState(sampleComparables);
   
@@ -97,12 +99,40 @@ export default function CompsPage() {
           borderRadius: '0.5rem',
           border: '1px solid #bae6fd'
         }}>
-          <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
-            Report: {selectedReportDetails.propertyAddress}
-          </h2>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+            <h2 style={{ fontSize: '1.25rem', fontWeight: 'bold', marginBottom: '0.5rem' }}>
+              Report: {selectedReportDetails.propertyAddress}
+            </h2>
+            <div>
+              <button 
+                onClick={() => setLocation(`/snapshots/${selectedReportDetails.propertyId}`)}
+                style={{
+                  padding: '0.4rem 0.8rem',
+                  backgroundColor: '#0ea5e9',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '0.25rem',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.3rem'
+                }}
+              >
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <polyline points="12 6 12 12 16 14"></polyline>
+                </svg>
+                View Snapshot History
+              </button>
+            </div>
+          </div>
           <div style={{ color: '#4b5563' }}>
             <div>Status: <span style={{ fontWeight: '500' }}>{selectedReportDetails.status}</span></div>
             <div>Last edited: <span style={{ fontWeight: '500' }}>{selectedReportDetails.lastEdited}</span></div>
+            <div style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: '#6b7280' }}>
+              Property ID: {selectedReportDetails.propertyId}
+            </div>
           </div>
         </div>
       )}
@@ -136,6 +166,27 @@ export default function CompsPage() {
                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>{comp.bedrooms}/{comp.bathrooms}</td>
                   <td style={{ padding: '0.75rem', textAlign: 'center' }}>
                     <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'center' }}>
+                      <button 
+                        onClick={() => setLocation(`/snapshots/${selectedReportDetails?.propertyId}`)}
+                        style={{ 
+                          padding: '0.375rem 0.75rem', 
+                          backgroundColor: '#e0f2fe', 
+                          color: '#0284c7', 
+                          border: '1px solid #bae6fd', 
+                          borderRadius: '0.25rem',
+                          cursor: 'pointer',
+                          fontSize: '0.75rem',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.3rem'
+                        }}
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="10"></circle>
+                          <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        History
+                      </button>
                       <button style={{ 
                         padding: '0.375rem 0.75rem', 
                         backgroundColor: '#f3f4f6', 
