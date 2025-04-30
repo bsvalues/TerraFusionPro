@@ -30,6 +30,7 @@ import MarketAnalysisPage from "./pages/MarketAnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
 import HelpSupportPage from "./pages/HelpSupportPage";
 import { AppProvider } from "./contexts/AppContext";
+import { PerformanceProvider } from "./contexts/PerformanceContext";
 import { AppShell } from "./components/layout/app-shell";
 import { useState, useEffect } from "react";
 
@@ -62,10 +63,11 @@ function App() {
   }
 
   return (
-    <AppProvider>
-      <TooltipProvider>
-        <AppShell>
-          {/* Explicit routes first */}
+    <PerformanceProvider>
+      <AppProvider>
+        <TooltipProvider>
+          <AppShell>
+            {/* Explicit routes first */}
           <Route path="/" component={EnhancedHome} />
           <Route path="/form" component={FormPage} />
           <Route path="/comps" component={CompsPage} />
@@ -98,10 +100,22 @@ function App() {
           <Route path="/help" component={HelpSupportPage} />
           <Route path="/snapshots" component={SnapshotViewerPage} />
           <Route path="/snapshots/:propertyId" component={SnapshotViewerPage} />
+          <Route path="/debug/performance">
+            {() => {
+              // Only import PerformanceDebugger in development
+              const { PerformanceDebugger } = require('./components/dev/PerformanceDebugger');
+              return (
+                <div className="container mx-auto p-6 flex justify-center">
+                  <PerformanceDebugger />
+                </div>
+              );
+            }}
+          </Route>
           <Route path="/:rest*" component={NotFound} />
         </AppShell>
       </TooltipProvider>
     </AppProvider>
+  </PerformanceProvider>
   );
 }
 

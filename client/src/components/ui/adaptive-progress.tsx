@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { usePerformance } from '@/contexts/PerformanceContext';
 
@@ -39,80 +39,76 @@ export function AdaptiveProgress({
   showPerformanceText = false
 }: AdaptiveProgressProps) {
   const { performance } = usePerformance();
-  const [animation, setAnimation] = useState('default');
   const [message, setMessage] = useState<string | null>(null);
   const [estimatedTime, setEstimatedTime] = useState<string | null>(null);
-
-  // Calculate clamped value
-  const clampedValue = Math.max(0, Math.min(100, value));
-
-  // Update animation and messaging based on performance
+  
+  // Clamp value between 0-100
+  const clampedValue = Math.min(100, Math.max(0, value));
+  
+  // Animation speed based on performance
+  const animation = adaptive 
+    ? performance.overallPerformance 
+    : 'default';
+  
+  // Update messages based on performance
   useEffect(() => {
-    if (!adaptive) {
-      setAnimation('default');
+    if (!adaptive || !showPerformanceText) {
       setMessage(null);
       setEstimatedTime(null);
       return;
     }
-
-    // Set animation class based on performance
-    switch (performance.overallPerformance) {
-      case 'low':
-        setAnimation('slow');
-        setMessage('Processing may take longer than expected.');
-        break;
-      case 'medium':
-        setAnimation('medium');
-        setMessage('Processing your request...');
-        break;
-      case 'high':
-        setAnimation('fast');
-        setMessage(null);
-        break;
-      default:
-        setAnimation('medium');
-        setMessage(null);
+    
+    const { overallPerformance } = performance;
+    
+    // Set appropriate message based on performance level
+    if (overallPerformance === 'low') {
+      setMessage('System is busy, operation may take longer than usual');
+    } else if (overallPerformance === 'medium') {
+      setMessage('Processing your request...');
+    } else {
+      setMessage('Processing at optimal speed');
     }
-
-    // Calculate estimated time remaining
+    
+    // Set estimated time if determinate progress
     if (!indeterminate && value > 0 && value < 100) {
-      const baseTimePerPercent = 0.2; // 0.2 seconds per 1% in optimal conditions
+      // Calculate estimated time based on current progress and performance
+      const speedFactor = overallPerformance === 'low' 
+        ? 3 
+        : overallPerformance === 'medium' 
+          ? 2 
+          : 1;
+          
       const remainingPercent = 100 - value;
+      const timePerPercent = 0.1 * speedFactor; // seconds per percent
+      const remainingSeconds = Math.round(remainingPercent * timePerPercent);
       
-      let multiplier = 1;
-      if (performance.overallPerformance === 'low') multiplier = 3;
-      if (performance.overallPerformance === 'medium') multiplier = 1.5;
-      
-      const estimatedSeconds = Math.round(remainingPercent * baseTimePerPercent * multiplier);
-      
-      if (estimatedSeconds < 60) {
-        setEstimatedTime(`about ${estimatedSeconds} seconds remaining`);
+      if (remainingSeconds < 60) {
+        setEstimatedTime(`Estimated time remaining: about ${remainingSeconds} seconds`);
       } else {
-        const minutes = Math.floor(estimatedSeconds / 60);
-        const seconds = estimatedSeconds % 60;
-        setEstimatedTime(`about ${minutes} min${minutes > 1 ? 's' : ''} ${seconds > 0 ? `${seconds} sec` : ''} remaining`);
+        const minutes = Math.floor(remainingSeconds / 60);
+        setEstimatedTime(`Estimated time remaining: about ${minutes} ${minutes === 1 ? 'minute' : 'minutes'}`);
       }
     } else {
       setEstimatedTime(null);
     }
   }, [adaptive, performance.overallPerformance, indeterminate, value]);
-
+  
   // Animation class based on performance
-  const animationClass = indeterminate ? {
-    slow: 'animate-progress-bar-slow',
-    medium: 'animate-progress-bar-medium',
-    fast: 'animate-progress-bar-fast',
-    default: 'animate-progress-bar-medium'
+  const animationClass: Record<string, string> = indeterminate ? {
+    slow: 'animate-progress-indeterminate-slow',
+    medium: 'animate-progress-indeterminate-medium',
+    fast: 'animate-progress-indeterminate-fast',
+    default: 'animate-progress-indeterminate-medium'
   } : {};
-
+  
   // Performance-based background colors
-  const performanceColors = {
+  const performanceColors: Record<string, string> = {
     low: 'bg-amber-500',
     medium: 'bg-blue-500',
     high: 'bg-green-500',
     default: 'bg-primary'
   };
-
+  
   return (
     <div className="w-full space-y-2">
       <div className="w-full bg-gray-200 rounded-full h-2.5 dark:bg-gray-700 overflow-hidden">

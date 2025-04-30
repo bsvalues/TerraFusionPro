@@ -100,6 +100,32 @@ export default {
             width: "100%",
           },
         },
+        "progress-indeterminate": {
+          "0%": {
+            left: "-40%",
+          },
+          "100%": {
+            left: "100%",
+          },
+        },
+        "breathe": {
+          "0%, 100%": {
+            transform: "scale(0.85)",
+            opacity: "0.8",
+          },
+          "50%": {
+            transform: "scale(1)",
+            opacity: "1",
+          },
+        },
+        "shimmer": {
+          "0%": {
+            backgroundPosition: "-200% 0",
+          },
+          "100%": {
+            backgroundPosition: "200% 0",
+          },
+        },
       },
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
@@ -111,6 +137,15 @@ export default {
         "progress-bar-slow": "progress-bar 3s ease-in-out",
         "progress-bar-medium": "progress-bar 1.5s ease-in-out",
         "progress-bar-fast": "progress-bar 0.8s ease-in-out",
+        "progress-indeterminate-slow": "progress-indeterminate 3s ease-in-out infinite",
+        "progress-indeterminate-medium": "progress-indeterminate 2s ease-in-out infinite",
+        "progress-indeterminate-fast": "progress-indeterminate 1s ease-in-out infinite",
+        "breathe-slow": "breathe 4s ease-in-out infinite",
+        "breathe-medium": "breathe 2s ease-in-out infinite",
+        "breathe-fast": "breathe 1.5s ease-in-out infinite",
+        "shimmer-slow": "shimmer 5s infinite linear",
+        "shimmer-medium": "shimmer 3s infinite linear",
+        "shimmer-fast": "shimmer 2s infinite linear"
       },
     },
   },

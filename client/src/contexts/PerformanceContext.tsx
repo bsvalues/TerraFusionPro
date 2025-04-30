@@ -1,77 +1,139 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { 
-  performanceMonitor, 
-  type PerformanceData 
-} from '@/lib/performance-monitor';
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { monitorPerformance, PerformanceMetrics } from '@/lib/performance-monitor';
 
-interface PerformanceContextType {
-  performance: PerformanceData;
+// Performance level types
+export type PerformanceLevel = 'low' | 'medium' | 'high';
+
+// Performance context interface
+interface PerformanceContextValue {
+  performance: PerformanceMetrics & {
+    overallPerformance: PerformanceLevel;
+    lastUpdated: Date;
+  };
+  isMonitoring: boolean;
+  startMonitoring: () => void;
+  stopMonitoring: () => void;
 }
 
-const PerformanceContext = createContext<PerformanceContextType>({
-  performance: {
-    networkLatency: 0,
-    cpuLoad: 0,
-    memoryUsage: 0,
-    overallPerformance: 'high',
-    lastUpdated: new Date()
-  }
+// Default performance values
+const defaultPerformance: PerformanceMetrics & {
+  overallPerformance: PerformanceLevel;
+  lastUpdated: Date;
+} = {
+  networkLatency: 100,
+  cpuLoad: 0.3,
+  memoryUsage: 0.5,
+  frameRate: 60,
+  renderTime: 16,
+  overallPerformance: 'medium',
+  lastUpdated: new Date()
+};
+
+// Create context with default values
+const PerformanceContext = createContext<PerformanceContextValue>({
+  performance: defaultPerformance,
+  isMonitoring: false,
+  startMonitoring: () => {},
+  stopMonitoring: () => {}
 });
 
-export function PerformanceProvider({ children }: { children: React.ReactNode }) {
-  const [performanceData, setPerformanceData] = useState<PerformanceData>(
-    performanceMonitor.getPerformanceData()
-  );
+// Hook for using the performance context
+export const usePerformance = () => useContext(PerformanceContext);
+
+/**
+ * Performance provider component that monitors system performance
+ * and provides metrics to child components
+ */
+export const PerformanceProvider: React.FC<{ children: React.ReactNode }> = ({
+  children
+}) => {
+  const [performance, setPerformance] = useState<PerformanceMetrics & {
+    overallPerformance: PerformanceLevel;
+    lastUpdated: Date;
+  }>(defaultPerformance);
+  const [isMonitoring, setIsMonitoring] = useState(false);
+  const [intervalId, setIntervalId] = useState<NodeJS.Timeout | null>(null);
   
-  useEffect(() => {
-    // Subscribe to performance updates
-    const unsubscribe = performanceMonitor.subscribe(data => {
-      setPerformanceData(data);
-    });
+  // Calculate overall performance based on metrics
+  const calculateOverallPerformance = (metrics: PerformanceMetrics): PerformanceLevel => {
+    const { networkLatency, cpuLoad, memoryUsage, frameRate } = metrics;
     
-    // Add API latency tracking to fetch requests
-    const originalFetch = window.fetch;
+    // Count how many metrics indicate low performance
+    let lowCount = 0;
+    let highCount = 0;
     
-    window.fetch = async function(input, init) {
-      const startTime = performance.now();
+    // Network latency: high > 300ms, low < 100ms
+    if (networkLatency > 300) lowCount++;
+    else if (networkLatency < 100) highCount++;
+    
+    // CPU load: high > 0.7, low < 0.3
+    if (cpuLoad > 0.7) lowCount++;
+    else if (cpuLoad < 0.3) highCount++;
+    
+    // Memory usage: high > 0.8, low < 0.4
+    if (memoryUsage > 0.8) lowCount++;
+    else if (memoryUsage < 0.4) highCount++;
+    
+    // Frame rate: high < 30, low > 55
+    if (frameRate < 30) lowCount++;
+    else if (frameRate > 55) highCount++;
+    
+    // Determine overall performance level
+    if (lowCount >= 2) return 'low';
+    if (highCount >= 2) return 'high';
+    return 'medium';
+  };
+  
+  // Start performance monitoring
+  const startMonitoring = () => {
+    if (isMonitoring) return;
+    
+    setIsMonitoring(true);
+    
+    // Monitor performance every 2 seconds
+    const id = setInterval(() => {
+      const metrics = monitorPerformance();
+      const overallPerformance = calculateOverallPerformance(metrics);
       
-      try {
-        const response = await originalFetch.apply(window, [input, init]);
-        const endTime = performance.now();
-        
-        // Record latency for API requests
-        if (typeof input === 'string' && input.startsWith('/api/')) {
-          const latency = endTime - startTime;
-          performanceMonitor.recordApiLatency(latency);
-        }
-        
-        return response;
-      } catch (error) {
-        const endTime = performance.now();
-        
-        // Record latency for failed requests too
-        if (typeof input === 'string' && input.startsWith('/api/')) {
-          const latency = endTime - startTime;
-          performanceMonitor.recordApiLatency(latency);
-        }
-        
-        throw error;
-      }
-    };
+      setPerformance({
+        ...metrics,
+        overallPerformance,
+        lastUpdated: new Date()
+      });
+    }, 2000);
+    
+    setIntervalId(id);
+  };
+  
+  // Stop performance monitoring
+  const stopMonitoring = () => {
+    if (intervalId) {
+      clearInterval(intervalId);
+      setIntervalId(null);
+    }
+    
+    setIsMonitoring(false);
+  };
+  
+  // Start monitoring on mount, stop on unmount
+  useEffect(() => {
+    startMonitoring();
     
     return () => {
-      unsubscribe();
-      
-      // Restore original fetch
-      window.fetch = originalFetch;
+      stopMonitoring();
     };
   }, []);
   
   return (
-    <PerformanceContext.Provider value={{ performance: performanceData }}>
+    <PerformanceContext.Provider
+      value={{
+        performance,
+        isMonitoring,
+        startMonitoring,
+        stopMonitoring
+      }}
+    >
       {children}
     </PerformanceContext.Provider>
   );
-}
-
-export const usePerformance = () => useContext(PerformanceContext);
+};

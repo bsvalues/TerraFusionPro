@@ -1,196 +1,168 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { usePerformance } from '@/contexts/PerformanceContext';
-import { 
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
 import { AdaptiveSpinner } from '@/components/ui/adaptive-spinner';
 import { AdaptiveProgress } from '@/components/ui/adaptive-progress';
-import { 
-  Cpu, 
-  Network, 
-  HardDrive, 
-  BarChart, 
-  RefreshCw 
-} from 'lucide-react';
-import { Button } from '@/components/ui/button';
 
 /**
- * Performance Debugger Component
- * Shows current performance metrics and allows developers
- * to test different loading states
+ * Development component for testing and debugging performance-adaptive UI components
+ * Use this component to visualize how UI components respond to different performance levels
  */
 export function PerformanceDebugger() {
   const { performance } = usePerformance();
-  const [testProgress, setTestProgress] = React.useState(0);
-  const [isRunningTest, setIsRunningTest] = React.useState(false);
+  const [simulatedProgress, setSimulatedProgress] = useState(0);
+  const [isIncrementing, setIsIncrementing] = useState(false);
   
-  // Run a simulated progress operation
-  const startProgressTest = () => {
-    setIsRunningTest(true);
-    setTestProgress(0);
+  // Increase progress by 1% every 100ms when simulating progress
+  useEffect(() => {
+    if (!isIncrementing) return;
     
-    const interval = setInterval(() => {
-      setTestProgress(prev => {
-        const newValue = prev + Math.random() * 3;
-        
-        if (newValue >= 100) {
-          clearInterval(interval);
-          setIsRunningTest(false);
+    const timer = setInterval(() => {
+      setSimulatedProgress(prev => {
+        if (prev >= 100) {
+          setIsIncrementing(false);
           return 100;
         }
-        
-        return newValue;
+        return prev + 1;
       });
-    }, 200);
+    }, 100);
+    
+    return () => clearInterval(timer);
+  }, [isIncrementing]);
+  
+  // Start progress simulation
+  const startProgress = () => {
+    setSimulatedProgress(0);
+    setIsIncrementing(true);
   };
   
-  // Function to get color class based on performance level
-  const getPerformanceColorClass = (level: string) => {
-    switch (level) {
-      case 'low':
-        return 'text-amber-500';
-      case 'medium':
-        return 'text-blue-500';
-      case 'high':
-        return 'text-green-500';
-      default:
-        return 'text-gray-500';
-    }
+  // Reset progress simulation
+  const resetProgress = () => {
+    setSimulatedProgress(0);
+    setIsIncrementing(false);
+  };
+  
+  // Get human-readable performance level from value
+  const formatPerformanceValue = (value: number): string => {
+    if (value < 0.3) return 'Excellent';
+    if (value < 0.6) return 'Good';
+    if (value < 0.8) return 'Fair';
+    return 'Poor';
   };
   
   return (
-    <Card className="w-full max-w-md shadow-md">
-      <CardHeader>
-        <CardTitle className="flex items-center">
-          <BarChart className="mr-2 h-5 w-5" />
-          Performance Monitor
-        </CardTitle>
-        <CardDescription>
-          Debug system performance metrics and test adaptive loading animations
-        </CardDescription>
-      </CardHeader>
+    <div className="p-4 border rounded-lg bg-gray-50 dark:bg-gray-900 shadow-sm">
+      <div className="flex justify-between items-center mb-4">
+        <h2 className="text-lg font-semibold">Performance Monitor Debug Panel</h2>
+        <div className="text-xs text-gray-500">
+          Last Updated: {performance.lastUpdated.toLocaleTimeString()}
+        </div>
+      </div>
       
-      <CardContent className="space-y-4">
-        <div className="bg-gray-50 rounded-md p-3 space-y-3">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {/* Performance metrics section */}
+        <div className="space-y-2">
           <h3 className="text-sm font-medium">Current Performance Metrics</h3>
           
-          <div className="grid grid-cols-2 gap-3">
-            <div className="flex items-center">
-              <Network className="h-4 w-4 mr-2 text-gray-500" />
-              <span className="text-sm mr-1">Network:</span>
-              <span className={`text-sm font-semibold ${getPerformanceColorClass(performance.networkLatency > 300 ? 'low' : performance.networkLatency < 100 ? 'high' : 'medium')}`}>
-                {Math.round(performance.networkLatency)}ms
-              </span>
+          <div className="text-xs space-y-1">
+            <div className="flex justify-between">
+              <span>Network Latency:</span>
+              <span>{Math.round(performance.networkLatency)}ms</span>
             </div>
             
-            <div className="flex items-center">
-              <Cpu className="h-4 w-4 mr-2 text-gray-500" />
-              <span className="text-sm mr-1">CPU:</span>
-              <span className={`text-sm font-semibold ${getPerformanceColorClass(performance.cpuLoad > 0.7 ? 'low' : performance.cpuLoad < 0.3 ? 'high' : 'medium')}`}>
-                {Math.round(performance.cpuLoad * 100)}%
-              </span>
+            <div className="flex justify-between">
+              <span>CPU Load:</span>
+              <span>{(performance.cpuLoad * 100).toFixed(0)}% ({formatPerformanceValue(performance.cpuLoad)})</span>
             </div>
             
-            <div className="flex items-center">
-              <HardDrive className="h-4 w-4 mr-2 text-gray-500" />
-              <span className="text-sm mr-1">Memory:</span>
-              <span className={`text-sm font-semibold ${getPerformanceColorClass(performance.memoryUsage > 0.8 ? 'low' : performance.memoryUsage < 0.4 ? 'high' : 'medium')}`}>
-                {Math.round(performance.memoryUsage * 100)}%
-              </span>
+            <div className="flex justify-between">
+              <span>Memory Usage:</span>
+              <span>{(performance.memoryUsage * 100).toFixed(0)}% ({formatPerformanceValue(performance.memoryUsage)})</span>
             </div>
             
-            <div className="flex items-center">
-              <BarChart className="h-4 w-4 mr-2 text-gray-500" />
-              <span className="text-sm mr-1">Overall:</span>
-              <span className={`text-sm font-semibold ${getPerformanceColorClass(performance.overallPerformance)}`}>
-                {performance.overallPerformance.charAt(0).toUpperCase() + performance.overallPerformance.slice(1)}
-              </span>
-            </div>
-          </div>
-          
-          <div className="text-xs text-gray-500">
-            Last updated: {performance.lastUpdated.toLocaleTimeString()}
-          </div>
-        </div>
-        
-        <div className="border-t pt-4">
-          <h3 className="text-sm font-medium mb-3">Adaptive Loading Examples</h3>
-          
-          <div className="space-y-5">
-            <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-2">Spinner</h4>
-              <div className="flex justify-around">
-                <div className="flex flex-col items-center">
-                  <span className="text-xs mb-1">Small</span>
-                  <AdaptiveSpinner size="sm" />
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs mb-1">Medium</span>
-                  <AdaptiveSpinner size="md" />
-                </div>
-                <div className="flex flex-col items-center">
-                  <span className="text-xs mb-1">Large</span>
-                  <AdaptiveSpinner size="lg" />
-                </div>
-              </div>
+            <div className="flex justify-between">
+              <span>Frame Rate:</span>
+              <span>{Math.round(performance.frameRate)} FPS</span>
             </div>
             
-            <div>
-              <h4 className="text-xs font-medium text-gray-500 mb-2">Progress Bars</h4>
-              
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs mb-1">Indeterminate</p>
-                  <AdaptiveProgress 
-                    indeterminate 
-                    showPerformanceText
-                  />
-                </div>
-                
-                <div>
-                  <p className="text-xs mb-1">
-                    Determinate 
-                    {isRunningTest 
-                      ? ` (${Math.round(testProgress)}%)`
-                      : ''}
-                  </p>
-                  <AdaptiveProgress 
-                    value={testProgress} 
-                    showPerformanceText
-                  />
-                </div>
-              </div>
+            <div className="flex justify-between">
+              <span>Render Time:</span>
+              <span>{Math.round(performance.renderTime)}ms</span>
+            </div>
+            
+            <div className="flex justify-between font-semibold">
+              <span>Overall Performance:</span>
+              <span className={
+                performance.overallPerformance === 'low' 
+                  ? 'text-red-500' 
+                  : performance.overallPerformance === 'medium'
+                    ? 'text-amber-500'
+                    : 'text-green-500'
+              }>
+                {performance.overallPerformance === 'high' 
+                  ? 'High' 
+                  : performance.overallPerformance === 'medium'
+                    ? 'Medium'
+                    : 'Low'}
+              </span>
             </div>
           </div>
         </div>
-      </CardContent>
-      
-      <CardFooter className="flex justify-between border-t pt-4">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => {
-            window.location.reload();
-          }}
-        >
-          <RefreshCw className="h-4 w-4 mr-2" />
-          Refresh Metrics
-        </Button>
         
-        <Button
-          variant="default"
-          size="sm"
-          onClick={startProgressTest}
-          disabled={isRunningTest}
-        >
-          {isRunningTest ? 'Testing...' : 'Test Progress Bar'}
-        </Button>
-      </CardFooter>
-    </Card>
+        {/* Component preview section */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-medium">Adaptive Component Preview</h3>
+          
+          <div className="p-3 border rounded-md bg-white dark:bg-gray-800">
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">AdaptiveSpinner with performance text:</span>
+            </div>
+            <AdaptiveSpinner 
+              size="md" 
+              loadingText="Loading data..." 
+              showPerformanceText={true}
+            />
+          </div>
+          
+          <div className="p-3 border rounded-md bg-white dark:bg-gray-800">
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">AdaptiveProgress (determinate):</span>
+            </div>
+            <AdaptiveProgress 
+              value={simulatedProgress} 
+              showPercentage={true}
+              loadingText="Processing request" 
+              showPerformanceText={true}
+            />
+            
+            <div className="flex gap-2 mt-2">
+              <button 
+                onClick={startProgress}
+                disabled={isIncrementing}
+                className="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 disabled:opacity-50"
+              >
+                Simulate Progress
+              </button>
+              <button 
+                onClick={resetProgress}
+                className="px-2 py-1 text-xs bg-gray-500 text-white rounded hover:bg-gray-600"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+          
+          <div className="p-3 border rounded-md bg-white dark:bg-gray-800">
+            <div className="mb-2">
+              <span className="text-xs text-gray-500">AdaptiveProgress (indeterminate):</span>
+            </div>
+            <AdaptiveProgress 
+              indeterminate={true} 
+              loadingText="Loading..."
+              showPerformanceText={true}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   );
 }

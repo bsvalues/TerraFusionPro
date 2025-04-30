@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { cn } from '@/lib/utils';
 import { usePerformance } from '@/contexts/PerformanceContext';
 
@@ -31,80 +31,76 @@ export function AdaptiveSpinner({
   showPerformanceText = false
 }: SpinnerProps) {
   const { performance } = usePerformance();
-  const [animation, setAnimation] = useState('default');
   const [message, setMessage] = useState<string | null>(null);
-
-  // Define size classes
+  
+  // Size classes
   const sizeClasses = {
-    sm: 'h-4 w-4 border-2',
-    md: 'h-8 w-8 border-3',
-    lg: 'h-12 w-12 border-4',
-    xl: 'h-16 w-16 border-4'
+    sm: 'h-4 w-4',
+    md: 'h-8 w-8',
+    lg: 'h-12 w-12',
+    xl: 'h-16 w-16'
   };
-
-  // Update animation based on performance
+  
+  // Update performance message
   useEffect(() => {
-    if (!adaptive) {
-      setAnimation('default');
+    if (!adaptive || !showPerformanceText) {
       setMessage(null);
       return;
     }
-
-    switch (performance.overallPerformance) {
-      case 'low':
-        setAnimation('slow');
-        setMessage('System performance is currently degraded. This might take longer than usual.');
-        break;
-      case 'medium':
-        setAnimation('medium');
-        setMessage('Processing your request...');
-        break;
-      case 'high':
-        setAnimation('fast');
-        setMessage(null);
-        break;
-      default:
-        setAnimation('default');
-        setMessage(null);
+    
+    const { overallPerformance } = performance;
+    
+    // Set appropriate message based on performance level
+    if (overallPerformance === 'low') {
+      setMessage('System is busy, operation may take longer than usual');
+    } else if (overallPerformance === 'medium') {
+      setMessage('Processing your request...');
+    } else {
+      setMessage('Processing your request, should be quick');
     }
-  }, [adaptive, performance.overallPerformance]);
-
-  // Animation duration based on performance
-  const animationDuration = {
-    slow: 'animate-spin-slow',
+  }, [adaptive, performance.overallPerformance, showPerformanceText]);
+  
+  // Animation speed based on performance
+  const animation = adaptive 
+    ? performance.overallPerformance 
+    : 'default';
+  
+  // Animation classes
+  const animationClass: Record<string, string> = {
+    low: 'animate-spin-slow',
     medium: 'animate-spin',
-    fast: 'animate-spin-fast',
+    high: 'animate-spin-fast',
     default: 'animate-spin'
   };
-
-  // Border styles for performance
-  const performanceStyles = {
-    low: 'border-amber-500 border-l-amber-200',
-    medium: 'border-blue-500 border-l-blue-200',
-    high: 'border-green-500 border-l-green-200',
-    default: 'border-primary border-l-transparent'
+  
+  // Determine additional animation effects based on performance
+  const additionalEffects: Record<string, string> = {
+    low: 'opacity-70',
+    medium: '',
+    high: '',
+    default: ''
   };
-
+  
   return (
-    <div className="flex flex-col items-center justify-center space-y-2">
+    <div className="flex flex-col items-center gap-2">
       <div
         className={cn(
-          'rounded-full',
+          'text-primary relative rounded-full border-2 border-solid border-primary border-t-transparent',
           sizeClasses[size],
-          animationDuration[animation],
-          adaptive 
-            ? performanceStyles[performance.overallPerformance] 
-            : performanceStyles.default,
+          animationClass[animation],
+          additionalEffects[performance.overallPerformance],
           className
         )}
       />
       
       {loadingText && (
-        <div className="text-sm text-gray-600 mt-2">{loadingText}</div>
+        <div className="text-sm text-gray-600">
+          {loadingText}
+        </div>
       )}
       
       {showPerformanceText && message && (
-        <div className="text-xs text-gray-500 mt-1 max-w-xs text-center">
+        <div className="text-xs text-gray-500 max-w-xs text-center">
           {message}
         </div>
       )}
@@ -112,7 +108,7 @@ export function AdaptiveSpinner({
   );
 }
 
-// Export a default spinner that can be used as a drop-in replacement
+// Legacy component name for backward compatibility
 export function LoadingSpinner(props: SpinnerProps) {
   return <AdaptiveSpinner {...props} />;
 }
