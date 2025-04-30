@@ -2,6 +2,8 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocketServer } from "./websocket-server";
+// Import health check module
+import * as healthCheck from './monitoring/health-check';
 
 const app = express();
 app.use(express.json());
@@ -42,6 +44,9 @@ app.use((req, res, next) => {
   
   // Set up WebSocket server
   const wsServer = setupWebSocketServer(server);
+  
+  // Register health check routes
+  healthCheck.registerHealthRoutes(app, wsServer);
   
   // Log WebSocket status
   setInterval(() => {
