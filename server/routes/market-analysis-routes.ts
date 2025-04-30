@@ -65,11 +65,11 @@ marketAnalysisRouter.post('/', async (req: Request, res: Response) => {
         throw aiError;
       }
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error generating market analysis:", error);
     return res.status(500).json({ 
       message: "Failed to generate market analysis",
-      error: error.message
+      error: error.message || 'Unknown error occurred'
     });
   }
 });

@@ -55,7 +55,7 @@ export async function generateMarketAnalysisWithClaude(params: MarketAnalysisReq
     // Extract the content from the response
     const content = response.content[0];
     
-    if (!content || typeof content.text !== 'string') {
+    if (!content || content.type !== 'text') {
       throw new Error("Invalid response format from Anthropic");
     }
     
@@ -124,7 +124,7 @@ export async function generateComplianceAssessment(
     // Extract the content from the response
     const content = response.content[0];
     
-    if (!content || typeof content.text !== 'string') {
+    if (!content || content.type !== 'text') {
       throw new Error("Invalid response format from Anthropic");
     }
     
