@@ -186,7 +186,7 @@ export function SnapshotViewer({ propertyId }: SnapshotViewerProps) {
         >
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="history">
-              <ClockHistory className="mr-2 h-4 w-4" /> 
+              <History className="mr-2 h-4 w-4" /> 
               History View
             </TabsTrigger>
             <TabsTrigger value="compare">
