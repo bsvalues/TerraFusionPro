@@ -93,6 +93,7 @@ function App() {
           <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
           <Route path="/notification-test" component={NotificationTestPage} />
           <Route path="/ws-test" component={WebSocketTestPage} />
+          <Route path="/websocket-test" component={WebSocketTestPage} />
           <Route path="/shared/:token" component={SharedPropertyPage} />
           <Route path="/workflow" component={WorkflowPage} />
           <Route path="/workflow/:reportId" component={WorkflowPage} />
