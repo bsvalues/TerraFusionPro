@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocketServer } from "./websocket-server";
-import { setupBasicWebSocketServer } from "./websocket-server-alt";
+import { setupAltWebSocketServer } from "./websocket-server-alt";
 // Import health check module
 import * as healthCheck from './monitoring/health-check';
 
@@ -47,7 +47,7 @@ app.use((req, res, next) => {
   const wsServer = setupWebSocketServer(server);
   
   // Set up alternative WebSocket server for fallback testing
-  const altWsServer = setupBasicWebSocketServer(server);
+  const altWsServer = setupAltWebSocketServer(server);
   
   // Register health check routes
   healthCheck.registerHealthRoutes(app, wsServer);

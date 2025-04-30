@@ -2618,6 +2618,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register gamification routes
   app.use('/api/gamification', gamificationRouter);
   
+  // Test routes for WebSocket testing and fallback polling
+  app.get('/api/test/messages', (req, res) => {
+    // This endpoint is used for polling fallback when WebSockets aren't available
+    res.json({
+      messages: [
+        {
+          id: Date.now(),
+          content: 'Test message via polling endpoint',
+          timestamp: new Date().toISOString()
+        }
+      ],
+      timestamp: new Date().toISOString()
+    });
+  });
+  
   // Register tooltips routes for real estate term explanations
   app.use('/api/tooltips', tooltipRoutes);
   
