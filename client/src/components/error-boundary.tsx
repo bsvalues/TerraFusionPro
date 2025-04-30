@@ -1,34 +1,84 @@
-import React from 'react';
+import React, { Component, ErrorInfo, ReactNode } from 'react';
+import { Button } from '@/components/ui/button';
+import { AlertCircle, RefreshCw } from 'lucide-react';
 
-interface ErrorBoundaryProps {
-  fallback?: React.ReactNode;
-  children: React.ReactNode;
+interface Props {
+  children: ReactNode;
+  fallback?: ReactNode;
 }
 
-interface ErrorBoundaryState {
+interface State {
   hasError: boolean;
-  error?: Error;
+  error: Error | null;
+  errorInfo: ErrorInfo | null;
 }
 
-export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  constructor(props: ErrorBoundaryProps) {
-    super(props);
-    this.state = { hasError: false };
+export class ErrorBoundary extends Component<Props, State> {
+  public state: State = {
+    hasError: false,
+    error: null,
+    errorInfo: null
+  };
+
+  public static getDerivedStateFromError(error: Error): State {
+    // Update state so the next render will show the fallback UI
+    return { hasError: true, error, errorInfo: null };
   }
 
-  static getDerivedStateFromError(error: Error) {
-    return { hasError: true, error };
+  public componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+    this.setState({
+      error,
+      errorInfo
+    });
+    
+    // Log error to console
+    console.error('Error caught by ErrorBoundary:', error, errorInfo);
   }
 
-  render() {
-    if (this.state.hasError) {
-      return this.props.fallback || (
-        <div className="p-4 border border-red-300 bg-red-50 rounded-md">
-          <h2 className="text-lg font-semibold text-red-800">Something went wrong</h2>
-          <p className="text-red-600">{this.state.error?.message}</p>
+  private handleReset = (): void => {
+    this.setState({
+      hasError: false,
+      error: null,
+      errorInfo: null
+    });
+  };
+
+  public render(): ReactNode {
+    const { hasError, error } = this.state;
+    const { children, fallback } = this.props;
+
+    if (hasError) {
+      // Custom fallback UI when an error occurs
+      if (fallback) {
+        return fallback;
+      }
+
+      return (
+        <div className="p-6 border rounded-md shadow-sm space-y-4 bg-card text-card-foreground">
+          <div className="flex items-center space-x-2 text-red-500">
+            <AlertCircle className="h-5 w-5" />
+            <h3 className="text-lg font-medium">Something went wrong</h3>
+          </div>
+          
+          <p className="text-muted-foreground">
+            {error?.message || 'An unexpected error occurred while rendering this component.'}
+          </p>
+          
+          <div className="bg-muted rounded-md p-4 mt-4 text-xs font-mono overflow-auto max-h-40">
+            <pre>{error?.stack || 'No stack trace available'}</pre>
+          </div>
+          
+          <Button 
+            onClick={this.handleReset}
+            className="mt-4"
+            variant="outline"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" /> Try Again
+          </Button>
         </div>
       );
     }
-    return this.props.children;
+
+    return children;
   }
 }

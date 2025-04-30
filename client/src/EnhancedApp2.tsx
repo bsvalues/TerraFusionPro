@@ -50,9 +50,6 @@ const SketchesPageComponent = BasicSketchesPage;
 const PhotoSyncTestPageComponent = EnhancedPhotoSyncTestPage;
 const UADFormPageComponent = EnhancedUADFormPage;
 
-import { ErrorBoundary } from './components/error-boundary';
-import { WebSocketProvider } from './contexts/WebSocketContext';
-
 export default function EnhancedApp2() {
   return (
     <AppProvider>

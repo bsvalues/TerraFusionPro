@@ -1,226 +1,200 @@
-import { Server as HttpServer } from 'http';
 import { WebSocketServer, WebSocket } from 'ws';
+import { Server } from 'http';
 
-interface Client {
-  id: string;
-  socket: WebSocket;
-  timestamp: number;
-}
-
-export class TerraFieldSyncServer {
-  private wss: WebSocketServer;
-  private clients: Map<string, Client> = new Map();
-  private heartbeatInterval: NodeJS.Timeout | null = null;
-
-  constructor(server: HttpServer) {
-    // Initialize WebSocket server with a specific path to avoid conflicts with Vite HMR
-    this.wss = new WebSocketServer({ 
-      server, 
-      path: '/ws'
+export function setupWebSocketServer(httpServer: Server) {
+  const wss = new WebSocketServer({ 
+    server: httpServer,
+    path: '/ws'
+  });
+  
+  const clients = new Map<WebSocket, { id: string }>();
+  
+  wss.on('connection', (ws) => {
+    const clientId = Math.random().toString(36).substring(2, 15);
+    clients.set(ws, { id: clientId });
+    
+    console.log(`WebSocket client connected: ${clientId}`);
+    
+    // Send welcome message
+    ws.send(JSON.stringify({
+      type: 'connection',
+      status: 'connected',
+      clientId
+    }));
+    
+    // Set up heartbeat
+    const pingInterval = setInterval(() => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.ping();
+      }
+    }, 30000);
+    
+    ws.on('pong', () => {
+      // Client is still alive
     });
-
-    this.setupEventHandlers();
-    this.startHeartbeat();
-
-    console.log("[WebSocket] TerraField Sync Server initialized");
-  }
-
-  private setupEventHandlers() {
-    // Handle new connections
-    this.wss.on('connection', (socket, request) => {
-      // Generate a unique client ID
-      const clientId = request.headers['sec-websocket-key'] || 
-                      `client-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      
-      // Store the client
-      this.clients.set(clientId, {
-        id: clientId,
-        socket,
-        timestamp: Date.now()
-      });
-
-      console.log(`[WebSocket] Client connected: ${clientId}`);
-      
-      // Send initial connection confirmation
-      this.sendToClient(clientId, {
-        type: 'connection',
-        status: 'connected',
-        clientId,
-        message: 'Connection established with TerraField Sync Server',
-        timestamp: Date.now()
-      });
-
-      // Broadcast the updated client count
-      this.broadcastClientCount();
-      
-      // Handle messages
-      socket.on('message', (data: Buffer) => {
-        try {
-          const message = JSON.parse(data.toString());
-          this.handleMessage(clientId, message);
-        } catch (error) {
-          console.error(`[WebSocket] Error parsing message from ${clientId}:`, error);
-          this.sendToClient(clientId, {
-            type: 'error',
-            message: 'Invalid message format. Expected JSON.',
-            timestamp: Date.now()
-          });
+    
+    ws.on('message', (message) => {
+      try {
+        const data = JSON.parse(message.toString());
+        console.log(`Message from ${clientId}:`, data);
+        
+        // Handle message types
+        switch (data.type) {
+          case 'echo':
+            ws.send(JSON.stringify({
+              type: 'echo',
+              message: data.message,
+              timestamp: new Date().toISOString()
+            }));
+            break;
+            
+          case 'broadcast':
+            broadcastMessage(data, ws);
+            break;
+            
+          // Handle resource requests (for comps, properties, etc.)
+          case 'resource_request':
+            handleResourceRequest(data, ws);
+            break;
+            
+          // Handle resource updates
+          case 'resource_update':
+            handleResourceUpdate(data, ws);
+            break;
+            
+          default:
+            // Custom message handlers can be added here
+            break;
         }
-      });
-      
-      // Handle disconnections
-      socket.on('close', () => {
-        this.clients.delete(clientId);
-        console.log(`[WebSocket] Client disconnected: ${clientId}`);
-        this.broadcastClientCount();
-      });
-    });
-  }
-
-  private handleMessage(clientId: string, message: any) {
-    console.log(`[WebSocket] Message from ${clientId}:`, message);
-    
-    // Update client's timestamp on any message
-    const client = this.clients.get(clientId);
-    if (client) {
-      client.timestamp = Date.now();
-    }
-    
-    // Handle different message types
-    switch(message.type) {
-      case 'ping':
-        this.sendToClient(clientId, {
-          type: 'pong',
-          timestamp: Date.now()
-        });
-        break;
-        
-      case 'sync_request':
-        // Handle sync requests from mobile devices
-        this.handleSyncRequest(clientId, message);
-        break;
-        
-      case 'broadcast':
-        // Broadcast message to all clients except sender
-        this.broadcastMessage(clientId, message.data);
-        break;
-        
-      default:
-        // Echo back unhandled message types
-        this.sendToClient(clientId, {
-          type: 'echo',
-          originalMessage: message,
-          timestamp: Date.now()
-        });
-    }
-  }
-
-  private handleSyncRequest(clientId: string, message: any) {
-    // Simulate sync process
-    this.sendToClient(clientId, {
-      type: 'sync_status',
-      status: 'started',
-      message: 'Sync process started',
-      timestamp: Date.now()
+      } catch (e) {
+        console.error('Error handling WebSocket message:', e);
+      }
     });
     
-    // Simulate sync progress
-    setTimeout(() => {
-      this.sendToClient(clientId, {
-        type: 'sync_status',
-        status: 'in_progress',
-        progress: 50,
-        message: 'Sync in progress',
-        timestamp: Date.now()
-      });
-    }, 1000);
+    ws.on('close', (code, reason) => {
+      console.log(`WebSocket client disconnected: ${clientId}, Code: ${code}, Reason: ${reason}`);
+      clearInterval(pingInterval);
+      clients.delete(ws);
+    });
     
-    // Simulate sync completion
-    setTimeout(() => {
-      this.sendToClient(clientId, {
-        type: 'sync_status',
-        status: 'completed',
-        progress: 100,
-        message: 'Sync completed successfully',
-        timestamp: Date.now(),
-        data: {
-          synced_at: new Date().toISOString(),
-          items_synced: Math.floor(Math.random() * 20) + 1
-        }
-      });
-    }, 3000);
-  }
-
-  private sendToClient(clientId: string, data: any) {
-    const client = this.clients.get(clientId);
-    if (client && client.socket.readyState === WebSocket.OPEN) {
-      client.socket.send(JSON.stringify(data));
-    }
-  }
-
-  private broadcastMessage(excludeClientId: string | null, data: any) {
-    this.clients.forEach((client) => {
-      if (
-        (!excludeClientId || client.id !== excludeClientId) && 
-        client.socket.readyState === WebSocket.OPEN
-      ) {
-        client.socket.send(JSON.stringify({
-          type: 'broadcast',
-          data,
-          timestamp: Date.now()
-        }));
+    ws.on('error', (error) => {
+      console.error(`WebSocket error for client ${clientId}:`, error);
+    });
+  });
+  
+  // Broadcast message to all connected clients except sender
+  function broadcastMessage(data: any, sender?: WebSocket) {
+    wss.clients.forEach((client) => {
+      if (client !== sender && client.readyState === WebSocket.OPEN) {
+        client.send(JSON.stringify(data));
       }
     });
   }
-
-  private broadcastClientCount() {
-    const count = this.clients.size;
-    this.broadcastMessage(null, {
-      type: 'status',
-      clientCount: count,
-      timestamp: Date.now()
-    });
-  }
-
-  private startHeartbeat() {
-    // Cleanup interval if it already exists
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
+  
+  // Handle resource requests
+  async function handleResourceRequest(data: any, ws: WebSocket) {
+    try {
+      // Example resource handling
+      switch (data.resource) {
+        case 'properties':
+          // Fetch properties from database and send back
+          const properties = await fetchProperties();
+          ws.send(JSON.stringify({
+            type: 'resource_update',
+            resource: 'properties',
+            data: properties
+          }));
+          break;
+          
+        case 'comps':
+          // Fetch comparable properties
+          const comps = await fetchComps(data.params);
+          ws.send(JSON.stringify({
+            type: 'resource_update',
+            resource: 'comps',
+            data: comps
+          }));
+          break;
+          
+        default:
+          ws.send(JSON.stringify({
+            type: 'resource_error',
+            resource: data.resource,
+            message: `Unknown resource type: ${data.resource}`
+          }));
+      }
+    } catch (error) {
+      ws.send(JSON.stringify({
+        type: 'resource_error',
+        resource: data.resource,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }));
     }
-    
-    // Check client connections every 30 seconds
-    this.heartbeatInterval = setInterval(() => {
-      const now = Date.now();
-      
-      // Check for stale connections (inactive for more than 2 minutes)
-      this.clients.forEach((client, clientId) => {
-        // If client hasn't sent a message in 2 minutes
-        if (now - client.timestamp > 2 * 60 * 1000) {
-          // Send a ping
-          if (client.socket.readyState === WebSocket.OPEN) {
-            this.sendToClient(clientId, {
-              type: 'ping',
-              timestamp: now
-            });
-          } else {
-            // If socket isn't open, remove the client
-            this.clients.delete(clientId);
-            console.log(`[WebSocket] Removed stale client: ${clientId}`);
-          }
-        }
-      });
-      
-      // Log active connections
-      console.log(`[WebSocket] Active connections: ${this.clients.size}`);
-    }, 30000);
   }
-
-  // Clean up resources
-  public close() {
-    if (this.heartbeatInterval) {
-      clearInterval(this.heartbeatInterval);
+  
+  // Handle resource updates
+  async function handleResourceUpdate(data: any, ws: WebSocket) {
+    try {
+      // Example update handling
+      switch (data.resource) {
+        case 'properties':
+          // Update property in database
+          const updatedProperty = await updateProperty(data.updates);
+          
+          // Broadcast update to all clients
+          broadcastMessage({
+            type: 'resource_update',
+            resource: 'properties',
+            data: { updated: updatedProperty }
+          });
+          break;
+          
+        default:
+          ws.send(JSON.stringify({
+            type: 'resource_error',
+            resource: data.resource,
+            message: `Unknown resource type: ${data.resource}`
+          }));
+      }
+    } catch (error) {
+      ws.send(JSON.stringify({
+        type: 'resource_error',
+        resource: data.resource,
+        message: error instanceof Error ? error.message : 'Unknown error'
+      }));
     }
-    
-    this.wss.close();
   }
+  
+  // Mock function to fetch properties - would be replaced with actual DB queries
+  async function fetchProperties() {
+    // This would be a database query in production
+    return [
+      { id: 1, address: '123 Main St', city: 'Austin', state: 'TX' },
+      { id: 2, address: '456 Oak Ave', city: 'Dallas', state: 'TX' },
+    ];
+  }
+  
+  // Mock function to fetch comparable properties - would be replaced with actual DB queries
+  async function fetchComps(params: any) {
+    // This would be a database query in production
+    return [
+      { id: 1, address: '123 Main St', city: 'Austin', state: 'TX', price: 450000 },
+      { id: 2, address: '456 Oak Ave', city: 'Dallas', state: 'TX', price: 425000 },
+    ];
+  }
+  
+  // Mock function to update a property - would be replaced with actual DB queries
+  async function updateProperty(updates: any) {
+    // This would update the database in production
+    return { ...updates, updatedAt: new Date().toISOString() };
+  }
+  
+  return {
+    broadcastToAll: (data: any) => {
+      broadcastMessage(data);
+    },
+    getConnectionCount: () => {
+      return wss.clients.size;
+    }
+  };
 }
