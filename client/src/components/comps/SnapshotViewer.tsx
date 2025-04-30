@@ -1,38 +1,38 @@
-/**
- * SnapshotViewer Component
- * 
- * Displays a list of snapshots for a property and allows comparing them or pushing to forms
- */
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { useSnapshotHistory } from '@/hooks/useSnapshotHistory';
 import { SnapshotTile } from './SnapshotTile';
 import { SnapshotDiff } from './SnapshotDiff';
 import { FieldMappingDialog } from './FieldMappingDialog';
-import { ComparableSnapshot } from '../../../shared/types/comps';
-import { useSnapshotHistory } from '../../hooks/useSnapshotHistory';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardFooter 
-} from '@/components/ui/card';
+import { ComparableSnapshot } from '@shared/types/comps';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { 
-  Tabs, 
-  TabsList, 
-  TabsTrigger, 
-  TabsContent 
-} from '@/components/ui/tabs';
-import { 
-  ArrowLeftRight, 
-  Clock, 
-  History,
-  AlertTriangle, 
-  Info,
-  FileOutput
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Separator } from '@/components/ui/separator';
+import {
+  ArrowLeftIcon,
+  ArrowUpDownIcon,
+  CalendarIcon,
+  FilterIcon,
+  SendIcon
 } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { format } from 'date-fns';
 
 interface SnapshotViewerProps {
   propertyId: string;
@@ -40,245 +40,270 @@ interface SnapshotViewerProps {
 }
 
 export function SnapshotViewer({ propertyId, onBack }: SnapshotViewerProps) {
-  const [selectedSnapshots, setSelectedSnapshots] = useState<ComparableSnapshot[]>([]);
-  const [activeView, setActiveView] = useState<'list' | 'compare'>('list');
-  const { toast } = useToast();
+  const { snapshots, isLoading, error, pushToForm } = useSnapshotHistory(propertyId);
   
-  // Fetch snapshots using our hook
-  const { 
-    snapshots, 
-    isLoading, 
-    error, 
-    pushToForm
-  } = useSnapshotHistory(propertyId);
+  // State to keep track of selected snapshots
+  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
+  const [compareSnapshotId, setCompareSnapshotId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState('history');
+  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [filterSource, setFilterSource] = useState<string | null>(null);
   
-  // Update selected snapshot
-  const handleSnapshotSelect = (snapshot: ComparableSnapshot) => {
-    // If already selected, remove it
-    if (selectedSnapshots.some(s => s.id === snapshot.id)) {
-      setSelectedSnapshots(prev => prev.filter(s => s.id !== snapshot.id));
-      return;
-    }
-    
-    // If we have 2 selected already and we're in compare mode, replace the oldest one
-    if (selectedSnapshots.length >= 2 && activeView === 'compare') {
-      setSelectedSnapshots(prev => [prev[1], snapshot]);
-      return;
-    }
-    
-    // Otherwise add it to the selected snapshots
-    setSelectedSnapshots(prev => [...prev, snapshot]);
-    
-    // If we now have 2 snapshots selected, switch to compare view
-    if (selectedSnapshots.length === 1) {
-      setActiveView('compare');
-    }
-  };
+  // Get selected snapshot objects
+  const selectedSnapshot = useMemo(() => {
+    return snapshots?.find(s => s.id === selectedSnapshotId) || null;
+  }, [snapshots, selectedSnapshotId]);
   
-  // Handle pushing snapshot to form
-  const handlePushToForm = (snapshot: ComparableSnapshot) => {
-    // Use the Field Mapping Dialog to show mapping UI
-    setSelectedSnapshots([snapshot]);
-  };
+  const compareSnapshot = useMemo(() => {
+    return snapshots?.find(s => s.id === compareSnapshotId) || null;
+  }, [snapshots, compareSnapshotId]);
   
-  // Apply the field mappings and push to form
-  const applyFieldMappings = (formId: string, fieldMappings: Record<string, string>) => {
-    if (selectedSnapshots.length === 0) return;
+  // Get unique sources for filtering
+  const sources = useMemo(() => {
+    if (!snapshots) return [];
+    const uniqueSources = [...new Set(snapshots.map(s => s.source))];
+    return uniqueSources.sort();
+  }, [snapshots]);
+  
+  // Handle sorting and filtering of snapshots
+  const processedSnapshots = useMemo(() => {
+    if (!snapshots) return [];
     
-    const snapshot = selectedSnapshots[0];
+    // Filter by source if needed
+    let filtered = filterSource 
+      ? snapshots.filter(s => s.source === filterSource)
+      : snapshots;
     
-    // Temporary: Just show a toast here. In a real implementation, 
-    // this would call the pushToForm function from the hook
-    toast({
-      title: 'Fields pushed to form',
-      description: `${Object.keys(fieldMappings).length} fields pushed to form ${formId}`,
+    // Sort by date
+    return [...filtered].sort((a, b) => {
+      const dateA = new Date(a.createdAt).getTime();
+      const dateB = new Date(b.createdAt).getTime();
+      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
     });
-    
-    // Call the actual push function from our hook
-    pushToForm(snapshot, formId, fieldMappings);
+  }, [snapshots, sortOrder, filterSource]);
+  
+  // Clear selections when switching tabs
+  React.useEffect(() => {
+    if (activeTab === 'history') {
+      setCompareSnapshotId(null);
+    }
+  }, [activeTab]);
+  
+  // Handle snapshot selection
+  const handleSelectSnapshot = (snapshot: ComparableSnapshot) => {
+    if (activeTab === 'history') {
+      setSelectedSnapshotId(snapshot.id === selectedSnapshotId ? null : snapshot.id);
+    } else if (activeTab === 'compare') {
+      if (!selectedSnapshotId) {
+        setSelectedSnapshotId(snapshot.id);
+      } else if (snapshot.id !== selectedSnapshotId) {
+        setCompareSnapshotId(snapshot.id);
+      }
+    }
   };
   
-  // Reset selection and view
-  const resetSelection = () => {
-    setSelectedSnapshots([]);
-    setActiveView('list');
+  // Handle snapshot comparison
+  const handleCompareSnapshot = (snapshot: ComparableSnapshot) => {
+    setActiveTab('compare');
+    if (!selectedSnapshotId) {
+      setSelectedSnapshotId(snapshot.id);
+    } else {
+      setCompareSnapshotId(snapshot.id);
+    }
   };
   
-  // Start comparing two snapshots
-  const startCompare = (snapshot: ComparableSnapshot) => {
-    setSelectedSnapshots([snapshot]);
-    setActiveView('compare');
+  // Handle push to form
+  const handlePushToForm = (snapshot: ComparableSnapshot) => {
+    // This will be handled by the FieldMappingDialog component
+    // We just need to pass the pushToForm function
   };
   
-  // Check if we can compare (need exactly 2 snapshots)
-  const canCompare = selectedSnapshots.length === 2;
-  
-  // Check if a snapshot is selected
-  const isSelected = (snapshot: ComparableSnapshot) => {
-    return selectedSnapshots.some(s => s.id === snapshot.id);
-  };
-  
-  // Sort snapshots by date (newest first)
-  const sortedSnapshots = [...(snapshots || [])].sort(
-    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-  );
-  
-  // Loading state
+  // Render loading state
   if (isLoading) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center p-8">
-            <div className="h-8 w-8 animate-spin rounded-full border-b-2 border-primary"></div>
-            <p className="mt-4 text-sm text-muted-foreground">Loading snapshots...</p>
-          </div>
-        </CardContent>
-      </Card>
+      <div className="space-y-4">
+        <div className="flex justify-between items-center">
+          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-24" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {[1, 2, 3, 4, 5, 6].map(i => (
+            <Skeleton key={i} className="h-48 w-full" />
+          ))}
+        </div>
+      </div>
     );
   }
   
-  // Error state
+  // Render error state
   if (error) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center p-8 text-destructive">
-            <AlertTriangle className="h-8 w-8" />
-            <p className="mt-2 font-medium">Failed to load snapshots</p>
-            <p className="mt-1 text-sm text-muted-foreground">{error.message}</p>
-            {onBack && (
-              <Button variant="outline" onClick={onBack} className="mt-4">
-                Go Back
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <Alert variant="destructive" className="mb-4">
+        <AlertTitle>Error loading snapshots</AlertTitle>
+        <AlertDescription>
+          {error.message || 'Failed to load snapshot history. Please try again.'}
+        </AlertDescription>
+      </Alert>
     );
   }
   
-  // No snapshots state
+  // Render empty state
   if (!snapshots || snapshots.length === 0) {
     return (
-      <Card>
-        <CardContent className="pt-6">
-          <div className="flex flex-col items-center justify-center p-8">
-            <Info className="h-8 w-8 text-muted-foreground" />
-            <p className="mt-2 font-medium">No Snapshot History</p>
-            <p className="mt-1 text-sm text-muted-foreground text-center">
-              There are no snapshots available for this property.
-              <br />
-              Snapshots are created when comps are edited, compared, or pushed to forms.
-            </p>
-            {onBack && (
-              <Button variant="outline" onClick={onBack} className="mt-4">
-                Go Back
-              </Button>
-            )}
-          </div>
-        </CardContent>
-      </Card>
+      <div className="text-center py-20">
+        <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
+        <h3 className="text-lg font-semibold">No Snapshots Available</h3>
+        <p className="text-sm text-muted-foreground mt-2 mb-8">
+          This property doesn't have any historical snapshots recorded.
+        </p>
+        {onBack && (
+          <Button onClick={onBack} className="mt-4">
+            <ArrowLeftIcon className="mr-2 h-4 w-4" />
+            Back to Comparables
+          </Button>
+        )}
+      </div>
     );
   }
   
   return (
-    <Tabs value={activeView} onValueChange={(value) => setActiveView(value as 'list' | 'compare')}>
-      <Card>
-        <CardHeader className="pb-3">
-          <div className="flex items-center justify-between">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <History className="h-5 w-5 text-primary" />
-              Snapshot History ({snapshots.length})
-            </CardTitle>
-            
-            <TabsList className="grid grid-cols-2 w-[260px]">
-              <TabsTrigger value="list" disabled={selectedSnapshots.length === 2}>
-                <Clock className="h-4 w-4 mr-2" />
-                Timeline
-              </TabsTrigger>
-              <TabsTrigger value="compare" disabled={!canCompare}>
-                <ArrowLeftRight className="h-4 w-4 mr-2" />
-                Compare ({selectedSnapshots.length}/2)
-              </TabsTrigger>
-            </TabsList>
-          </div>
-          <CardDescription>
-            {activeView === 'list' 
-              ? 'Select two snapshots to compare or push a snapshot to form' 
-              : 'Comparing snapshots from different points in time'}
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent className="pb-3">
-          <TabsContent value="list" className="m-0">
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {sortedSnapshots.map((snapshot) => (
-                <SnapshotTile
-                  key={snapshot.id}
-                  snapshot={snapshot}
-                  isSelected={isSelected(snapshot)}
-                  onSelect={() => handleSnapshotSelect(snapshot)}
-                  onCompare={() => startCompare(snapshot)}
-                  onPush={() => handlePushToForm(snapshot)}
-                />
-              ))}
-            </div>
-          </TabsContent>
+    <div className="space-y-6">
+      {/* Back button */}
+      {onBack && (
+        <Button variant="outline" onClick={onBack}>
+          <ArrowLeftIcon className="mr-2 h-4 w-4" />
+          Back to Comparables
+        </Button>
+      )}
+      
+      <Tabs value={activeTab} onValueChange={setActiveTab}>
+        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
+          <TabsList>
+            <TabsTrigger value="history">Snapshot History</TabsTrigger>
+            <TabsTrigger value="compare">Compare Snapshots</TabsTrigger>
+          </TabsList>
           
-          <TabsContent value="compare" className="m-0">
-            {canCompare ? (
-              <SnapshotDiff 
-                before={selectedSnapshots[0]} 
-                after={selectedSnapshots[1]} 
-              />
-            ) : (
-              <div className="flex flex-col items-center justify-center py-8 text-center">
-                <Info className="h-8 w-8 text-muted-foreground mb-2" />
-                <p className="text-muted-foreground">
-                  {selectedSnapshots.length === 0 
-                    ? 'Select two snapshots to compare' 
-                    : 'Select one more snapshot to compare'}
-                </p>
-                <Button
-                  variant="outline"
-                  className="mt-4"
-                  onClick={() => setActiveView('list')}
-                >
-                  Back to Timeline
-                </Button>
-              </div>
-            )}
-          </TabsContent>
-        </CardContent>
+          <div className="flex flex-wrap gap-2">
+            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'asc' | 'desc')}>
+              <SelectTrigger className="w-[160px]">
+                <ArrowUpDownIcon className="h-4 w-4 mr-2" />
+                <span>Sort by Date</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="desc">Newest First</SelectItem>
+                <SelectItem value="asc">Oldest First</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select 
+              value={filterSource || ''}
+              onValueChange={(v) => setFilterSource(v === '' ? null : v)}
+            >
+              <SelectTrigger className="w-[180px]">
+                <FilterIcon className="h-4 w-4 mr-2" />
+                <span>Filter by Source</span>
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="">All Sources</SelectItem>
+                {sources.map(source => (
+                  <SelectItem key={source} value={source}>{source}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
         
-        <CardFooter className="flex justify-between border-t pt-4">
-          {onBack && (
-            <Button variant="outline" onClick={onBack}>
-              Back
-            </Button>
+        <TabsContent value="history" className="mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {processedSnapshots.map(snapshot => (
+              <SnapshotTile
+                key={snapshot.id}
+                snapshot={snapshot}
+                onSelect={handleSelectSnapshot}
+                onCompare={handleCompareSnapshot}
+                onPushToForm={handlePushToForm}
+                isSelected={snapshot.id === selectedSnapshotId}
+              />
+            ))}
+          </div>
+          
+          {selectedSnapshot && (
+            <Card className="mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg">Snapshot Details</CardTitle>
+                <CardDescription>
+                  Created on {format(new Date(selectedSnapshot.createdAt), 'PPP p')} via {selectedSnapshot.source}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <ScrollArea className="h-96 rounded-md border p-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
+                    {Object.entries(selectedSnapshot.fields).map(([key, value]) => (
+                      <div key={key}>
+                        <span className="font-medium text-sm">{key}: </span>
+                        <span className="text-sm">{
+                          value === null || value === undefined 
+                            ? 'N/A' 
+                            : (typeof value === 'object' ? JSON.stringify(value) : String(value))
+                        }</span>
+                      </div>
+                    ))}
+                  </div>
+                </ScrollArea>
+              </CardContent>
+              <CardFooter className="justify-end">
+                <FieldMappingDialog 
+                  snapshot={selectedSnapshot}
+                  onPushToForm={(formId, fieldMappings) => 
+                    pushToForm(selectedSnapshot, formId, fieldMappings)
+                  }
+                >
+                  <Button>
+                    <SendIcon className="mr-2 h-4 w-4" />
+                    Push to Form
+                  </Button>
+                </FieldMappingDialog>
+              </CardFooter>
+            </Card>
+          )}
+        </TabsContent>
+        
+        <TabsContent value="compare" className="mt-0">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {processedSnapshots.map(snapshot => (
+              <SnapshotTile
+                key={snapshot.id}
+                snapshot={snapshot}
+                onSelect={handleSelectSnapshot}
+                onCompare={() => {}} // Disabled in compare mode
+                onPushToForm={handlePushToForm}
+                isSelected={
+                  snapshot.id === selectedSnapshotId || 
+                  snapshot.id === compareSnapshotId
+                }
+              />
+            ))}
+          </div>
+          
+          {selectedSnapshotId && compareSnapshotId && selectedSnapshot && compareSnapshot && (
+            <div className="mt-6">
+              <SnapshotDiff 
+                oldSnapshot={selectedSnapshot.createdAt < compareSnapshot.createdAt ? selectedSnapshot : compareSnapshot}
+                newSnapshot={selectedSnapshot.createdAt >= compareSnapshot.createdAt ? selectedSnapshot : compareSnapshot}
+              />
+            </div>
           )}
           
-          <div className="flex gap-2">
-            {selectedSnapshots.length > 0 && (
-              <Button variant="outline" onClick={resetSelection}>
-                Reset Selection
-              </Button>
-            )}
-            
-            {selectedSnapshots.length === 1 && (
-              <FieldMappingDialog
-                snapshot={selectedSnapshots[0]}
-                onPushToForm={applyFieldMappings}
-              >
-                <Button>
-                  <FileOutput className="h-4 w-4 mr-2" />
-                  Push to Form
-                </Button>
-              </FieldMappingDialog>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
-    </Tabs>
+          {(selectedSnapshotId && !compareSnapshotId) && (
+            <Alert className="mt-6">
+              <AlertTitle>Select another snapshot</AlertTitle>
+              <AlertDescription>
+                Please select a second snapshot to compare with the currently selected one.
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+      </Tabs>
+    </div>
   );
 }

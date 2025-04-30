@@ -1,86 +1,133 @@
 /**
- * Type definitions for comparable properties and snapshots
+ * Shared types for comparable property data and operations
  */
 
 /**
- * A record of fields and their values for a comparable property
- * This is flexible to accommodate different property types and data sources
- */
-export interface ComparableFields {
-  [key: string]: any;
-}
-
-/**
- * Represents a comparable property snapshot at a point in time
+ * ComparableSnapshot represents a historical point-in-time record of property data
  */
 export interface ComparableSnapshot {
-  /**
-   * Unique identifier for the snapshot
-   */
   id: string;
-  
-  /**
-   * The property ID this snapshot belongs to
-   */
   propertyId: string;
-  
-  /**
-   * Version number of the snapshot (if applicable)
-   */
-  version?: number;
-  
-  /**
-   * Source of the snapshot (e.g., "MLS Import", "Manual Edit", "Form Push", "API Update")
-   */
-  source: string;
-  
-  /**
-   * ISO string timestamp when the snapshot was created
-   */
+  version: number;
   createdAt: string;
-  
-  /**
-   * Property fields and their values at this point in time
-   */
-  fields: ComparableFields;
+  source: string; // e.g., 'mls import', 'api update', 'manual edit', 'form push'
+  fields: Record<string, any>; // The actual property data fields
+  metadata?: {
+    createdBy?: string;
+    sourceId?: string;
+    sourceUrl?: string;
+    importId?: string;
+    system?: string;
+    tags?: string[];
+  };
 }
 
 /**
- * Request to push snapshot data to a form
+ * SnapshotFilter for filtering snapshot history
+ */
+export interface SnapshotFilter {
+  propertyId?: string;
+  source?: string;
+  dateRange?: {
+    from: string;
+    to: string;
+  };
+  version?: number;
+}
+
+/**
+ * PushSnapshotRequest for pushing snapshot data to a form
  */
 export interface PushSnapshotRequest {
-  /**
-   * ID of the snapshot to push
-   */
   snapshotId: string;
-  
-  /**
-   * ID of the form to push to
-   */
   formId: string;
-  
-  /**
-   * Mapping of form field IDs to snapshot field names
-   */
-  fieldMappings: Record<string, string>;
+  fieldMappings: Record<string, string>; // Maps form field IDs to snapshot field names
 }
 
 /**
- * Response from pushing a snapshot to a form
+ * PushSnapshotResponse returned when pushing snapshot data to a form
  */
 export interface PushSnapshotResponse {
-  /**
-   * Whether the push was successful
-   */
   success: boolean;
-  
-  /**
-   * Optional error message if the push failed
-   */
+  formId?: string;
   error?: string;
-  
-  /**
-   * New snapshot created as a result of the push
-   */
-  newSnapshot?: ComparableSnapshot;
+  newSnapshot?: ComparableSnapshot; // If a new snapshot was created as a result
+}
+
+/**
+ * Comparable Search Filter options
+ */
+export interface ComparableSearchFilter {
+  location: {
+    latitude: number;
+    longitude: number;
+    radiusInMiles: number;
+  } | {
+    city: string;
+    state: string;
+    zipCode?: string;
+  };
+  propertyType: string;
+  minBeds?: number;
+  maxBeds?: number;
+  minBaths?: number;
+  maxBaths?: number;
+  minSqFt?: number;
+  maxSqFt?: number;
+  minPrice?: number;
+  maxPrice?: number;
+  minYearBuilt?: number;
+  maxYearBuilt?: number;
+  saleDate?: {
+    from: string;
+    to: string;
+  };
+  includeActive?: boolean;
+  includeSold?: boolean;
+  includePending?: boolean;
+  sortBy?: 'distance' | 'price' | 'saleDate' | 'daysOnMarket' | 'yearBuilt' | 'squareFeet';
+  sortDirection?: 'asc' | 'desc';
+  limit?: number;
+  offset?: number;
+}
+
+/**
+ * ComparableResult representing a property found in search
+ */
+export interface ComparableResult {
+  id: string;
+  propertyId: string;
+  address: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  latitude: number;
+  longitude: number;
+  propertyType: string;
+  bedrooms: number;
+  bathrooms: number;
+  squareFeet: number;
+  yearBuilt: number;
+  lotSize: number;
+  price: number;
+  pricePerSqFt: number;
+  saleDate: string | null;
+  daysOnMarket: number | null;
+  status: 'active' | 'pending' | 'sold' | 'other';
+  photos: string[];
+  description: string | null;
+  features: string[];
+  source: string;
+  distanceInMiles?: number;
+}
+
+/**
+ * ComparableSearchResponse returned from search API
+ */
+export interface ComparableSearchResponse {
+  results: ComparableResult[];
+  totalResults: number;
+  pageSize: number;
+  pageNumber: number;
+  totalPages: number;
 }

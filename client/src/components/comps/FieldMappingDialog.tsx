@@ -3,67 +3,42 @@
  * 
  * A dialog for mapping snapshot fields to form fields when pushing data
  */
-import React, { useState } from 'react';
-import { ComparableSnapshot } from '../../../shared/types/comps';
-import { 
+import React, { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { getQueryFn } from '@/lib/queryClient';
+import { ComparableSnapshot } from '@shared/types/comps';
+import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
+  DialogTrigger
 } from '@/components/ui/dialog';
-import { Card } from '@/components/ui/card';
-import { Label } from '@/components/ui/label';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
-  SelectValue,
+  SelectValue
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
+import { Label } from '@/components/ui/label';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
 } from '@/components/ui/table';
-import { FileText, Check, X, ArrowRight, RefreshCw } from 'lucide-react';
-
-// Sample form field definitions for demo - in a real app these would be fetched
-const sampleFormFields = [
-  { id: 'address', label: 'Property Address', section: 'Property Information' },
-  { id: 'city', label: 'City', section: 'Property Information' },
-  { id: 'state', label: 'State', section: 'Property Information' },
-  { id: 'zipCode', label: 'Zip Code', section: 'Property Information' },
-  { id: 'propertyType', label: 'Property Type', section: 'Property Information' },
-  { id: 'yearBuilt', label: 'Year Built', section: 'Property Information' },
-  { id: 'grossLivingArea', label: 'Gross Living Area (sq.ft)', section: 'Size Information' },
-  { id: 'lotSize', label: 'Lot Size (sq.ft)', section: 'Size Information' },
-  { id: 'bedrooms', label: 'Bedrooms', section: 'Features' },
-  { id: 'bathrooms', label: 'Bathrooms', section: 'Features' },
-  { id: 'basement', label: 'Basement Type', section: 'Features' },
-  { id: 'garage', label: 'Garage', section: 'Features' },
-  { id: 'salePrice', label: 'Sale Price', section: 'Transaction' },
-  { id: 'saleDate', label: 'Sale Date', section: 'Transaction' },
-  { id: 'mlsNumber', label: 'MLS Number', section: 'Transaction' },
-  { id: 'latitude', label: 'Latitude', section: 'Geo' },
-  { id: 'longitude', label: 'Longitude', section: 'Geo' },
-];
-
-// Sample forms to select from
-const sampleForms = [
-  { id: 'form1', name: 'Residential Appraisal Form' },
-  { id: 'form2', name: 'Income Property Analysis' },
-  { id: 'form3', name: 'Single-Family Comparable Grid' },
-];
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { AlertCircle, Save, X } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface FieldMappingDialogProps {
   children: React.ReactNode;
@@ -71,268 +46,224 @@ interface FieldMappingDialogProps {
   onPushToForm: (formId: string, fieldMappings: Record<string, string>) => void;
 }
 
+// Simplified interface for form data
+interface FormSummary {
+  id: string;
+  name: string;
+  type: string; 
+  createdAt: string;
+}
+
+// Simplified interface for form field definitions
+interface FormField {
+  id: string;
+  name: string;
+  type: string;
+  required: boolean;
+}
+
 export function FieldMappingDialog({ 
   children, 
   snapshot, 
   onPushToForm 
 }: FieldMappingDialogProps) {
-  const [isOpen, setIsOpen] = useState(false);
-  const [selectedForm, setSelectedForm] = useState<string | undefined>();
+  const [open, setOpen] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState<string>('');
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
-  const [selectedFields, setSelectedFields] = useState<string[]>([]);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
   
-  // Filter snapshot fields based on search term
-  const filteredFields = Object.keys(snapshot.fields).filter((field) => {
-    return field.toLowerCase().includes(searchTerm.toLowerCase());
+  // Query to fetch available forms
+  const { 
+    data: forms, 
+    isLoading: isLoadingForms, 
+    error: formsError 
+  } = useQuery({
+    queryKey: ['/api/forms/summary'],
+    queryFn: getQueryFn<FormSummary[]>('/api/forms/summary'),
+    enabled: open, // Only fetch when dialog is open
   });
   
-  // Group form fields by section for better organization
-  const formFieldsBySection = sampleFormFields.reduce((acc, field) => {
-    if (!acc[field.section]) {
-      acc[field.section] = [];
-    }
-    acc[field.section].push(field);
-    return acc;
-  }, {} as Record<string, typeof sampleFormFields>);
+  // Query to fetch form fields once a form is selected
+  const { 
+    data: formFields, 
+    isLoading: isLoadingFields, 
+    error: fieldsError 
+  } = useQuery({
+    queryKey: [`/api/forms/${selectedFormId}/fields`],
+    queryFn: getQueryFn<FormField[]>(`/api/forms/${selectedFormId}/fields`),
+    enabled: !!selectedFormId, // Only fetch when a form is selected
+  });
   
-  // Handle field selection toggle
-  const handleFieldToggle = (field: string) => {
-    setSelectedFields((prev) => {
-      if (prev.includes(field)) {
-        return prev.filter((f) => f !== field);
-      } else {
-        return [...prev, field];
-      }
-    });
-  };
+  // Reset field mappings when selected form changes
+  useEffect(() => {
+    setFieldMappings({});
+  }, [selectedFormId]);
   
-  // Handle field mapping change
-  const handleMappingChange = (snapshotField: string, formField: string) => {
-    setFieldMappings((prev) => ({
+  // Filter snapshot fields by search query
+  const filteredSnapshotFields = Object.entries(snapshot.fields)
+    .filter(([key]) => key.toLowerCase().includes(searchQuery.toLowerCase()))
+    .sort(([a], [b]) => a.localeCompare(b));
+  
+  // Handler for mapping a field
+  const handleFieldMapping = (formFieldId: string, snapshotField: string) => {
+    setFieldMappings(prev => ({
       ...prev,
-      [formField]: snapshotField,
+      [formFieldId]: snapshotField
     }));
   };
   
-  // Auto-map fields based on name similarity
-  const autoMapFields = () => {
-    const newMappings: Record<string, string> = {};
-    
-    // For each form field, try to find a matching snapshot field
-    sampleFormFields.forEach((formField) => {
-      const formFieldName = formField.id.toLowerCase();
-      
-      // First try exact match
-      let matchFound = Object.keys(snapshot.fields).find(
-        (snapshotField) => snapshotField.toLowerCase() === formFieldName
-      );
-      
-      // If no exact match, try contains match
-      if (!matchFound) {
-        matchFound = Object.keys(snapshot.fields).find(
-          (snapshotField) => 
-            snapshotField.toLowerCase().includes(formFieldName) ||
-            formFieldName.includes(snapshotField.toLowerCase())
-        );
-      }
-      
-      if (matchFound) {
-        newMappings[formField.id] = matchFound;
-        if (!selectedFields.includes(matchFound)) {
-          setSelectedFields((prev) => [...prev, matchFound]);
-        }
-      }
-    });
-    
-    setFieldMappings(newMappings);
+  // Handler for submitting the mappings
+  const handleSubmit = () => {
+    onPushToForm(selectedFormId, fieldMappings);
+    setOpen(false);
   };
   
-  // Handle form submission
-  const handleSubmit = () => {
-    if (!selectedForm) return;
+  // Helper to check if all required fields are mapped
+  const areRequiredFieldsMapped = () => {
+    if (!formFields) return false;
     
-    // Only include mappings for fields that are selected
-    const activeMappings = Object.entries(fieldMappings)
-      .filter(([, snapshotField]) => selectedFields.includes(snapshotField))
-      .reduce((acc, [formField, snapshotField]) => {
-        acc[formField] = snapshotField;
-        return acc;
-      }, {} as Record<string, string>);
-    
-    onPushToForm(selectedForm, activeMappings);
-    setIsOpen(false);
-    
-    // Reset form state
-    setFieldMappings({});
-    setSelectedFields([]);
-    setSelectedForm(undefined);
+    return formFields
+      .filter(field => field.required)
+      .every(field => fieldMappings[field.id]);
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={setIsOpen}>
+    <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {children}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="sm:max-w-3xl">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <FileText className="h-5 w-5" />
-            Push Snapshot to Form
-          </DialogTitle>
+          <DialogTitle>Push Snapshot to Form</DialogTitle>
           <DialogDescription>
-            Select fields from the snapshot and map them to form fields
+            Map property fields from this snapshot to a form. Select a target form first, then map
+            the fields from the snapshot to the corresponding form fields.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1 min-h-0 overflow-hidden">
-          {/* Left panel: Select the target form */}
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="form-select">Select Target Form</Label>
-              <Select
-                value={selectedForm}
-                onValueChange={setSelectedForm}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Select a form..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {sampleForms.map((form) => (
+        <div className="space-y-4 my-2">
+          {/* Form selection */}
+          <div>
+            <Label htmlFor="form-select">Target Form</Label>
+            <Select value={selectedFormId} onValueChange={setSelectedFormId}>
+              <SelectTrigger id="form-select" className="w-full">
+                <SelectValue placeholder="Select a form to push data to" />
+              </SelectTrigger>
+              <SelectContent>
+                {isLoadingForms ? (
+                  <SelectItem value="loading" disabled>Loading forms...</SelectItem>
+                ) : formsError ? (
+                  <SelectItem value="error" disabled>Error loading forms</SelectItem>
+                ) : (forms?.length || 0) === 0 ? (
+                  <SelectItem value="none" disabled>No forms available</SelectItem>
+                ) : (
+                  forms?.map(form => (
                     <SelectItem key={form.id} value={form.id}>
-                      {form.name}
+                      {form.name} ({form.type})
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div>
-              <div className="flex items-center justify-between mb-2">
-                <Label htmlFor="search-fields">Snapshot Fields</Label>
-                <Button variant="ghost" size="sm" onClick={autoMapFields}>
-                  <RefreshCw className="h-3.5 w-3.5 mr-1" />
-                  Auto-Map
-                </Button>
-              </div>
-              <Input
-                id="search-fields"
-                placeholder="Search fields..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="mb-2"
-              />
-              
-              <Card className="overflow-hidden">
-                <ScrollArea className="h-[300px]">
-                  <div className="p-1">
-                    {filteredFields.length > 0 ? (
-                      filteredFields.map((field) => (
-                        <div 
-                          key={field}
-                          className={`
-                            p-2 rounded-md flex items-center gap-2 text-sm
-                            ${selectedFields.includes(field) ? 'bg-primary/10' : 'hover:bg-muted/50'}
-                            cursor-pointer transition-colors
-                          `}
-                          onClick={() => handleFieldToggle(field)}
-                        >
-                          <Checkbox 
-                            checked={selectedFields.includes(field)}
-                            onCheckedChange={() => handleFieldToggle(field)}
-                          />
-                          <div className="flex flex-col flex-1 min-w-0">
-                            <span className="font-medium truncate">{field}</span>
-                            <span className="text-xs text-muted-foreground truncate">
-                              {String(snapshot.fields[field])}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="p-4 text-center text-muted-foreground">
-                        No fields match your search
-                      </div>
-                    )}
-                  </div>
-                </ScrollArea>
-              </Card>
-            </div>
+                  ))
+                )}
+              </SelectContent>
+            </Select>
           </div>
           
-          {/* Right panel: Map fields */}
-          <div className="col-span-1 md:col-span-2">
-            <Label className="mb-2 block">Field Mapping</Label>
-            <Card className="overflow-hidden">
-              <ScrollArea className="h-[350px]">
+          {/* Field mapping section */}
+          {selectedFormId && !isLoadingFields && !fieldsError && formFields && (
+            <>
+              <div>
+                <Label htmlFor="field-search">Search Snapshot Fields</Label>
+                <Input 
+                  id="field-search"
+                  placeholder="Type to search property fields..."
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                />
+              </div>
+              
+              <ScrollArea className="h-96 rounded-md border">
                 <Table>
-                  <TableHeader className="sticky top-0 bg-card">
+                  <TableHeader>
                     <TableRow>
-                      <TableHead>Form Field</TableHead>
-                      <TableHead>Snapshot Field</TableHead>
-                      <TableHead className="w-[80px]">Status</TableHead>
+                      <TableHead className="w-1/3">Form Field</TableHead>
+                      <TableHead className="w-1/3">Snapshot Field</TableHead>
+                      <TableHead>Value</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {Object.entries(formFieldsBySection).map(([section, fields]) => (
-                      <React.Fragment key={section}>
-                        <TableRow className="bg-muted/30">
-                          <TableCell colSpan={3} className="font-medium py-2">
-                            {section}
-                          </TableCell>
-                        </TableRow>
-                        {fields.map((field) => (
-                          <TableRow key={field.id}>
-                            <TableCell className="font-medium">{field.label}</TableCell>
+                    {formFields.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                          No form fields available
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      formFields.map(formField => {
+                        const mappedField = fieldMappings[formField.id];
+                        const mappedValue = mappedField ? snapshot.fields[mappedField] : null;
+                        
+                        return (
+                          <TableRow key={formField.id}>
+                            <TableCell className="font-medium">
+                              {formField.name}
+                              {formField.required && (
+                                <span className="text-red-500 ml-1">*</span>
+                              )}
+                            </TableCell>
                             <TableCell>
-                              <Select
-                                value={fieldMappings[field.id] || ''}
-                                onValueChange={(value) => handleMappingChange(value, field.id)}
+                              <Select 
+                                value={mappedField || ''} 
+                                onValueChange={value => handleFieldMapping(formField.id, value)}
                               >
-                                <SelectTrigger className="h-8">
-                                  <SelectValue placeholder="Select a field..." />
+                                <SelectTrigger>
+                                  <SelectValue placeholder="Select a field" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                  <SelectItem value="">-- None --</SelectItem>
-                                  {Object.keys(snapshot.fields).map((snapshotField) => (
-                                    <SelectItem 
-                                      key={snapshotField} 
-                                      value={snapshotField}
-                                      disabled={!selectedFields.includes(snapshotField)}
-                                    >
-                                      {snapshotField}
+                                  <SelectItem value="">None</SelectItem>
+                                  {filteredSnapshotFields.map(([key]) => (
+                                    <SelectItem key={key} value={key}>
+                                      {key}
                                     </SelectItem>
                                   ))}
                                 </SelectContent>
                               </Select>
                             </TableCell>
-                            <TableCell>
-                              {fieldMappings[field.id] && selectedFields.includes(fieldMappings[field.id]) ? (
-                                <Check className="h-4 w-4 text-green-500 mx-auto" />
-                              ) : (
-                                <X className="h-4 w-4 text-muted-foreground mx-auto" />
-                              )}
+                            <TableCell className="truncate max-w-[200px]">
+                              {mappedValue !== null && mappedValue !== undefined 
+                                ? String(mappedValue) 
+                                : '—'}
                             </TableCell>
                           </TableRow>
-                        ))}
-                      </React.Fragment>
-                    ))}
+                        );
+                      })
+                    )}
                   </TableBody>
                 </Table>
               </ScrollArea>
-            </Card>
-          </div>
+              
+              {/* Warning if required fields are not mapped */}
+              {!areRequiredFieldsMapped() && (
+                <Alert variant="destructive">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Required fields</AlertTitle>
+                  <AlertDescription>
+                    All fields marked with an asterisk (*) must be mapped before pushing to the form.
+                  </AlertDescription>
+                </Alert>
+              )}
+            </>
+          )}
         </div>
         
-        <DialogFooter className="mt-4">
-          <Button variant="outline" onClick={() => setIsOpen(false)}>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => setOpen(false)}>
+            <X className="mr-2 h-4 w-4" />
             Cancel
           </Button>
-          <Button
-            onClick={handleSubmit}
-            disabled={!selectedForm || selectedFields.length === 0}
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!selectedFormId || !areRequiredFieldsMapped()}
           >
-            <ArrowRight className="h-4 w-4 mr-2" />
+            <Save className="mr-2 h-4 w-4" />
             Push to Form
           </Button>
         </DialogFooter>

@@ -1,152 +1,179 @@
-/**
- * SnapshotTile Component
- * 
- * Displays a single snapshot as a card with summary information
- */
 import React from 'react';
-import { ComparableSnapshot } from '../../../shared/types/comps';
-import { Card, CardContent, CardFooter } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { formatRelative } from 'date-fns';
+import { format } from 'date-fns';
 import { 
-  ArrowLeftRight, 
-  FileOutput, 
-  Home, 
-  CalendarClock,
-  Users,
-  Asterisk,
-  MapPin,
-  Hash,
-  DollarSign
+  Card, 
+  CardContent, 
+  CardDescription, 
+  CardFooter, 
+  CardHeader, 
+  CardTitle 
+} from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Eye, 
+  Send, 
+  Calendar, 
+  Code, 
+  ArrowLeftRight,
+  ChevronDown
 } from 'lucide-react';
+import { 
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger
+} from '@/components/ui/tooltip';
+import { Button } from '@/components/ui/button';
+import { ComparableSnapshot } from '@shared/types/comps';
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger
+} from '@/components/ui/collapsible';
 
-export interface SnapshotTileProps {
+interface SnapshotTileProps {
   snapshot: ComparableSnapshot;
+  onSelect: (snapshot: ComparableSnapshot) => void;
+  onPushToForm: (snapshot: ComparableSnapshot) => void;
+  onCompare: (snapshot: ComparableSnapshot) => void;
   isSelected: boolean;
-  onSelect: () => void;
-  onCompare?: () => void;
-  onPush?: () => void;
 }
 
 export function SnapshotTile({ 
   snapshot, 
-  isSelected, 
   onSelect, 
-  onCompare, 
-  onPush 
+  onPushToForm, 
+  onCompare,
+  isSelected 
 }: SnapshotTileProps) {
-  // Format relative date
-  const formattedDate = formatRelative(
-    new Date(snapshot.createdAt),
-    new Date()
-  );
+  // Extract key fields for display
+  const keyFieldsToShow = 3;
+  const keyFields = Object.entries(snapshot.fields).slice(0, keyFieldsToShow);
   
-  // Get key stats from the snapshot to display
-  const getDisplayFields = (snapshot: ComparableSnapshot) => {
-    const fields = snapshot.fields;
-    const results = [];
-    
-    // Check for address
-    if (fields.address) {
-      results.push({
-        label: 'Address',
-        value: fields.address,
-        icon: <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-      });
+  const formatDate = (dateString: string) => {
+    try {
+      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
+    } catch (e) {
+      return dateString;
     }
-    
-    // Check for source
-    results.push({
-      label: 'Source',
-      value: snapshot.source,
-      icon: <Users className="h-3.5 w-3.5 text-muted-foreground" />
-    });
-    
-    // Check for price
-    if (fields.price || fields.salePrice || fields.listPrice) {
-      const price = fields.price || fields.salePrice || fields.listPrice;
-      results.push({
-        label: 'Price',
-        value: typeof price === 'number' 
-          ? `$${price.toLocaleString()}` 
-          : `$${price}`,
-        icon: <DollarSign className="h-3.5 w-3.5 text-muted-foreground" />
-      });
-    }
-    
-    // Check for ID 
-    results.push({
-      label: 'ID',
-      value: snapshot.id,
-      icon: <Hash className="h-3.5 w-3.5 text-muted-foreground" />
-    });
-    
-    // Calculate total fields
-    results.push({
-      label: 'Fields',
-      value: Object.keys(fields).length,
-      icon: <Asterisk className="h-3.5 w-3.5 text-muted-foreground" />
-    });
-    
-    return results;
   };
   
-  const displayFields = getDisplayFields(snapshot);
-  
+  const getBadgeVariant = (source: string) => {
+    switch (source.toLowerCase()) {
+      case 'mls import':
+        return 'default';
+      case 'form push':
+        return 'secondary';
+      case 'manual edit':
+        return 'outline';
+      case 'api update':
+        return 'destructive';
+      default:
+        return 'default';
+    }
+  };
+
   return (
-    <Card 
-      className={`
-        overflow-hidden transition-all
-        ${isSelected ? 'ring-2 ring-primary' : 'hover:shadow-md'}
-        cursor-pointer
-      `}
-      onClick={onSelect}
-    >
-      <div className="p-3">
-        <div className="flex items-center justify-between mb-2">
-          <Badge variant={isSelected ? "default" : "outline"} className="h-5 text-xs">
-            {snapshot.version ? `v${snapshot.version}` : "Snapshot"}
-          </Badge>
-          <div className="flex items-center text-xs text-muted-foreground">
-            <CalendarClock className="h-3 w-3 mr-1" />
-            {formattedDate}
+    <Card className={`w-full transition-all ${isSelected ? 'border-primary bg-primary/5' : ''}`}>
+      <CardHeader className="pb-2">
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle className="text-base font-medium">
+              Snapshot {snapshot.version || 'v1'}
+            </CardTitle>
+            <CardDescription className="flex items-center mt-1">
+              <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
+              <span>{formatDate(snapshot.createdAt)}</span>
+            </CardDescription>
           </div>
+          <Badge variant={getBadgeVariant(snapshot.source)}>
+            {snapshot.source}
+          </Badge>
         </div>
-        
-        <div className="space-y-2">
-          {displayFields.map((field, index) => (
-            <div key={index} className="flex items-start gap-2 text-sm">
-              {field.icon}
-              <div className="flex-1 min-w-0">
-                <p className="text-xs text-muted-foreground">{field.label}</p>
-                <p className="font-medium truncate">{field.value}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
+      </CardHeader>
       
-      <CardFooter className="flex justify-between p-2 border-t bg-muted/30">
-        {onCompare && (
-          <Button variant="ghost" size="sm" onClick={(e) => {
-            e.stopPropagation();
-            onCompare();
-          }}>
-            <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Compare</span>
-          </Button>
-        )}
-        
-        {onPush && (
-          <Button variant="ghost" size="sm" onClick={(e) => {
-            e.stopPropagation();
-            onPush();
-          }}>
-            <FileOutput className="h-3.5 w-3.5 mr-1" />
-            <span className="text-xs">Push</span>
-          </Button>
-        )}
+      <CardContent className="pb-2">
+        <Collapsible>
+          <div className="grid grid-cols-2 gap-2">
+            {keyFields.map(([key, value]) => (
+              <div key={key} className="text-sm">
+                <span className="font-medium text-muted-foreground">{key}: </span>
+                <span className="text-foreground truncate">{String(value)}</span>
+              </div>
+            ))}
+          </div>
+          
+          <CollapsibleContent>
+            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t">
+              {Object.entries(snapshot.fields).slice(keyFieldsToShow).map(([key, value]) => (
+                <div key={key} className="text-sm">
+                  <span className="font-medium text-muted-foreground">{key}: </span>
+                  <span className="text-foreground truncate">{String(value)}</span>
+                </div>
+              ))}
+            </div>
+          </CollapsibleContent>
+          
+          <CollapsibleTrigger asChild>
+            <Button variant="ghost" size="sm" className="w-full mt-2 text-xs">
+              <ChevronDown className="h-3 w-3 mr-1" />
+              Show All Fields
+            </Button>
+          </CollapsibleTrigger>
+        </Collapsible>
+      </CardContent>
+      
+      <CardFooter className="flex justify-between pt-2">
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onSelect(snapshot)}
+                className={isSelected ? 'bg-primary text-primary-foreground' : ''}
+              >
+                <Eye className="h-3.5 w-3.5 mr-1" />
+                View
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>View snapshot details</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => onCompare(snapshot)}
+              >
+                <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
+                Compare
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Compare with another snapshot</p>
+            </TooltipContent>
+          </Tooltip>
+          
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => onPushToForm(snapshot)}
+              >
+                <Send className="h-3.5 w-3.5 mr-1" />
+                Push
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Push data to a form</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </CardFooter>
     </Card>
   );
