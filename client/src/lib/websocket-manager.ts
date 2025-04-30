@@ -17,13 +17,19 @@ export class WebSocketManager {
   constructor(path = '/ws') {
     // Build WebSocket URL with a distinct path to avoid conflicts with Vite's HMR
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    
+    // For Replit, we need to determine if we're in a Replit environment and use the same host
     const host = window.location.host;
     
-    // In development, we need to use the raw WebSocket endpoint
-    // Format: ws://host/ws
+    // Determine if we're in development or production
+    const isDevelopment = process.env.NODE_ENV === 'development' ||
+      window.location.hostname === 'localhost' ||
+      window.location.hostname.includes('replit.dev');
+    
+    // In development on Replit, WebSocket is served from the same origin
     this.url = `${protocol}//${host}${path}`;
     
-    console.log(`WebSocket URL: ${this.url}`);
+    console.log(`WebSocket URL: ${this.url} (${isDevelopment ? 'development' : 'production'} mode)`);
   }
   
   /**

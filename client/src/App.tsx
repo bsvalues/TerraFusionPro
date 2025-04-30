@@ -24,6 +24,7 @@ import CRDTTestPage from "./pages/CRDTTestPage";
 import PhotoEnhancementPage from "./pages/PhotoEnhancementPage";
 import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
+import WebSocketTestPage from "./pages/WebSocketTestPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { ReportGenerationPage } from "./pages/ReportGenerationPage";
 import MarketAnalysisPage from "./pages/MarketAnalysisPage";
@@ -91,6 +92,7 @@ function App() {
           <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
           <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
           <Route path="/notification-test" component={NotificationTestPage} />
+          <Route path="/ws-test" component={WebSocketTestPage} />
           <Route path="/shared/:token" component={SharedPropertyPage} />
           <Route path="/workflow" component={WorkflowPage} />
           <Route path="/workflow/:reportId" component={WorkflowPage} />
