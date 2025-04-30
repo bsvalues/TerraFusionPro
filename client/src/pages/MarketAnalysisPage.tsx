@@ -191,7 +191,7 @@ export default function MarketAnalysisPage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Market Scope</label>
                 <Select value={selectedMarket} onValueChange={setSelectedMarket}>
@@ -252,6 +252,20 @@ export default function MarketAnalysisPage() {
                     <SelectItem value="Townhouse">Townhouse</SelectItem>
                     <SelectItem value="Multi-Family">Multi-Family</SelectItem>
                     <SelectItem value="Land">Land</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">AI Provider</label>
+                <Select value={selectedAIProvider} onValueChange={setSelectedAIProvider}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select AI provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Auto-select</SelectItem>
+                    <SelectItem value="openai">OpenAI</SelectItem>
+                    <SelectItem value="anthropic">Anthropic Claude</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -319,17 +333,24 @@ export default function MarketAnalysisPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                <div className="space-y-4">
-                  {marketInsights.map((insight, index) => (
-                    <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
-                      <h4 className="font-medium mb-1 flex items-center">
-                        <Lightbulb className="h-4 w-4 mr-2 text-primary" />
-                        {insight.title}
-                      </h4>
-                      <p className="text-sm text-muted-foreground">{insight.content}</p>
-                    </div>
-                  ))}
-                </div>
+                {marketAnalysisMutation.isPending ? (
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <LoadingSpinner size="lg" />
+                    <p className="mt-4 text-muted-foreground">Generating AI-powered market analysis...</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {marketInsights.map((insight, index) => (
+                      <div key={index} className="border-b pb-4 last:border-0 last:pb-0">
+                        <h4 className="font-medium mb-1 flex items-center">
+                          <Lightbulb className="h-4 w-4 mr-2 text-primary" />
+                          {insight.title}
+                        </h4>
+                        <p className="text-sm text-muted-foreground">{insight.content}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
               <CardFooter>
                 <Button variant="outline" className="w-full">
