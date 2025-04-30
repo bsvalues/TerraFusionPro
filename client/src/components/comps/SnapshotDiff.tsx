@@ -1,9 +1,8 @@
-import { useMemo } from 'react';
 import { ComparableSnapshot } from '@shared/types/comps';
-import { Card } from '@/components/ui/card';
-import { CheckCircle, XCircle, MinusCircle, AlertCircle } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Plus, Minus, RefreshCw, Circle } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface SnapshotDiffProps {
   baseSnapshot: ComparableSnapshot;
@@ -19,340 +18,240 @@ interface FieldDiff {
   compareValue: any;
 }
 
-export default function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProps) {
-  // Calculate the differences between snapshots
-  const fieldDiffs = useMemo<FieldDiff[]>(() => {
-    const diffs: FieldDiff[] = [];
-    const allKeys = new Set<string>([
-      ...Object.keys(baseSnapshot.fields),
-      ...Object.keys(compareSnapshot.fields)
-    ]);
+export function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProps) {
+  const [diffResults, setDiffResults] = useState<FieldDiff[]>([]);
+  const [filter, setFilter] = useState<DiffType | 'all'>('all');
+  
+  // Generate diff results
+  useEffect(() => {
+    if (!baseSnapshot || !compareSnapshot) {
+      return;
+    }
     
-    allKeys.forEach(key => {
-      const baseHasKey = key in baseSnapshot.fields;
-      const compareHasKey = key in compareSnapshot.fields;
-      const baseValue = baseSnapshot.fields[key];
-      const compareValue = compareSnapshot.fields[key];
-      
-      if (!baseHasKey) {
-        // Field was added in the compare snapshot
-        diffs.push({
-          key,
-          diffType: 'added',
-          baseValue: undefined,
-          compareValue
-        });
-      } else if (!compareHasKey) {
+    const results: FieldDiff[] = [];
+    const baseFields = baseSnapshot.fields;
+    const compareFields = compareSnapshot.fields;
+    
+    // Check for changed or removed fields
+    Object.keys(baseFields).forEach(key => {
+      if (!(key in compareFields)) {
         // Field was removed in the compare snapshot
-        diffs.push({
+        results.push({
           key,
           diffType: 'removed',
-          baseValue,
+          baseValue: baseFields[key],
           compareValue: undefined
         });
-      } else if (JSON.stringify(baseValue) !== JSON.stringify(compareValue)) {
+      } else if (JSON.stringify(baseFields[key]) !== JSON.stringify(compareFields[key])) {
         // Field value changed
-        diffs.push({
+        results.push({
           key,
           diffType: 'changed',
-          baseValue,
-          compareValue
+          baseValue: baseFields[key],
+          compareValue: compareFields[key]
         });
       } else {
         // Field value unchanged
-        diffs.push({
+        results.push({
           key,
           diffType: 'unchanged',
-          baseValue,
-          compareValue
+          baseValue: baseFields[key],
+          compareValue: compareFields[key]
         });
       }
     });
     
-    // Sort diffs by type (changed/added/removed first, then unchanged)
-    return diffs.sort((a, b) => {
-      if (a.diffType !== 'unchanged' && b.diffType === 'unchanged') return -1;
-      if (a.diffType === 'unchanged' && b.diffType !== 'unchanged') return 1;
+    // Check for added fields
+    Object.keys(compareFields).forEach(key => {
+      if (!(key in baseFields)) {
+        // Field was added in the compare snapshot
+        results.push({
+          key,
+          diffType: 'added',
+          baseValue: undefined,
+          compareValue: compareFields[key]
+        });
+      }
+    });
+    
+    // Sort by diff type and then by key
+    results.sort((a, b) => {
+      const typeOrder = { changed: 0, added: 1, removed: 2, unchanged: 3 };
+      if (typeOrder[a.diffType] !== typeOrder[b.diffType]) {
+        return typeOrder[a.diffType] - typeOrder[b.diffType];
+      }
       return a.key.localeCompare(b.key);
     });
+    
+    setDiffResults(results);
   }, [baseSnapshot, compareSnapshot]);
   
-  // Group diffs by type
-  const { 
-    changedFields, 
-    addedFields, 
-    removedFields, 
-    unchangedFields 
-  } = useMemo(() => {
-    return {
-      changedFields: fieldDiffs.filter(diff => diff.diffType === 'changed'),
-      addedFields: fieldDiffs.filter(diff => diff.diffType === 'added'),
-      removedFields: fieldDiffs.filter(diff => diff.diffType === 'removed'),
-      unchangedFields: fieldDiffs.filter(diff => diff.diffType === 'unchanged')
-    };
-  }, [fieldDiffs]);
+  // Filter diff results
+  const filteredResults = filter === 'all' 
+    ? diffResults 
+    : diffResults.filter(diff => diff.diffType === filter);
   
-  // Calculate the version difference direction
-  const versionDiff = compareSnapshot.version - baseSnapshot.version;
+  // Get counts for each diff type
+  const counts = {
+    changed: diffResults.filter(d => d.diffType === 'changed').length,
+    added: diffResults.filter(d => d.diffType === 'added').length,
+    removed: diffResults.filter(d => d.diffType === 'removed').length,
+    unchanged: diffResults.filter(d => d.diffType === 'unchanged').length,
+    all: diffResults.length
+  };
   
-  // Format values for display
+  // Format a value for display
   const formatValue = (value: any): string => {
-    if (value === undefined) return '—';
-    if (value === null) return 'null';
-    if (typeof value === 'object') return JSON.stringify(value);
+    if (value === undefined || value === null) {
+      return '-';
+    }
+    
+    if (typeof value === 'object') {
+      return JSON.stringify(value);
+    }
+    
     return String(value);
   };
   
-  // Helper to generate badge for diff types
+  // Get diff badge
   const getDiffBadge = (diffType: DiffType) => {
     switch (diffType) {
       case 'added':
-        return <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">Added</Badge>;
+        return <Badge className="bg-green-500">Added</Badge>;
       case 'removed':
-        return <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200">Removed</Badge>;
+        return <Badge className="bg-red-500">Removed</Badge>;
       case 'changed':
-        return <Badge variant="outline" className="bg-amber-50 text-amber-700 border-amber-200">Changed</Badge>;
+        return <Badge className="bg-amber-500">Changed</Badge>;
+      case 'unchanged':
+        return <Badge variant="outline">Unchanged</Badge>;
       default:
         return null;
     }
   };
   
-  // Helper to generate icon for diff types
+  // Get diff icon
   const getDiffIcon = (diffType: DiffType) => {
     switch (diffType) {
       case 'added':
-        return <CheckCircle className="h-4 w-4 text-green-500" />;
+        return <Plus className="h-4 w-4 text-green-500" />;
       case 'removed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
+        return <Minus className="h-4 w-4 text-red-500" />;
       case 'changed':
-        return <AlertCircle className="h-4 w-4 text-amber-500" />;
+        return <RefreshCw className="h-4 w-4 text-amber-500" />;
+      case 'unchanged':
+        return <Circle className="h-4 w-4 text-gray-300" />;
       default:
-        return <MinusCircle className="h-4 w-4 text-gray-300" />;
+        return null;
     }
   };
   
+  if (!baseSnapshot || !compareSnapshot) {
+    return <div>Select two snapshots to compare</div>;
+  }
+  
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col md:flex-row gap-4 justify-between">
-        <div>
-          <h3 className="text-lg font-medium mb-1">Snapshot Diff Summary</h3>
-          <p className="text-sm text-muted-foreground">
-            Comparing version {baseSnapshot.version} ({new Date(baseSnapshot.createdAt).toLocaleDateString()})
-            {versionDiff > 0 ? ' to ' : ' from '}
-            version {compareSnapshot.version} ({new Date(compareSnapshot.createdAt).toLocaleDateString()})
-          </p>
-        </div>
-        
-        <div className="flex gap-2 flex-wrap">
-          <div className="flex items-center gap-1 px-2 py-1 bg-amber-50 rounded text-sm">
-            <AlertCircle className="h-4 w-4 text-amber-500" />
-            <span className="text-amber-700">Changed: {changedFields.length}</span>
+    <div>
+      <div className="flex flex-wrap gap-2 mb-4">
+        <Badge 
+          variant={filter === 'all' ? 'default' : 'outline'}
+          className="cursor-pointer"
+          onClick={() => setFilter('all')}
+        >
+          All ({counts.all})
+        </Badge>
+        <Badge 
+          variant={filter === 'changed' ? 'default' : 'outline'}
+          className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200"
+          onClick={() => setFilter('changed')}
+        >
+          <RefreshCw className="mr-1 h-3 w-3" />
+          Changed ({counts.changed})
+        </Badge>
+        <Badge 
+          variant={filter === 'added' ? 'default' : 'outline'}
+          className="cursor-pointer bg-green-100 text-green-800 hover:bg-green-200"
+          onClick={() => setFilter('added')}
+        >
+          <Plus className="mr-1 h-3 w-3" />
+          Added ({counts.added})
+        </Badge>
+        <Badge 
+          variant={filter === 'removed' ? 'default' : 'outline'}
+          className="cursor-pointer bg-red-100 text-red-800 hover:bg-red-200"
+          onClick={() => setFilter('removed')}
+        >
+          <Minus className="mr-1 h-3 w-3" />
+          Removed ({counts.removed})
+        </Badge>
+        <Badge 
+          variant={filter === 'unchanged' ? 'default' : 'outline'}
+          className="cursor-pointer"
+          onClick={() => setFilter('unchanged')}
+        >
+          <Circle className="mr-1 h-3 w-3" />
+          Unchanged ({counts.unchanged})
+        </Badge>
+      </div>
+      
+      <div className="bg-slate-50 rounded-md p-2 mb-4">
+        <div className="text-sm flex justify-between">
+          <div>
+            <span className="font-medium">Base: </span>
+            <span className="text-gray-600">Version {baseSnapshot.version} ({baseSnapshot.source})</span>
           </div>
-          <div className="flex items-center gap-1 px-2 py-1 bg-green-50 rounded text-sm">
-            <CheckCircle className="h-4 w-4 text-green-500" />
-            <span className="text-green-700">Added: {addedFields.length}</span>
-          </div>
-          <div className="flex items-center gap-1 px-2 py-1 bg-red-50 rounded text-sm">
-            <XCircle className="h-4 w-4 text-red-500" />
-            <span className="text-red-700">Removed: {removedFields.length}</span>
-          </div>
-          <div className="flex items-center gap-1 px-2 py-1 bg-gray-50 rounded text-sm">
-            <MinusCircle className="h-4 w-4 text-gray-400" />
-            <span className="text-gray-500">Unchanged: {unchangedFields.length}</span>
+          <div>
+            <span className="font-medium">Compare: </span>
+            <span className="text-gray-600">Version {compareSnapshot.version} ({compareSnapshot.source})</span>
           </div>
         </div>
       </div>
       
-      <Tabs defaultValue="changes" className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="changes">
-            Changes Only ({changedFields.length + addedFields.length + removedFields.length})
-          </TabsTrigger>
-          <TabsTrigger value="all">
-            All Fields ({fieldDiffs.length})
-          </TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="changes">
-          <div className="space-y-4">
-            {changedFields.length === 0 && addedFields.length === 0 && removedFields.length === 0 ? (
-              <Card className="p-6 text-center">
-                <p className="text-muted-foreground">No differences found between these snapshots.</p>
-              </Card>
+      <div className="rounded-md border overflow-hidden">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="w-[100px]">Status</TableHead>
+              <TableHead>Field Name</TableHead>
+              <TableHead>Base Value</TableHead>
+              <TableHead>Compare Value</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredResults.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={4} className="text-center py-6 text-gray-500">
+                  No differences found based on current filter
+                </TableCell>
+              </TableRow>
             ) : (
-              <>
-                {changedFields.length > 0 && (
-                  <div>
-                    <h4 className="text-md font-medium mb-2">Changed Fields</h4>
-                    <Card className="overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                              Field
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                              Base Value (v{baseSnapshot.version})
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                              Compare Value (v{compareSnapshot.version})
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {changedFields.map((diff) => (
-                            <tr key={diff.key} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex items-center gap-2">
-                                  {getDiffIcon(diff.diffType)}
-                                  {diff.key}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-700 bg-red-50">
-                                {formatValue(diff.baseValue)}
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-700 bg-green-50">
-                                {formatValue(diff.compareValue)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </Card>
-                  </div>
-                )}
-                
-                {addedFields.length > 0 && (
-                  <div>
-                    <h4 className="text-md font-medium mb-2">Added Fields</h4>
-                    <Card className="overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
-                              Field
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
-                              Value
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {addedFields.map((diff) => (
-                            <tr key={diff.key} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex items-center gap-2">
-                                  {getDiffIcon(diff.diffType)}
-                                  {diff.key}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-700 bg-green-50">
-                                {formatValue(diff.compareValue)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </Card>
-                  </div>
-                )}
-                
-                {removedFields.length > 0 && (
-                  <div>
-                    <h4 className="text-md font-medium mb-2">Removed Fields</h4>
-                    <Card className="overflow-hidden">
-                      <table className="min-w-full divide-y divide-gray-200">
-                        <thead className="bg-gray-50">
-                          <tr>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
-                              Field
-                            </th>
-                            <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/2">
-                              Previous Value
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody className="bg-white divide-y divide-gray-200">
-                          {removedFields.map((diff) => (
-                            <tr key={diff.key} className="hover:bg-gray-50">
-                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                                <div className="flex items-center gap-2">
-                                  {getDiffIcon(diff.diffType)}
-                                  {diff.key}
-                                </div>
-                              </td>
-                              <td className="px-6 py-4 text-sm text-gray-700 bg-red-50">
-                                {formatValue(diff.baseValue)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </Card>
-                  </div>
-                )}
-              </>
+              filteredResults.map((diff) => (
+                <TableRow key={diff.key} className={diff.diffType === 'unchanged' ? 'opacity-60' : ''}>
+                  <TableCell className="whitespace-nowrap">
+                    <div className="flex items-center">
+                      {getDiffIcon(diff.diffType)}
+                      <span className="ml-2 hidden md:inline-block">
+                        {getDiffBadge(diff.diffType)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-medium">{diff.key}</TableCell>
+                  <TableCell className={diff.diffType === 'added' ? 'text-gray-400 italic' : ''}>
+                    {formatValue(diff.baseValue)}
+                  </TableCell>
+                  <TableCell className={diff.diffType === 'removed' ? 'text-gray-400 italic' : ''}>
+                    {formatValue(diff.compareValue)}
+                  </TableCell>
+                </TableRow>
+              ))
             )}
-          </div>
-        </TabsContent>
-        
-        <TabsContent value="all">
-          <Card className="overflow-hidden">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                    Field
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                    Status
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                    Base Value (v{baseSnapshot.version})
-                  </th>
-                  <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/4">
-                    Compare Value (v{compareSnapshot.version})
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
-                {fieldDiffs.map((diff) => (
-                  <tr 
-                    key={diff.key} 
-                    className={`hover:bg-gray-50 ${
-                      diff.diffType === 'unchanged' ? 'opacity-60' : ''
-                    }`}
-                  >
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      <div className="flex items-center gap-2">
-                        {getDiffIcon(diff.diffType)}
-                        {diff.key}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                      {diff.diffType !== 'unchanged' && getDiffBadge(diff.diffType)}
-                    </td>
-                    <td className={`px-6 py-4 text-sm text-gray-700 ${
-                      diff.diffType === 'changed' || diff.diffType === 'removed' 
-                        ? 'bg-red-50' 
-                        : ''
-                    }`}>
-                      {formatValue(diff.baseValue)}
-                    </td>
-                    <td className={`px-6 py-4 text-sm text-gray-700 ${
-                      diff.diffType === 'changed' || diff.diffType === 'added' 
-                        ? 'bg-green-50' 
-                        : ''
-                    }`}>
-                      {formatValue(diff.compareValue)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </Card>
-        </TabsContent>
-      </Tabs>
+          </TableBody>
+        </Table>
+      </div>
+      
+      <div className="mt-4 text-sm text-gray-500">
+        {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'} displayed 
+        {filter !== 'all' && ` (filtered by ${filter})`}
+      </div>
     </div>
   );
 }

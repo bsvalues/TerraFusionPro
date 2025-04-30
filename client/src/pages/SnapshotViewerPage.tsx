@@ -1,70 +1,112 @@
-import React from 'react';
-import { useLocation, useRoute } from 'wouter';
-import { SnapshotViewer } from '../components/comps/SnapshotViewer';
-// Direct import of PageHeader without sub-components that don't exist
+import { useState, useEffect } from 'react';
+import { useParams, useLocation, Link } from 'wouter';
+import { SnapshotViewer } from '@/components/comps/SnapshotViewer';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, History } from 'lucide-react';
 import { PageHeader } from '@/components/ui/page-header';
-import { Breadcrumb, BreadcrumbItem, BreadcrumbLink, BreadcrumbSeparator } from '@/components/ui/breadcrumb';
-import { History, Home, Building } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Card } from '@/components/ui/card';
+import { apiRequest } from '@/lib/queryClient';
 
 export default function SnapshotViewerPage() {
-  const [, setLocation] = useLocation();
-  const [match, params] = useRoute('/snapshots/:propertyId');
+  const [property, setProperty] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   
-  // If no propertyId provided, show error
-  if (!match || !params?.propertyId) {
+  const params = useParams<{ propertyId: string }>();
+  const propertyId = params?.propertyId;
+  const [, navigate] = useLocation();
+  
+  // Fetch property data
+  useEffect(() => {
+    if (!propertyId) {
+      setError('No property ID provided');
+      setLoading(false);
+      return;
+    }
+    
+    const fetchProperty = async () => {
+      try {
+        setLoading(true);
+        const propertyData = await apiRequest<any>(`/api/properties/${propertyId}`);
+        setProperty(propertyData);
+        setLoading(false);
+      } catch (err) {
+        console.error('Error fetching property:', err);
+        setError(err instanceof Error ? err.message : 'Failed to load property details');
+        setLoading(false);
+      }
+    };
+    
+    fetchProperty();
+  }, [propertyId]);
+  
+  // Handle navigation back
+  const handleBackToProperty = () => {
+    if (propertyId) {
+      navigate(`/properties/${propertyId}`);
+    } else {
+      navigate('/properties');
+    }
+  };
+  
+  if (loading) {
     return (
-      <div className="container mx-auto py-10">
-        <div className="text-center py-20">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground mb-4">
-            Property Not Found
-          </h1>
-          <p className="text-muted-foreground mb-8">
-            No property ID was provided. Please select a property to view its snapshot history.
-          </p>
-          <button 
-            onClick={() => setLocation('/')}
-            className="px-4 py-2 rounded-md bg-primary text-primary-foreground hover:bg-primary/90"
-          >
-            Return to Properties
-          </button>
+      <div className="container mx-auto p-4 space-y-6">
+        <div className="flex items-center justify-between">
+          <Skeleton className="h-10 w-1/3" />
+          <Skeleton className="h-10 w-24" />
         </div>
+        <Skeleton className="h-[600px] w-full" />
       </div>
     );
   }
   
+  if (error || !propertyId) {
+    return (
+      <div className="container mx-auto p-4">
+        <PageHeader
+          title="Snapshot History"
+          description="View and compare historical snapshots of property data"
+          actions={
+            <Button onClick={() => navigate('/properties')}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back to Properties
+            </Button>
+          }
+        />
+        <Card className="p-6 mt-6 bg-red-50 border-red-200">
+          <h3 className="text-xl font-semibold text-red-800 mb-2">Error</h3>
+          <p className="text-red-700">{error || 'No property ID provided'}</p>
+          <Button 
+            onClick={() => navigate('/properties')}
+            className="mt-4" 
+            variant="outline"
+          >
+            Go to Properties List
+          </Button>
+        </Card>
+      </div>
+    );
+  }
+  
+  const propertyName = property?.address || `Property #${propertyId}`;
+  
   return (
-    <div className="container mx-auto py-10">
-      <Breadcrumb className="mb-6">
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/" onClick={(e) => { e.preventDefault(); setLocation('/'); }}>
-            <Home className="h-4 w-4 mr-1" />
-            <span>Home</span>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <BreadcrumbLink href="/comps" onClick={(e) => { e.preventDefault(); setLocation('/comps'); }}>
-            <Building className="h-4 w-4 mr-1" />
-            <span>Comparables</span>
-          </BreadcrumbLink>
-        </BreadcrumbItem>
-        <BreadcrumbSeparator />
-        <BreadcrumbItem>
-          <History className="h-4 w-4 mr-1" />
-          <span>Snapshot History</span>
-        </BreadcrumbItem>
-      </Breadcrumb>
-      
-      <PageHeader 
-        className="mb-6"
-        title="Snapshot History"
-        description="View and compare historical snapshots of property data over time"
+    <div className="container mx-auto p-4">
+      <PageHeader
+        title={`Snapshot History: ${propertyName}`}
+        description="View and compare historical snapshots of property data"
+        icon={<History className="h-6 w-6" />}
+        actions={
+          <Button onClick={handleBackToProperty}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back to Property
+          </Button>
+        }
       />
       
-      <SnapshotViewer 
-        propertyId={params.propertyId}
-        onBack={() => setLocation('/comps')}
-      />
+      <div className="mt-6">
+        <SnapshotViewer propertyId={propertyId} />
+      </div>
     </div>
   );
 }

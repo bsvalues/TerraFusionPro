@@ -1,180 +1,149 @@
-import React from 'react';
-import { format } from 'date-fns';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { 
-  Eye, 
-  Send, 
-  Calendar, 
-  Code, 
-  ArrowLeftRight,
-  ChevronDown
-} from 'lucide-react';
-import { 
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger
-} from '@/components/ui/tooltip';
-import { Button } from '@/components/ui/button';
 import { ComparableSnapshot } from '@shared/types/comps';
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger
-} from '@/components/ui/collapsible';
+import { Card, CardContent } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { formatDistanceToNow } from 'date-fns';
+import { Clock, Database, Edit, Upload } from 'lucide-react';
 
 interface SnapshotTileProps {
   snapshot: ComparableSnapshot;
-  onSelect: (snapshot: ComparableSnapshot) => void;
-  onPushToForm: (snapshot: ComparableSnapshot) => void;
-  onCompare: (snapshot: ComparableSnapshot) => void;
   isSelected: boolean;
+  compact?: boolean;
+  onClick: () => void;
 }
 
 export function SnapshotTile({ 
   snapshot, 
-  onSelect, 
-  onPushToForm, 
-  onCompare,
-  isSelected 
+  isSelected, 
+  compact = false, 
+  onClick 
 }: SnapshotTileProps) {
-  // Extract key fields for display
-  const keyFieldsToShow = 3;
-  const keyFields = Object.entries(snapshot.fields).slice(0, keyFieldsToShow);
+  // Format the creation date
+  const formattedDate = formatDistanceToNow(
+    new Date(snapshot.createdAt),
+    { addSuffix: true }
+  );
   
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'MMM d, yyyy h:mm a');
-    } catch (e) {
-      return dateString;
-    }
-  };
-  
-  const getBadgeVariant = (source: string) => {
+  // Generate a source icon based on the snapshot source
+  const getSourceIcon = (source: string) => {
     switch (source.toLowerCase()) {
+      case 'mls_import':
       case 'mls import':
-        return 'default';
-      case 'form push':
-        return 'secondary';
+        return <Database className="h-4 w-4" />;
+      case 'manual_edit':
       case 'manual edit':
-        return 'outline';
+        return <Edit className="h-4 w-4" />;
+      case 'api_update':
       case 'api update':
-        return 'destructive';
+        return <Upload className="h-4 w-4" />;
       default:
-        return 'default';
+        return <Clock className="h-4 w-4" />;
     }
   };
-
-  return (
-    <Card className={`w-full transition-all ${isSelected ? 'border-primary bg-primary/5' : ''}`}>
-      <CardHeader className="pb-2">
-        <div className="flex justify-between items-start">
-          <div>
-            <CardTitle className="text-base font-medium">
-              Snapshot {snapshot.version || 'v1'}
-            </CardTitle>
-            <CardDescription className="flex items-center mt-1">
-              <Calendar className="h-3.5 w-3.5 mr-1 text-muted-foreground" />
-              <span>{formatDate(snapshot.createdAt)}</span>
-            </CardDescription>
+  
+  // Generate a summary of the snapshot fields
+  const getFieldsSummary = () => {
+    const fields = snapshot.fields;
+    const summary = [];
+    
+    if (fields.price) {
+      summary.push(`$${fields.price.toLocaleString()}`);
+    }
+    
+    if (fields.bedrooms && fields.bathrooms) {
+      summary.push(`${fields.bedrooms} bed / ${fields.bathrooms} bath`);
+    } else if (fields.bedrooms) {
+      summary.push(`${fields.bedrooms} bed`);
+    } else if (fields.bathrooms) {
+      summary.push(`${fields.bathrooms} bath`);
+    }
+    
+    if (fields.sqft) {
+      summary.push(`${fields.sqft.toLocaleString()} sqft`);
+    }
+    
+    if (fields.status) {
+      summary.push(fields.status);
+    }
+    
+    return summary.join(' · ');
+  };
+  
+  // Render compact view
+  if (compact) {
+    return (
+      <Card 
+        className={`
+          cursor-pointer transition-all p-2
+          hover:border-primary hover:shadow-sm
+          ${isSelected ? 'border-primary bg-primary/5' : ''}
+        `}
+        onClick={onClick}
+      >
+        <CardContent className="p-0">
+          <div className="flex items-center justify-between">
+            <Badge variant="outline">v{snapshot.version}</Badge>
+            <span className="text-xs text-gray-500">{formattedDate}</span>
           </div>
-          <Badge variant={getBadgeVariant(snapshot.source)}>
-            {snapshot.source}
-          </Badge>
+          <div className="mt-2 text-xs truncate">
+            {getFieldsSummary()}
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  // Render full view
+  return (
+    <Card 
+      className={`
+        cursor-pointer transition-all
+        hover:border-primary hover:shadow-sm
+        ${isSelected ? 'border-primary bg-primary/5' : ''}
+      `}
+      onClick={onClick}
+    >
+      <CardContent className="pt-4">
+        <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center">
+            <Badge 
+              variant={isSelected ? 'default' : 'outline'} 
+              className="mr-2"
+            >
+              v{snapshot.version}
+            </Badge>
+            <Badge variant="secondary" className="flex items-center gap-1">
+              {getSourceIcon(snapshot.source)}
+              <span className="capitalize">
+                {snapshot.source.replace('_', ' ')}
+              </span>
+            </Badge>
+          </div>
+          <span className="text-xs text-gray-500">{formattedDate}</span>
         </div>
-      </CardHeader>
-      
-      <CardContent className="pb-2">
-        <Collapsible>
-          <div className="grid grid-cols-2 gap-2">
-            {keyFields.map(([key, value]) => (
-              <div key={key} className="text-sm">
-                <span className="font-medium text-muted-foreground">{key}: </span>
-                <span className="text-foreground truncate">{String(value)}</span>
-              </div>
+        
+        <div className="mt-3">
+          <div className="text-md font-medium mb-1">
+            {snapshot.fields.address || `Property ID: ${snapshot.propertyId}`}
+          </div>
+          <div className="text-sm text-gray-600">
+            {getFieldsSummary()}
+          </div>
+        </div>
+        
+        {snapshot.metadata && snapshot.metadata.tags && (
+          <div className="mt-3 flex flex-wrap gap-1">
+            {snapshot.metadata.tags.map((tag: string) => (
+              <Badge 
+                key={tag} 
+                variant="outline" 
+                className="text-xs bg-slate-50"
+              >
+                {tag}
+              </Badge>
             ))}
           </div>
-          
-          <CollapsibleContent>
-            <div className="grid grid-cols-2 gap-2 mt-2 pt-2 border-t">
-              {Object.entries(snapshot.fields).slice(keyFieldsToShow).map(([key, value]) => (
-                <div key={key} className="text-sm">
-                  <span className="font-medium text-muted-foreground">{key}: </span>
-                  <span className="text-foreground truncate">{String(value)}</span>
-                </div>
-              ))}
-            </div>
-          </CollapsibleContent>
-          
-          <CollapsibleTrigger asChild>
-            <Button variant="ghost" size="sm" className="w-full mt-2 text-xs">
-              <ChevronDown className="h-3 w-3 mr-1" />
-              Show All Fields
-            </Button>
-          </CollapsibleTrigger>
-        </Collapsible>
+        )}
       </CardContent>
-      
-      <CardFooter className="flex justify-between pt-2">
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => onSelect(snapshot)}
-                className={isSelected ? 'bg-primary text-primary-foreground' : ''}
-              >
-                <Eye className="h-3.5 w-3.5 mr-1" />
-                View
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>View snapshot details</p>
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => onCompare(snapshot)}
-              >
-                <ArrowLeftRight className="h-3.5 w-3.5 mr-1" />
-                Compare
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Compare with another snapshot</p>
-            </TooltipContent>
-          </Tooltip>
-          
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => onPushToForm(snapshot)}
-              >
-                <Send className="h-3.5 w-3.5 mr-1" />
-                Push
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>
-              <p>Push data to a form</p>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
-      </CardFooter>
     </Card>
   );
 }

@@ -1,29 +1,33 @@
 import { useState, useEffect } from 'react';
-import { ComparableSnapshot } from '@shared/types/comps';
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogDescription, 
+  DialogFooter, 
+  DialogHeader, 
+  DialogTitle 
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Card } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
 } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
+import { 
+  Table, 
+  TableBody, 
+  TableCell, 
+  TableHead, 
+  TableHeader, 
+  TableRow 
+} from '@/components/ui/table';
 import { useQuery } from '@tanstack/react-query';
-import { toast } from '@/hooks/use-toast';
-import { ArrowRightLeft, Check, Table } from 'lucide-react';
+import { apiRequest } from '@/lib/queryClient';
+import { ComparableSnapshot } from '@shared/types/comps';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 interface FieldMappingDialogProps {
   snapshot: ComparableSnapshot;
@@ -42,82 +46,59 @@ interface Form {
   }[];
 }
 
-export default function FieldMappingDialog({
+export function FieldMappingDialog({
   snapshot,
   onClose,
-  onPushToForm,
+  onPushToForm
 }: FieldMappingDialogProps) {
-  // State for the selected form
   const [selectedFormId, setSelectedFormId] = useState<string>('');
-  
-  // State for field mappings (form field ID -> snapshot field name)
   const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
   
-  // State for auto-map enabled
-  const [autoMapEnabled, setAutoMapEnabled] = useState<boolean>(true);
-  
   // Fetch available forms
-  const { data: forms, isLoading } = useQuery({
-    queryKey: ['/api/forms/templates'],
+  const { 
+    data: forms, 
+    isLoading: isLoadingForms, 
+    error: formsError 
+  } = useQuery({
+    queryKey: ['/api/forms'],
     queryFn: async () => {
-      try {
-        const response = await fetch('/api/forms/templates');
-        if (!response.ok) {
-          throw new Error('Failed to fetch form templates');
-        }
-        return response.json() as Promise<Form[]>;
-      } catch (error) {
-        console.error('Error fetching form templates:', error);
-        throw error;
-      }
+      return apiRequest<Form[]>('/api/forms');
     }
   });
   
-  // Get the currently selected form
+  // Get the selected form
   const selectedForm = forms?.find(form => form.id === selectedFormId);
   
-  // Get snapshot field names
-  const snapshotFields = Object.keys(snapshot.fields).sort();
-  
-  // Auto-map fields when form is selected and auto-map is enabled
+  // Reset field mappings when form changes
   useEffect(() => {
-    if (selectedForm && autoMapEnabled) {
-      const newMappings = {...fieldMappings};
+    if (selectedForm) {
+      // Initialize mappings to empty
+      const initialMappings: Record<string, string> = {};
       
-      // Try to map form fields to snapshot fields based on name similarity
-      selectedForm.fields.forEach(formField => {
-        const formFieldNameLower = formField.name.toLowerCase();
+      // For each form field, try to find an automatic mapping based on name similarity
+      selectedForm.fields.forEach(field => {
+        const formFieldName = field.name.toLowerCase();
         
-        // Try to find an exact match first
-        let match = snapshotFields.find(
-          field => field.toLowerCase() === formFieldNameLower
-        );
+        // Try to auto-map snapshot fields to form fields based on name similarity
+        const matchingSnapshotField = Object.keys(snapshot.fields).find(snapshotField => {
+          const snapshotFieldLower = snapshotField.toLowerCase();
+          return snapshotFieldLower === formFieldName || 
+                 formFieldName.includes(snapshotFieldLower) || 
+                 snapshotFieldLower.includes(formFieldName);
+        });
         
-        // If no exact match, try partial matches
-        if (!match) {
-          match = snapshotFields.find(
-            field => field.toLowerCase().includes(formFieldNameLower) ||
-                    formFieldNameLower.includes(field.toLowerCase())
-          );
-        }
-        
-        if (match) {
-          newMappings[formField.id] = match;
+        if (matchingSnapshotField) {
+          initialMappings[field.id] = matchingSnapshotField;
+        } else {
+          initialMappings[field.id] = '';
         }
       });
       
-      setFieldMappings(newMappings);
+      setFieldMappings(initialMappings);
     }
-  }, [selectedFormId, selectedForm, autoMapEnabled, snapshotFields]);
+  }, [selectedFormId, selectedForm, snapshot]);
   
-  // Handle form selection
-  const handleFormSelect = (formId: string) => {
-    setSelectedFormId(formId);
-    // Clear existing mappings when changing forms
-    setFieldMappings({});
-  };
-  
-  // Handle field mapping change
+  // Update a specific field mapping
   const handleMappingChange = (formFieldId: string, snapshotField: string) => {
     setFieldMappings(prev => ({
       ...prev,
@@ -125,216 +106,186 @@ export default function FieldMappingDialog({
     }));
   };
   
-  // Handle submit
+  // Handle the submit action
   const handleSubmit = () => {
-    if (!selectedFormId) {
-      toast({
-        title: 'Error',
-        description: 'Please select a form first',
-        variant: 'destructive'
-      });
-      return;
-    }
+    // Filter out any fields that weren't mapped
+    const validMappings: Record<string, string> = {};
+    Object.entries(fieldMappings).forEach(([formFieldId, snapshotField]) => {
+      if (snapshotField) {
+        validMappings[formFieldId] = snapshotField;
+      }
+    });
     
-    // Check if required fields are mapped
-    const requiredFieldsMissing = selectedForm?.fields
-      .filter(field => field.required)
-      .some(field => !fieldMappings[field.id]);
-    
-    if (requiredFieldsMissing) {
-      toast({
-        title: 'Warning',
-        description: 'Some required fields are not mapped. Continue anyway?',
-        variant: 'default',
-        action: (
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={() => {
-              onPushToForm(selectedFormId, fieldMappings);
-            }}
-          >
-            Continue
-          </Button>
-        )
-      });
-      return;
-    }
-    
-    onPushToForm(selectedFormId, fieldMappings);
+    onPushToForm(selectedFormId, validMappings);
   };
   
-  // Calculate mapping percentage
-  const getMappingPercentage = () => {
-    if (!selectedForm) return 0;
-    const totalFields = selectedForm.fields.length;
-    const mappedFields = Object.keys(fieldMappings).length;
-    return Math.round((mappedFields / totalFields) * 100);
-  };
+  // Get snapshot field options
+  const snapshotFieldOptions = Object.keys(snapshot.fields).map(field => ({
+    value: field,
+    label: field,
+    sampleValue: formatFieldValue(snapshot.fields[field])
+  }));
+  
+  // Format field value for display
+  function formatFieldValue(value: any): string {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    
+    if (typeof value === 'object') {
+      return JSON.stringify(value).substring(0, 30) + (JSON.stringify(value).length > 30 ? '...' : '');
+    }
+    
+    return String(value);
+  }
+  
+  // Count mapped fields
+  const mappedFieldsCount = Object.values(fieldMappings).filter(Boolean).length;
+  const totalFieldsCount = selectedForm?.fields.length || 0;
   
   return (
     <Dialog open={true} onOpenChange={onClose}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Push Snapshot Data to Form</DialogTitle>
+          <DialogTitle>Map Snapshot Data to Form</DialogTitle>
           <DialogDescription>
-            Map snapshot fields to form fields to push data from this snapshot to a form.
+            Select a form and map snapshot fields to form fields. 
+            This will push the snapshot data to the selected form.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4 space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="form-select">Select Target Form</Label>
-            <Select value={selectedFormId} onValueChange={handleFormSelect}>
-              <SelectTrigger id="form-select">
-                <SelectValue placeholder="Select a form..." />
-              </SelectTrigger>
-              <SelectContent>
-                {isLoading ? (
-                  <SelectItem value="loading" disabled>Loading forms...</SelectItem>
-                ) : !forms || forms.length === 0 ? (
-                  <SelectItem value="none" disabled>No forms available</SelectItem>
-                ) : (
-                  forms.map(form => (
+        {isLoadingForms ? (
+          <div className="flex justify-center p-8">
+            <LoadingSpinner />
+          </div>
+        ) : formsError ? (
+          <div className="bg-red-50 text-red-700 p-4 rounded-md">
+            Error loading forms: {
+              formsError instanceof Error 
+                ? formsError.message 
+                : 'Failed to load available forms'
+            }
+          </div>
+        ) : forms && forms.length === 0 ? (
+          <div className="bg-amber-50 text-amber-700 p-4 rounded-md">
+            No forms available to push data to. Please create a form first.
+          </div>
+        ) : (
+          <>
+            <div className="mb-6">
+              <Label htmlFor="form-select">Select a Form</Label>
+              <Select 
+                value={selectedFormId} 
+                onValueChange={setSelectedFormId}
+              >
+                <SelectTrigger id="form-select" className="w-full">
+                  <SelectValue placeholder="Select a form to map data to" />
+                </SelectTrigger>
+                <SelectContent>
+                  {forms?.map(form => (
                     <SelectItem key={form.id} value={form.id}>
                       {form.name}
                     </SelectItem>
-                  ))
-                )}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {selectedForm && (
-            <>
-              <div className="flex justify-between items-center">
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    id="auto-map"
-                    checked={autoMapEnabled}
-                    onCheckedChange={setAutoMapEnabled}
-                  />
-                  <Label htmlFor="auto-map">Auto-map fields</Label>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            {selectedFormId && selectedForm && (
+              <>
+                <div className="bg-slate-50 p-3 rounded-md mb-4 text-sm">
+                  <div>
+                    <span className="font-semibold">Form:</span> {selectedForm.name}
+                  </div>
+                  <div>
+                    <span className="font-semibold">Fields Mapped:</span> {mappedFieldsCount} of {totalFieldsCount}
+                  </div>
                 </div>
-                <div className="text-sm text-muted-foreground">
-                  {Object.keys(fieldMappings).length} of {selectedForm.fields.length} fields mapped ({getMappingPercentage()}%)
-                </div>
-              </div>
-              
-              <Tabs defaultValue="mapping" className="w-full">
-                <TabsList className="mb-4">
-                  <TabsTrigger value="mapping">
-                    <ArrowRightLeft className="mr-2 h-4 w-4" /> Field Mapping
-                  </TabsTrigger>
-                  <TabsTrigger value="preview">
-                    <Table className="mr-2 h-4 w-4" /> Data Preview
-                  </TabsTrigger>
-                </TabsList>
                 
-                <TabsContent value="mapping">
-                  <Card className="overflow-hidden">
-                    <table className="min-w-full divide-y divide-gray-200">
-                      <thead className="bg-gray-50">
-                        <tr>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                            Form Field
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                            Snapshot Field
-                          </th>
-                          <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-1/3">
-                            Value
-                          </th>
-                        </tr>
-                      </thead>
-                      <tbody className="bg-white divide-y divide-gray-200">
-                        {selectedForm.fields.map(formField => (
-                          <tr key={formField.id} className={formField.required ? 'bg-amber-50' : ''}>
-                            <td className="px-6 py-4 whitespace-nowrap text-sm">
-                              <div className="font-medium">{formField.name}</div>
-                              <div className="text-xs text-gray-500">{formField.id}</div>
-                              {formField.required && (
-                                <div className="text-xs text-red-500">Required</div>
-                              )}
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap">
-                              <Select
-                                value={fieldMappings[formField.id] || ''}
-                                onValueChange={(value) => handleMappingChange(formField.id, value)}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue placeholder="Select field..." />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="">None</SelectItem>
-                                  {snapshotFields.map(field => (
-                                    <SelectItem key={field} value={field}>
-                                      {field}
-                                    </SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
-                            </td>
-                            <td className="px-6 py-4 text-sm">
-                              {fieldMappings[formField.id] ? (
-                                <div className="text-gray-700">
-                                  {typeof snapshot.fields[fieldMappings[formField.id]] === 'object'
-                                    ? JSON.stringify(snapshot.fields[fieldMappings[formField.id]])
-                                    : String(snapshot.fields[fieldMappings[formField.id]])}
-                                </div>
-                              ) : (
-                                <div className="text-gray-400 italic">No mapping</div>
-                              )}
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </Card>
-                </TabsContent>
-                
-                <TabsContent value="preview">
-                  <Card className="p-6 space-y-4">
-                    <h3 className="text-lg font-medium">Data Preview</h3>
-                    <p className="text-sm text-muted-foreground">
-                      This shows how data will appear in the form after pushing.
-                    </p>
-                    
-                    <div className="space-y-4">
-                      {selectedForm.fields.map(formField => (
-                        <div key={formField.id} className="space-y-2">
-                          <Label htmlFor={`preview-${formField.id}`}>
-                            {formField.name}
-                            {formField.required && ' *'}
-                          </Label>
-                          <Input
-                            id={`preview-${formField.id}`}
-                            value={fieldMappings[formField.id] 
-                              ? String(snapshot.fields[fieldMappings[formField.id]] || '')
-                              : ''}
-                            readOnly
-                            className={!fieldMappings[formField.id] ? 'bg-gray-100' : ''}
-                          />
-                        </div>
+                <div className="border rounded-md overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Form Field</TableHead>
+                        <TableHead>Required</TableHead>
+                        <TableHead>Type</TableHead>
+                        <TableHead>Snapshot Field</TableHead>
+                        <TableHead>Sample Value</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {selectedForm.fields.map(field => (
+                        <TableRow key={field.id}>
+                          <TableCell className="font-medium">{field.name}</TableCell>
+                          <TableCell>
+                            {field.required ? (
+                              <span className="text-red-500">Yes</span>
+                            ) : (
+                              <span className="text-gray-500">No</span>
+                            )}
+                          </TableCell>
+                          <TableCell>{field.type}</TableCell>
+                          <TableCell>
+                            <Select 
+                              value={fieldMappings[field.id] || ''} 
+                              onValueChange={(value) => handleMappingChange(field.id, value)}
+                            >
+                              <SelectTrigger className="w-full">
+                                <SelectValue placeholder="Select a field" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="">
+                                  -- None --
+                                </SelectItem>
+                                {snapshotFieldOptions.map(option => (
+                                  <SelectItem key={option.value} value={option.value}>
+                                    {option.label}
+                                  </SelectItem>
+                                ))}
+                              </SelectContent>
+                            </Select>
+                          </TableCell>
+                          <TableCell className="text-sm text-gray-600 truncate max-w-[200px]">
+                            {fieldMappings[field.id] ? (
+                              formatFieldValue(snapshot.fields[fieldMappings[field.id]])
+                            ) : (
+                              <span className="text-gray-400 italic">No field selected</span>
+                            )}
+                          </TableCell>
+                        </TableRow>
                       ))}
-                    </div>
-                  </Card>
-                </TabsContent>
-              </Tabs>
-            </>
-          )}
-        </div>
+                    </TableBody>
+                  </Table>
+                </div>
+              </>
+            )}
+          </>
+        )}
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            Cancel
-          </Button>
-          <Button 
-            onClick={handleSubmit}
-            disabled={!selectedFormId || Object.keys(fieldMappings).length === 0}
-          >
-            <Check className="mr-2 h-4 w-4" /> Push to Form
-          </Button>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-0 mt-4">
+          <div className="flex-1 text-sm text-gray-500">
+            {selectedFormId && (
+              <>
+                {mappedFieldsCount} of {totalFieldsCount} fields mapped
+                {mappedFieldsCount === 0 && (
+                  <span className="text-amber-500 ml-2">
+                    Please map at least one field
+                  </span>
+                )}
+              </>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={onClose}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleSubmit} 
+              disabled={!selectedFormId || mappedFieldsCount === 0}
+            >
+              Push to Form
+            </Button>
+          </div>
         </DialogFooter>
       </DialogContent>
     </Dialog>
