@@ -50,6 +50,97 @@ export class WebSocketManager {
   }
   
   /**
+   * Starts the heartbeat mechanism for connection monitoring
+   */
+  private startHeartbeat() {
+    // Clear any existing heartbeat
+    this.stopHeartbeat();
+    
+    // Set the last heartbeat response time
+    this.lastHeartbeatResponse = Date.now();
+    
+    // Start sending regular heartbeats
+    this.heartbeatTimeoutId = window.setInterval(() => {
+      this.sendHeartbeat();
+    }, this.heartbeatInterval);
+    
+    console.log('Heartbeat monitoring started');
+  }
+  
+  /**
+   * Stops the heartbeat mechanism
+   */
+  private stopHeartbeat() {
+    if (this.heartbeatTimeoutId !== null) {
+      window.clearInterval(this.heartbeatTimeoutId);
+      this.heartbeatTimeoutId = null;
+    }
+  }
+  
+  /**
+   * Sends a heartbeat ping to the server
+   */
+  private sendHeartbeat() {
+    if (!this.socket || this.socket.readyState !== WebSocket.OPEN) {
+      return;
+    }
+    
+    // Check if we haven't received a heartbeat response in too long
+    const now = Date.now();
+    if (this.lastHeartbeatResponse && (now - this.lastHeartbeatResponse > this.heartbeatTimeout)) {
+      console.warn(`No heartbeat response received in ${this.heartbeatTimeout / 1000}s, connection may be dead`);
+      
+      // Force close and reconnect
+      if (this.socket) {
+        console.log('Forcing connection reset due to heartbeat timeout');
+        
+        try {
+          // Close the socket normally if possible (will trigger reconnect via onclose)
+          this.socket.close(4000, 'Heartbeat timeout');
+        } catch (e) {
+          console.error('Error closing socket after heartbeat timeout:', e);
+          
+          // If we can't close properly, force socket to null and reconnect manually
+          this.socket = null;
+          this.connectionState = 'disconnected';
+          this.connect();
+        }
+      }
+      return;
+    }
+    
+    // Send heartbeat ping message
+    try {
+      this.send({
+        type: 'heartbeat',
+        action: 'ping',
+        timestamp: now
+      });
+    } catch (e) {
+      console.error('Error sending heartbeat:', e);
+    }
+  }
+  
+  /**
+   * Process a heartbeat response from the server
+   */
+  private handleHeartbeatResponse(data: any) {
+    if (data && data.action === 'pong') {
+      // Update last heartbeat response time
+      this.lastHeartbeatResponse = Date.now();
+      
+      // Calculate latency if the server included our timestamp
+      if (data.timestamp) {
+        const latency = Date.now() - data.timestamp;
+        // Only log every few heartbeats to avoid console spam
+        if (Math.random() < 0.1) {
+          console.log(`WebSocket connection healthy, latency: ${latency}ms`);
+        }
+      }
+    }
+  }
+  
+  /**
    * Connect to the WebSocket server with improved error handling
    */
   connect() {
@@ -132,7 +223,16 @@ export class WebSocketManager {
       this.socket.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+          
+          // Handle heartbeat responses
+          if (data.type === 'heartbeat') {
+            this.handleHeartbeatResponse(data);
+          }
+          
+          // Emit message to any listeners
           this.emit('message', data);
+          
+          // Emit events for specific message types
           if (data.type) {
             this.emit(data.type, data);
           }
@@ -176,6 +276,9 @@ export class WebSocketManager {
    */
   disconnect() {
     this.intentionalDisconnect = true;
+    
+    // Stop heartbeat monitoring
+    this.stopHeartbeat();
     
     // Clear any pending reconnection attempts
     if (this.reconnectTimeoutId !== null) {

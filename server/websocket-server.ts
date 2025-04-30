@@ -131,6 +131,19 @@ export function setupWebSocketServer(httpServer: Server) {
         
         // Handle message types
         switch (data.type) {
+          case 'heartbeat':
+            // Handle heartbeat ping message
+            if (data.action === 'ping') {
+              // Respond with pong to keep connection alive
+              sendToClient(ws, {
+                type: 'heartbeat',
+                action: 'pong',
+                timestamp: data.timestamp, // Echo back the client's timestamp for latency calculation
+                serverTime: Date.now()
+              });
+            }
+            break;
+          
           case 'ping':
             // Client-initiated ping, respond with pong
             sendToClient(ws, {
