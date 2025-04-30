@@ -33,6 +33,7 @@ import SettingsPage from "./pages/SettingsPage";
 import HelpSupportPage from "./pages/HelpSupportPage";
 import { AppProvider } from "./contexts/AppContext";
 import { PerformanceProvider } from "./contexts/PerformanceContext";
+import { RealtimeProvider } from "./contexts/RealtimeContext";
 import { AppShell } from "./components/layout/app-shell";
 import { useState, useEffect } from "react";
 
@@ -66,9 +67,10 @@ function App() {
 
   return (
     <PerformanceProvider>
-      <AppProvider>
-        <TooltipProvider>
-          <AppShell>
+      <RealtimeProvider>
+        <AppProvider>
+          <TooltipProvider>
+            <AppShell>
             {/* Explicit routes first */}
           <Route path="/" component={EnhancedHome} />
           <Route path="/form" component={FormPage} />
@@ -121,7 +123,8 @@ function App() {
         </AppShell>
       </TooltipProvider>
     </AppProvider>
-  </PerformanceProvider>
+  </RealtimeProvider>
+</PerformanceProvider>
   );
 }
 
