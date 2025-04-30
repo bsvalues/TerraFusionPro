@@ -25,18 +25,17 @@ export class WebSocketManager {
   private intentionalDisconnect = false;
   
   constructor(path = '/ws') {
-    // Build WebSocket URL using the express server port explicitly
-    // This is necessary because on Replit, connecting through the frontend
-    // proxy can sometimes cause WebSocket issues
+    // WebSocket connection URL needs to use the same host and port
+    // that served the frontend to work properly in Replit environment
+    // Hardcoding port 5000 breaks the WebSocket connection in Replit
     
-    // In production, the URL will be the same as in development but this
-    // construction method handles both cases correctly
+    // Build the WebSocket URL using the current window location
+    // Do not specify the port manually as Replit handles port forwarding internally
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = window.location.hostname;
+    const host = window.location.host; // host includes hostname and port if present
     
-    // Use port 5000 directly, as this is where the Express server runs
-    // This bypasses any potential issues with the frontend proxy
-    this.url = `${protocol}//${host}:5000${path}`;
+    // Use the same host:port that served the page for WebSocket connection
+    this.url = `${protocol}//${host}${path}`;
     
     console.log(`WebSocket URL: ${this.url} (direct backend connection)`);
   }
