@@ -105,6 +105,14 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     };
     websocketManager.on('pong', handlePong);
     
+    // Listen for heartbeat responses
+    const handleHeartbeat = (data: any) => {
+      if (data.type === 'heartbeat' && data.action === 'pong') {
+        setLastPing(Date.now());
+      }
+    };
+    websocketManager.on('heartbeat', handleHeartbeat);
+    
     // Connect on mount
     websocketManager.connect();
     
@@ -113,6 +121,7 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       websocketManager.off('connection', handleConnection);
       websocketManager.off('error', handleError);
       websocketManager.off('pong', handlePong);
+      websocketManager.off('heartbeat', handleHeartbeat);
       clearInterval(pingInterval);
       
       // Don't disconnect here as other components might still need the connection

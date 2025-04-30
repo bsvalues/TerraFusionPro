@@ -101,6 +101,14 @@ export default function WebSocketTestPage() {
     });
   };
   
+  const handleHeartbeat = () => {
+    send({
+      type: 'heartbeat',
+      action: 'ping',
+      timestamp: Date.now()
+    });
+  };
+  
   const getStatusColor = () => {
     switch (connectionStatus) {
       case 'connected': return 'bg-green-500';
@@ -163,6 +171,18 @@ export default function WebSocketTestPage() {
                 <div>Last Ping: <strong>{formatTime(lastPing)}</strong></div>
               </div>
               
+              <div className="bg-gray-50 p-3 rounded border border-gray-200 mt-2">
+                <h4 className="text-sm font-medium mb-2">Heartbeat Status</h4>
+                <div className="grid grid-cols-2 gap-4 text-xs">
+                  <div>Last Heartbeat: <strong>{lastPing ? formatTime(lastPing) : 'Never'}</strong></div>
+                  <div>Status: 
+                    <strong className={`ml-1 ${lastPing && (Date.now() - lastPing) < 30000 ? 'text-green-500' : 'text-red-500'}`}>
+                      {lastPing && (Date.now() - lastPing) < 30000 ? 'Healthy' : 'Timeout'}
+                    </strong>
+                  </div>
+                </div>
+              </div>
+              
               <div className="flex space-x-2 mt-2">
                 <Button 
                   onClick={connect} 
@@ -179,6 +199,9 @@ export default function WebSocketTestPage() {
                 </Button>
                 <Button onClick={handlePing} disabled={!isConnected} variant="outline">
                   Send Ping
+                </Button>
+                <Button onClick={handleHeartbeat} disabled={!isConnected} variant="outline">
+                  Send Heartbeat
                 </Button>
               </div>
             </div>
