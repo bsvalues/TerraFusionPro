@@ -34,7 +34,8 @@ import EnhancedHome from './pages/Home.enhanced';
 import EnhancedAIValuationPage from './pages/AIValuationPage.enhanced';
 import EnhancedCompliancePage from './pages/CompliancePage.enhanced';
 import EnhancedPhotosPage from './pages/PhotosPage.enhanced';
-import EnhancedSketchesPage from './pages/SketchesPage.enhanced';
+// Import simplified version of SketchesPage to avoid errors
+import BasicSketchesPage from './pages/BasicSketchesPage';
 import EnhancedPhotoSyncTestPage from './pages/PhotoSyncTestPage.enhanced';
 import EnhancedUADFormPage from './pages/UADFormPage.enhanced';
 
@@ -43,7 +44,7 @@ const HomeComponent = EnhancedHome;
 const AIValuationPageComponent = EnhancedAIValuationPage;
 const CompliancePageComponent = EnhancedCompliancePage;
 const PhotosPageComponent = EnhancedPhotosPage;
-const SketchesPageComponent = EnhancedSketchesPage;
+const SketchesPageComponent = BasicSketchesPage;
 const PhotoSyncTestPageComponent = EnhancedPhotoSyncTestPage;
 const UADFormPageComponent = EnhancedUADFormPage;
 
