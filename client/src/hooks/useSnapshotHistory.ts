@@ -1,43 +1,136 @@
-import { useState, useEffect } from 'react';
-import { ComparableSnapshot } from '@/shared/types/comps';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery } from '@tanstack/react-query';
+/**
+ * useSnapshotHistory Hook
+ * 
+ * Custom hook for managing property snapshot history
+ */
+import { useState, useCallback } from 'react';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { ComparableSnapshot, SnapshotDifference } from '../../shared/types/comps';
 
 /**
- * Hook to fetch historical snapshots for a property
- * @param addressId The ID of the property
+ * Hook for managing property snapshot history
  */
-export function useSnapshotHistory(addressId: string | null) {
-  const { toast } = useToast();
+export const useSnapshotHistory = (propertyId?: string) => {
+  const queryClient = useQueryClient();
+  const [selectedSnapshot, setSelectedSnapshot] = useState<ComparableSnapshot | null>(null);
   
-  const snapshotsQuery = useQuery({
-    queryKey: ['/api/comps/history', addressId],
+  // Fetch snapshots for a property
+  const {
+    data: snapshots = [],
+    isLoading,
+    error
+  } = useQuery({
+    queryKey: propertyId ? ['snapshots', propertyId] : null,
     queryFn: async () => {
-      if (!addressId) return { snapshots: [] };
-      
-      try {
-        const response = await fetch(`/api/comps/history/${addressId}`);
-        if (!response.ok) {
-          throw new Error(`Failed to fetch history: ${response.statusText}`);
-        }
-        return await response.json();
-      } catch (error) {
-        toast({
-          title: "Error fetching history",
-          description: error instanceof Error ? error.message : String(error),
-          variant: "destructive",
-        });
-        throw error;
+      const response = await fetch(`/api/comps/history/${propertyId}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch snapshots');
       }
+      const data = await response.json();
+      return data.snapshots as ComparableSnapshot[];
     },
-    enabled: !!addressId,
+    enabled: !!propertyId,
   });
-
-  return {
-    snapshots: snapshotsQuery.data?.snapshots as ComparableSnapshot[] || [],
-    isLoading: snapshotsQuery.isLoading,
-    isError: snapshotsQuery.isError,
-    error: snapshotsQuery.error,
-    refetch: snapshotsQuery.refetch
+  
+  // Create a new snapshot
+  const createSnapshot = useMutation({
+    mutationFn: async (snapshotData: { 
+      propertyId: string; 
+      source: string; 
+      fields: Record<string, any> 
+    }) => {
+      const response = await fetch('/api/comps/snapshot', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(snapshotData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to create snapshot');
+      }
+      
+      const data = await response.json();
+      return data.snapshot as ComparableSnapshot;
+    },
+    onSuccess: (newSnapshot) => {
+      // Invalidate snapshots query to refetch
+      queryClient.invalidateQueries({ queryKey: ['snapshots', newSnapshot.propertyId] });
+    },
+  });
+  
+  // Compare two snapshots
+  const compareSnapshots = (before: ComparableSnapshot, after: ComparableSnapshot): SnapshotDifference => {
+    const beforeFields = Object.keys(before.fields);
+    const afterFields = Object.keys(after.fields);
+    
+    // Find added fields (in after but not in before)
+    const added = afterFields
+      .filter(field => !beforeFields.includes(field))
+      .map(field => ({
+        field,
+        value: after.fields[field]
+      }));
+    
+    // Find removed fields (in before but not in after)
+    const removed = beforeFields
+      .filter(field => !afterFields.includes(field))
+      .map(field => ({
+        field,
+        value: before.fields[field]
+      }));
+    
+    // Find changed fields (in both but with different values)
+    const changed = beforeFields
+      .filter(field => 
+        afterFields.includes(field) && 
+        JSON.stringify(before.fields[field]) !== JSON.stringify(after.fields[field])
+      )
+      .map(field => ({
+        field,
+        fromValue: before.fields[field],
+        toValue: after.fields[field]
+      }));
+    
+    return {
+      added,
+      removed,
+      changed
+    };
   };
-}
+  
+  // Push snapshot data to form
+  const pushToForm = useMutation({
+    mutationFn: async (formData: { 
+      formId: string; 
+      snapshotId: string; 
+      fieldMappings: Record<string, string> 
+    }) => {
+      const response = await fetch('/api/forms/push', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      });
+      
+      if (!response.ok) {
+        throw new Error('Failed to push data to form');
+      }
+      
+      return response.json();
+    },
+  });
+  
+  return {
+    snapshots,
+    isLoading,
+    error,
+    selectedSnapshot,
+    setSelectedSnapshot,
+    createSnapshot,
+    compareSnapshots,
+    pushToForm
+  };
+};

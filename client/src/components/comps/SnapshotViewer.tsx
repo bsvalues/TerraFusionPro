@@ -1,177 +1,331 @@
+/**
+ * SnapshotViewer Component
+ * 
+ * Main container for viewing and comparing property snapshots
+ */
 import React, { useState } from 'react';
-import { useSnapshotHistory } from '@/hooks/useSnapshotHistory';
-import { SnapshotTile } from './SnapshotTile';
-import { ComparableSnapshot } from '@/shared/types/comps';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-  SheetDescription,
-  SheetFooter,
-  SheetClose,
-} from "@/components/ui/sheet";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from '@/components/ui/card';
+import {
+  Tabs,
+  TabsContent,
+  TabsList,
+  TabsTrigger
+} from '@/components/ui/tabs';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Loader2, XCircle, History, Search, Layers, Shield } from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/loading-spinner';
+import { Label } from '@/components/ui/label';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Skeleton } from '@/components/ui/skeleton';
+import { ComparableSnapshot } from '../../../shared/types/comps';
+import { useSnapshotHistory } from '../../hooks/useSnapshotHistory';
+import { SnapshotTile } from './SnapshotTile';
+import { SnapshotDiff } from './SnapshotDiff';
 import { FieldMappingDialog } from './FieldMappingDialog';
+import { 
+  Clock, 
+  FileHistory, 
+  AlertCircle, 
+  ArrowLeftRight,
+  Filter,
+  Share
+} from 'lucide-react';
 
 interface SnapshotViewerProps {
-  addressId: string | null;
-  formId?: string;
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+  propertyId: string;
+  className?: string;
 }
 
-export function SnapshotViewer({ 
-  addressId, 
-  formId,
-  open, 
-  onOpenChange 
-}: SnapshotViewerProps) {
-  const { snapshots, isLoading, isError } = useSnapshotHistory(addressId);
+export function SnapshotViewer({ propertyId, className }: SnapshotViewerProps) {
+  const { snapshots, isLoading, error } = useSnapshotHistory(propertyId);
+  const [selectedTab, setSelectedTab] = useState<'history' | 'compare'>('history');
   const [selectedSnapshot, setSelectedSnapshot] = useState<ComparableSnapshot | null>(null);
-  const [showMappingDialog, setShowMappingDialog] = useState(false);
+  const [snapshotToCompare, setSnapshotToCompare] = useState<ComparableSnapshot | null>(null);
+  const [sourceFilter, setSourceFilter] = useState<string | null>(null);
+  const [showFieldMappingDialog, setShowFieldMappingDialog] = useState(false);
   
-  // Group snapshots by source
-  const groupedSnapshots = snapshots.reduce((acc, snap) => {
-    (acc[snap.source] ||= []).push(snap);
-    return acc;
-  }, {} as Record<string, ComparableSnapshot[]>);
-
-  const handlePushToForm = (snapshot: ComparableSnapshot) => {
-    if (!formId) return;
-    
-    setSelectedSnapshot(snapshot);
-    setShowMappingDialog(true);
+  // Get unique sources for filtering
+  const sources = Array.from(new Set(snapshots.map(s => s.source)));
+  
+  // Filter snapshots based on selected source
+  const filteredSnapshots = sourceFilter 
+    ? snapshots.filter(s => s.source === sourceFilter)
+    : snapshots;
+  
+  // Sort snapshots by createdAt (newest first)
+  const sortedSnapshots = [...filteredSnapshots].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+  
+  // Handle snapshot selection
+  const handleSelectSnapshot = (snapshot: ComparableSnapshot) => {
+    if (selectedTab === 'history') {
+      setSelectedSnapshot(snapshot);
+    } else {
+      // In compare mode, we either set the first or second snapshot
+      if (!selectedSnapshot) {
+        setSelectedSnapshot(snapshot);
+      } else if (selectedSnapshot.id === snapshot.id) {
+        // Deselect if clicking the same one
+        setSelectedSnapshot(null);
+      } else {
+        setSnapshotToCompare(snapshot);
+      }
+    }
   };
-
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full sm:w-[540px] md:w-[640px] p-0 flex flex-col">
-        <SheetHeader className="p-4 border-b">
-          <div className="flex justify-between items-center">
-            <SheetTitle>Property History</SheetTitle>
-            <SheetClose asChild>
-              <Button variant="ghost" size="icon" className="h-8 w-8">
-                <XCircle className="h-5 w-5" />
-              </Button>
-            </SheetClose>
+  
+  // Handle pushing a snapshot to a form
+  const handlePushToForm = (snapshot: ComparableSnapshot) => {
+    setSelectedSnapshot(snapshot);
+    setShowFieldMappingDialog(true);
+  };
+  
+  // Reset selections when changing tabs
+  const handleTabChange = (tab: string) => {
+    setSelectedTab(tab as 'history' | 'compare');
+    setSelectedSnapshot(null);
+    setSnapshotToCompare(null);
+  };
+  
+  // Render content based on loading and error states
+  if (isLoading) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Property Snapshots</CardTitle>
+          <CardDescription>Loading snapshot history...</CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="space-y-2">
+                <Skeleton className="h-8 w-full" />
+                <Skeleton className="h-24 w-full" />
+              </div>
+            ))}
           </div>
-          <SheetDescription>
-            View and compare historical data snapshots from different sources
-          </SheetDescription>
-        </SheetHeader>
-
-        <Tabs defaultValue="history" className="flex-1 flex flex-col">
-          <TabsList className="px-4 pt-2">
-            <TabsTrigger value="history" className="flex items-center">
-              <History className="h-4 w-4 mr-2" />
-              Data History
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (error) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Property Snapshots</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Failed to load snapshot history: {error.message}
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  if (snapshots.length === 0) {
+    return (
+      <Card className={className}>
+        <CardHeader>
+          <CardTitle>Property Snapshots</CardTitle>
+          <CardDescription>Historical record of property data changes</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Alert>
+            <AlertCircle className="h-4 w-4" />
+            <AlertTitle>No Snapshots</AlertTitle>
+            <AlertDescription>
+              There are no snapshots available for this property.
+            </AlertDescription>
+          </Alert>
+        </CardContent>
+      </Card>
+    );
+  }
+  
+  return (
+    <Card className={className}>
+      <CardHeader>
+        <div className="flex justify-between items-start">
+          <div>
+            <CardTitle>Property Snapshots</CardTitle>
+            <CardDescription>Historical record of property data changes</CardDescription>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            <div className="w-[160px]">
+              <Select 
+                value={sourceFilter || ''} 
+                onValueChange={(value) => setSourceFilter(value || null)}
+              >
+                <SelectTrigger>
+                  <div className="flex items-center">
+                    <Filter className="h-4 w-4 mr-1" />
+                    <SelectValue placeholder="All Sources" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">All Sources</SelectItem>
+                  {sources.map(source => (
+                    <SelectItem key={source} value={source}>
+                      {source}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </div>
+      </CardHeader>
+      
+      <CardContent>
+        <Tabs value={selectedTab} onValueChange={handleTabChange}>
+          <TabsList className="mb-4">
+            <TabsTrigger value="history">
+              <Clock className="h-4 w-4 mr-1" />
+              History
             </TabsTrigger>
-            <TabsTrigger value="diffs" className="flex items-center">
-              <Layers className="h-4 w-4 mr-2" />
+            <TabsTrigger value="compare">
+              <ArrowLeftRight className="h-4 w-4 mr-1" />
               Compare
-            </TabsTrigger>
-            <TabsTrigger value="verification" className="flex items-center">
-              <Shield className="h-4 w-4 mr-2" />
-              Verification
             </TabsTrigger>
           </TabsList>
           
-          <TabsContent value="history" className="flex-1 flex flex-col">
-            <ScrollArea className="flex-1">
-              <div className="p-4">
-                {isLoading ? (
-                  <div className="flex items-center justify-center py-10">
-                    <LoadingSpinner size="lg" />
-                    <div className="ml-4">
-                      <h3 className="text-lg font-medium">Loading history...</h3>
-                      <p className="text-sm text-muted-foreground">Retrieving snapshots for this property</p>
+          <TabsContent value="history" className="space-y-4">
+            {selectedSnapshot ? (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="md:col-span-1">
+                  <ScrollArea className="h-[500px] pr-4">
+                    <div className="space-y-3">
+                      {sortedSnapshots.map(snapshot => (
+                        <SnapshotTile
+                          key={snapshot.id}
+                          snapshot={snapshot}
+                          selected={selectedSnapshot?.id === snapshot.id}
+                          onSelect={() => handleSelectSnapshot(snapshot)}
+                        />
+                      ))}
                     </div>
-                  </div>
-                ) : isError ? (
-                  <div className="flex items-center justify-center py-10 text-destructive">
-                    <XCircle className="h-8 w-8 mr-2" />
-                    <div>
-                      <h3 className="text-lg font-medium">Error loading snapshots</h3>
-                      <p className="text-sm">Unable to retrieve property history</p>
-                    </div>
-                  </div>
-                ) : !snapshots.length ? (
-                  <div className="flex flex-col items-center justify-center py-10 text-muted-foreground">
-                    <Search className="h-16 w-16 mb-4 opacity-20" />
-                    <h3 className="text-lg font-medium">No snapshots available</h3>
-                    <p className="text-sm text-center max-w-md mt-1">
-                      This property doesn't have any historical data. Snapshots are created when data is imported or changed.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="space-y-6">
-                    {Object.entries(groupedSnapshots).map(([source, snaps]) => (
-                      <div key={source}>
-                        <h3 className="text-sm font-semibold mb-3 flex items-center">
-                          {source} Snapshots
-                          <span className="ml-2 text-xs bg-muted text-muted-foreground rounded-full px-2 py-0.5">
-                            {snaps.length}
-                          </span>
-                        </h3>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          {snaps.map(snap => (
-                            <SnapshotTile 
-                              key={snap.id} 
-                              snapshot={snap} 
-                              onPushToForm={formId ? handlePushToForm : undefined}
-                              isSelected={selectedSnapshot?.id === snap.id}
-                            />
-                          ))}
+                  </ScrollArea>
+                </div>
+                
+                <div className="md:col-span-2">
+                  <Card>
+                    <CardHeader>
+                      <div className="flex justify-between items-start">
+                        <CardTitle className="text-lg">
+                          Snapshot Details
+                        </CardTitle>
+                        <Button variant="outline" onClick={() => handlePushToForm(selectedSnapshot)}>
+                          <Share className="h-4 w-4 mr-1" />
+                          Push to Form
+                        </Button>
+                      </div>
+                      <CardDescription>
+                        {selectedSnapshot.source} • {new Date(selectedSnapshot.createdAt).toLocaleString()}
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <h3 className="text-sm font-medium mb-2">Property Information</h3>
+                          <div className="grid grid-cols-2 gap-x-4 gap-y-2">
+                            {Object.entries(selectedSnapshot.fields).map(([key, value]) => (
+                              <div key={key} className="space-y-1">
+                                <Label className="text-xs text-muted-foreground">
+                                  {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                                </Label>
+                                <div className="text-sm">
+                                  {typeof value === 'string' && value.includes('T')
+                                    ? new Date(value).toLocaleDateString()
+                                    : String(value)}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {sortedSnapshots.map(snapshot => (
+                  <SnapshotTile
+                    key={snapshot.id}
+                    snapshot={snapshot}
+                    onSelect={() => handleSelectSnapshot(snapshot)}
+                    onPushToForm={() => handlePushToForm(snapshot)}
+                  />
+                ))}
+              </div>
+            )}
+          </TabsContent>
+          
+          <TabsContent value="compare">
+            <div className="space-y-4">
+              {selectedSnapshot && snapshotToCompare ? (
+                <SnapshotDiff
+                  before={selectedSnapshot}
+                  after={snapshotToCompare}
+                  onPushToForm={handlePushToForm}
+                />
+              ) : (
+                <>
+                  <Alert>
+                    <FileHistory className="h-4 w-4" />
+                    <AlertTitle>Compare Snapshots</AlertTitle>
+                    <AlertDescription>
+                      Select two snapshots to see how the property data has changed over time.
+                    </AlertDescription>
+                  </Alert>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {sortedSnapshots.map(snapshot => (
+                      <SnapshotTile
+                        key={snapshot.id}
+                        snapshot={snapshot}
+                        selected={
+                          selectedSnapshot?.id === snapshot.id || 
+                          snapshotToCompare?.id === snapshot.id
+                        }
+                        onSelect={() => handleSelectSnapshot(snapshot)}
+                      />
                     ))}
                   </div>
-                )}
-              </div>
-            </ScrollArea>
-          </TabsContent>
-          
-          <TabsContent value="diffs" className="flex-1">
-            <div className="p-4 flex-1 flex flex-col items-center justify-center text-muted-foreground">
-              <Layers className="h-16 w-16 mb-4 opacity-20" />
-              <h3 className="text-lg font-medium">Compare Snapshots</h3>
-              <p className="text-sm text-center max-w-md mt-1">
-                Select snapshots from the history tab to compare changes between versions
-              </p>
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="verification" className="flex-1">
-            <div className="p-4 flex-1 flex flex-col items-center justify-center text-muted-foreground">
-              <Shield className="h-16 w-16 mb-4 opacity-20" />
-              <h3 className="text-lg font-medium">Data Verification</h3>
-              <p className="text-sm text-center max-w-md mt-1">
-                Verify data accuracy and detect inconsistencies across sources
-              </p>
+                </>
+              )}
             </div>
           </TabsContent>
         </Tabs>
-
-        <SheetFooter className="p-4 border-t">
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Close
-          </Button>
-        </SheetFooter>
-      </SheetContent>
+      </CardContent>
       
-      {selectedSnapshot && formId && (
+      {/* Field Mapping Dialog */}
+      {selectedSnapshot && (
         <FieldMappingDialog
-          open={showMappingDialog}
-          onOpenChange={setShowMappingDialog}
+          open={showFieldMappingDialog}
+          onOpenChange={setShowFieldMappingDialog}
           snapshot={selectedSnapshot}
-          formId={formId}
         />
       )}
-    </Sheet>
+    </Card>
   );
 }

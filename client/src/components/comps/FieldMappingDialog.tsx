@@ -1,198 +1,362 @@
-import React, { useState } from 'react';
-import { ComparableSnapshot } from '@/shared/types/comps';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle
+/**
+ * FieldMappingDialog Component
+ * 
+ * Dialog for mapping snapshot fields to form fields
+ */
+import React, { useState, useMemo } from 'react';
+import { ComparableSnapshot, FieldMapping } from '../../../shared/types/comps';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
 } from '@/components/ui/dialog';
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
+  SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
-import { Button } from '@/components/ui/button';
+} from '@/components/ui/select';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useMutation } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import { CheckCircle2, Clipboard, AlertCircle } from 'lucide-react';
-
-// Default field mappings for common fields
-const DEFAULT_MAPPINGS = {
-  salePrice: 'salePrice',
-  gla: 'gla',
-  beds: 'beds',
-  baths: 'baths',
-  yearBuilt: 'yearBuilt',
-  saleDate: 'saleDate',
-} as const;
-
-// Field options for the form
-const FORM_FIELD_OPTIONS = [
-  { value: 'salePrice', label: 'Sale Price' },
-  { value: 'gla', label: 'Gross Living Area' },
-  { value: 'beds', label: 'Bedrooms' },
-  { value: 'baths', label: 'Bathrooms' },
-  { value: 'yearBuilt', label: 'Year Built' },
-  { value: 'saleDate', label: 'Sale Date' },
-  { value: 'lotSize', label: 'Lot Size' },
-  { value: 'address', label: 'Address' },
-  { value: 'amenities', label: 'Amenities' },
-  { value: 'condition', label: 'Condition' },
-  { value: 'custom', label: 'Custom Field...' },
-];
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Checkbox } from '@/components/ui/checkbox';
+import { Search, ArrowRight, Save, FileOutput, DatabaseIcon, X } from 'lucide-react';
+import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface FieldMappingDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
   snapshot: ComparableSnapshot;
-  formId: string;
+  onPushToForm: (formId: string, fieldMappings: Record<string, string>) => void;
+  formIds?: string[];
+  savedMappings?: FieldMapping[];
+  children?: React.ReactNode;
 }
 
 export function FieldMappingDialog({
-  open,
-  onOpenChange,
   snapshot,
-  formId
+  onPushToForm,
+  formIds = ['form-1', 'form-2', 'form-3'],
+  savedMappings = [],
+  children
 }: FieldMappingDialogProps) {
-  const { toast } = useToast();
-  const [fieldMappings, setFieldMappings] = useState(() => {
-    // Initialize with default mappings
-    return Object.entries(snapshot.fields).reduce((acc, [key]) => {
-      acc[key] = DEFAULT_MAPPINGS[key as keyof typeof DEFAULT_MAPPINGS] || '';
-      return acc;
-    }, {} as Record<string, string>);
-  });
-
-  const pushToFormMutation = useMutation({
-    mutationFn: async () => {
-      // Filter out empty mappings
-      const validMappings = Object.entries(fieldMappings).reduce((acc, [key, value]) => {
-        if (value) acc[key] = value;
-        return acc;
-      }, {} as Record<string, string>);
+  const [open, setOpen] = useState(false);
+  const [selectedFormId, setSelectedFormId] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [fieldMappings, setFieldMappings] = useState<Record<string, string>>({});
+  const [selectedFields, setSelectedFields] = useState<Set<string>>(new Set());
+  
+  // Common form field names that can be used for auto-mapping
+  const commonFormFields = useMemo(() => ({
+    'address': ['address', 'propertyAddress', 'location'],
+    'city': ['city', 'propertyCity'],
+    'state': ['state', 'propertyState'],
+    'zipCode': ['zipCode', 'zip', 'postalCode'],
+    'bedrooms': ['bedrooms', 'beds', 'bedroomCount'],
+    'bathrooms': ['bathrooms', 'baths', 'bathroomCount'],
+    'price': ['price', 'salePrice', 'value', 'salesPrice'],
+    'squareFeet': ['squareFeet', 'gla', 'grossLivingArea', 'area'],
+    'yearBuilt': ['yearBuilt', 'constructionYear', 'year']
+  }), []);
+  
+  // Generate filtered snapshot fields
+  const filteredFields = useMemo(() => {
+    if (!searchTerm.trim()) return Object.keys(snapshot.fields);
+    
+    return Object.keys(snapshot.fields).filter(field => 
+      field.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      String(snapshot.fields[field]).toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  }, [snapshot.fields, searchTerm]);
+  
+  // Handle checkbox toggling for a field
+  const toggleField = (field: string) => {
+    const newSelectedFields = new Set(selectedFields);
+    
+    if (newSelectedFields.has(field)) {
+      newSelectedFields.delete(field);
       
-      return await apiRequest('/api/forms/push', {
-        method: 'POST',
-        data: {
-          formId,
-          snapshotId: snapshot.id,
-          fieldMappings: validMappings
+      // Also remove from mappings
+      const newMappings = { ...fieldMappings };
+      delete newMappings[field];
+      setFieldMappings(newMappings);
+    } else {
+      newSelectedFields.add(field);
+      
+      // Try to auto-map this field if possible
+      const normalizedField = field.toLowerCase();
+      for (const [formField, possibleFields] of Object.entries(commonFormFields)) {
+        if (possibleFields.some(f => normalizedField === f || normalizedField.includes(f))) {
+          setFieldMappings(prev => ({
+            ...prev,
+            [field]: formField
+          }));
+          break;
+        }
+      }
+    }
+    
+    setSelectedFields(newSelectedFields);
+  };
+  
+  // Toggle select all fields
+  const toggleSelectAll = () => {
+    if (selectedFields.size === filteredFields.length) {
+      setSelectedFields(new Set());
+      setFieldMappings({});
+    } else {
+      setSelectedFields(new Set(filteredFields));
+      
+      // Try to auto-map fields
+      const newMappings = { ...fieldMappings };
+      filteredFields.forEach(field => {
+        const normalizedField = field.toLowerCase();
+        for (const [formField, possibleFields] of Object.entries(commonFormFields)) {
+          if (possibleFields.some(f => normalizedField === f || normalizedField.includes(f))) {
+            newMappings[field] = formField;
+            break;
+          }
         }
       });
-    },
-    onSuccess: () => {
-      toast({
-        title: "Success",
-        description: "Data successfully pushed to form",
-        variant: "default",
-      });
-      onOpenChange(false);
-    },
-    onError: (error) => {
-      toast({
-        title: "Error pushing data to form",
-        description: error instanceof Error ? error.message : String(error),
-        variant: "destructive",
-      });
+      
+      setFieldMappings(newMappings);
     }
-  });
-
-  const handleFieldMappingChange = (snapshotField: string, formField: string) => {
-    setFieldMappings(prev => ({
-      ...prev,
-      [snapshotField]: formField
-    }));
   };
-
+  
+  // Load a saved mapping
+  const loadSavedMapping = (mapping: FieldMapping) => {
+    if (mapping.snapshotId !== snapshot.id) return;
+    
+    setSelectedFormId(mapping.formId);
+    
+    const newSelectedFields = new Set<string>();
+    Object.keys(mapping.fieldMappings).forEach(field => {
+      if (snapshot.fields[field] !== undefined) {
+        newSelectedFields.add(field);
+      }
+    });
+    
+    setSelectedFields(newSelectedFields);
+    setFieldMappings(mapping.fieldMappings);
+  };
+  
+  // Push data to form
   const handlePushToForm = () => {
-    pushToFormMutation.mutate();
+    if (!selectedFormId) return;
+    
+    // Only include mappings for selected fields
+    const effectiveMappings: Record<string, string> = {};
+    for (const field of selectedFields) {
+      if (fieldMappings[field]) {
+        effectiveMappings[field] = fieldMappings[field];
+      }
+    }
+    
+    onPushToForm(selectedFormId, effectiveMappings);
+    setOpen(false);
   };
-
+  
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+    <Dialog open={open} onOpenChange={setOpen}>
+      <DialogTrigger asChild>
+        {children ? (
+          children
+        ) : (
+          <Button>
+            <FileOutput className="h-4 w-4 mr-2" />
+            Push Data to Form
+          </Button>
+        )}
+      </DialogTrigger>
+      
+      <DialogContent className="max-w-4xl max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>Map Fields to Form</DialogTitle>
+          <DialogTitle>Push Snapshot Data to Form</DialogTitle>
           <DialogDescription>
-            Choose which snapshot fields to push to your form and where they should go
+            Map data fields from this snapshot to a form of your choice.
           </DialogDescription>
         </DialogHeader>
         
-        <div className="py-4 space-y-4">
-          {Object.entries(snapshot.fields).map(([fieldName, fieldValue]) => {
-            // Skip undefined or null values
-            if (fieldValue === undefined || fieldValue === null) return null;
+        <div className="flex flex-col md:flex-row gap-4 my-2">
+          <div className="flex flex-col gap-2 md:w-1/3">
+            <Label htmlFor="form-select">Select Target Form</Label>
+            <Select value={selectedFormId} onValueChange={setSelectedFormId}>
+              <SelectTrigger id="form-select">
+                <SelectValue placeholder="Choose a form..." />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  <SelectLabel>Available Forms</SelectLabel>
+                  {formIds.map(id => (
+                    <SelectItem key={id} value={id}>
+                      {id}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
             
-            return (
-              <div key={fieldName} className="grid grid-cols-[1fr,auto,1fr] items-center gap-4">
-                <div>
-                  <Label htmlFor={`field-${fieldName}`} className="mb-1 block text-sm">
-                    {fieldName.charAt(0).toUpperCase() + fieldName.slice(1)}
-                  </Label>
-                  <div className="text-sm text-muted-foreground">
-                    {fieldName === 'salePrice' ? (
-                      `$${fieldValue.toLocaleString()}`
-                    ) : typeof fieldValue === 'string' && fieldValue.length > 20 ? (
-                      `${fieldValue.substring(0, 20)}...`
-                    ) : (
-                      String(fieldValue)
-                    )}
+            <div className="mt-4">
+              <Label>Saved Mappings</Label>
+              <div className="flex flex-col gap-2 mt-2">
+                {savedMappings
+                  .filter(mapping => mapping.snapshotId === snapshot.id)
+                  .map((mapping, index) => (
+                    <Button 
+                      key={index} 
+                      variant="outline" 
+                      size="sm" 
+                      className="justify-start"
+                      onClick={() => loadSavedMapping(mapping)}
+                    >
+                      <Save className="h-4 w-4 mr-2" />
+                      Map to {mapping.formId}
+                      <Badge className="ml-2" variant="secondary">
+                        {Object.keys(mapping.fieldMappings).length} fields
+                      </Badge>
+                    </Button>
+                  ))}
+                
+                {savedMappings.filter(mapping => mapping.snapshotId === snapshot.id).length === 0 && (
+                  <div className="text-sm text-muted-foreground text-center p-2">
+                    No saved mappings for this snapshot
                   </div>
-                </div>
-                
-                <div className="flex items-center justify-center">
-                  <Clipboard className="h-4 w-4 text-muted-foreground" />
-                </div>
-                
-                <Select
-                  value={fieldMappings[fieldName] || ''}
-                  onValueChange={(value) => handleFieldMappingChange(fieldName, value)}
-                >
-                  <SelectTrigger id={`field-${fieldName}`}>
-                    <SelectValue placeholder="Select field..." />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="">Don't map</SelectItem>
-                    {FORM_FIELD_OPTIONS.map(option => (
-                      <SelectItem key={option.value} value={option.value}>
-                        {option.label}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                )}
               </div>
-            );
-          })}
+            </div>
+          </div>
+          
+          <div className="flex flex-col md:w-2/3">
+            <div className="flex items-center gap-2 mb-2">
+              <Search className="h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search fields..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="flex-1"
+              />
+              
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={toggleSelectAll}
+              >
+                {selectedFields.size === filteredFields.length ? 'Deselect All' : 'Select All'}
+              </Button>
+            </div>
+            
+            <ScrollArea className="h-[300px] border rounded-md">
+              <Table>
+                <TableCaption>
+                  Snapshot contains {Object.keys(snapshot.fields).length} fields
+                </TableCaption>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead className="w-[200px]">Snapshot Field</TableHead>
+                    <TableHead className="w-[50px]"></TableHead>
+                    <TableHead>Form Field</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredFields.map(field => (
+                    <TableRow key={field}>
+                      <TableCell>
+                        <Checkbox
+                          checked={selectedFields.has(field)}
+                          onCheckedChange={() => toggleField(field)}
+                        />
+                      </TableCell>
+                      <TableCell className="font-medium">
+                        {field}
+                        <div className="text-xs text-muted-foreground truncate max-w-[180px]">
+                          {String(snapshot.fields[field])}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                      </TableCell>
+                      <TableCell>
+                        {selectedFields.has(field) ? (
+                          <div className="flex gap-2 items-center">
+                            <Input
+                              placeholder="Form field name..."
+                              value={fieldMappings[field] || ''}
+                              onChange={(e) => setFieldMappings({
+                                ...fieldMappings,
+                                [field]: e.target.value
+                              })}
+                              size={20}
+                              className="flex-1"
+                            />
+                            
+                            {fieldMappings[field] && (
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setFieldMappings(prev => {
+                                  const newMappings = { ...prev };
+                                  delete newMappings[field];
+                                  return newMappings;
+                                })}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic">Select to map</span>
+                        )}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {filteredFields.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={4} className="text-center py-6 text-muted-foreground">
+                        No fields match your search
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </ScrollArea>
+          </div>
         </div>
         
-        <DialogFooter className="flex flex-col sm:flex-row gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-            className="sm:w-auto w-full"
-          >
+        <DialogFooter className="mt-4">
+          <div className="flex items-center gap-2 mr-auto">
+            <DatabaseIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-sm text-muted-foreground">
+              {selectedFields.size} of {filteredFields.length} fields selected
+            </span>
+          </div>
+          
+          <Button variant="outline" onClick={() => setOpen(false)}>
             Cancel
           </Button>
           
           <Button 
-            onClick={handlePushToForm}
-            className="sm:w-auto w-full"
-            disabled={pushToFormMutation.isPending}
+            onClick={handlePushToForm} 
+            disabled={!selectedFormId || selectedFields.size === 0}
           >
-            {pushToFormMutation.isPending ? (
-              <>Processing...</>
-            ) : (
-              <>
-                <CheckCircle2 className="mr-2 h-4 w-4" />
-                Push to Form
-              </>
-            )}
+            <FileOutput className="h-4 w-4 mr-2" />
+            Push to Form
           </Button>
         </DialogFooter>
       </DialogContent>

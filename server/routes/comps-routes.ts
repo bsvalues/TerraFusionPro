@@ -1,124 +1,123 @@
-import express from 'express';
+/**
+ * Comps Routes
+ * 
+ * API endpoints for comparable property management
+ */
+import { Router } from 'express';
 import { z } from 'zod';
-import { db } from '../db';
-import { ComparableSnapshot } from '../../shared/types/comps';
+import {
+  getSnapshotsByPropertyId,
+  getSnapshotById,
+  createSnapshot,
+  compareSnapshots
+} from '../services/comps';
 
-const compsRouter = express.Router();
-export default compsRouter;
+const router = Router();
 
-// Get history snapshots for a property
-compsRouter.get('/comps/history/:addressId', async (req, res) => {
+// Get property snapshots
+router.get('/history/:propertyId', async (req, res) => {
   try {
-    const { addressId } = req.params;
-    
-    if (!addressId) {
-      return res.status(400).json({ error: 'Address ID is required' });
-    }
-    
-    // In a real implementation, this would fetch from your database
-    // For this scaffold, we'll return mock data to test the UI
-    const snapshots: ComparableSnapshot[] = [
-      {
-        id: '1',
-        propertyId: addressId,
-        source: 'MLS',
-        createdAt: new Date().toISOString(),
-        fields: {
-          gla: 2150,
-          salePrice: 425000,
-          saleDate: new Date('2023-08-15').toISOString(),
-          beds: 3,
-          baths: 2.5,
-          yearBuilt: 2005,
-          remarks: 'Beautiful home with updated kitchen and bathrooms',
-          financing: 'Conventional'
-        }
-      },
-      {
-        id: '2',
-        propertyId: addressId,
-        source: 'PublicRecord',
-        createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-        fields: {
-          gla: 2150,
-          salePrice: 425000,
-          saleDate: new Date('2023-08-15').toISOString(),
-          beds: 3,
-          baths: 2.5,
-          yearBuilt: 2005
-        }
-      },
-      {
-        id: '3',
-        propertyId: addressId,
-        source: 'PriorReport',
-        createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-        fields: {
-          gla: 2100,
-          salePrice: 415000,
-          saleDate: new Date('2023-08-15').toISOString(),
-          beds: 3,
-          baths: 2,
-          yearBuilt: 2005
-        }
-      }
-    ];
-    
-    // With a real database, you'd do something like:
-    // const snapshots = await db.query('SELECT * FROM comparable_snapshots WHERE property_id = $1', [addressId]);
+    const propertyId = req.params.propertyId;
+    const snapshots = await getSnapshotsByPropertyId(propertyId);
     
     res.json({ snapshots });
   } catch (error) {
     console.error('Error fetching property snapshots:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch property history', 
-      message: error instanceof Error ? error.message : 'Unknown error' 
+      message: 'Failed to fetch property snapshots',
+      error: error.message
     });
   }
 });
 
-// Get a specific snapshot by ID
-compsRouter.get('/comps/snapshots/:snapshotId', async (req, res) => {
+// Get a specific snapshot
+router.get('/snapshot/:snapshotId', async (req, res) => {
   try {
-    const { snapshotId } = req.params;
-    
-    if (!snapshotId) {
-      return res.status(400).json({ error: 'Snapshot ID is required' });
-    }
-    
-    // With a real database, you'd do:
-    // const snapshot = await db.query('SELECT * FROM comparable_snapshots WHERE id = $1', [snapshotId]);
-    
-    // For scaffold, we'll return mock data
-    const snapshot: ComparableSnapshot = {
-      id: snapshotId,
-      propertyId: '123',
-      source: 'MLS',
-      createdAt: new Date().toISOString(),
-      fields: {
-        gla: 2150,
-        salePrice: 425000,
-        saleDate: new Date('2023-08-15').toISOString(),
-        beds: 3,
-        baths: 2.5,
-        yearBuilt: 2005,
-        remarks: 'Beautiful home with updated kitchen and bathrooms',
-        financing: 'Conventional'
-      }
-    };
+    const snapshotId = req.params.snapshotId;
+    const snapshot = await getSnapshotById(snapshotId);
     
     if (!snapshot) {
-      return res.status(404).json({ error: 'Snapshot not found' });
+      return res.status(404).json({ message: 'Snapshot not found' });
     }
     
     res.json({ snapshot });
   } catch (error) {
     console.error('Error fetching snapshot:', error);
     res.status(500).json({ 
-      error: 'Failed to fetch snapshot', 
-      message: error instanceof Error ? error.message : 'Unknown error' 
+      message: 'Failed to fetch snapshot',
+      error: error.message
     });
   }
 });
 
-// Add more routes here for comps search, filtering, etc.
+// Create a new snapshot
+router.post('/snapshot', async (req, res) => {
+  try {
+    const schema = z.object({
+      propertyId: z.string(),
+      source: z.string(),
+      fields: z.record(z.any())
+    });
+    
+    const validatedData = schema.parse(req.body);
+    
+    const newSnapshot = await createSnapshot(
+      validatedData.propertyId,
+      validatedData.source,
+      validatedData.fields
+    );
+    
+    res.status(201).json({ snapshot: newSnapshot });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        message: 'Validation error',
+        errors: error.errors
+      });
+    }
+    
+    console.error('Error creating snapshot:', error);
+    res.status(500).json({ 
+      message: 'Failed to create snapshot',
+      error: error.message
+    });
+  }
+});
+
+// Compare two snapshots
+router.post('/compare', async (req, res) => {
+  try {
+    const schema = z.object({
+      beforeId: z.string(),
+      afterId: z.string()
+    });
+    
+    const validatedData = schema.parse(req.body);
+    
+    const beforeSnapshot = await getSnapshotById(validatedData.beforeId);
+    const afterSnapshot = await getSnapshotById(validatedData.afterId);
+    
+    if (!beforeSnapshot || !afterSnapshot) {
+      return res.status(404).json({ message: 'One or both snapshots not found' });
+    }
+    
+    const differences = compareSnapshots(beforeSnapshot, afterSnapshot);
+    
+    res.json({ differences });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ 
+        message: 'Validation error',
+        errors: error.errors
+      });
+    }
+    
+    console.error('Error comparing snapshots:', error);
+    res.status(500).json({ 
+      message: 'Failed to compare snapshots',
+      error: error.message
+    });
+  }
+});
+
+export default router;

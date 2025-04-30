@@ -1,139 +1,224 @@
 /**
- * Comps Service - Handles data retrieval for comparable properties
+ * Comps Service
+ * 
+ * Handles comparable property data management and snapshot functionality
  */
+import { v4 as uuidv4 } from 'uuid';
+import { ComparableSnapshot, SnapshotDifference } from '../../shared/types/comps';
 import { db } from '../db';
-import { ComparableSnapshot } from '../../shared/types/comps';
 
-// Database function to fetch snapshot from data store
-// This would connect to the comparable_snapshots table in a real implementation
-async function fetchSnapshotById(snapshotId: string): Promise<ComparableSnapshot | null> {
-  // For a real implementation, query the database:
-  // const result = await db.query(
-  //   'SELECT * FROM comparable_snapshots WHERE id = $1',
-  //   [snapshotId]
-  // );
-  // return result.rowCount ? mapToSnapshot(result.rows[0]) : null;
-  
-  // For now, return mock data for testing
-  return {
-    id: snapshotId,
-    propertyId: '123',
-    source: 'MLS',
-    createdAt: new Date().toISOString(),
-    fields: {
-      gla: 2150,
-      salePrice: 425000,
-      saleDate: new Date('2023-08-15').toISOString(),
-      beds: 3,
-      baths: 2.5,
-      yearBuilt: 2005,
-      remarks: 'Beautiful home with updated kitchen and bathrooms',
-      financing: 'Conventional'
-    }
-  };
-}
-
-// Database function to fetch snapshots for a property
-// This would connect to the comparable_snapshots table in a real implementation
-async function fetchSnapshotsByPropertyId(propertyId: string): Promise<ComparableSnapshot[]> {
-  // For a real implementation, query the database:
-  // const result = await db.query(
-  //   'SELECT * FROM comparable_snapshots WHERE property_id = $1 ORDER BY created_at DESC',
-  //   [propertyId]
-  // );
-  // return result.rows.map(mapToSnapshot);
-  
-  // For now, return mock data for testing
-  return [
-    {
-      id: '1',
-      propertyId,
-      source: 'MLS',
-      createdAt: new Date().toISOString(),
-      fields: {
-        gla: 2150,
-        salePrice: 425000,
-        saleDate: new Date('2023-08-15').toISOString(),
-        beds: 3,
-        baths: 2.5,
-        yearBuilt: 2005,
-        remarks: 'Beautiful home with updated kitchen and bathrooms',
-        financing: 'Conventional'
-      }
-    },
-    {
-      id: '2',
-      propertyId,
-      source: 'PublicRecord',
-      createdAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
-      fields: {
-        gla: 2150,
-        salePrice: 425000,
-        saleDate: new Date('2023-08-15').toISOString(),
-        beds: 3,
-        baths: 2.5,
-        yearBuilt: 2005
-      }
-    },
-    {
-      id: '3',
-      propertyId,
-      source: 'PriorReport',
-      createdAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(), // 30 days ago
-      fields: {
-        gla: 2100,
-        salePrice: 415000,
-        saleDate: new Date('2023-08-15').toISOString(),
-        beds: 3,
-        baths: 2,
-        yearBuilt: 2005
-      }
-    }
-  ];
-}
-
-/**
- * Get a specific snapshot by ID
- * @param snapshotId The ID of the snapshot to retrieve
- */
-export async function getSnapshotById(snapshotId: string): Promise<ComparableSnapshot | null> {
-  return fetchSnapshotById(snapshotId);
-}
+// In-memory storage for snapshots
+// In a production app, these would be stored in a database
+const snapshotStore = new Map<string, ComparableSnapshot>();
 
 /**
  * Get all snapshots for a property
- * @param propertyId The ID of the property
  */
-export async function getSnapshotsByPropertyId(propertyId: string): Promise<ComparableSnapshot[]> {
-  return fetchSnapshotsByPropertyId(propertyId);
-}
+export const getSnapshotsByPropertyId = async (propertyId: string): Promise<ComparableSnapshot[]> => {
+  // Return snapshots from memory storage
+  return [...snapshotStore.values()].filter(snapshot => 
+    snapshot.propertyId === propertyId
+  );
+};
 
 /**
- * Create a new snapshot for a property
- * @param propertyId The ID of the property
- * @param source The source of the snapshot (MLS, PublicRecord, etc.)
- * @param fields The fields of the snapshot
+ * Get a specific snapshot by ID
  */
-export async function createSnapshot(
+export const getSnapshotById = async (snapshotId: string): Promise<ComparableSnapshot | undefined> => {
+  return snapshotStore.get(snapshotId);
+};
+
+/**
+ * Create a new snapshot
+ */
+export const createSnapshot = async (
   propertyId: string,
   source: string,
   fields: Record<string, any>
-): Promise<ComparableSnapshot> {
-  // For a real implementation, insert into the database:
-  // const result = await db.query(
-  //   'INSERT INTO comparable_snapshots (property_id, source, fields) VALUES ($1, $2, $3) RETURNING *',
-  //   [propertyId, source, JSON.stringify(fields)]
-  // );
-  // return mapToSnapshot(result.rows[0]);
+): Promise<ComparableSnapshot> => {
+  const id = uuidv4();
+  const createdAt = new Date().toISOString();
   
-  // For now, return a mock response
   const snapshot: ComparableSnapshot = {
-    id: `snapshot-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+    id,
     propertyId,
     source,
-    createdAt: new Date().toISOString(),
+    createdAt,
     fields
   };
   
+  // Store in memory
+  snapshotStore.set(id, snapshot);
+  
   return snapshot;
-}
+};
+
+/**
+ * Compare two snapshots to find field differences
+ */
+export const compareSnapshots = (
+  before: ComparableSnapshot,
+  after: ComparableSnapshot
+): SnapshotDifference => {
+  const beforeFields = Object.keys(before.fields);
+  const afterFields = Object.keys(after.fields);
+  
+  // Find added fields (in after but not in before)
+  const added = afterFields
+    .filter(field => !beforeFields.includes(field))
+    .map(field => ({
+      field,
+      value: after.fields[field]
+    }));
+  
+  // Find removed fields (in before but not in after)
+  const removed = beforeFields
+    .filter(field => !afterFields.includes(field))
+    .map(field => ({
+      field,
+      value: before.fields[field]
+    }));
+  
+  // Find changed fields (in both but with different values)
+  const changed = beforeFields
+    .filter(field => 
+      afterFields.includes(field) && 
+      JSON.stringify(before.fields[field]) !== JSON.stringify(after.fields[field])
+    )
+    .map(field => ({
+      field,
+      fromValue: before.fields[field],
+      toValue: after.fields[field]
+    }));
+  
+  return {
+    added,
+    removed,
+    changed
+  };
+};
+
+// Add these sample snapshots for testing purposes
+// In a real app, these would come from the database
+const initializeSampleSnapshots = () => {
+  // Sample property 1
+  createSnapshot(
+    'property-1',
+    'MLS',
+    {
+      address: '123 Main St',
+      city: 'Springfield',
+      state: 'IL',
+      zipCode: '62701',
+      salePrice: 250000,
+      saleDate: '2023-01-15T00:00:00.000Z',
+      gla: 1850,
+      bedrooms: 3,
+      bathrooms: 2,
+      yearBuilt: 1985,
+      lotSize: 0.25,
+      propertyType: 'Single Family'
+    }
+  );
+  
+  // Second snapshot for same property with updates
+  createSnapshot(
+    'property-1',
+    'Tax Records',
+    {
+      address: '123 Main St',
+      city: 'Springfield',
+      state: 'IL',
+      zipCode: '62701',
+      salePrice: 255000, // Updated price
+      saleDate: '2023-01-20T00:00:00.000Z', // Updated date
+      gla: 1850,
+      bedrooms: 3,
+      bathrooms: 2,
+      yearBuilt: 1985,
+      lotSize: 0.25,
+      propertyType: 'Single Family',
+      taxAssessment: 232000, // Added field
+      taxYear: 2023 // Added field
+    }
+  );
+  
+  // Third snapshot with more changes
+  createSnapshot(
+    'property-1',
+    'Appraiser Inspection',
+    {
+      address: '123 Main St',
+      city: 'Springfield',
+      state: 'IL',
+      zipCode: '62701',
+      salePrice: 255000,
+      saleDate: '2023-01-20T00:00:00.000Z',
+      gla: 1900, // Updated GLA after measurement
+      bedrooms: 4, // Actually 4 bedrooms
+      bathrooms: 2.5, // Updated bathroom count
+      yearBuilt: 1985,
+      lotSize: 0.27, // Updated lot size
+      propertyType: 'Single Family',
+      taxAssessment: 232000,
+      taxYear: 2023,
+      condition: 'Good', // Added field from inspection
+      quality: 'Average', // Added field from inspection
+      garageSpaces: 2, // Added field from inspection
+      foundation: 'Concrete', // Added field from inspection
+      exteriorWalls: 'Vinyl Siding' // Added field from inspection
+    }
+  );
+  
+  // Sample property 2
+  createSnapshot(
+    'property-2',
+    'MLS',
+    {
+      address: '456 Oak Ave',
+      city: 'Springfield',
+      state: 'IL',
+      zipCode: '62702',
+      salePrice: 320000,
+      saleDate: '2023-02-10T00:00:00.000Z',
+      gla: 2200,
+      bedrooms: 4,
+      bathrooms: 3,
+      yearBuilt: 1995,
+      lotSize: 0.3,
+      propertyType: 'Single Family'
+    }
+  );
+  
+  // Another snapshot for property 2
+  createSnapshot(
+    'property-2',
+    'Appraiser Inspection',
+    {
+      address: '456 Oak Ave',
+      city: 'Springfield',
+      state: 'IL',
+      zipCode: '62702',
+      salePrice: 320000,
+      saleDate: '2023-02-10T00:00:00.000Z',
+      gla: 2200,
+      bedrooms: 4,
+      bathrooms: 3,
+      yearBuilt: 1995,
+      lotSize: 0.3,
+      propertyType: 'Single Family',
+      condition: 'Very Good',
+      quality: 'Good',
+      garageSpaces: 2,
+      foundation: 'Concrete',
+      exteriorWalls: 'Brick',
+      roofMaterial: 'Asphalt Shingle',
+      basement: 'Full, Finished',
+      heatingCooling: 'Central HVAC',
+      view: 'Average'
+    }
+  );
+};
+
+// Initialize sample data
+initializeSampleSnapshots();

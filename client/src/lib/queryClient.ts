@@ -1,78 +1,55 @@
-import { QueryClient, QueryFunction } from "@tanstack/react-query";
+/**
+ * Query client configuration for TanStack Query
+ */
+import { QueryClient } from '@tanstack/react-query';
 
-async function throwIfResNotOk(res: Response) {
-  if (!res.ok) {
-    const text = (await res.text()) || res.statusText;
-    throw new Error(`${res.status}: ${text}`);
-  }
-}
-
-export async function apiRequest<T = any>(
-  url: string,
-  options: {
-    method: string;
-    data?: unknown;
-    body?: FormData;
-    headers?: Record<string, string>;
-  } = { method: 'GET' }
-): Promise<T> {
-  const { method, data, body, headers = {} } = options;
-  
-  let requestBody: string | FormData | undefined;
-  let requestHeaders = { ...headers };
-  
-  // Handle different request body types
-  if (body instanceof FormData) {
-    requestBody = body;
-    // Don't set Content-Type for FormData, let the browser set it with the boundary
-  } else if (data) {
-    requestBody = JSON.stringify(data);
-    requestHeaders = {
-      "Content-Type": "application/json",
-      ...requestHeaders
-    };
-  }
-  
-  const res = await fetch(url, {
-    method,
-    headers: requestHeaders,
-    body: requestBody,
-    credentials: "include",
-  });
-
-  await throwIfResNotOk(res);
-  return await res.json() as T;
-}
-
-type UnauthorizedBehavior = "returnNull" | "throw";
-export const getQueryFn: <T>(options: {
-  on401: UnauthorizedBehavior;
-}) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
-  async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
-    }
-
-    await throwIfResNotOk(res);
-    return await res.json();
-  };
-
+// Create a client
 export const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      queryFn: getQueryFn({ on401: "throw" }),
-      refetchInterval: false,
+      staleTime: 1000 * 60 * 5, // 5 minutes
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
-      retry: false,
-    },
-    mutations: {
-      retry: false,
-    },
-  },
+      retry: 1
+    }
+  }
 });
+
+interface ApiRequestOptions {
+  method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
+  headers?: Record<string, string>;
+  data?: any;
+}
+
+/**
+ * Make an API request with standardized error handling
+ */
+export async function apiRequest<T = any>(
+  url: string,
+  options: ApiRequestOptions = {}
+): Promise<T> {
+  const { method = 'GET', headers = {}, data } = options;
+  
+  const requestOptions: RequestInit = {
+    method,
+    headers: {
+      'Content-Type': 'application/json',
+      ...headers
+    },
+    credentials: 'include'
+  };
+  
+  if (data) {
+    requestOptions.body = JSON.stringify(data);
+  }
+  
+  const response = await fetch(url, requestOptions);
+  
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(
+      errorData.message || `API request failed with status ${response.status}`
+    );
+  }
+  
+  return response.json();
+}

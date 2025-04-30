@@ -1,173 +1,91 @@
 /**
  * CRDT Service
  * 
- * This service provides utilities for managing Yjs CRDT documents for synchronized form state.
- * It handles updating form data, retrieving form state, and creating snapshots.
+ * Handles Conflict-free Replicated Data Types (CRDT) for collaborative editing
  */
-
 import * as Y from 'yjs';
+import { encodeStateAsUpdate, encodeStateVector, mergeUpdates } from 'yjs';
 
-// Store all active documents in memory - for a production app, you'd want to persist these
-// documents to a database or file system, and handle document expiry, etc.
-const formDocs = new Map<string, Y.Doc>();
+// Store for CRDT documents
+const docStore = new Map<string, Y.Doc>();
 
 /**
- * Get or create a CRDT document for a form
- * @param formId The ID of the form
+ * Get or create a YDoc for a specific document ID
  */
-function getOrCreateFormDoc(formId: string): Y.Doc {
-  if (!formDocs.has(formId)) {
+export const getOrCreateDoc = (docId: string): Y.Doc => {
+  if (!docStore.has(docId)) {
     const doc = new Y.Doc();
-    formDocs.set(formId, doc);
-    
-    // Create initial form structure if it doesn't exist
-    const formData = doc.getMap('formData');
-    if (formData.size === 0) {
-      formData.set('meta', {
-        createdAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString(),
-        snapshots: []
-      });
-    }
+    docStore.set(docId, doc);
+    return doc;
   }
   
-  return formDocs.get(formId)!;
-}
+  return docStore.get(docId)!;
+};
 
 /**
- * Update a form's CRDT document with new values
- * @param formId The ID of the form to update
- * @param updates Object containing field updates
+ * Get document data as JSON
  */
-export async function updateCRDTForm(formId: string, updates: Record<string, any>): Promise<void> {
-  const doc = getOrCreateFormDoc(formId);
-  
-  // Get the form data map
-  const formData = doc.getMap('formData');
-  
-  // Apply the updates
-  doc.transact(() => {
-    // Update each field
-    for (const [field, value] of Object.entries(updates)) {
-      formData.set(field, value);
-    }
-    
-    // Update the last updated timestamp
-    const meta = formData.get('meta') as Record<string, any> || {};
-    meta.lastUpdated = new Date().toISOString();
-    formData.set('meta', meta);
-  });
-}
+export const getDocData = (docId: string): object => {
+  const doc = getOrCreateDoc(docId);
+  return doc.getMap('content').toJSON();
+};
 
 /**
- * Get the current state of a form from the CRDT document
- * @param formId The ID of the form to retrieve
+ * Update document with client changes
  */
-export async function getCRDTFormState(formId: string): Promise<Record<string, any>> {
-  const doc = getOrCreateFormDoc(formId);
+export const updateDoc = (docId: string, update: Uint8Array): object => {
+  const doc = getOrCreateDoc(docId);
+  Y.applyUpdate(doc, update);
+  return doc.getMap('content').toJSON();
+};
+
+/**
+ * Set values directly in document (for non-collaborative updates)
+ */
+export const setDocValues = (docId: string, values: Record<string, any>): object => {
+  const doc = getOrCreateDoc(docId);
+  const content = doc.getMap('content');
   
-  // Get the form data map
-  const formData = doc.getMap('formData');
-  
-  // Convert the map to a plain object
-  const state: Record<string, any> = {};
-  formData.forEach((value, key) => {
-    state[key] = value;
+  Object.entries(values).forEach(([key, value]) => {
+    content.set(key, value);
   });
   
-  return state;
-}
+  return content.toJSON();
+};
 
 /**
- * Take a snapshot of the current form state
- * @param formId The ID of the form
+ * Get encoded state vector for synchronization
  */
-export async function takeFormSnapshot(formId: string): Promise<string> {
-  const doc = getOrCreateFormDoc(formId);
-  
-  // Get the form data map
-  const formData = doc.getMap('formData');
-  
-  // Create a snapshot object
-  const snapshot = {
-    id: `snapshot-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-    timestamp: new Date().toISOString(),
-    data: {} as Record<string, any>
-  };
-  
-  // Add all form data to the snapshot
-  formData.forEach((value, key) => {
-    if (key !== 'meta') {
-      snapshot.data[key] = value;
-    }
-  });
-  
-  // Add the snapshot to the meta information
-  const meta = formData.get('meta') as Record<string, any> || {};
-  const snapshots = meta.snapshots || [];
-  snapshots.push(snapshot);
-  meta.snapshots = snapshots;
-  formData.set('meta', meta);
-  
-  return snapshot.id;
-}
+export const getStateVector = (docId: string): Uint8Array => {
+  const doc = getOrCreateDoc(docId);
+  return encodeStateVector(doc);
+};
 
 /**
- * Get all snapshots for a form
- * @param formId The ID of the form
+ * Get encoded document update for a specific state vector
  */
-export async function getFormSnapshots(formId: string): Promise<any[]> {
-  const doc = getOrCreateFormDoc(formId);
-  
-  // Get the form data map
-  const formData = doc.getMap('formData');
-  
-  // Get the snapshots from the meta information
-  const meta = formData.get('meta') as Record<string, any> || {};
-  return meta.snapshots || [];
-}
+export const getDocUpdate = (docId: string, stateVector?: Uint8Array): Uint8Array => {
+  const doc = getOrCreateDoc(docId);
+  return encodeStateAsUpdate(doc, stateVector);
+};
 
 /**
- * Restore a form to a previous snapshot state
- * @param formId The ID of the form
- * @param snapshotId The ID of the snapshot to restore
+ * Merge multiple updates
  */
-export async function restoreFormSnapshot(formId: string, snapshotId: string): Promise<boolean> {
-  const doc = getOrCreateFormDoc(formId);
-  
-  // Get the form data map
-  const formData = doc.getMap('formData');
-  
-  // Get the snapshots from the meta information
-  const meta = formData.get('meta') as Record<string, any> || {};
-  const snapshots = meta.snapshots || [];
-  
-  // Find the requested snapshot
-  const snapshot = snapshots.find((s: any) => s.id === snapshotId);
-  
-  if (!snapshot) {
-    return false;
-  }
-  
-  // Restore the form state to the snapshot
-  doc.transact(() => {
-    // First, clear existing fields (except meta)
-    formData.forEach((_value, key) => {
-      if (key !== 'meta') {
-        formData.delete(key);
-      }
-    });
-    
-    // Then, set fields from the snapshot
-    for (const [field, value] of Object.entries(snapshot.data)) {
-      formData.set(field, value);
-    }
-    
-    // Update the last updated timestamp
-    meta.lastUpdated = new Date().toISOString();
-    meta.restoredFromSnapshot = snapshotId;
-    formData.set('meta', meta);
-  });
-  
-  return true;
-}
+export const mergeDocUpdates = (updates: Uint8Array[]): Uint8Array => {
+  return mergeUpdates(updates);
+};
+
+/**
+ * Delete a document from the store
+ */
+export const deleteDoc = (docId: string): boolean => {
+  return docStore.delete(docId);
+};
+
+/**
+ * Check if document exists
+ */
+export const docExists = (docId: string): boolean => {
+  return docStore.has(docId);
+};

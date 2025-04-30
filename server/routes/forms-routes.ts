@@ -1,102 +1,178 @@
-import express from 'express';
+/**
+ * Forms Routes
+ * 
+ * API endpoints for forms data integration with comps
+ */
+import { Router } from 'express';
 import { z } from 'zod';
-import { updateCRDTForm, getCRDTFormState, takeFormSnapshot } from '../services/crdt';
 import { getSnapshotById } from '../services/comps';
+import * as Y from 'yjs';
+import { encodeDocUpdate, applyEncodedUpdate } from '../../packages/crdt/src/index';
 
-const formsRouter = express.Router();
-export default formsRouter;
+// In-memory form state storage
+// In a real implementation, this would be in a database
+const formDocs = new Map<string, Y.Doc>();
 
-// Schema for validating push requests
-const PushRequest = z.object({
-  formId: z.string(),
-  snapshotId: z.string(),
-  fieldMappings: z.record(z.string(), z.string()) // e.g., { salePrice: "G1", gla: "G2" }
+const router = Router();
+
+// Get form state
+router.get('/forms/:formId', async (req, res) => {
+  try {
+    const formId = req.params.formId;
+    
+    // Get or create form doc
+    let doc = formDocs.get(formId);
+    if (!doc) {
+      doc = new Y.Doc();
+      formDocs.set(formId, doc);
+    }
+    
+    // Get form data
+    const formData = doc.getMap('form').toJSON();
+    
+    res.json({ formId, formData });
+  } catch (error) {
+    console.error('Error fetching form data:', error);
+    res.status(500).json({ 
+      message: 'Failed to fetch form data',
+      error: error.message
+    });
+  }
 });
 
-/**
- * Push data from a snapshot to a form
- * 
- * This endpoint takes data from a ComparableSnapshot and updates the form's
- * CRDT document with the mapped values.
- */
-formsRouter.post('/forms/push', async (req, res) => {
+// Update form state
+router.patch('/forms/:formId', async (req, res) => {
   try {
-    const parseResult = PushRequest.safeParse(req.body);
+    const formId = req.params.formId;
+    const updates = req.body;
     
-    if (!parseResult.success) {
+    // Get or create form doc
+    let doc = formDocs.get(formId);
+    if (!doc) {
+      doc = new Y.Doc();
+      formDocs.set(formId, doc);
+    }
+    
+    // Update form data
+    const formMap = doc.getMap('form');
+    
+    Object.entries(updates).forEach(([key, value]) => {
+      formMap.set(key, value);
+    });
+    
+    const formData = formMap.toJSON();
+    
+    res.json({ formId, formData });
+  } catch (error) {
+    console.error('Error updating form data:', error);
+    res.status(500).json({ 
+      message: 'Failed to update form data',
+      error: error.message
+    });
+  }
+});
+
+// Push snapshot data to form
+router.post('/forms/push', async (req, res) => {
+  try {
+    // Define schema for request
+    const schema = z.object({
+      formId: z.string(),
+      snapshotId: z.string(),
+      fieldMappings: z.record(z.string())
+    });
+    
+    const validatedData = schema.parse(req.body);
+    const { formId, snapshotId, fieldMappings } = validatedData;
+    
+    // Get snapshot
+    const snapshot = await getSnapshotById(snapshotId);
+    if (!snapshot) {
+      return res.status(404).json({ message: 'Snapshot not found' });
+    }
+    
+    // Get or create form doc
+    let doc = formDocs.get(formId);
+    if (!doc) {
+      doc = new Y.Doc();
+      formDocs.set(formId, doc);
+    }
+    
+    // Map snapshot fields to form fields
+    const formMap = doc.getMap('form');
+    const updatedFields: Record<string, any> = {};
+    
+    // Apply each mapped field
+    Object.entries(fieldMappings).forEach(([snapshotField, formField]) => {
+      const value = snapshot.fields[snapshotField];
+      if (value !== undefined) {
+        formMap.set(formField, value);
+        updatedFields[formField] = value;
+      }
+    });
+    
+    // Get updated form state
+    const formData = formMap.toJSON();
+    
+    res.json({
+      success: true,
+      fields: updatedFields,
+      formState: formData
+    });
+  } catch (error) {
+    if (error instanceof z.ZodError) {
       return res.status(400).json({ 
-        error: 'Invalid request format',
-        details: parseResult.error.issues
+        message: 'Validation error',
+        errors: error.errors
       });
     }
     
-    const { formId, snapshotId, fieldMappings } = parseResult.data;
-    
-    // Retrieve the snapshot
-    const snapshot = await getSnapshotById(snapshotId);
-    if (!snapshot) {
-      return res.status(404).json({ error: 'Snapshot not found' });
-    }
-    
-    // Map the snapshot fields to form fields
-    const updates = Object.entries(fieldMappings).reduce((acc, [snapshotKey, formField]) => {
-      // @ts-ignore - We know snapshotKey might not be in fields, but we check it
-      const value = snapshot.fields[snapshotKey];
-      if (value !== undefined) {
-        acc[formField] = value;
-      }
-      return acc;
-    }, {} as Record<string, any>);
-    
-    // Update the form CRDT document
-    await updateCRDTForm(formId, updates);
-    
-    // Take a snapshot of the form's state after the update
-    await takeFormSnapshot(formId);
-    
-    // Get the current form state to return in response
-    const currentState = await getCRDTFormState(formId);
-    
-    // Return success with the updated fields
-    res.json({ 
-      success: true,
-      fields: updates,
-      formState: currentState
-    });
-  } catch (error) {
-    console.error('Error pushing snapshot to form:', error);
+    console.error('Error pushing data to form:', error);
     res.status(500).json({ 
-      error: 'Failed to push snapshot to form', 
-      message: error instanceof Error ? error.message : 'Unknown error' 
+      message: 'Failed to push data to form',
+      error: error.message
     });
   }
 });
 
-/**
- * Get form state
- * 
- * Retrieves the current state of a form from the CRDT document
- */
-formsRouter.get('/forms/:formId', async (req, res) => {
+// Sync form state (CRDT updates)
+router.post('/forms/:formId/sync', async (req, res) => {
   try {
-    const { formId } = req.params;
+    const formId = req.params.formId;
+    const { update, clientId } = req.body;
     
-    if (!formId) {
-      return res.status(400).json({ error: 'Form ID is required' });
+    if (!update) {
+      return res.status(400).json({ message: 'Update data is required' });
     }
     
-    // Get the current form state
-    const formState = await getCRDTFormState(formId);
+    // Get or create form doc
+    let doc = formDocs.get(formId);
+    if (!doc) {
+      doc = new Y.Doc();
+      formDocs.set(formId, doc);
+    }
+    
+    // Apply update
+    applyEncodedUpdate(doc, update);
+    
+    // Get form data
+    const formData = doc.getMap('form').toJSON();
+    
+    // Encode state vector for client to sync
+    const encodedState = encodeDocUpdate(doc);
     
     res.json({ 
-      formId,
-      state: formState
+      formId, 
+      formData,
+      stateVector: encodedState 
     });
   } catch (error) {
-    console.error('Error retrieving form state:', error);
+    console.error('Error syncing form data:', error);
     res.status(500).json({ 
-      error: 'Failed to retrieve form state', 
-      message: error instanceof Error ? error.message : 'Unknown error' 
+      message: 'Failed to sync form data',
+      error: error.message
     });
   }
 });
+
+export default router;

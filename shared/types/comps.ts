@@ -1,34 +1,49 @@
+/**
+ * Types for comparable property data and snapshot management
+ */
+
+/**
+ * Represents a snapshot of a property's data at a point in time
+ */
 export interface ComparableSnapshot {
   id: string;
   propertyId: string;
-  source: "MLS" | "PublicRecord" | "PriorReport" | "Manual";
+  source: string;
   createdAt: string;
-  fields: {
-    gla: number;
-    salePrice: number;
-    saleDate: string;
-    beds: number;
-    baths: number;
-    yearBuilt?: number;
-    remarks?: string;
-    financing?: string;
-  };
+  fields: Record<string, any>;
 }
 
-export interface SnapshotFieldMapping {
-  snapshotField: keyof ComparableSnapshot['fields'];
-  formField: string;
-  label: string;
+/**
+ * Represents an added or removed field in a snapshot comparison
+ */
+export interface FieldChange {
+  field: string;
+  value: any;
 }
 
-export interface PushToFormRequest {
+/**
+ * Represents a changed field between two snapshots
+ */
+export interface FieldValueChange {
+  field: string;
+  fromValue: any;
+  toValue: any;
+}
+
+/**
+ * Represents the difference between two snapshots
+ */
+export interface SnapshotDifference {
+  added: FieldChange[];
+  removed: FieldChange[];
+  changed: FieldValueChange[];
+}
+
+/**
+ * Maps snapshot fields to form fields
+ */
+export interface FieldMapping {
   formId: string;
   snapshotId: string;
-  fieldMappings: Record<string, string>; // snapshotField: formField
-}
-
-export interface PushToFormResponse {
-  success: boolean;
-  fields?: Record<string, any>;
-  error?: string;
+  fieldMappings: Record<string, string>;
 }
