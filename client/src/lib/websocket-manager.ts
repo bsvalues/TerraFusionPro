@@ -25,18 +25,20 @@ export class WebSocketManager {
   private intentionalDisconnect = false;
   
   constructor(path = '/ws') {
-    // Build WebSocket URL with a distinct path to avoid conflicts with Vite's HMR
+    // Build WebSocket URL using the express server port explicitly
+    // This is necessary because on Replit, connecting through the frontend
+    // proxy can sometimes cause WebSocket issues
+    
+    // In production, the URL will be the same as in development but this
+    // construction method handles both cases correctly
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const host = window.location.hostname;
     
-    // Simplified URL construction that works across environments
-    // Use the current host to ensure same-origin policy
-    const host = window.location.host;
+    // Use port 5000 directly, as this is where the Express server runs
+    // This bypasses any potential issues with the frontend proxy
+    this.url = `${protocol}//${host}:5000${path}`;
     
-    // On Replit, we always use the same host without specifying port
-    // This ensures we connect to the correct endpoint regardless of environment
-    this.url = `${protocol}//${host}${path}`;
-    
-    console.log(`WebSocket URL: ${this.url} (${process.env.NODE_ENV || 'unknown'} mode)`);
+    console.log(`WebSocket URL: ${this.url} (direct backend connection)`);
   }
   
   /**

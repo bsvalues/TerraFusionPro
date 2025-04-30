@@ -133,6 +133,10 @@ export default function WebSocketTestPage() {
       `${protocol}//${window.location.host}/ws`,
       // Direct port 5000 endpoint (Express server)
       `${protocol}//${hostname}:5000/ws`,
+      // Alternative WebSocket endpoint (simplified implementation)
+      `${protocol}//${window.location.host}/ws-alt`,
+      // Alternative endpoint with direct port
+      `${protocol}//${hostname}:5000/ws-alt`,
     ];
     
     console.log('Trying WebSocket connections with these URLs:', wsUrls);
@@ -320,11 +324,20 @@ export default function WebSocketTestPage() {
                   Test Port 5000
                 </Button>
                 <Button 
-                  onClick={() => testWebSocketUrl(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//` + window.location.hostname + '/ws')}
+                  onClick={() => testWebSocketUrl(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//` + window.location.host + '/ws-alt')}
                   variant="outline" 
                   size="sm"
+                  className="bg-blue-50"
                 >
-                  Test Hostname Only
+                  Test Alt Endpoint
+                </Button>
+                <Button 
+                  onClick={() => testWebSocketUrl(`${window.location.protocol === 'https:' ? 'wss:' : 'ws:'}//` + window.location.hostname + ':5000/ws-alt')}
+                  variant="outline" 
+                  size="sm"
+                  className="bg-blue-50"
+                >
+                  Test Alt Port 5000
                 </Button>
               </div>
               

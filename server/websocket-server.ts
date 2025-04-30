@@ -23,18 +23,12 @@ export function setupWebSocketServer(httpServer: Server) {
   // Log HTTP server configuration
   console.log(`[WebSocket] HTTP Server timeouts configured: keepAliveTimeout=${httpServer.keepAliveTimeout}ms, headersTimeout=${httpServer.headersTimeout}ms`);
   
-  // Create a WebSocket server with simplified configuration
-  // The perMessageDeflate is disabled to avoid potential issues with compression
-  // and we're explicitly setting the path to /ws to avoid conflicts with Vite's HMR
+  // Create a WebSocket server with bare minimum configuration
+  // Many WebSocket errors arise from overly complex configurations
+  // We're stripping this down to the absolute basics for maximum compatibility
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws',
-    clientTracking: true,
-    perMessageDeflate: false,
-    // Additional configuration to handle potential connection issues
-    // This increases stability by allowing more connections and setting timeouts
-    maxPayload: 1024 * 1024, // 1MB max message size
-    skipUTF8Validation: false // Always validate proper UTF8
+    path: '/ws'
   });
   
   // Track clients with additional metadata
