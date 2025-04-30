@@ -1,75 +1,70 @@
+import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest, getQueryFn } from '../lib/queryClient';
-import { ComparableSnapshot, PushSnapshotRequest, PushSnapshotResponse } from '@shared/types/comps';
-import { useToast } from '@/hooks/use-toast';
+import { apiRequest } from '@/lib/queryClient';
+import { toast } from '@/hooks/use-toast';
+import { ComparableSnapshot, PushSnapshotRequest } from '@shared/types/comps';
 
 /**
- * useSnapshotHistory Hook
- * 
- * Custom hook for fetching and managing snapshot history for a property
+ * Hook for working with property snapshot history and operations
  */
-interface UseSnapshotHistoryResult {
-  snapshots: ComparableSnapshot[] | undefined;
-  isLoading: boolean;
-  error: Error | null;
-  pushToForm: (snapshot: ComparableSnapshot, formId: string, fieldMappings: Record<string, string>) => Promise<void>;
-}
-
-export function useSnapshotHistory(propertyId: string): UseSnapshotHistoryResult {
+export function useSnapshotHistory(propertyId: string) {
   const queryClient = useQueryClient();
-  const { toast } = useToast();
   
-  // Query to fetch snapshot history
+  // Query for fetching snapshots
   const { 
-    data: snapshots, 
-    isLoading, 
-    error 
+    data: snapshots,
+    isLoading,
+    error,
+    refetch
   } = useQuery({
     queryKey: [`/api/properties/${propertyId}/snapshots`],
-    queryFn: getQueryFn(`/api/properties/${propertyId}/snapshots`),
+    queryFn: async () => {
+      return apiRequest<ComparableSnapshot[]>(`/api/properties/${propertyId}/snapshots`);
+    },
     enabled: !!propertyId
   });
   
-  // Mutation to push snapshot data to a form
+  // Mutation for pushing snapshot data to a form
   const pushToFormMutation = useMutation({
-    mutationFn: async (data: PushSnapshotRequest): Promise<PushSnapshotResponse> => {
+    mutationFn: async (params: {
+      snapshot: ComparableSnapshot;
+      formId: string;
+      fieldMappings: Record<string, string>;
+    }) => {
+      const { snapshot, formId, fieldMappings } = params;
+      
+      const payload: PushSnapshotRequest = {
+        snapshotId: snapshot.id,
+        formId,
+        fieldMappings
+      };
+      
       return apiRequest('/api/snapshots/push-to-form', {
         method: 'POST',
-        data
+        data: payload
       });
     },
-    onSuccess: (data, variables) => {
-      if (data.success) {
-        // If a new snapshot was created as a result, add it to the cache
-        if (data.newSnapshot) {
-          // Update the snapshots in the cache
-          queryClient.setQueryData(
-            [`/api/properties/${propertyId}/snapshots`], 
-            (oldData: ComparableSnapshot[] | undefined) => {
-              if (!oldData) return [data.newSnapshot];
-              return [...oldData, data.newSnapshot];
-            }
-          );
-        }
-        
-        toast({
-          title: "Success",
-          description: "Data successfully pushed to form",
-          variant: "default",
-        });
-      } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to push data to form",
-          variant: "destructive",
-        });
-      }
-    },
-    onError: (error) => {
+    onSuccess: (data) => {
+      // Invalidate queries to refetch snapshot data
+      queryClient.invalidateQueries({queryKey: [`/api/properties/${propertyId}/snapshots`]});
+      
+      // Show success message
       toast({
-        title: "Error",
-        description: error instanceof Error ? error.message : "An unknown error occurred",
-        variant: "destructive",
+        title: 'Success',
+        description: 'Snapshot data pushed to form successfully',
+        variant: 'default'
+      });
+      
+      return data;
+    },
+    onError: (error: Error) => {
+      console.error('Error pushing snapshot to form:', error);
+      
+      // Show error message
+      toast({
+        title: 'Error',
+        description: error.message || 'Failed to push snapshot data to form',
+        variant: 'destructive'
       });
     }
   });
@@ -80,17 +75,23 @@ export function useSnapshotHistory(propertyId: string): UseSnapshotHistoryResult
     formId: string,
     fieldMappings: Record<string, string>
   ) => {
-    await pushToFormMutation.mutateAsync({
-      snapshotId: snapshot.id,
-      formId,
-      fieldMappings
-    });
+    try {
+      await pushToFormMutation.mutateAsync({
+        snapshot,
+        formId,
+        fieldMappings
+      });
+      return true;
+    } catch (error) {
+      return false;
+    }
   };
   
   return {
     snapshots,
-    isLoading,
-    error: error instanceof Error ? error : error ? new Error(String(error)) : null,
-    pushToForm
+    isLoading, 
+    error,
+    pushToForm,
+    refetch
   };
 }

@@ -1,38 +1,28 @@
-import React, { useState, useMemo } from 'react';
+import { useState, useMemo } from 'react';
 import { useSnapshotHistory } from '@/hooks/useSnapshotHistory';
-import { SnapshotTile } from './SnapshotTile';
-import { SnapshotDiff } from './SnapshotDiff';
-import { FieldMappingDialog } from './FieldMappingDialog';
 import { ComparableSnapshot } from '@shared/types/comps';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { Button } from '@/components/ui/button';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { Card } from '@/components/ui/card';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle
-} from '@/components/ui/card';
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue
-} from '@/components/ui/select';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import {
-  ArrowLeftIcon,
-  ArrowUpDownIcon,
-  CalendarIcon,
-  FilterIcon,
-  SendIcon
+  ArrowLeft,
+  History,
+  RefreshCw,
+  Search,
+  Filter,
+  Clock,
+  SortAsc,
+  SortDesc,
+  FileText,
+  ArrowRightLeft
 } from 'lucide-react';
-import { ScrollArea } from '@/components/ui/scroll-area';
 import { format } from 'date-fns';
+import SnapshotDiff from './SnapshotDiff';
+import FieldMappingDialog from './FieldMappingDialog';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
 
 interface SnapshotViewerProps {
   propertyId: string;
@@ -40,95 +30,138 @@ interface SnapshotViewerProps {
 }
 
 export function SnapshotViewer({ propertyId, onBack }: SnapshotViewerProps) {
-  const { snapshots, isLoading, error, pushToForm } = useSnapshotHistory(propertyId);
+  const { snapshots, isLoading, error, pushToForm, refetch } = useSnapshotHistory(propertyId);
+
+  // State for filtering and sorting
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterBy, setFilterBy] = useState<string>('all');
+  const [sortBy, setSortBy] = useState<string>('date-desc');
   
-  // State to keep track of selected snapshots
-  const [selectedSnapshotId, setSelectedSnapshotId] = useState<string | null>(null);
-  const [compareSnapshotId, setCompareSnapshotId] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState('history');
-  const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
-  const [filterSource, setFilterSource] = useState<string | null>(null);
+  // State for selected snapshots (for viewing details or comparison)
+  const [selectedSnapshot, setSelectedSnapshot] = useState<ComparableSnapshot | null>(null);
+  const [compareSnapshot, setCompareSnapshot] = useState<ComparableSnapshot | null>(null);
   
-  // Get selected snapshot objects
-  const selectedSnapshot = useMemo(() => {
-    return snapshots?.find(s => s.id === selectedSnapshotId) || null;
-  }, [snapshots, selectedSnapshotId]);
-  
-  const compareSnapshot = useMemo(() => {
-    return snapshots?.find(s => s.id === compareSnapshotId) || null;
-  }, [snapshots, compareSnapshotId]);
-  
-  // Get unique sources for filtering
+  // State for field mapping dialog
+  const [isFieldMappingOpen, setIsFieldMappingOpen] = useState(false);
+  const [currentTab, setCurrentTab] = useState('list');
+
+  // Filter and sort snapshots
+  const filteredSnapshots = useMemo(() => {
+    if (!snapshots) return [];
+    
+    let filtered = [...snapshots];
+    
+    // Apply source filter
+    if (filterBy !== 'all') {
+      filtered = filtered.filter(snapshot => snapshot.source === filterBy);
+    }
+    
+    // Apply search filter (searches in fields and metadata)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(snapshot => {
+        // Search in fields
+        const fieldsMatch = Object.entries(snapshot.fields).some(([key, value]) => {
+          if (typeof value === 'string') {
+            return value.toLowerCase().includes(query);
+          }
+          if (typeof value === 'number') {
+            return value.toString().includes(query);
+          }
+          return false;
+        });
+        
+        // Search in metadata if it exists
+        const metadataMatch = snapshot.metadata ? 
+          Object.entries(snapshot.metadata).some(([key, value]) => {
+            if (typeof value === 'string') {
+              return value.toLowerCase().includes(query);
+            }
+            return false;
+          }) : false;
+          
+        // Search in source
+        const sourceMatch = snapshot.source.toLowerCase().includes(query);
+        
+        return fieldsMatch || metadataMatch || sourceMatch;
+      });
+    }
+    
+    // Apply sorting
+    switch (sortBy) {
+      case 'date-asc':
+        filtered.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+        break;
+      case 'date-desc':
+        filtered.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+        break;
+      case 'version-asc':
+        filtered.sort((a, b) => a.version - b.version);
+        break;
+      case 'version-desc':
+        filtered.sort((a, b) => b.version - a.version);
+        break;
+      case 'source':
+        filtered.sort((a, b) => a.source.localeCompare(b.source));
+        break;
+    }
+    
+    return filtered;
+  }, [snapshots, searchQuery, filterBy, sortBy]);
+
+  // Unique sources for filter dropdown
   const sources = useMemo(() => {
     if (!snapshots) return [];
-    const uniqueSources = [...new Set(snapshots.map(s => s.source))];
-    return uniqueSources.sort();
+    const uniqueSources = [...new Set(snapshots.map(snapshot => snapshot.source))];
+    return uniqueSources;
   }, [snapshots]);
-  
-  // Handle sorting and filtering of snapshots
-  const processedSnapshots = useMemo(() => {
-    if (!snapshots) return [];
-    
-    // Filter by source if needed
-    let filtered = filterSource 
-      ? snapshots.filter(s => s.source === filterSource)
-      : snapshots;
-    
-    // Sort by date
-    return [...filtered].sort((a, b) => {
-      const dateA = new Date(a.createdAt).getTime();
-      const dateB = new Date(b.createdAt).getTime();
-      return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
-    });
-  }, [snapshots, sortOrder, filterSource]);
-  
-  // Clear selections when switching tabs
-  React.useEffect(() => {
-    if (activeTab === 'history') {
-      setCompareSnapshotId(null);
-    }
-  }, [activeTab]);
-  
+
   // Handle snapshot selection
   const handleSelectSnapshot = (snapshot: ComparableSnapshot) => {
-    if (activeTab === 'history') {
-      setSelectedSnapshotId(snapshot.id === selectedSnapshotId ? null : snapshot.id);
-    } else if (activeTab === 'compare') {
-      if (!selectedSnapshotId) {
-        setSelectedSnapshotId(snapshot.id);
-      } else if (snapshot.id !== selectedSnapshotId) {
-        setCompareSnapshotId(snapshot.id);
-      }
-    }
+    setSelectedSnapshot(snapshot);
+    setCurrentTab('details');
   };
   
   // Handle snapshot comparison
   const handleCompareSnapshot = (snapshot: ComparableSnapshot) => {
-    setActiveTab('compare');
-    if (!selectedSnapshotId) {
-      setSelectedSnapshotId(snapshot.id);
+    if (selectedSnapshot) {
+      setCompareSnapshot(snapshot);
+      setCurrentTab('compare');
     } else {
-      setCompareSnapshotId(snapshot.id);
+      setSelectedSnapshot(snapshot);
+      setCurrentTab('details');
     }
   };
   
-  // Handle push to form
+  // Handle pushing to form
   const handlePushToForm = (snapshot: ComparableSnapshot) => {
-    // This will be handled by the FieldMappingDialog component
-    // We just need to pass the pushToForm function
+    setSelectedSnapshot(snapshot);
+    setIsFieldMappingOpen(true);
   };
   
   // Render loading state
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <div className="flex justify-between items-center">
-          <Skeleton className="h-10 w-48" />
-          <Skeleton className="h-10 w-24" />
+      <div className="space-y-4 p-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-2xl font-bold">Snapshot History</h2>
+          {onBack && (
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+          )}
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[1, 2, 3, 4, 5, 6].map(i => (
-            <Skeleton key={i} className="h-48 w-full" />
+          {Array(6).fill(0).map((_, i) => (
+            <Card key={i} className="p-4">
+              <Skeleton className="h-6 w-3/4 mb-2" />
+              <Skeleton className="h-4 w-1/2 mb-4" />
+              <Skeleton className="h-20 w-full mb-4" />
+              <div className="flex justify-between">
+                <Skeleton className="h-8 w-20" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+            </Card>
           ))}
         </div>
       </div>
@@ -138,172 +171,320 @@ export function SnapshotViewer({ propertyId, onBack }: SnapshotViewerProps) {
   // Render error state
   if (error) {
     return (
-      <Alert variant="destructive" className="mb-4">
-        <AlertTitle>Error loading snapshots</AlertTitle>
-        <AlertDescription>
-          {error.message || 'Failed to load snapshot history. Please try again.'}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-  
-  // Render empty state
-  if (!snapshots || snapshots.length === 0) {
-    return (
-      <div className="text-center py-20">
-        <CalendarIcon className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-        <h3 className="text-lg font-semibold">No Snapshots Available</h3>
-        <p className="text-sm text-muted-foreground mt-2 mb-8">
-          This property doesn't have any historical snapshots recorded.
-        </p>
-        {onBack && (
-          <Button onClick={onBack} className="mt-4">
-            <ArrowLeftIcon className="mr-2 h-4 w-4" />
-            Back to Comparables
+      <div className="p-4">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl font-bold">Snapshot History</h2>
+          {onBack && (
+            <Button variant="outline" onClick={onBack}>
+              <ArrowLeft className="mr-2 h-4 w-4" /> Back
+            </Button>
+          )}
+        </div>
+        <Card className="p-6 bg-red-50 border-red-200">
+          <h3 className="text-xl font-semibold text-red-800 mb-2">Error Loading Snapshots</h3>
+          <p className="text-red-700">{error instanceof Error ? error.message : 'Failed to load snapshots'}</p>
+          <Button onClick={() => refetch()} className="mt-4" variant="outline">
+            <RefreshCw className="mr-2 h-4 w-4" /> Try Again
           </Button>
-        )}
+        </Card>
       </div>
     );
   }
-  
+
   return (
-    <div className="space-y-6">
-      {/* Back button */}
-      {onBack && (
-        <Button variant="outline" onClick={onBack}>
-          <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          Back to Comparables
-        </Button>
-      )}
+    <div className="space-y-4 p-4">
+      <div className="flex items-center justify-between">
+        <h2 className="text-2xl font-bold">Snapshot History</h2>
+        {onBack && (
+          <Button variant="outline" onClick={onBack}>
+            <ArrowLeft className="mr-2 h-4 w-4" /> Back
+          </Button>
+        )}
+      </div>
       
-      <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-4 mb-4">
-          <TabsList>
-            <TabsTrigger value="history">Snapshot History</TabsTrigger>
-            <TabsTrigger value="compare">Compare Snapshots</TabsTrigger>
-          </TabsList>
-          
-          <div className="flex flex-wrap gap-2">
-            <Select value={sortOrder} onValueChange={(v) => setSortOrder(v as 'asc' | 'desc')}>
-              <SelectTrigger className="w-[160px]">
-                <ArrowUpDownIcon className="h-4 w-4 mr-2" />
-                <span>Sort by Date</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="desc">Newest First</SelectItem>
-                <SelectItem value="asc">Oldest First</SelectItem>
-              </SelectContent>
-            </Select>
-            
-            <Select 
-              value={filterSource || ''}
-              onValueChange={(v) => setFilterSource(v === '' ? null : v)}
-            >
-              <SelectTrigger className="w-[180px]">
-                <FilterIcon className="h-4 w-4 mr-2" />
-                <span>Filter by Source</span>
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="">All Sources</SelectItem>
-                {sources.map(source => (
-                  <SelectItem key={source} value={source}>{source}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+      <Tabs value={currentTab} onValueChange={setCurrentTab} className="w-full">
+        <TabsList className="mb-4">
+          <TabsTrigger value="list">
+            <History className="mr-2 h-4 w-4" /> Snapshot List
+          </TabsTrigger>
+          <TabsTrigger value="details" disabled={!selectedSnapshot}>
+            <FileText className="mr-2 h-4 w-4" /> Details
+          </TabsTrigger>
+          <TabsTrigger value="compare" disabled={!selectedSnapshot || !compareSnapshot}>
+            <ArrowRightLeft className="mr-2 h-4 w-4" /> Compare
+          </TabsTrigger>
+        </TabsList>
         
-        <TabsContent value="history" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {processedSnapshots.map(snapshot => (
-              <SnapshotTile
-                key={snapshot.id}
-                snapshot={snapshot}
-                onSelect={handleSelectSnapshot}
-                onCompare={handleCompareSnapshot}
-                onPushToForm={handlePushToForm}
-                isSelected={snapshot.id === selectedSnapshotId}
+        <TabsContent value="list" className="space-y-4">
+          <div className="flex flex-col md:flex-row md:items-center gap-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Search snapshots..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
               />
-            ))}
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <Filter className="h-4 w-4 text-muted-foreground" />
+              <Select value={filterBy} onValueChange={setFilterBy}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Filter by source" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Sources</SelectItem>
+                  {sources.map(source => (
+                    <SelectItem key={source} value={source}>{source}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              {sortBy.includes('date') ? (
+                <Clock className="h-4 w-4 text-muted-foreground" />
+              ) : sortBy.includes('version') ? (
+                <History className="h-4 w-4 text-muted-foreground" />
+              ) : (
+                sortBy === 'source' && <Filter className="h-4 w-4 text-muted-foreground" />
+              )}
+              
+              <Select value={sortBy} onValueChange={setSortBy}>
+                <SelectTrigger className="w-40">
+                  <SelectValue placeholder="Sort by" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="date-desc">
+                    <div className="flex items-center">
+                      <SortDesc className="mr-2 h-4 w-4" /> Newest First
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="date-asc">
+                    <div className="flex items-center">
+                      <SortAsc className="mr-2 h-4 w-4" /> Oldest First
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="version-desc">Version (High to Low)</SelectItem>
+                  <SelectItem value="version-asc">Version (Low to High)</SelectItem>
+                  <SelectItem value="source">Source</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <Button variant="outline" onClick={() => refetch()}>
+              <RefreshCw className="mr-2 h-4 w-4" /> Refresh
+            </Button>
           </div>
-          
-          {selectedSnapshot && (
-            <Card className="mt-6">
-              <CardHeader>
-                <CardTitle className="text-lg">Snapshot Details</CardTitle>
-                <CardDescription>
-                  Created on {format(new Date(selectedSnapshot.createdAt), 'PPP p')} via {selectedSnapshot.source}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ScrollArea className="h-96 rounded-md border p-4">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2">
-                    {Object.entries(selectedSnapshot.fields).map(([key, value]) => (
-                      <div key={key}>
-                        <span className="font-medium text-sm">{key}: </span>
-                        <span className="text-sm">{
-                          value === null || value === undefined 
-                            ? 'N/A' 
-                            : (typeof value === 'object' ? JSON.stringify(value) : String(value))
-                        }</span>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {filteredSnapshots.length === 0 ? (
+              <Card className="p-6 col-span-full text-center">
+                <p className="text-muted-foreground">No snapshots found. Try adjusting your filters.</p>
+              </Card>
+            ) : (
+              filteredSnapshots.map(snapshot => (
+                <Card key={snapshot.id} className="p-4 flex flex-col">
+                  <div className="mb-2 flex justify-between items-start">
+                    <div>
+                      <h3 className="font-medium">
+                        Version {snapshot.version}
+                      </h3>
+                      <p className="text-sm text-muted-foreground">
+                        {format(new Date(snapshot.createdAt), 'MMM d, yyyy h:mm a')}
+                      </p>
+                    </div>
+                    <Badge variant={
+                      snapshot.source === 'mls import' ? 'default' :
+                      snapshot.source === 'manual edit' ? 'outline' :
+                      snapshot.source === 'api update' ? 'secondary' :
+                      'default'
+                    }>
+                      {snapshot.source}
+                    </Badge>
+                  </div>
+                  
+                  <div className="text-sm space-y-1 mb-4 flex-1">
+                    {snapshot.fields.address && (
+                      <p><strong>Address:</strong> {snapshot.fields.address}</p>
+                    )}
+                    {snapshot.fields.price !== undefined && (
+                      <p><strong>Price:</strong> ${snapshot.fields.price.toLocaleString()}</p>
+                    )}
+                    {snapshot.fields.status && (
+                      <p><strong>Status:</strong> {snapshot.fields.status}</p>
+                    )}
+                    {snapshot.metadata?.tags && snapshot.metadata.tags.length > 0 && (
+                      <div className="flex gap-1 flex-wrap mt-2">
+                        {snapshot.metadata.tags.map(tag => (
+                          <Badge key={tag} variant="secondary" className="text-xs">
+                            {tag}
+                          </Badge>
+                        ))}
                       </div>
+                    )}
+                  </div>
+                  
+                  <div className="flex justify-between mt-auto">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleSelectSnapshot(snapshot)}
+                    >
+                      View Details
+                    </Button>
+                    <div className="space-x-1">
+                      <Button
+                        variant="secondary"
+                        size="sm" 
+                        onClick={() => handleCompareSnapshot(snapshot)}
+                        disabled={selectedSnapshot?.id === snapshot.id}
+                      >
+                        Compare
+                      </Button>
+                      <Button
+                        variant="default"
+                        size="sm"
+                        onClick={() => handlePushToForm(snapshot)}
+                      >
+                        Push to Form
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              ))
+            )}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="details">
+          {selectedSnapshot && (
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Snapshot Details</h3>
+                <Badge>Version {selectedSnapshot.version}</Badge>
+              </div>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h4 className="font-medium mb-2">Metadata</h4>
+                  <div className="space-y-2">
+                    <p><strong>ID:</strong> {selectedSnapshot.id}</p>
+                    <p><strong>Property ID:</strong> {selectedSnapshot.propertyId}</p>
+                    <p><strong>Created:</strong> {format(new Date(selectedSnapshot.createdAt), 'MMM d, yyyy h:mm a')}</p>
+                    <p><strong>Source:</strong> {selectedSnapshot.source}</p>
+                    {selectedSnapshot.metadata && (
+                      <div className="mt-4">
+                        <h5 className="text-sm font-medium mb-1">Additional Metadata</h5>
+                        {Object.entries(selectedSnapshot.metadata)
+                          .filter(([key, value]) => value !== undefined && key !== 'tags')
+                          .map(([key, value]) => (
+                            <p key={key} className="text-sm">
+                              <strong>{key}:</strong> {typeof value === 'string' ? value : JSON.stringify(value)}
+                            </p>
+                          ))
+                        }
+                        {selectedSnapshot.metadata.tags && (
+                          <div className="mt-2">
+                            <p className="text-sm font-medium mb-1">Tags:</p>
+                            <div className="flex gap-1 flex-wrap">
+                              {selectedSnapshot.metadata.tags.map(tag => (
+                                <Badge key={tag} variant="secondary" className="text-xs">
+                                  {tag}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                
+                <div>
+                  <h4 className="font-medium mb-2">Property Data</h4>
+                  <div className="space-y-1 max-h-96 overflow-y-auto pr-2">
+                    {Object.entries(selectedSnapshot.fields).map(([key, value]) => (
+                      <p key={key}>
+                        <strong>{key}:</strong> {typeof value === 'object' ? JSON.stringify(value) : String(value)}
+                      </p>
                     ))}
                   </div>
-                </ScrollArea>
-              </CardContent>
-              <CardFooter className="justify-end">
-                <FieldMappingDialog 
-                  snapshot={selectedSnapshot}
-                  onPushToForm={(formId, fieldMappings) => 
-                    pushToForm(selectedSnapshot, formId, fieldMappings)
-                  }
+                </div>
+              </div>
+              
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedSnapshot(null);
+                    setCompareSnapshot(null);
+                    setCurrentTab('list');
+                  }}
                 >
-                  <Button>
-                    <SendIcon className="mr-2 h-4 w-4" />
-                    Push to Form
-                  </Button>
-                </FieldMappingDialog>
-              </CardFooter>
+                  Back to List
+                </Button>
+                <Button onClick={() => handlePushToForm(selectedSnapshot)}>
+                  Push to Form
+                </Button>
+              </div>
             </Card>
           )}
         </TabsContent>
         
-        <TabsContent value="compare" className="mt-0">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {processedSnapshots.map(snapshot => (
-              <SnapshotTile
-                key={snapshot.id}
-                snapshot={snapshot}
-                onSelect={handleSelectSnapshot}
-                onCompare={() => {}} // Disabled in compare mode
-                onPushToForm={handlePushToForm}
-                isSelected={
-                  snapshot.id === selectedSnapshotId || 
-                  snapshot.id === compareSnapshotId
-                }
-              />
-            ))}
-          </div>
-          
-          {selectedSnapshotId && compareSnapshotId && selectedSnapshot && compareSnapshot && (
-            <div className="mt-6">
+        <TabsContent value="compare">
+          {selectedSnapshot && compareSnapshot && (
+            <Card className="p-6">
+              <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold">Snapshot Comparison</h3>
+                <div className="flex gap-2">
+                  <Badge variant="outline">Base: v{selectedSnapshot.version}</Badge>
+                  <Badge variant="outline">Compare: v{compareSnapshot.version}</Badge>
+                </div>
+              </div>
+              
               <SnapshotDiff 
-                oldSnapshot={selectedSnapshot.createdAt < compareSnapshot.createdAt ? selectedSnapshot : compareSnapshot}
-                newSnapshot={selectedSnapshot.createdAt >= compareSnapshot.createdAt ? selectedSnapshot : compareSnapshot}
+                baseSnapshot={selectedSnapshot} 
+                compareSnapshot={compareSnapshot} 
               />
-            </div>
-          )}
-          
-          {(selectedSnapshotId && !compareSnapshotId) && (
-            <Alert className="mt-6">
-              <AlertTitle>Select another snapshot</AlertTitle>
-              <AlertDescription>
-                Please select a second snapshot to compare with the currently selected one.
-              </AlertDescription>
-            </Alert>
+              
+              <div className="mt-6 flex justify-end gap-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setCompareSnapshot(null);
+                    setCurrentTab('details');
+                  }}
+                >
+                  Back to Details
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedSnapshot(null);
+                    setCompareSnapshot(null);
+                    setCurrentTab('list');
+                  }}
+                >
+                  Back to List
+                </Button>
+              </div>
+            </Card>
           )}
         </TabsContent>
       </Tabs>
+      
+      {isFieldMappingOpen && selectedSnapshot && (
+        <FieldMappingDialog
+          snapshot={selectedSnapshot}
+          onClose={() => setIsFieldMappingOpen(false)}
+          onPushToForm={(formId, fieldMappings) => {
+            pushToForm(selectedSnapshot, formId, fieldMappings);
+            setIsFieldMappingOpen(false);
+          }}
+        />
+      )}
     </div>
   );
 }

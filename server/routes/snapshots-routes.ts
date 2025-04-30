@@ -1,183 +1,196 @@
-import { Router } from 'express';
-import { db } from '../db';
+import { Router, Request, Response } from 'express';
 import { storage } from '../storage';
-import { ComparableSnapshot, PushSnapshotRequest, PushSnapshotResponse } from '@shared/types/comps';
+import { z } from 'zod';
 
 /**
- * Routes for handling snapshot history and operations
+ * Router for handling snapshot history and operations
  */
-export const setupSnapshotsRoutes = (router: Router) => {
-  // Get snapshot history for a property
-  router.get('/properties/:propertyId/snapshots', async (req, res) => {
+export const snapshotsRouter = Router();
+
+// Define the schema for push snapshot request
+const pushSnapshotSchema = z.object({
+  snapshotId: z.string(),
+  formId: z.string(),
+  fieldMappings: z.record(z.string())
+});
+
+type PushSnapshotRequest = z.infer<typeof pushSnapshotSchema>;
+type PushSnapshotResponse = {
+  success: boolean;
+  message: string;
+  data?: any;
+};
+
+// Setup all snapshot routes
+const setupSnapshotsRoutes = (router: Router) => {
+  /**
+   * Get all snapshots for a property
+   */
+  router.get('/properties/:propertyId/snapshots', async (req: Request, res: Response) => {
     try {
       const { propertyId } = req.params;
       
-      // For demo purposes, we'll generate some mock snapshots
-      // This would be replaced with a database call in production
-      const mockSnapshots: ComparableSnapshot[] = generateMockSnapshots(propertyId);
+      // In a real implementation, you would fetch snapshots from the database
+      // For now, we'll return mock data
+      const snapshots = generateMockSnapshots(propertyId);
       
-      res.json(mockSnapshots);
+      res.json(snapshots);
     } catch (error) {
       console.error('Error fetching snapshots:', error);
-      res.status(500).json({ error: 'Failed to fetch snapshot history' });
+      res.status(500).json({ 
+        error: 'Failed to fetch snapshots',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
   });
   
-  // Push snapshot data to a form
-  router.post('/snapshots/push-to-form', async (req, res) => {
+  /**
+   * Get a specific snapshot by ID
+   */
+  router.get('/snapshots/:snapshotId', async (req: Request, res: Response) => {
     try {
-      const { snapshotId, formId, fieldMappings } = req.body as PushSnapshotRequest;
+      const { snapshotId } = req.params;
       
-      // Perform validation
-      if (!snapshotId || !formId || !fieldMappings) {
-        return res.status(400).json({
-          success: false,
-          error: 'Missing required fields: snapshotId, formId, or fieldMappings'
-        });
-      }
-      
-      // Get the snapshot by ID (mock implementation)
+      // In a real implementation, you would fetch the snapshot from the database
       const snapshot = getMockSnapshotById(snapshotId);
       
       if (!snapshot) {
-        return res.status(404).json({
-          success: false,
-          error: 'Snapshot not found'
+        return res.status(404).json({ error: 'Snapshot not found' });
+      }
+      
+      res.json(snapshot);
+    } catch (error) {
+      console.error('Error fetching snapshot:', error);
+      res.status(500).json({ 
+        error: 'Failed to fetch snapshot',
+        message: error instanceof Error ? error.message : 'Unknown error'
+      });
+    }
+  });
+  
+  /**
+   * Push snapshot data to a form
+   */
+  router.post('/snapshots/push-to-form', async (req: Request, res: Response) => {
+    try {
+      const result = pushSnapshotSchema.safeParse(req.body);
+      
+      if (!result.success) {
+        return res.status(400).json({ 
+          error: 'Invalid request data',
+          details: result.error.format()
         });
       }
       
-      // Get the form (this would involve checking permissions, etc.)
-      // For demo purposes, we'll assume the form exists
+      const { snapshotId, formId, fieldMappings } = result.data;
       
-      // Push the data to the form
-      // In a real implementation, this would involve updating the form fields
-      // based on the field mappings
+      // In a real implementation, you would:
+      // 1. Fetch the snapshot data
+      // 2. Fetch the form data
+      // 3. Apply the field mappings to update the form with snapshot data
+      // 4. Save the updated form
       
-      // Create a new snapshot to track this push operation
-      const newSnapshot: ComparableSnapshot = {
-        id: `snap_${Date.now()}`,
-        propertyId: snapshot.propertyId,
-        version: snapshot.version + 1,
-        createdAt: new Date().toISOString(),
-        source: 'form push',
-        fields: snapshot.fields,
-        metadata: {
-          ...snapshot.metadata,
-          sourceId: formId,
-          system: 'forms'
-        }
-      };
-      
-      // Return success response
+      // Mock success response
       const response: PushSnapshotResponse = {
         success: true,
-        formId,
-        newSnapshot
+        message: 'Snapshot data successfully pushed to form',
+        data: {
+          snapshotId,
+          formId,
+          mappedFields: Object.keys(fieldMappings).length
+        }
       };
       
       res.json(response);
     } catch (error) {
       console.error('Error pushing snapshot to form:', error);
-      res.status(500).json({
-        success: false,
-        error: 'Failed to push snapshot data to form'
+      res.status(500).json({ 
+        error: 'Failed to push snapshot data to form',
+        message: error instanceof Error ? error.message : 'Unknown error'
       });
     }
   });
 };
 
-// Helper function to generate mock snapshots for a property
-function generateMockSnapshots(propertyId: string): ComparableSnapshot[] {
-  const baseFields = {
-    address: '123 Main St',
-    city: 'Austin',
-    state: 'TX',
-    zipCode: '78701',
-    propertyType: 'residential',
-    bedrooms: 3,
-    bathrooms: 2,
-    squareFeet: 1800,
-    yearBuilt: 2005,
-    lotSize: 0.25,
-    price: 450000,
-    latitude: 30.2672,
-    longitude: -97.7431
-  };
+// Set up the routes
+setupSnapshotsRoutes(snapshotsRouter);
+
+// Mock data generation functions (to be replaced with real DB implementations)
+function generateMockSnapshots(propertyId: string) {
+  const baseDate = new Date();
   
-  // Generate snapshots with different timestamps and sources
   return [
     {
-      id: 'snap_1',
+      id: 'snap-001',
       propertyId,
       version: 1,
-      createdAt: '2023-10-15T14:30:00Z',
+      createdAt: new Date(baseDate.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString(), // 7 days ago
       source: 'mls import',
       fields: {
-        ...baseFields,
-        price: 425000,
-        status: 'active',
-        daysOnMarket: 45
-      }
-    },
-    {
-      id: 'snap_2',
-      propertyId,
-      version: 2,
-      createdAt: '2023-11-01T09:15:00Z',
-      source: 'manual edit',
-      fields: {
-        ...baseFields,
-        price: 435000,
-        status: 'active',
-        daysOnMarket: 61,
-        description: 'Updated with new information about the property condition'
-      }
-    },
-    {
-      id: 'snap_3',
-      propertyId,
-      version: 3,
-      createdAt: '2023-12-05T16:45:00Z',
-      source: 'api update',
-      fields: {
-        ...baseFields,
+        address: '123 Main St, Anytown, USA',
         price: 450000,
-        status: 'pending',
-        daysOnMarket: 95,
-        pendingDate: '2023-12-04T00:00:00Z'
-      }
-    },
-    {
-      id: 'snap_4',
-      propertyId,
-      version: 4,
-      createdAt: '2024-01-10T11:20:00Z',
-      source: 'form push',
-      fields: {
-        ...baseFields,
-        price: 450000,
-        status: 'sold',
-        daysOnMarket: 131,
-        saleDate: '2024-01-09T00:00:00Z',
-        salePrice: 447500,
-        closingCosts: 15000,
-        notes: 'Final sale price slightly below asking due to minor repairs needed'
+        bedrooms: 3,
+        bathrooms: 2,
+        sqft: 2100,
+        yearBuilt: 1998,
+        lotSize: 0.25,
+        status: 'active'
       },
       metadata: {
-        sourceId: 'form_123',
-        system: 'forms',
-        tags: ['1004', 'finalized']
+        importId: 'imp-123',
+        tags: ['residential', 'single-family']
+      }
+    },
+    {
+      id: 'snap-002',
+      propertyId,
+      version: 2,
+      createdAt: new Date(baseDate.getTime() - 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days ago
+      source: 'manual edit',
+      fields: {
+        address: '123 Main St, Anytown, USA',
+        price: 445000,
+        bedrooms: 3,
+        bathrooms: 2,
+        sqft: 2100,
+        yearBuilt: 1998,
+        lotSize: 0.25,
+        status: 'active',
+        garageSpaces: 2
+      },
+      metadata: {
+        editedBy: 'john.doe',
+        tags: ['residential', 'single-family', 'garage']
+      }
+    },
+    {
+      id: 'snap-003',
+      propertyId,
+      version: 3,
+      createdAt: new Date(baseDate.getTime() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
+      source: 'api update',
+      fields: {
+        address: '123 Main St, Anytown, USA',
+        price: 439000,
+        bedrooms: 3,
+        bathrooms: 2,
+        sqft: 2100,
+        yearBuilt: 1998,
+        lotSize: 0.25,
+        status: 'pending',
+        garageSpaces: 2,
+        daysOnMarket: 21
+      },
+      metadata: {
+        apiSource: 'market-data-api',
+        updateId: 'upd-456',
+        tags: ['residential', 'single-family', 'garage', 'pending']
       }
     }
   ];
 }
 
-// Helper function to find a mock snapshot by ID
-function getMockSnapshotById(snapshotId: string): ComparableSnapshot | undefined {
-  const allSnapshots = [
-    ...generateMockSnapshots('prop_1'),
-    ...generateMockSnapshots('prop_2')
-  ];
-  
-  return allSnapshots.find(s => s.id === snapshotId);
+function getMockSnapshotById(snapshotId: string) {
+  const mockSnapshots = generateMockSnapshots('property-123');
+  return mockSnapshots.find(snapshot => snapshot.id === snapshotId);
 }
