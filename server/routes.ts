@@ -2646,15 +2646,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   const httpServer = createServer(app);
   
-  // TerraField Mobile Integration - WebSocket servers for real-time updates
-  
-  // CRDT WebSocket server on /ws path
-  const crdtWss = new WebSocketServer({ 
-    server: httpServer, 
-    path: '/ws'  // Use a distinct path to avoid conflicts with Vite's HMR
-  });
-  
-  // Notification WebSocket server on /notifications path
+  // Notification WebSocket server on /notifications path - This is a separate endpoint 
+  // from the main WebSocket server that's set up in websocket-server.ts
   const notificationWss = new WebSocketServer({
     server: httpServer,
     path: '/notifications'
@@ -2690,106 +2683,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log(`Notification WebSocket client disconnected for user ${userId}`);
       }
       console.log('Notification WebSocket client disconnected');
-    });
-  });
-  
-  crdtWss.on('connection', (ws) => {
-    console.log('WebSocket client connected');
-    let clientParcelId: string | null = null;
-    
-    ws.on('message', (message) => {
-      try {
-        const data = JSON.parse(message.toString());
-        
-        // Handle different message types
-        switch (data.type) {
-          case 'join':
-            // Client wants to join a parcel's update stream
-            if (data.parcelId) {
-              clientParcelId = data.parcelId;
-              
-              // Add this client to the set for this parcel
-              if (!connectedClients.has(clientParcelId)) {
-                connectedClients.set(clientParcelId, new Set<WebSocket>());
-              }
-              if (clientParcelId) {
-                const clients = connectedClients.get(clientParcelId);
-                if (clients) {
-                  clients.add(ws);
-                }
-              }
-              
-              console.log(`Client joined parcel: ${clientParcelId}`);
-              
-              // Send the current state to the client
-              const doc = getOrCreateParcelDoc(clientParcelId);
-              const currentData = getParcelNoteData(doc);
-              ws.send(JSON.stringify({
-                type: 'init',
-                data: currentData
-              }));
-            }
-            break;
-            
-          case 'update':
-            // Client is sending an update
-            if (clientParcelId && data.update) {
-              console.log(`Received update for parcel: ${clientParcelId}`);
-              
-              // Get the document and apply the update
-              const doc = getOrCreateParcelDoc(clientParcelId);
-              mergeUpdates(doc, data.update);
-              
-              // Get the current state after update
-              const updatedData = getParcelNoteData(doc);
-              
-              // Broadcast the update to all other clients for this parcel
-              const clients = connectedClients.get(clientParcelId) || new Set();
-              clients.forEach(client => {
-                if (client !== ws && client.readyState === WebSocket.OPEN) {
-                  client.send(JSON.stringify({
-                    type: 'update',
-                    update: data.update,
-                    data: updatedData
-                  }));
-                }
-              });
-            }
-            break;
-            
-          case 'leave':
-            // Client is leaving a parcel
-            if (clientParcelId) {
-              const clients = connectedClients.get(clientParcelId);
-              if (clients) {
-                clients.delete(ws);
-                if (clients.size === 0) {
-                  connectedClients.delete(clientParcelId);
-                }
-              }
-              console.log(`Client left parcel: ${clientParcelId}`);
-              clientParcelId = null;
-            }
-            break;
-        }
-      } catch (error) {
-        console.error('Error processing WebSocket message:', error);
-      }
-    });
-    
-    ws.on('close', () => {
-      // Clean up when a client disconnects
-      if (clientParcelId) {
-        const clients = connectedClients.get(clientParcelId);
-        if (clients) {
-          clients.delete(ws);
-          if (clients.size === 0) {
-            connectedClients.delete(clientParcelId);
-          }
-        }
-        console.log(`Client disconnected from parcel: ${clientParcelId}`);
-      }
-      console.log('WebSocket client disconnected');
     });
   });
   

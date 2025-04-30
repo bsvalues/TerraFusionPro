@@ -1,55 +1,154 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import { Server } from 'http';
 
+// Define client interface
+interface ClientInfo {
+  id: string;
+  isAlive: boolean;
+  lastActivity: number;
+  sessionStartTime: number;
+  ipAddress?: string;
+  userAgent?: string;
+  userId?: number;
+}
+
 export function setupWebSocketServer(httpServer: Server) {
   const wss = new WebSocketServer({ 
     server: httpServer,
-    path: '/ws'
+    path: '/ws',
+    // Enable connection timeout checking
+    clientTracking: true
   });
   
-  const clients = new Map<WebSocket, { id: string }>();
+  // Track clients with additional metadata
+  const clients = new Map<WebSocket, ClientInfo>();
   
-  wss.on('connection', (ws) => {
+  // Set up server-side heartbeat check interval
+  const heartbeatInterval = setInterval(() => {
+    wss.clients.forEach((ws) => {
+      const client = clients.get(ws);
+      
+      if (!client) {
+        return ws.terminate();
+      }
+      
+      // Check if client hasn't responded to ping
+      if (!client.isAlive) {
+        console.log(`Terminating inactive client: ${client.id}`);
+        clients.delete(ws);
+        return ws.terminate();
+      }
+      
+      // Mark as inactive until we receive a pong
+      client.isAlive = false;
+      clients.set(ws, client);
+      
+      // Send ping
+      try {
+        ws.ping();
+      } catch (e) {
+        console.error(`Error sending ping to client ${client.id}:`, e);
+        ws.terminate();
+      }
+    });
+  }, 30000);
+  
+  // Clean up interval when server closes
+  wss.on('close', () => {
+    clearInterval(heartbeatInterval);
+  });
+  
+  // Handle new connections
+  wss.on('connection', (ws, req) => {
+    // Generate client ID and set up metadata
     const clientId = Math.random().toString(36).substring(2, 15);
-    clients.set(ws, { id: clientId });
+    const ipAddress = req.socket.remoteAddress;
+    const userAgent = req.headers['user-agent'];
     
-    console.log(`WebSocket client connected: ${clientId}`);
+    // Initialize client info
+    const clientInfo: ClientInfo = {
+      id: clientId,
+      isAlive: true,
+      lastActivity: Date.now(),
+      sessionStartTime: Date.now(),
+      ipAddress,
+      userAgent
+    };
+    
+    clients.set(ws, clientInfo);
+    console.log(`WebSocket client connected: ${clientId} from ${ipAddress}`);
     
     // Send welcome message
-    ws.send(JSON.stringify({
+    sendToClient(ws, {
       type: 'connection',
       status: 'connected',
-      clientId
-    }));
-    
-    // Set up heartbeat
-    const pingInterval = setInterval(() => {
-      if (ws.readyState === WebSocket.OPEN) {
-        ws.ping();
-      }
-    }, 30000);
-    
-    ws.on('pong', () => {
-      // Client is still alive
+      clientId,
+      serverTime: new Date().toISOString()
     });
     
+    // Handle pong messages (response to ping)
+    ws.on('pong', () => {
+      const client = clients.get(ws);
+      if (client) {
+        client.isAlive = true;
+        client.lastActivity = Date.now();
+        clients.set(ws, client);
+      }
+    });
+    
+    // Handle messages
     ws.on('message', (message) => {
       try {
+        // Update last activity time
+        const client = clients.get(ws);
+        if (client) {
+          client.lastActivity = Date.now();
+          clients.set(ws, client);
+        }
+        
         const data = JSON.parse(message.toString());
         console.log(`Message from ${clientId}:`, data);
         
         // Handle message types
         switch (data.type) {
+          case 'ping':
+            // Client-initiated ping, respond with pong
+            sendToClient(ws, {
+              type: 'pong',
+              timestamp: Date.now(),
+              serverTime: new Date().toISOString()
+            });
+            break;
+            
           case 'echo':
-            ws.send(JSON.stringify({
+            sendToClient(ws, {
               type: 'echo',
               message: data.message,
-              timestamp: new Date().toISOString()
-            }));
+              timestamp: Date.now(),
+              serverTime: new Date().toISOString()
+            });
             break;
             
           case 'broadcast':
             broadcastMessage(data, ws);
+            break;
+            
+          case 'register_user':
+            // Associate this connection with a user ID
+            if (data.userId && typeof data.userId === 'number') {
+              const client = clients.get(ws);
+              if (client) {
+                client.userId = data.userId;
+                clients.set(ws, client);
+                console.log(`Associated client ${clientId} with user ID ${data.userId}`);
+                
+                sendToClient(ws, {
+                  type: 'registration_success',
+                  userId: data.userId,
+                  timestamp: Date.now()
+                });
+              }
+            }
             break;
             
           // Handle resource requests (for comps, properties, etc.)
@@ -63,30 +162,86 @@ export function setupWebSocketServer(httpServer: Server) {
             break;
             
           default:
-            // Custom message handlers can be added here
+            // Log unknown message type
+            console.log(`Received unknown message type: ${data.type}`);
             break;
         }
       } catch (e) {
         console.error('Error handling WebSocket message:', e);
+        sendToClient(ws, {
+          type: 'error',
+          message: 'Failed to process message',
+          details: e instanceof Error ? e.message : 'Unknown error'
+        });
       }
     });
     
+    // Handle close
     ws.on('close', (code, reason) => {
-      console.log(`WebSocket client disconnected: ${clientId}, Code: ${code}, Reason: ${reason}`);
-      clearInterval(pingInterval);
-      clients.delete(ws);
+      const client = clients.get(ws);
+      if (client) {
+        const sessionDuration = Math.round((Date.now() - client.sessionStartTime) / 1000);
+        console.log(
+          `WebSocket client disconnected: ${clientId}, ` +
+          `Code: ${code}, Reason: ${reason || 'No reason provided'}, ` +
+          `Session duration: ${sessionDuration} seconds`
+        );
+        clients.delete(ws);
+      }
     });
     
+    // Handle errors
     ws.on('error', (error) => {
       console.error(`WebSocket error for client ${clientId}:`, error);
+      
+      try {
+        sendToClient(ws, {
+          type: 'error',
+          message: 'Connection error occurred',
+          details: error.message
+        });
+      } catch (e) {
+        // Unable to send error message, connection might be already closed
+        console.error(`Failed to send error message to client ${clientId}:`, e);
+      }
     });
   });
+  
+  // Helper to safely send messages to clients
+  function sendToClient(ws: WebSocket, data: any): boolean {
+    if (ws.readyState === WebSocket.OPEN) {
+      try {
+        ws.send(JSON.stringify(data));
+        return true;
+      } catch (e) {
+        console.error('Error sending message to client:', e);
+        return false;
+      }
+    }
+    return false;
+  }
   
   // Broadcast message to all connected clients except sender
   function broadcastMessage(data: any, sender?: WebSocket) {
     wss.clients.forEach((client) => {
       if (client !== sender && client.readyState === WebSocket.OPEN) {
-        client.send(JSON.stringify(data));
+        sendToClient(client, data);
+      }
+    });
+  }
+  
+  // Broadcast to specific users by userId
+  function broadcastToUsers(data: any, userIds: number[]) {
+    const targetUsers = new Set(userIds);
+    
+    wss.clients.forEach((client) => {
+      const clientInfo = clients.get(client);
+      if (
+        client.readyState === WebSocket.OPEN &&
+        clientInfo?.userId &&
+        targetUsers.has(clientInfo.userId)
+      ) {
+        sendToClient(client, data);
       }
     });
   }
@@ -99,36 +254,51 @@ export function setupWebSocketServer(httpServer: Server) {
         case 'properties':
           // Fetch properties from database and send back
           const properties = await fetchProperties();
-          ws.send(JSON.stringify({
+          sendToClient(ws, {
             type: 'resource_update',
+            requestId: data.requestId, // Echo back request ID if provided
             resource: 'properties',
             data: properties
-          }));
+          });
           break;
           
         case 'comps':
           // Fetch comparable properties
           const comps = await fetchComps(data.params);
-          ws.send(JSON.stringify({
+          sendToClient(ws, {
             type: 'resource_update',
+            requestId: data.requestId,
             resource: 'comps',
             data: comps
-          }));
+          });
+          break;
+          
+        case 'connection_stats':
+          // Return connection statistics
+          const stats = getConnectionStats();
+          sendToClient(ws, {
+            type: 'resource_update',
+            requestId: data.requestId,
+            resource: 'connection_stats',
+            data: stats
+          });
           break;
           
         default:
-          ws.send(JSON.stringify({
+          sendToClient(ws, {
             type: 'resource_error',
+            requestId: data.requestId,
             resource: data.resource,
             message: `Unknown resource type: ${data.resource}`
-          }));
+          });
       }
     } catch (error) {
-      ws.send(JSON.stringify({
+      sendToClient(ws, {
         type: 'resource_error',
+        requestId: data.requestId,
         resource: data.resource,
         message: error instanceof Error ? error.message : 'Unknown error'
-      }));
+      });
     }
   }
   
@@ -141,28 +311,74 @@ export function setupWebSocketServer(httpServer: Server) {
           // Update property in database
           const updatedProperty = await updateProperty(data.updates);
           
-          // Broadcast update to all clients
+          // Acknowledge update to sender
+          sendToClient(ws, {
+            type: 'update_success',
+            requestId: data.requestId,
+            resource: 'properties',
+            data: { updated: updatedProperty }
+          });
+          
+          // Broadcast update to all clients except sender
           broadcastMessage({
             type: 'resource_update',
             resource: 'properties',
             data: { updated: updatedProperty }
-          });
+          }, ws);
           break;
           
         default:
-          ws.send(JSON.stringify({
+          sendToClient(ws, {
             type: 'resource_error',
+            requestId: data.requestId,
             resource: data.resource,
             message: `Unknown resource type: ${data.resource}`
-          }));
+          });
       }
     } catch (error) {
-      ws.send(JSON.stringify({
+      sendToClient(ws, {
         type: 'resource_error',
+        requestId: data.requestId,
         resource: data.resource,
         message: error instanceof Error ? error.message : 'Unknown error'
-      }));
+      });
     }
+  }
+  
+  // Get connection statistics
+  function getConnectionStats() {
+    const now = Date.now();
+    const stats = {
+      totalConnections: wss.clients.size,
+      activeUsers: new Set([...clients.values()].filter(c => c.userId).map(c => c.userId)).size,
+      connectionsByUserAgent: {} as Record<string, number>,
+      averageSessionDuration: 0
+    };
+    
+    // Calculate average session duration and count by user agent
+    let totalDuration = 0;
+    let count = 0;
+    
+    clients.forEach(client => {
+      const duration = now - client.sessionStartTime;
+      totalDuration += duration;
+      count++;
+      
+      // Count by user agent
+      const userAgent = client.userAgent || 'unknown';
+      const shortUserAgent = userAgent.includes('/')
+        ? userAgent.split('/')[0]
+        : userAgent;
+        
+      stats.connectionsByUserAgent[shortUserAgent] = 
+        (stats.connectionsByUserAgent[shortUserAgent] || 0) + 1;
+    });
+    
+    stats.averageSessionDuration = count > 0
+      ? Math.round(totalDuration / count / 1000) // in seconds
+      : 0;
+      
+    return stats;
   }
   
   // Mock function to fetch properties - would be replaced with actual DB queries
@@ -189,12 +405,22 @@ export function setupWebSocketServer(httpServer: Server) {
     return { ...updates, updatedAt: new Date().toISOString() };
   }
   
+  // Return public interface
   return {
     broadcastToAll: (data: any) => {
       broadcastMessage(data);
     },
+    broadcastToUsers: (data: any, userIds: number[]) => {
+      broadcastToUsers(data, userIds);
+    },
     getConnectionCount: () => {
       return wss.clients.size;
+    },
+    getActiveUserCount: () => {
+      return new Set([...clients.values()].filter(c => c.userId).map(c => c.userId)).size;
+    },
+    getConnectionStats: () => {
+      return getConnectionStats();
     }
   };
 }
