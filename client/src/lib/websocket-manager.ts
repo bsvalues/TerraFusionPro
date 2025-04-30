@@ -6,6 +6,7 @@
 export class WebSocketManager {
   private socket: WebSocket | null = null;
   private url: string;
+  private altUrl: string;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 12; // Increased to handle more reconnection attempts
   private baseReconnectDelay = 1000; // Start with 1 second
@@ -13,6 +14,10 @@ export class WebSocketManager {
   private reconnectBackoffFactor = 1.5; // Exponential backoff multiplier
   private reconnectJitter = 0.1; // Add randomness to prevent all clients reconnecting simultaneously
   private reconnectTimeoutId: number | null = null;
+  private useAltEndpoint = false; // Flag to track if we're using the alternative endpoint
+  private altEndpointFailed = false; // Flag to track if alt endpoint has failed
+  private connectionFailCount = 0; // Counter to track consecutive failures
+  private maxFailsBeforeAlt = 3; // How many fails before trying alternative endpoint
   
   // Heartbeat mechanism
   private heartbeatInterval = 15000; // Send a heartbeat every 15 seconds
@@ -27,7 +32,6 @@ export class WebSocketManager {
   constructor(path = '/ws') {
     // WebSocket connection URL needs to use the same host and port
     // that served the frontend to work properly in Replit environment
-    // Hardcoding port 5000 breaks the WebSocket connection in Replit
     
     // Build the WebSocket URL using the current window location
     // Do not specify the port manually as Replit handles port forwarding internally
@@ -37,7 +41,11 @@ export class WebSocketManager {
     // Use the same host:port that served the page for WebSocket connection
     this.url = `${protocol}//${host}${path}`;
     
-    console.log(`WebSocket URL: ${this.url} (direct backend connection)`);
+    // Store the alternative WebSocket URL for fallback
+    this.altUrl = `${protocol}//${host}/ws-alt`;
+    
+    console.log(`Primary WebSocket URL: ${this.url}`);
+    console.log(`Alternative WebSocket URL: ${this.altUrl}`);
   }
   
   /**
@@ -139,6 +147,28 @@ export class WebSocketManager {
   }
   
   /**
+   * Try connecting to the alternative endpoint
+   */
+  private tryAlternativeEndpoint() {
+    if (this.altEndpointFailed) {
+      console.log('Alternative endpoint already failed, not attempting');
+      return;
+    }
+    
+    console.log('Trying alternative WebSocket endpoint...');
+    this.useAltEndpoint = true;
+    this.connect();
+  }
+  
+  /**
+   * Reset connection methods to default primary endpoint
+   */
+  private resetToMainEndpoint() {
+    this.useAltEndpoint = false;
+    this.connectionFailCount = 0;
+  }
+
+  /**
    * Connect to the WebSocket server with improved error handling
    */
   connect() {
@@ -161,14 +191,30 @@ export class WebSocketManager {
     this.emit('connection', { status: 'connecting' });
     
     try {
+      // Determine which endpoint to use
+      const connectionUrl = this.useAltEndpoint ? this.altUrl : this.url;
+      
+      console.log(`Connecting to ${this.useAltEndpoint ? 'ALTERNATIVE' : 'PRIMARY'} WebSocket endpoint: ${connectionUrl}`);
+      
       // Create a new WebSocket connection
-      this.socket = new WebSocket(this.url);
+      this.socket = new WebSocket(connectionUrl);
       
       this.socket.onopen = () => {
-        console.log('WebSocket connected successfully');
+        console.log(`WebSocket connected successfully using ${this.useAltEndpoint ? 'ALTERNATIVE' : 'PRIMARY'} endpoint`);
         this.connectionState = 'connected';
         this.reconnectAttempts = 0;
-        this.emit('connection', { status: 'connected' });
+        this.connectionFailCount = 0; // Reset failure count on successful connection
+        
+        // If using alt endpoint successfully, log it
+        if (this.useAltEndpoint) {
+          console.log('Alternative WebSocket endpoint is working');
+          this.altEndpointFailed = false;
+        }
+        
+        this.emit('connection', { 
+          status: 'connected',
+          isAltEndpoint: this.useAltEndpoint 
+        });
         
         // Start heartbeat on successful connection
         this.startHeartbeat();
@@ -182,6 +228,23 @@ export class WebSocketManager {
           code: event.code, 
           reason: event.reason 
         });
+        
+        // Increment the connection failure counter for tracking persistent issues
+        this.connectionFailCount++;
+        
+        // If we've had multiple failures, consider trying the alternative endpoint
+        if (!this.useAltEndpoint && this.connectionFailCount >= this.maxFailsBeforeAlt) {
+          console.log(`Primary endpoint failed ${this.connectionFailCount} times. Switching to alternative endpoint.`);
+          this.tryAlternativeEndpoint();
+          return;
+        }
+        
+        // If alternative endpoint is also failing, mark it as failed
+        if (this.useAltEndpoint && this.connectionFailCount >= this.maxFailsBeforeAlt) {
+          console.log('Alternative endpoint is also failing. Marking as failed.');
+          this.altEndpointFailed = true;
+          this.resetToMainEndpoint(); // Go back to trying the main endpoint
+        }
         
         // Only attempt to reconnect if not intentionally disconnected
         if (!this.intentionalDisconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
