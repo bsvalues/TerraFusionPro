@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useLocation } from 'wouter';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import { PageLayout } from '@/components/layout/page-layout';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
@@ -7,7 +8,11 @@ import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, BarChart, Bar } from 'recharts';
-import { Lightbulb, ArrowRight, TrendingUp, MapPin, Home, RefreshCw, FileBarChart2, Brain } from 'lucide-react';
+import { Lightbulb, ArrowRight, TrendingUp, MapPin, Home, RefreshCw, FileBarChart2, Brain, AlertCircle } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
+import { apiRequest, queryClient } from '@/lib/queryClient';
+import { ErrorBoundary } from '@/components/error-boundary';
+import { LoadingSpinner } from '@/components/ui/loading-spinner';
 
 // Mock data for demonstration
 const marketTrendData = [
@@ -33,19 +38,37 @@ const neighborhoodData = [
   { name: 'Eastview', medianPrice: 275000, pricePerSqft: 195, inventory: 124 },
 ];
 
-// Market Analysis insights from AI
-const marketInsights = [
+// Define types for our market analysis data
+interface MarketTrendPoint {
+  date: string;
+  value: number;
+}
+
+interface MarketAnalysisResult {
+  summary: string;
+  keyInsights: string[];
+  priceTrends: MarketTrendPoint[];
+  inventoryTrends: MarketTrendPoint[];
+  riskAssessment: {
+    level: 'low' | 'moderate' | 'high';
+    factors: string[];
+  };
+  recommendations: string[];
+}
+
+// Default market insights when no analysis is loaded yet
+const defaultMarketInsights = [
   {
     title: 'Market Trend Analysis',
-    content: 'The local market has shown a 5.2% appreciation over the last 12 months, with stronger growth in the downtown and northwestern suburbs. Inventory has decreased by 12% compared to the same period last year, putting upward pressure on prices.',
+    content: 'Select a location and property type, then click "Generate Analysis" to get AI-powered market insights.',
   },
   {
     title: 'Supply & Demand Balance',
-    content: "Current inventory levels represent 2.4 months of supply, indicating a seller's market. New construction permits are up 8%, which may help ease inventory constraints in the next 6-12 months.",
+    content: "Our AI analyzes current market conditions to provide accurate supply and demand insights.",
   },
   {
-    title: 'Interest Rate Impact',
-    content: 'Recent interest rate increases have slightly cooled buyer demand, particularly in the entry-level price points. Higher-end properties have been less affected due to a higher percentage of cash buyers in that segment.',
+    title: 'Risk Assessment',
+    content: 'Get detailed risk analysis based on current and projected market conditions.',
   },
 ];
 
@@ -55,15 +78,84 @@ export default function MarketAnalysisPage() {
   const [selectedLocation, setSelectedLocation] = useState('All Areas');
   const [dateRange, setDateRange] = useState('12');
   const [propertyType, setPropertyType] = useState('All Types');
-  const [isGeneratingAnalysis, setIsGeneratingAnalysis] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
+  const [marketInsights, setMarketInsights] = useState(defaultMarketInsights);
+  const [marketAnalysisResult, setMarketAnalysisResult] = useState<MarketAnalysisResult | null>(null);
+  const [selectedAIProvider, setSelectedAIProvider] = useState<'openai' | 'anthropic' | 'auto'>('auto');
+  const { toast } = useToast();
+  
+  // Market Analysis Query - don't execute automatically, we'll trigger it manually
+  const marketAnalysisMutation = useMutation({
+    mutationFn: async (params: {
+      location: string;
+      propertyType: string;
+      timeframe: string;
+      provider: 'openai' | 'anthropic' | 'auto';
+      additionalContext?: string;
+    }) => {
+      return apiRequest('/api/market-analysis', {
+        method: 'POST',
+        data: params
+      });
+    },
+    onSuccess: (data: MarketAnalysisResult) => {
+      setMarketAnalysisResult(data);
+      
+      // Convert AI insights to the format our UI expects
+      const insights = [
+        {
+          title: 'Market Summary',
+          content: data.summary
+        },
+        {
+          title: 'Risk Assessment',
+          content: `Risk Level: ${data.riskAssessment.level.toUpperCase()}. ${data.riskAssessment.factors.join(' ')}` 
+        },
+        {
+          title: 'Recommendations',
+          content: data.recommendations.join(' ')
+        }
+      ];
+      
+      setMarketInsights(insights);
+      
+      toast({
+        title: "Market Analysis Generated",
+        description: "AI-powered market analysis completed successfully.",
+        variant: "default"
+      });
+      
+      // Update the price trends chart data if we have that tab open
+      if (activeTab === 'trends' && data.priceTrends.length > 0) {
+        setActiveTab('trends');
+      }
+    },
+    onError: (error) => {
+      console.error("Failed to generate market analysis:", error);
+      toast({
+        title: "Analysis Failed",
+        description: "Failed to generate market analysis. Please try again.",
+        variant: "destructive"
+      });
+    }
+  });
   
   const handleGenerateAnalysis = () => {
-    setIsGeneratingAnalysis(true);
-    // Simulate API call
-    setTimeout(() => {
-      setIsGeneratingAnalysis(false);
-    }, 2000);
+    // Format time period as readable string
+    let timeframe: string;
+    if (dateRange === '60') {
+      timeframe = '5 years';
+    } else {
+      timeframe = `${dateRange} months`;
+    }
+    
+    marketAnalysisMutation.mutate({
+      location: selectedLocation,
+      propertyType: propertyType === 'All Types' ? 'Residential' : propertyType,
+      timeframe,
+      provider: selectedAIProvider,
+      additionalContext: `Market scope: ${selectedMarket}`
+    });
   };
 
   return (
@@ -79,9 +171,12 @@ export default function MarketAnalysisPage() {
             <Brain className="mr-2 h-4 w-4" />
             AI Valuation
           </Button>
-          <Button onClick={handleGenerateAnalysis} disabled={isGeneratingAnalysis}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isGeneratingAnalysis ? 'animate-spin' : ''}`} />
-            Refresh Analysis
+          <Button 
+            onClick={handleGenerateAnalysis} 
+            disabled={marketAnalysisMutation.isPending}
+          >
+            <RefreshCw className={`mr-2 h-4 w-4 ${marketAnalysisMutation.isPending ? 'animate-spin' : ''}`} />
+            {marketAnalysisMutation.isPending ? 'Generating...' : 'Generate Analysis'}
           </Button>
         </div>
       }
