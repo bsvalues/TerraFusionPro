@@ -494,6 +494,19 @@ export const complianceChecksRelations = relations(complianceChecks, ({ one }) =
 }));
 
 // Real Estate Term Glossary
+export const propertyShareLinks = pgTable("property_share_links", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  token: text("token").notNull().unique(),
+  isActive: boolean("is_active").notNull().default(true),
+  viewCount: integer("view_count").notNull().default(0),
+  viewsLimit: integer("views_limit"),
+  expiresAt: timestamp("expires_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
 export const realEstateTerms = pgTable("real_estate_terms", {
   id: serial("id").primaryKey(),
   term: text("term").notNull().unique(),
