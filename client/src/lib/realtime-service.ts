@@ -198,24 +198,18 @@ export class RealtimeService {
     } else if (data.status === 'disconnected') {
       this.setConnectionState('disconnected');
       
-      // Detect persistent WebSocket failures and trigger fallback
+      // Detect persistent WebSocket failures and trigger fallback - immediate switch after 3-5 failures
       if (this.fallbackEnabled && !data.intentional) {
-        console.log('[RealtimeService] WebSocket disconnected unexpectedly, considering fallback');
-        // Add a small delay before trying fallback to prevent thrashing
-        if (this.fallbackTimeoutId) window.clearTimeout(this.fallbackTimeoutId);
-        this.fallbackTimeoutId = window.setTimeout(() => {
-          this.tryFallback();
-        }, 1000);
+        console.log('[RealtimeService] WebSocket disconnected unexpectedly, switching to SSE immediately');
+        // Force immediate switch to SSE
+        this.connectWithProtocol('sse');
       }
     } else if (data.status === 'error') {
-      // When WebSocket throws an error, let's try falling back
+      // When WebSocket throws an error, let's try falling back to SSE immediately
       if (this.fallbackEnabled && this.currentProtocol === 'websocket') {
-        console.log('[RealtimeService] WebSocket connection failed, will try fallback');
-        // Add a small delay before trying fallback to prevent thrashing
-        if (this.fallbackTimeoutId) window.clearTimeout(this.fallbackTimeoutId);
-        this.fallbackTimeoutId = window.setTimeout(() => {
-          this.tryFallback();
-        }, 1000);
+        console.log('[RealtimeService] WebSocket connection failed, switching to SSE immediately');
+        // Force immediate switch to SSE
+        this.connectWithProtocol('sse');
       } else {
         this.setConnectionState('error');
       }
@@ -272,20 +266,16 @@ export class RealtimeService {
       
       // Check if this was unexpected and trigger fallback if needed
       if (this.fallbackEnabled && !data.intentional) {
-        console.log('[RealtimeService] SSE disconnected unexpectedly, considering fallback');
-        if (this.fallbackTimeoutId) window.clearTimeout(this.fallbackTimeoutId);
-        this.fallbackTimeoutId = window.setTimeout(() => {
-          this.tryFallback();
-        }, 1000);
+        console.log('[RealtimeService] SSE disconnected unexpectedly, switching to long-polling immediately');
+        // Force immediate switch to long-polling
+        this.connectWithProtocol('long-polling');
       }
     } else if (data.status === 'error') {
-      // When SSE throws an error, try falling back
+      // When SSE throws an error, try falling back to long-polling immediately
       if (this.fallbackEnabled && this.currentProtocol === 'sse') {
-        console.log('[RealtimeService] SSE connection failed, will try fallback');
-        if (this.fallbackTimeoutId) window.clearTimeout(this.fallbackTimeoutId);
-        this.fallbackTimeoutId = window.setTimeout(() => {
-          this.tryFallback();
-        }, 1000);
+        console.log('[RealtimeService] SSE connection failed, switching to long-polling immediately');
+        // Force immediate switch to long-polling
+        this.connectWithProtocol('long-polling');
       } else {
         this.setConnectionState('error');
       }
