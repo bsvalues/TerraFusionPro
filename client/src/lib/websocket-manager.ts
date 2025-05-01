@@ -196,8 +196,9 @@ export class WebSocketManager {
       
       console.log(`Connecting to ${this.useAltEndpoint ? 'ALTERNATIVE' : 'PRIMARY'} WebSocket endpoint: ${connectionUrl}`);
       
-      // Create a new WebSocket connection
-      this.socket = new WebSocket(connectionUrl);
+      // Create a new WebSocket connection with protocol specification
+      // Using protocol specification helps with compatibility in some environments
+      this.socket = new WebSocket(connectionUrl, ['json', 'v1.websocket.protocol']);
       
       this.socket.onopen = () => {
         console.log(`WebSocket connected successfully using ${this.useAltEndpoint ? 'ALTERNATIVE' : 'PRIMARY'} endpoint`);
