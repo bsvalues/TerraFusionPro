@@ -1,233 +1,377 @@
 /**
- * Long-Polling Handler
- * Final fallback mechanism for real-time updates when both WebSockets and SSE fail
- * This approach has higher latency but works in virtually all environments
+ * LongPollingClient
+ * Handles real-time communication via long polling for environments
+ * where WebSockets and SSE are not available or blocked
  */
-export class LongPollingHandler {
+export class LongPollingClient {
   private url: string;
-  private pollingInterval = 3000; // Default polling interval in ms
-  private listeners: Map<string, Function[]> = new Map();
-  private isPolling = false;
-  private pollingTimeoutId: number | null = null;
-  private connectionState: 'polling' | 'idle' | 'error' = 'idle';
-  private lastMessageId: string | null = null;
-  private jitter = 500; // Add random jitter to prevent thundering herd
-  
-  constructor(endpoint = '/api/poll') {
-    // Build polling URL using current host
-    const protocol = window.location.protocol;
-    const host = window.location.host;
-    this.url = `${protocol}//${host}${endpoint}`;
-    console.log(`Long-polling URL: ${this.url}`);
-  }
-  
+  private messageHandler: (message: any) => void;
+  private connectionHandler: (protocol: string, state: string) => void;
+  private isConnected = false;
+  private isConnecting = false;
+  private pollTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectPromiseResolver: ((connected: boolean) => void) | null = null;
+  private clientId: string | null = null;
+  private lastMessageId = 0;
+  private pollInterval = 3000; // 3 seconds
+  private maxPollInterval = 15000; // 15 seconds
+  private reconnectAttempts = 0;
+  private maxReconnectAttempts = 5;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private initialReconnectDelay = 1000;
+  private debugMode = true;
+
   /**
-   * Start long-polling the server
+   * Create a new LongPollingClient
+   * @param endpoint URL endpoint for long polling, can be relative
+   * @param messageHandler Function to handle incoming messages
+   * @param connectionHandler Function to handle connection state changes
    */
-  startPolling(interval?: number) {
-    if (interval !== undefined) {
-      this.pollingInterval = interval;
+  constructor(
+    endpoint: string,
+    messageHandler: (message: any) => void,
+    connectionHandler: (protocol: string, state: string) => void
+  ) {
+    // Make URL absolute if needed
+    if (endpoint.startsWith('/')) {
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      this.url = `${protocol}//${host}${endpoint}`;
+    } else {
+      this.url = endpoint;
     }
     
-    if (this.isPolling) return;
+    this.messageHandler = messageHandler;
+    this.connectionHandler = connectionHandler;
     
-    this.isPolling = true;
-    this.connectionState = 'polling';
-    this.emit('connection', { status: 'polling' });
-    console.log(`Starting long-polling with interval: ${this.pollingInterval}ms`);
+    // Generate client ID
+    this.clientId = this.generateClientId();
     
-    // Execute the first poll immediately
-    this.poll();
+    this.log(`Initialized with URL: ${this.url}, Client ID: ${this.clientId}`);
   }
-  
+
   /**
-   * Stop long-polling
+   * Connect to the long polling server
+   * @returns Promise that resolves to true if connected successfully
    */
-  stopPolling() {
-    this.isPolling = false;
-    this.connectionState = 'idle';
-    
-    if (this.pollingTimeoutId !== null) {
-      window.clearTimeout(this.pollingTimeoutId);
-      this.pollingTimeoutId = null;
+  public connect(): Promise<boolean> {
+    // Don't try to connect if already connected or connecting
+    if (this.isConnected || this.isConnecting) {
+      return Promise.resolve(this.isConnected);
     }
     
-    this.emit('connection', { status: 'idle' });
-    console.log('Long-polling stopped');
-  }
-  
-  /**
-   * Execute a single polling request
-   */
-  private async poll() {
-    if (!this.isPolling) return;
+    this.log('Connecting...');
+    this.isConnecting = true;
     
-    try {
-      // Add the last message ID as a query parameter if available
-      let endpoint = this.url;
-      if (this.lastMessageId) {
-        const separator = endpoint.includes('?') ? '&' : '?';
-        endpoint = `${endpoint}${separator}lastId=${this.lastMessageId}`;
-      }
+    // Notify of connecting state
+    this.connectionHandler('long-polling', 'connecting');
+    
+    return new Promise((resolve) => {
+      // Store resolver to call later on success/failure
+      this.connectPromiseResolver = resolve;
       
-      // Make the request
-      const response = await fetch(endpoint, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        }
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        
-        // Process received data
-        if (data && Array.isArray(data.messages)) {
-          // Extract the last message ID for future polling
-          if (data.messages.length > 0) {
-            const lastMessage = data.messages[data.messages.length - 1];
-            if (lastMessage.id) {
-              this.lastMessageId = lastMessage.id;
-            }
+      // Initial connection
+      this.establishConnection()
+        .then((connected) => {
+          if (connected) {
+            this.log('Connected successfully');
+            this.isConnected = true;
+            this.isConnecting = false;
             
-            // Process all messages
-            data.messages.forEach((message: any) => {
-              this.emit('message', message);
-              
-              // Emit specific event if type exists
-              if (message.type) {
-                this.emit(message.type, message);
-              }
-            });
+            // Start polling
+            this.startPolling();
+            
+            // Notify connection handler
+            this.connectionHandler('long-polling', 'connected');
+            
+            // Resolve connect promise
+            if (this.connectPromiseResolver) {
+              this.connectPromiseResolver(true);
+              this.connectPromiseResolver = null;
+            }
+          } else {
+            this.log('Connection failed');
+            this.handleConnectionFailure();
           }
-        }
-        
-        // Handle any control messages
-        if (data && data.control) {
-          if (data.control.interval) {
-            // Server requested a different polling interval
-            this.pollingInterval = data.control.interval;
-            console.log(`Polling interval updated to ${this.pollingInterval}ms by server`);
-          }
-        }
-      } else {
-        console.error(`Long-polling error: ${response.status} ${response.statusText}`);
-        this.emit('error', { 
-          type: 'http_error', 
-          status: response.status, 
-          message: response.statusText 
+        })
+        .catch((error) => {
+          console.error('[LongPollingClient] Connection error:', error);
+          this.handleConnectionFailure();
         });
-      }
-    } catch (error) {
-      console.error('Long-polling error:', error);
-      this.emit('error', { type: 'poll_error', error });
+    });
+  }
+
+  /**
+   * Disconnect from the long polling server
+   */
+  public disconnect(): void {
+    this.log('Disconnecting...');
+    
+    // Clear timers
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
     }
     
-    // Schedule the next poll with jitter
-    if (this.isPolling) {
-      const jitterAmount = Math.floor(Math.random() * this.jitter * 2) - this.jitter;
-      const nextPollDelay = Math.max(100, this.pollingInterval + jitterAmount);
-      
-      this.pollingTimeoutId = window.setTimeout(() => {
-        this.poll();
-      }, nextPollDelay);
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
+    
+    // Update state
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.reconnectAttempts = 0;
+    
+    // Notify connection handler
+    this.connectionHandler('long-polling', 'disconnected');
   }
-  
+
   /**
-   * Send data to the server (separate API call for sending)
+   * Send a message to the server
+   * @param data Data to send
+   * @returns true if the message was sent, false if not
    */
-  async send(data: any): Promise<boolean> {
+  public async send(data: any): Promise<boolean> {
+    if (!this.isConnected) {
+      console.warn('[LongPollingClient] Cannot send message, not connected');
+      return false;
+    }
+    
     try {
       const response = await fetch(`${this.url}/send`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          'X-Client-ID': this.clientId || ''
         },
         body: JSON.stringify(data)
       });
       
-      if (response.ok) {
-        const result = await response.json();
-        return result.success === true;
-      } else {
-        console.error(`Error sending data: ${response.status} ${response.statusText}`);
-        this.emit('error', { 
-          type: 'send_error', 
-          status: response.status, 
-          message: response.statusText,
-          data
-        });
+      if (!response.ok) {
+        console.error(`[LongPollingClient] Error sending message: ${response.status} ${response.statusText}`);
         return false;
       }
-    } catch (error) {
-      console.error('Error sending data:', error);
-      this.emit('error', { type: 'send_error', error, data });
+      
+      return true;
+    } catch (e) {
+      console.error('[LongPollingClient] Error sending message:', e);
       return false;
     }
   }
-  
+
   /**
-   * Get the current connection state
+   * Establish initial connection
    */
-  getState() {
-    return this.connectionState;
-  }
-  
-  /**
-   * Register an event listener
-   */
-  on(event: string, callback: Function) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
-    this.listeners.get(event)?.push(callback);
-    return this;
-  }
-  
-  /**
-   * Register a one-time event listener
-   */
-  once(event: string, callback: Function) {
-    const onceWrapper = (data: any) => {
-      this.off(event, onceWrapper);
-      callback(data);
-    };
-    this.on(event, onceWrapper);
-    return this;
-  }
-  
-  /**
-   * Remove an event listener
-   */
-  off(event: string, callback: Function) {
-    if (this.listeners.has(event)) {
-      const callbacks = this.listeners.get(event) || [];
-      this.listeners.set(
-        event,
-        callbacks.filter(cb => cb !== callback)
-      );
-    }
-    return this;
-  }
-  
-  /**
-   * Emit an event to registered listeners
-   */
-  private emit(event: string, data: any) {
-    if (this.listeners.has(event)) {
-      const callbacks = [...this.listeners.get(event) || []];
-      callbacks.forEach(callback => {
-        try {
-          callback(data);
-        } catch (e) {
-          console.error(`Error in long-polling ${event} listener:`, e);
-        }
+  private async establishConnection(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.url}/connect`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-ID': this.clientId || ''
+        },
+        body: JSON.stringify({
+          clientId: this.clientId,
+          timestamp: Date.now()
+        })
       });
+      
+      if (!response.ok) {
+        console.error(`[LongPollingClient] Connection error: ${response.status} ${response.statusText}`);
+        return false;
+      }
+      
+      const data = await response.json();
+      
+      // Store client ID if returned from server
+      if (data.clientId) {
+        this.clientId = data.clientId;
+      }
+      
+      return true;
+    } catch (e) {
+      console.error('[LongPollingClient] Connection error:', e);
+      return false;
+    }
+  }
+
+  /**
+   * Start long polling
+   */
+  private startPolling(): void {
+    this.poll();
+  }
+
+  /**
+   * Send a poll request
+   */
+  private async poll(): Promise<void> {
+    if (!this.isConnected) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${this.url}/poll`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-ID': this.clientId || ''
+        },
+        body: JSON.stringify({
+          clientId: this.clientId,
+          lastMessageId: this.lastMessageId,
+          timestamp: Date.now()
+        })
+      });
+      
+      if (!response.ok) {
+        console.error(`[LongPollingClient] Poll error: ${response.status} ${response.statusText}`);
+        this.schedulePoll();
+        return;
+      }
+      
+      const data = await response.json();
+      
+      // Handle poll response
+      this.handlePollResponse(data);
+      
+      // Schedule next poll
+      this.schedulePoll();
+    } catch (e) {
+      console.error('[LongPollingClient] Poll error:', e);
+      
+      // Check if we're still connected (error might be due to network issues)
+      // Schedule next poll with possibly increased interval
+      this.schedulePoll();
+    }
+  }
+
+  /**
+   * Schedule next poll with adaptive interval
+   */
+  private schedulePoll(): void {
+    // Clear any existing timer
+    if (this.pollTimer) {
+      clearTimeout(this.pollTimer);
+      this.pollTimer = null;
+    }
+    
+    // Schedule next poll
+    this.pollTimer = setTimeout(() => {
+      this.poll();
+    }, this.pollInterval);
+  }
+
+  /**
+   * Handle poll response
+   * @param data Response data from server
+   */
+  private handlePollResponse(data: any): void {
+    if (data.error) {
+      console.error(`[LongPollingClient] Server error: ${data.error}`);
+      return;
+    }
+    
+    // Update last message ID if provided
+    if (data.lastMessageId) {
+      this.lastMessageId = data.lastMessageId;
+    }
+    
+    // Process messages
+    if (data.messages && Array.isArray(data.messages)) {
+      data.messages.forEach((message: any) => {
+        // Update last message ID if provided
+        if (message.id && message.id > this.lastMessageId) {
+          this.lastMessageId = message.id;
+        }
+        
+        // Process message
+        this.messageHandler(message.data);
+      });
+    }
+    
+    // Reset poll interval on successful poll with messages
+    if (data.messages && data.messages.length > 0) {
+      this.pollInterval = 3000; // Reset to default
+    } else {
+      // Adaptive polling - slowly increase interval if no messages
+      this.pollInterval = Math.min(this.pollInterval * 1.5, this.maxPollInterval);
+    }
+  }
+
+  /**
+   * Handle connection failure
+   */
+  private handleConnectionFailure(): void {
+    this.log('Connection attempt failed');
+    
+    // Update state
+    this.isConnected = false;
+    this.isConnecting = false;
+    
+    // Notify connection handler
+    this.connectionHandler('long-polling', 'disconnected');
+    
+    // Resolve connect promise
+    if (this.connectPromiseResolver) {
+      this.connectPromiseResolver(false);
+      this.connectPromiseResolver = null;
+    }
+    
+    // Schedule reconnect
+    this.scheduleReconnect();
+  }
+
+  /**
+   * Schedule reconnect with exponential backoff
+   */
+  private scheduleReconnect(): void {
+    // Don't reconnect if reached max attempts
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.log('Max reconnect attempts reached, giving up');
+      return;
+    }
+    
+    const delay = Math.min(
+      this.initialReconnectDelay * Math.pow(2, this.reconnectAttempts),
+      30000 // Max 30 seconds
+    );
+    
+    this.log(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+    
+    // Clear any existing timer
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+    
+    // Schedule reconnect
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectAttempts++;
+      this.connect();
+    }, delay);
+  }
+
+  /**
+   * Generate client ID
+   */
+  private generateClientId(): string {
+    // Use UUID if available
+    if (window.crypto && window.crypto.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+    
+    // Fallback to simple random string
+    return `lp-${Math.random().toString(36).substring(2, 15)}`;
+  }
+
+  /**
+   * Log message if debug mode is enabled
+   */
+  private log(message: string, ...args: any[]): void {
+    if (this.debugMode) {
+      console.log(`[LongPollingClient] ${message}`, ...args);
     }
   }
 }
-
-// Create singleton instance
-export const longPollingHandler = new LongPollingHandler();

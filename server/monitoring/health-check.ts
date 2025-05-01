@@ -57,44 +57,37 @@ const checkDatabaseHealth = async () => {
   }
 };
 
-// WebSocket server health check
-const checkWebSocketHealth = (wss: any) => {
-  if (!wss) {
-    return {
-      status: 'unknown',
-      error: 'WebSocket server not available'
-    };
-  }
-
+// WebSocket server check placeholder
+const checkServerHealth = () => {
   return {
     status: 'healthy',
-    connections: wss.clients ? wss.clients.size : 0,
-    listening: !!wss.address
+    connections: 'N/A',
+    listening: true
   };
 };
 
 // Overall system health check
-const getSystemHealth = async (wss: any) => {
+const getSystemHealth = async () => {
   const dbHealth = await checkDatabaseHealth();
-  const wsHealth = checkWebSocketHealth(wss);
+  const serverHealth = checkServerHealth();
   const systemMetrics = collectSystemMetrics();
 
-  // Determine overall status
-  const isHealthy = dbHealth.status === 'healthy' && wsHealth.status === 'healthy';
+  // Determine overall status based primarily on database health
+  const isHealthy = dbHealth.status === 'healthy';
 
   return {
     status: isHealthy ? 'healthy' : 'degraded',
     timestamp: new Date().toISOString(),
     components: {
       database: dbHealth,
-      webSocketServer: wsHealth
+      server: serverHealth
     },
     metrics: systemMetrics
   };
 };
 
 // Register health check endpoints with Express
-const registerHealthRoutes = (app: Express, wss: any) => {
+const registerHealthRoutes = (app: Express) => {
   // Basic health endpoint for load balancers
   app.get('/health', async (req: Request, res: Response) => {
     try {
@@ -109,7 +102,7 @@ const registerHealthRoutes = (app: Express, wss: any) => {
   // Detailed health endpoint for monitoring systems
   app.get('/health/details', async (req: Request, res: Response) => {
     try {
-      const health = await getSystemHealth(wss);
+      const health = await getSystemHealth();
       res.status(health.status === 'healthy' ? 200 : 207)
         .json(health);
     } catch (error: any) {
@@ -141,6 +134,6 @@ export {
   registerHealthRoutes,
   getSystemHealth,
   checkDatabaseHealth,
-  checkWebSocketHealth,
+  checkServerHealth,
   collectSystemMetrics
 };

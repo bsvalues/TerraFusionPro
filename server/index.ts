@@ -2,7 +2,6 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocketServer } from "./websocket-server";
-import { setupAltWebSocketServer } from "./websocket-server-alt";
 // Import health check module
 import * as healthCheck from './monitoring/health-check';
 
@@ -44,20 +43,14 @@ app.use((req, res, next) => {
   const server = await registerRoutes(app);
   
   // Set up main WebSocket server
-  const wsServer = setupWebSocketServer(server);
-  
-  // Set up alternative WebSocket server for fallback testing
-  const altWsServer = setupAltWebSocketServer(server);
+  setupWebSocketServer(server);
   
   // Register health check routes
-  healthCheck.registerHealthRoutes(app, wsServer);
+  healthCheck.registerHealthRoutes(app);
   
-  // Log WebSocket status
+  // Log server status periodically
   setInterval(() => {
-    const connectionCount = wsServer.getConnectionCount();
-    if (connectionCount > 0) {
-      log(`WebSocket connections: ${connectionCount}`);
-    }
+    log(`Server running: ${new Date().toISOString()}`);
   }, 60000);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

@@ -1,221 +1,344 @@
 /**
- * Server-Sent Events (SSE) Handler
- * Provides a fallback mechanism for receiving real-time updates when WebSockets fail
- * Note: SSE is one-way communication (server to client only)
+ * SSEHandler
+ * Handles Server-Sent Events (SSE) with fallback to POST requests for sending data
+ * Used when WebSockets aren't available or are blocked
  */
 export class SSEHandler {
-  private eventSource: EventSource | null = null;
   private url: string;
+  private messageHandler: (message: any) => void;
+  private connectionHandler: (protocol: string, state: string) => void;
+  private eventSource: EventSource | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private isConnected = false;
+  private isConnecting = false;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
-  private listeners: Map<string, Function[]> = new Map();
-  private reconnectTimeoutId: number | null = null;
-  private connectionState: 'connecting' | 'connected' | 'disconnected' | 'error' = 'disconnected';
+  private reconnectDelay = 1000;
+  private maxReconnectDelay = 30000;
   private lastEventId: string | null = null;
-
-  constructor(endpoint = '/sse') {
-    // Build SSE URL using current host
-    const protocol = window.location.protocol;
-    const host = window.location.host;
-    this.url = `${protocol}//${host}${endpoint}`;
-    console.log(`SSE URL: ${this.url}`);
-  }
+  private connectPromiseResolver: ((connected: boolean) => void) | null = null;
+  private debugMode = true;
 
   /**
-   * Connect to the SSE endpoint
+   * Create a new SSEHandler
+   * @param endpoint URL endpoint for SSE, can be relative
+   * @param messageHandler Handler for incoming messages
+   * @param connectionHandler Handler for connection state changes
    */
-  connect() {
-    // Clear any existing reconnect timeout
-    if (this.reconnectTimeoutId !== null) {
-      window.clearTimeout(this.reconnectTimeoutId);
-      this.reconnectTimeoutId = null;
-    }
-
-    if (this.eventSource) {
-      // Close existing connection before creating a new one
-      this.disconnect();
-    }
-
-    try {
-      this.connectionState = 'connecting';
-      this.emit('connection', { status: 'connecting' });
-
-      // Append last event ID if available for resumed connection
-      let url = this.url;
-      if (this.lastEventId) {
-        const separator = url.includes('?') ? '&' : '?';
-        url = `${url}${separator}lastEventId=${this.lastEventId}`;
-      }
-
-      // Create new EventSource connection
-      this.eventSource = new EventSource(url);
-
-      // Handle connection open
-      this.eventSource.onopen = () => {
-        console.log('SSE connection established');
-        this.connectionState = 'connected';
-        this.reconnectAttempts = 0;
-        this.emit('connection', { status: 'connected' });
-      };
-
-      // Handle messages
-      this.eventSource.onmessage = (event) => {
-        try {
-          // Store the last event ID for reconnection
-          if (event.lastEventId) {
-            this.lastEventId = event.lastEventId;
-          }
-
-          // Parse and process the data
-          const data = JSON.parse(event.data);
-          
-          // Emit message to listeners
-          this.emit('message', data);
-          
-          // Emit specific event type if available
-          if (data.type) {
-            this.emit(data.type, data);
-          }
-        } catch (e) {
-          console.error('Error processing SSE message:', e);
-          this.emit('error', { 
-            type: 'parse_error', 
-            error: e,
-            rawData: event.data 
-          });
-        }
-      };
-
-      // Handle specific events with their own channels
-      this.eventSource.addEventListener('heartbeat', (event: any) => {
-        try {
-          const data = JSON.parse(event.data);
-          this.emit('heartbeat', data);
-        } catch (e) {
-          console.error('Error processing heartbeat event:', e);
-        }
-      });
-
-      // Error handling
-      this.eventSource.onerror = (error) => {
-        console.error('SSE error:', error);
-        this.connectionState = 'error';
-        this.emit('error', error);
-
-        // Check if connection is closed and attempt to reconnect
-        if (this.eventSource && this.eventSource.readyState === EventSource.CLOSED) {
-          this.reconnect();
-        }
-      };
-    } catch (error) {
-      console.error('Error creating SSE connection:', error);
-      this.connectionState = 'error';
-      this.emit('error', { type: 'connection_error', error });
-      this.reconnect();
-    }
-  }
-
-  /**
-   * Attempt to reconnect to the SSE endpoint
-   */
-  private reconnect() {
-    if (this.reconnectAttempts < this.maxReconnectAttempts) {
-      this.reconnectAttempts++;
-      const delay = Math.min(1000 * this.reconnectAttempts, 10000); // Linear backoff with max 10s delay
-      
-      console.log(`SSE connection lost. Attempting to reconnect (${this.reconnectAttempts}/${this.maxReconnectAttempts}) in ${delay}ms...`);
-      
-      this.reconnectTimeoutId = window.setTimeout(() => {
-        this.connect();
-      }, delay);
+  constructor(
+    endpoint: string,
+    messageHandler: (message: any) => void,
+    connectionHandler: (protocol: string, state: string) => void
+  ) {
+    // Make URL absolute if needed
+    if (endpoint.startsWith('/')) {
+      const protocol = window.location.protocol;
+      const host = window.location.host;
+      this.url = `${protocol}//${host}${endpoint}`;
     } else {
-      console.error('Maximum SSE reconnection attempts reached');
-      this.connectionState = 'error';
-      this.emit('connection', { 
-        status: 'error', 
-        message: 'Maximum reconnection attempts reached' 
+      this.url = endpoint;
+    }
+    
+    this.messageHandler = messageHandler;
+    this.connectionHandler = connectionHandler;
+    
+    this.log(`Initialized with URL: ${this.url}`);
+  }
+
+  /**
+   * Connect to the SSE server
+   * @returns Promise that resolves to true if connected successfully
+   */
+  public connect(): Promise<boolean> {
+    // Don't try to connect if already connected or connecting
+    if (this.isConnected || this.isConnecting) {
+      return Promise.resolve(this.isConnected);
+    }
+    
+    this.log(`Connecting to ${this.url}...`);
+    this.isConnecting = true;
+    
+    // Notify of connecting state
+    this.connectionHandler('sse', 'connecting');
+    
+    return new Promise((resolve) => {
+      // Store resolver to call later on success/failure
+      this.connectPromiseResolver = resolve;
+      
+      try {
+        // Create EventSource with last event ID if available
+        const url = new URL(this.url, window.location.href);
+        if (this.lastEventId) {
+          url.searchParams.append('lastEventId', this.lastEventId);
+        }
+        
+        // Add client ID to identify this client
+        url.searchParams.append('clientId', this.generateClientId());
+        
+        // Create EventSource
+        this.eventSource = new EventSource(url.toString());
+        
+        // Setup event handlers
+        this.setupEventHandlers();
+        
+        // Set connection timeout
+        this.setConnectionTimeout();
+      } catch (e) {
+        console.error('[SSEHandler] Error creating EventSource:', e);
+        this.handleConnectionFailure();
+      }
+    });
+  }
+
+  /**
+   * Disconnect from the SSE server
+   */
+  public disconnect(): void {
+    this.log('Disconnecting...');
+    
+    // Clear timeouts
+    this.clearReconnectTimer();
+    
+    // Close event source if it exists
+    if (this.eventSource) {
+      try {
+        this.eventSource.close();
+      } catch (e) {
+        console.error('[SSEHandler] Error closing EventSource:', e);
+      }
+      this.eventSource = null;
+    }
+    
+    // Update state
+    this.isConnected = false;
+    this.isConnecting = false;
+    this.reconnectAttempts = 0;
+    
+    // Notify connection handler
+    this.connectionHandler('sse', 'disconnected');
+  }
+
+  /**
+   * Send a message to the server via POST request
+   * SSE is one-way (server to client), so we use POST requests to send data back
+   * @param data Data to send
+   * @returns true if message was sent, false if not
+   */
+  public async send(data: any): Promise<boolean> {
+    if (!this.isConnected) {
+      console.warn('[SSEHandler] Cannot send message, not connected');
+      return false;
+    }
+    
+    try {
+      const response = await fetch(`${this.url}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Client-ID': this.generateClientId()
+        },
+        body: JSON.stringify(data)
       });
+      
+      if (!response.ok) {
+        console.error(`[SSEHandler] Error sending message: ${response.status} ${response.statusText}`);
+        return false;
+      }
+      
+      return true;
+    } catch (e) {
+      console.error('[SSEHandler] Error sending message:', e);
+      return false;
     }
   }
 
   /**
-   * Disconnect from the SSE endpoint
+   * Set up EventSource event handlers
    */
-  disconnect() {
+  private setupEventHandlers(): void {
+    if (!this.eventSource) return;
+    
+    // Handle connection open
+    this.eventSource.onopen = () => {
+      this.log('SSE connection established');
+      this.isConnected = true;
+      this.isConnecting = false;
+      this.reconnectAttempts = 0;
+      
+      // Notify connection handler
+      this.connectionHandler('sse', 'connected');
+      
+      // Resolve connect promise
+      if (this.connectPromiseResolver) {
+        this.connectPromiseResolver(true);
+        this.connectPromiseResolver = null;
+      }
+    };
+    
+    // Handle messages
+    this.eventSource.onmessage = (event) => {
+      this.handleEvent(event);
+    };
+    
+    // Handle specific event types
+    this.eventSource.addEventListener('message', (event) => {
+      this.handleEvent(event);
+    });
+    
+    this.eventSource.addEventListener('heartbeat', (event) => {
+      this.log('Received heartbeat event');
+      // Just acknowledge heartbeat, no need to pass to handler
+    });
+    
+    this.eventSource.addEventListener('error', (event) => {
+      console.error('[SSEHandler] Error event:', event);
+    });
+    
+    // Handle connection close
+    this.eventSource.onerror = (event) => {
+      console.error('[SSEHandler] SSE error:', event);
+      
+      // Close event source
+      if (this.eventSource) {
+        this.eventSource.close();
+        this.eventSource = null;
+      }
+      
+      // Update state
+      this.isConnected = false;
+      this.isConnecting = false;
+      
+      // Notify connection handler
+      this.connectionHandler('sse', 'disconnected');
+      
+      // Resolve connect promise if still pending
+      if (this.connectPromiseResolver) {
+        this.connectPromiseResolver(false);
+        this.connectPromiseResolver = null;
+      }
+      
+      // Attempt reconnect
+      this.scheduleReconnect();
+    };
+  }
+
+  /**
+   * Handle incoming event
+   */
+  private handleEvent(event: MessageEvent<any>): void {
+    try {
+      // Store last event ID if available
+      if (event.lastEventId) {
+        this.lastEventId = event.lastEventId;
+      } else if (event.id) {
+        this.lastEventId = event.id;
+      }
+      
+      // Parse data
+      const data = JSON.parse(event.data);
+      
+      // Pass to message handler
+      this.messageHandler(data);
+    } catch (e) {
+      console.error('[SSEHandler] Error handling event:', e);
+    }
+  }
+
+  /**
+   * Set connection timeout
+   */
+  private setConnectionTimeout(): void {
+    setTimeout(() => {
+      // If still connecting, handle failure
+      if (this.isConnecting && !this.isConnected) {
+        this.log('Connection timeout');
+        this.handleConnectionFailure();
+      }
+    }, 5000);
+  }
+
+  /**
+   * Handle connection failure
+   */
+  private handleConnectionFailure(): void {
+    this.log('Connection attempt failed');
+    
+    // Close event source if it exists
     if (this.eventSource) {
       this.eventSource.close();
       this.eventSource = null;
     }
     
-    if (this.reconnectTimeoutId !== null) {
-      window.clearTimeout(this.reconnectTimeoutId);
-      this.reconnectTimeoutId = null;
+    this.isConnecting = false;
+    
+    // Notify connection handler
+    this.connectionHandler('sse', 'disconnected');
+    
+    // Resolve connect promise
+    if (this.connectPromiseResolver) {
+      this.connectPromiseResolver(false);
+      this.connectPromiseResolver = null;
     }
     
-    this.connectionState = 'disconnected';
-    this.emit('connection', { status: 'disconnected' });
+    // Schedule reconnect
+    this.scheduleReconnect();
   }
 
   /**
-   * Get the current connection state
+   * Schedule reconnect with exponential backoff
    */
-  getState() {
-    return this.connectionState;
-  }
-
-  /**
-   * Register an event listener
-   */
-  on(event: string, callback: Function) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
+  private scheduleReconnect(): void {
+    // Don't reconnect if reached max attempts
+    if (this.reconnectAttempts >= this.maxReconnectAttempts) {
+      this.log('Max reconnect attempts reached, giving up');
+      return;
     }
-    this.listeners.get(event)?.push(callback);
-    return this;
+    
+    // Calculate delay with exponential backoff
+    const delay = Math.min(
+      this.reconnectDelay * Math.pow(2, this.reconnectAttempts),
+      this.maxReconnectDelay
+    );
+    
+    this.log(`Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
+    
+    // Clear any existing timer
+    this.clearReconnectTimer();
+    
+    // Schedule reconnect
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectAttempts++;
+      this.connect();
+    }, delay);
   }
 
   /**
-   * Register a one-time event listener
+   * Clear reconnect timer
    */
-  once(event: string, callback: Function) {
-    const onceWrapper = (data: any) => {
-      this.off(event, onceWrapper);
-      callback(data);
-    };
-    this.on(event, onceWrapper);
-    return this;
-  }
-
-  /**
-   * Remove an event listener
-   */
-  off(event: string, callback: Function) {
-    if (this.listeners.has(event)) {
-      const callbacks = this.listeners.get(event) || [];
-      this.listeners.set(
-        event,
-        callbacks.filter(cb => cb !== callback)
-      );
+  private clearReconnectTimer(): void {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
     }
-    return this;
   }
 
   /**
-   * Emit an event to registered listeners
+   * Generate client ID
    */
-  private emit(event: string, data: any) {
-    if (this.listeners.has(event)) {
-      const callbacks = [...this.listeners.get(event) || []];
-      callbacks.forEach(callback => {
-        try {
-          callback(data);
-        } catch (e) {
-          console.error(`Error in SSE ${event} listener:`, e);
-        }
-      });
+  private generateClientId(): string {
+    // Use a simple random ID if not available
+    if (window.crypto && window.crypto.randomUUID) {
+      return window.crypto.randomUUID();
+    }
+    return `sse-${Math.random().toString(36).substring(2, 15)}`;
+  }
+
+  /**
+   * Log message if debug mode is enabled
+   */
+  private log(message: string, ...args: any[]): void {
+    if (this.debugMode) {
+      console.log(`[SSEHandler] ${message}`, ...args);
     }
   }
 }
-
-// Create singleton instance
-export const sseHandler = new SSEHandler();

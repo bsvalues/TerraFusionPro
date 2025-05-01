@@ -1,438 +1,332 @@
 /**
- * Realtime Service
- * Manages connections across multiple protocols (WebSocket, SSE, Long-Polling)
- * and gracefully downgrades to the most compatible protocol
+ * RealtimeService
+ * Manages real-time connections with automatic protocol switching:
+ * WebSocket → SSE → Long Polling
+ * 
+ * Provides a unified interface for real-time communication
+ * regardless of the underlying protocol
  */
 
-import { websocketManager } from './websocket-manager';
-import { sseHandler } from './sse-handler';
-import { longPollingHandler } from './long-polling';
+import { WebSocketManager } from './websocket-manager';
+import { SSEHandler } from './sse-handler';
+import { LongPollingClient } from './long-polling';
 
-type ConnectionState = 'connected' | 'connecting' | 'disconnected' | 'error' | 'polling';
-type ConnectionProtocol = 'websocket' | 'sse' | 'long-polling' | 'none';
+// Connection protocols
+type Protocol = 'websocket' | 'sse' | 'long-polling' | 'none';
 
-export class RealtimeService {
-  private listeners: Map<string, Function[]> = new Map();
-  private currentProtocol: ConnectionProtocol = 'none';
-  private preferredProtocol: ConnectionProtocol = 'websocket';
-  private fallbackEnabled = true;
+// Connection states
+type ConnectionState = 'connected' | 'connecting' | 'disconnected';
+
+// Event handler type
+type EventHandler = (data: any) => void;
+
+// Main RealtimeService class
+class RealtimeService {
+  // Connection managers
+  private webSocketManager: WebSocketManager;
+  private sseHandler: SSEHandler;
+  private longPollingClient: LongPollingClient;
+  
+  // Protocol and state
+  private activeProtocol: Protocol = 'none';
   private connectionState: ConnectionState = 'disconnected';
-  private fallbackTimeoutId: number | null = null;
-  private fallbackAttempts = 0;
-  private maxFallbackAttempts = 2;
   
-  constructor() {
-    console.log('[RealtimeService] Initialized with WebSocket preferred, polling fallback');
-    
-    // Set up event listeners for WebSocket
-    websocketManager.on('connection', this.handleWebSocketConnection.bind(this));
-    websocketManager.on('error', this.handleWebSocketError.bind(this));
-    websocketManager.on('message', this.handleWebSocketMessage.bind(this));
-    
-    // Set up event listeners for SSE
-    sseHandler.on('connection', this.handleSSEConnection.bind(this));
-    sseHandler.on('error', this.handleSSEError.bind(this));
-    sseHandler.on('message', this.handleSSEMessage.bind(this));
-    
-    // Set up event listeners for Long-Polling
-    longPollingHandler.on('connection', this.handlePollingConnection.bind(this));
-    longPollingHandler.on('error', this.handlePollingError.bind(this));
-    longPollingHandler.on('message', this.handlePollingMessage.bind(this));
+  // Connection attempts
+  private connectionAttempts = 0;
+  private maxConnectionAttempts = 3;
+  
+  // Event handlers
+  private eventHandlers: Map<string, Set<EventHandler>> = new Map();
+  
+  // Debug mode
+  private debugMode = true;
+  
+  // Singleton instance
+  private static instance: RealtimeService;
+  
+  /**
+   * Get singleton instance
+   */
+  public static getInstance(): RealtimeService {
+    if (!RealtimeService.instance) {
+      RealtimeService.instance = new RealtimeService();
+    }
+    return RealtimeService.instance;
   }
   
   /**
-   * Set the preferred connection protocol
+   * Private constructor to enforce singleton pattern
    */
-  setPreferredProtocol(protocol: ConnectionProtocol) {
-    this.preferredProtocol = protocol;
-  }
-  
-  /**
-   * Enable or disable automatic fallback
-   */
-  setFallbackEnabled(enabled: boolean) {
-    this.fallbackEnabled = enabled;
-  }
-  
-  /**
-   * Start connection attempts with the preferred protocol
-   */
-  connect() {
-    this.disconnectAll(); // Ensure clean state
-    this.fallbackAttempts = 0;
+  private constructor() {
+    // Initialize connection managers with default endpoints
+    this.webSocketManager = new WebSocketManager(
+      '/ws',
+      this.handleMessage.bind(this),
+      this.handleConnectionChange.bind(this)
+    );
     
-    // Start with preferred protocol
-    this.connectWithProtocol(this.preferredProtocol);
+    this.sseHandler = new SSEHandler(
+      '/sse',
+      this.handleMessage.bind(this),
+      this.handleConnectionChange.bind(this)
+    );
+    
+    this.longPollingClient = new LongPollingClient(
+      '/api/poll',
+      this.handleMessage.bind(this),
+      this.handleConnectionChange.bind(this)
+    );
+    
+    this.log('RealtimeService initialized');
   }
   
   /**
-   * Attempt connection with a specific protocol
+   * Connect to the real-time service using the best available protocol
    */
-  private connectWithProtocol(protocol: ConnectionProtocol) {
-    this.currentProtocol = protocol;
-    console.log(`[RealtimeService] Connecting with ${protocol} protocol`);
+  public async connect(): Promise<boolean> {
+    if (this.connectionState === 'connected') {
+      return true;
+    }
     
-    switch (protocol) {
+    if (this.connectionState === 'connecting') {
+      this.log('Already connecting, please wait...');
+      return false;
+    }
+    
+    this.connectionState = 'connecting';
+    this.emit('connecting', { protocol: 'none' });
+    
+    // First try WebSocket
+    this.log('Trying WebSocket connection...');
+    const wsConnected = await this.webSocketManager.connect();
+    
+    if (wsConnected) {
+      this.log('WebSocket connection successful');
+      this.activeProtocol = 'websocket';
+      return true;
+    }
+    
+    // If WebSocket fails, try SSE
+    this.log('WebSocket connection failed, trying SSE...');
+    const sseConnected = await this.sseHandler.connect();
+    
+    if (sseConnected) {
+      this.log('SSE connection successful');
+      this.activeProtocol = 'sse';
+      return true;
+    }
+    
+    // If SSE fails, try Long Polling
+    this.log('SSE connection failed, trying Long Polling...');
+    const lpConnected = await this.longPollingClient.connect();
+    
+    if (lpConnected) {
+      this.log('Long Polling connection successful');
+      this.activeProtocol = 'long-polling';
+      return true;
+    }
+    
+    // All connection attempts failed
+    this.log('All connection attempts failed');
+    this.connectionState = 'disconnected';
+    this.activeProtocol = 'none';
+    this.emit('connection_failed', { attempts: this.connectionAttempts });
+    
+    return false;
+  }
+  
+  /**
+   * Disconnect from all protocols
+   */
+  public disconnectAll(): void {
+    this.log('Disconnecting from all protocols');
+    
+    // Disconnect from all protocols
+    this.webSocketManager.disconnect();
+    this.sseHandler.disconnect();
+    this.longPollingClient.disconnect();
+    
+    // Update state
+    this.connectionState = 'disconnected';
+    this.activeProtocol = 'none';
+  }
+  
+  /**
+   * Send a message using the active protocol
+   * @param data Message data to send
+   * @returns true if sent successfully, false otherwise
+   */
+  public send(data: any): boolean {
+    if (this.connectionState !== 'connected') {
+      this.log('Cannot send message, not connected');
+      return false;
+    }
+    
+    switch (this.activeProtocol) {
       case 'websocket':
-        websocketManager.connect();
-        break;
+        return this.webSocketManager.send(data);
+        
       case 'sse':
-        sseHandler.connect();
-        break;
-      case 'long-polling':
-        longPollingHandler.startPolling();
-        break;
-      default:
-        console.error(`[RealtimeService] Unknown protocol: ${protocol}`);
-        this.setConnectionState('error');
-    }
-    
-    this.emit('protocol_change', { protocol });
-  }
-  
-  /**
-   * Try next fallback protocol
-   */
-  private tryFallback() {
-    if (!this.fallbackEnabled) return;
-    
-    this.fallbackAttempts++;
-    if (this.fallbackAttempts > this.maxFallbackAttempts) {
-      console.error('[RealtimeService] All fallback attempts failed');
-      this.setConnectionState('error');
-      this.emit('connection', { 
-        status: 'error', 
-        message: 'All connection methods failed' 
-      });
-      return;
-    }
-    
-    // Clear any pending fallback timeout
-    if (this.fallbackTimeoutId !== null) {
-      window.clearTimeout(this.fallbackTimeoutId);
-      this.fallbackTimeoutId = null;
-    }
-    
-    // If we've been trying WebSocket and it's not working, force a move to SSE
-    if (this.currentProtocol === 'websocket' && this.fallbackAttempts >= 1) {
-      console.log('[RealtimeService] WebSocket repeatedly failing, switching to SSE');
-      this.connectWithProtocol('sse');
-      return;
-    }
-    
-    // If we've been trying SSE and it's not working, move to long-polling
-    if (this.currentProtocol === 'sse' && this.fallbackAttempts >= 1) {
-      console.log('[RealtimeService] SSE failing, switching to long-polling');
-      this.connectWithProtocol('long-polling');
-      return;
-    }
-    
-    // Default fallback path
-    const nextProtocol = this.getNextProtocol();
-    console.log(`[RealtimeService] Falling back to ${nextProtocol} protocol`);
-    this.connectWithProtocol(nextProtocol);
-  }
-  
-  /**
-   * Get the next protocol in the fallback chain
-   */
-  private getNextProtocol(): ConnectionProtocol {
-    if (this.currentProtocol === 'websocket') return 'sse';
-    if (this.currentProtocol === 'sse') return 'long-polling';
-    return 'long-polling'; // Default to long-polling if we're already at the end
-  }
-  
-  /**
-   * Disconnect all transport methods
-   */
-  disconnectAll() {
-    websocketManager.disconnect();
-    sseHandler.disconnect();
-    longPollingHandler.stopPolling();
-    
-    this.currentProtocol = 'none';
-    this.setConnectionState('disconnected');
-  }
-  
-  /**
-   * Send data via the currently active protocol
-   */
-  send(data: any): boolean {
-    switch (this.currentProtocol) {
-      case 'websocket':
-        return websocketManager.send(data);
-      case 'sse':
-        console.warn('[RealtimeService] SSE does not support sending data from client to server');
-        return false;
-      case 'long-polling':
-        // Long polling send is asynchronous, but we'll start the request
-        longPollingHandler.send(data);
+        // SSE requires async send, but we'll handle it synchronously for consistent API
+        this.sseHandler.send(data).catch(err => {
+          console.error('[RealtimeService] Error sending SSE message:', err);
+        });
         return true;
+        
+      case 'long-polling':
+        // Long polling requires async send, but we'll handle it synchronously for consistent API
+        this.longPollingClient.send(data).catch(err => {
+          console.error('[RealtimeService] Error sending long polling message:', err);
+        });
+        return true;
+        
       default:
-        console.error('[RealtimeService] No active protocol to send data');
+        this.log('Cannot send message, no active protocol');
         return false;
     }
   }
   
   /**
-   * Set and update connection state
+   * Register an event handler
+   * @param event Event name
+   * @param handler Event handler function
    */
-  private setConnectionState(state: ConnectionState) {
-    if (this.connectionState !== state) {
-      this.connectionState = state;
-      this.emit('connection', { status: state });
+  public on(event: string, handler: EventHandler): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, new Set());
     }
+    
+    this.eventHandlers.get(event)?.add(handler);
   }
   
   /**
-   * Handle WebSocket connection events
+   * Unregister an event handler
+   * @param event Event name
+   * @param handler Event handler function
    */
-  private handleWebSocketConnection(data: any) {
-    if (this.currentProtocol !== 'websocket') return;
-    
-    if (data.status === 'connected') {
-      this.setConnectionState('connected');
-      console.log('[RealtimeService] WebSocket connection established');
-    } else if (data.status === 'connecting') {
-      this.setConnectionState('connecting');
-    } else if (data.status === 'disconnected') {
-      this.setConnectionState('disconnected');
-      
-      // Detect persistent WebSocket failures and trigger fallback - immediate switch after 3-5 failures
-      if (this.fallbackEnabled && !data.intentional) {
-        console.log('[RealtimeService] WebSocket disconnected unexpectedly, switching to SSE immediately');
-        // Force immediate switch to SSE
-        this.connectWithProtocol('sse');
-      }
-    } else if (data.status === 'error') {
-      // When WebSocket throws an error, let's try falling back to SSE immediately
-      if (this.fallbackEnabled && this.currentProtocol === 'websocket') {
-        console.log('[RealtimeService] WebSocket connection failed, switching to SSE immediately');
-        // Force immediate switch to SSE
-        this.connectWithProtocol('sse');
-      } else {
-        this.setConnectionState('error');
-      }
+  public off(event: string, handler: EventHandler): void {
+    if (!this.eventHandlers.has(event)) {
+      return;
     }
+    
+    this.eventHandlers.get(event)?.delete(handler);
   }
   
   /**
-   * Handle WebSocket error events
+   * Emit an event to registered handlers
+   * @param event Event name
+   * @param data Event data
    */
-  private handleWebSocketError(error: any) {
-    if (this.currentProtocol !== 'websocket') return;
-    
-    console.error('[RealtimeService] WebSocket error:', error);
-    this.emit('error', { 
-      protocol: 'websocket',
-      ...error
-    });
-  }
-  
-  /**
-   * Handle WebSocket messages
-   */
-  private handleWebSocketMessage(data: any) {
-    if (this.currentProtocol !== 'websocket') return;
-    
-    // Re-emit the message to our listeners
-    this.emit('message', {
-      protocol: 'websocket',
-      data
-    });
-    
-    // Also emit the specific event type if it exists
-    if (data.type) {
-      this.emit(data.type, {
-        protocol: 'websocket',
-        data
-      });
+  private emit(event: string, data: any): void {
+    if (!this.eventHandlers.has(event)) {
+      return;
     }
-  }
-  
-  /**
-   * Handle SSE connection events
-   */
-  private handleSSEConnection(data: any) {
-    if (this.currentProtocol !== 'sse') return;
     
-    if (data.status === 'connected') {
-      this.setConnectionState('connected');
-      console.log('[RealtimeService] SSE connection established');
-    } else if (data.status === 'connecting') {
-      this.setConnectionState('connecting');
-    } else if (data.status === 'disconnected') {
-      this.setConnectionState('disconnected');
-      
-      // Check if this was unexpected and trigger fallback if needed
-      if (this.fallbackEnabled && !data.intentional) {
-        console.log('[RealtimeService] SSE disconnected unexpectedly, switching to long-polling immediately');
-        // Force immediate switch to long-polling
-        this.connectWithProtocol('long-polling');
-      }
-    } else if (data.status === 'error') {
-      // When SSE throws an error, try falling back to long-polling immediately
-      if (this.fallbackEnabled && this.currentProtocol === 'sse') {
-        console.log('[RealtimeService] SSE connection failed, switching to long-polling immediately');
-        // Force immediate switch to long-polling
-        this.connectWithProtocol('long-polling');
-      } else {
-        this.setConnectionState('error');
+    for (const handler of this.eventHandlers.get(event) || []) {
+      try {
+        handler(data);
+      } catch (err) {
+        console.error(`[RealtimeService] Error in event handler for '${event}':`, err);
       }
     }
   }
   
   /**
-   * Handle SSE error events
+   * Handle incoming message from any protocol
+   * @param message Message data
    */
-  private handleSSEError(error: any) {
-    if (this.currentProtocol !== 'sse') return;
+  private handleMessage(message: any): void {
+    // Log message type
+    this.log(`Received message type '${message.type}'`);
     
-    console.error('[RealtimeService] SSE error:', error);
-    this.emit('error', { 
-      protocol: 'sse',
-      ...error
-    });
-  }
-  
-  /**
-   * Handle SSE messages
-   */
-  private handleSSEMessage(data: any) {
-    if (this.currentProtocol !== 'sse') return;
-    
-    // Re-emit the message to our listeners
-    this.emit('message', {
-      protocol: 'sse',
-      data
-    });
-    
-    // Also emit the specific event type if it exists
-    if (data.type) {
-      this.emit(data.type, {
-        protocol: 'sse',
-        data
-      });
+    // Handle specific message types
+    switch (message.type) {
+      case 'property_analysis_response':
+        this.emit('property_analysis_response', message);
+        break;
+        
+      case 'resource_updated':
+        this.emit('resource_updated', message);
+        break;
+        
+      case 'error':
+        this.emit('error', message);
+        break;
+        
+      case 'connection_established':
+        this.emit('connected', { protocol: this.activeProtocol });
+        break;
+        
+      default:
+        // For any other message type, emit with the message type as event name
+        this.emit(message.type, message);
     }
   }
   
   /**
-   * Handle Long-Polling connection events
+   * Handle connection state changes from any protocol
+   * @param protocol Protocol name
+   * @param state Connection state
    */
-  private handlePollingConnection(data: any) {
-    if (this.currentProtocol !== 'long-polling') return;
+  private handleConnectionChange(protocol: string, state: string): void {
+    this.log(`Connection change: ${protocol} ${state}`);
     
-    if (data.status === 'polling') {
-      this.setConnectionState('polling');
-      console.log('[RealtimeService] Long-polling active');
-    } else if (data.status === 'idle') {
-      this.setConnectionState('disconnected');
-    } else if (data.status === 'error') {
-      this.setConnectionState('error');
+    // Only react to the active protocol's state changes
+    if (protocol !== this.activeProtocol && this.activeProtocol !== 'none') {
+      return;
+    }
+    
+    if (state === 'connected') {
+      this.connectionState = 'connected';
+      this.activeProtocol = protocol as Protocol;
+      this.connectionAttempts = 0;
+      this.emit('connected', { protocol });
+    } 
+    else if (state === 'disconnected') {
+      // If the active protocol disconnected, try another one
+      if (protocol === this.activeProtocol) {
+        this.connectionState = 'disconnected';
+        this.activeProtocol = 'none';
+        this.emit('disconnected', { protocol });
+        
+        // Try reconnecting with a different protocol
+        this.connectionAttempts++;
+        
+        if (this.connectionAttempts < this.maxConnectionAttempts) {
+          this.log(`Reconnecting with different protocol, attempt ${this.connectionAttempts}`);
+          this.connect();
+        } else {
+          this.log(`Max reconnection attempts reached (${this.maxConnectionAttempts})`);
+        }
+      }
     }
   }
   
   /**
-   * Handle Long-Polling error events
+   * Get current connection state
    */
-  private handlePollingError(error: any) {
-    if (this.currentProtocol !== 'long-polling') return;
-    
-    console.error('[RealtimeService] Long-polling error:', error);
-    this.emit('error', { 
-      protocol: 'long-polling',
-      ...error
-    });
-  }
-  
-  /**
-   * Handle Long-Polling messages
-   */
-  private handlePollingMessage(data: any) {
-    if (this.currentProtocol !== 'long-polling') return;
-    
-    // Re-emit the message to our listeners
-    this.emit('message', {
-      protocol: 'long-polling',
-      data
-    });
-    
-    // Also emit the specific event type if it exists
-    if (data.type) {
-      this.emit(data.type, {
-        protocol: 'long-polling',
-        data
-      });
-    }
-  }
-  
-  /**
-   * Get the current connection state
-   */
-  getState(): ConnectionState {
+  public getState(): ConnectionState {
     return this.connectionState;
   }
   
   /**
-   * Get the current protocol being used
+   * Get active protocol
    */
-  getProtocol(): ConnectionProtocol {
-    return this.currentProtocol;
+  public getProtocol(): Protocol {
+    return this.activeProtocol;
   }
   
   /**
-   * Register an event listener
+   * Log message if debug mode is enabled
+   * @param message Message to log
+   * @param args Additional arguments
    */
-  on(event: string, callback: Function) {
-    if (!this.listeners.has(event)) {
-      this.listeners.set(event, []);
-    }
-    this.listeners.get(event)?.push(callback);
-    return this;
-  }
-  
-  /**
-   * Register a one-time event listener
-   */
-  once(event: string, callback: Function) {
-    const onceWrapper = (data: any) => {
-      this.off(event, onceWrapper);
-      callback(data);
-    };
-    this.on(event, onceWrapper);
-    return this;
-  }
-  
-  /**
-   * Remove an event listener
-   */
-  off(event: string, callback: Function) {
-    if (this.listeners.has(event)) {
-      const callbacks = this.listeners.get(event) || [];
-      this.listeners.set(
-        event,
-        callbacks.filter(cb => cb !== callback)
-      );
-    }
-    return this;
-  }
-  
-  /**
-   * Emit an event to registered listeners
-   */
-  private emit(event: string, data: any) {
-    if (this.listeners.has(event)) {
-      const callbacks = [...this.listeners.get(event) || []];
-      callbacks.forEach(callback => {
-        try {
-          callback(data);
-        } catch (e) {
-          console.error(`[RealtimeService] Error in ${event} listener:`, e);
-        }
-      });
+  private log(message: string, ...args: any[]): void {
+    if (this.debugMode) {
+      console.log(`[RealtimeService] ${message}`, ...args);
     }
   }
 }
 
 // Create singleton instance
-export const realtimeService = new RealtimeService();
+export const realtimeService = RealtimeService.getInstance();
