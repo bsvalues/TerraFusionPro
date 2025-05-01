@@ -121,28 +121,42 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     return realtimeService.send(data);
   };
 
-  // Send property analysis request
+  // Send property analysis request using REST API instead of WebSockets
   const sendPropertyAnalysisRequest = (propertyData: any): boolean => {
     // Reset state
     setPropertyAnalysisResult(null);
     setPropertyAnalysisError(null);
     setPropertyAnalysisLoading(true);
+    
+    console.log('Sending property analysis request for:', propertyData);
 
-    // Send request
-    const success = realtimeService.send({
-      type: 'property_analysis_request',
-      data: propertyData,
-      timestamp: new Date().toISOString(),
-      requestId: `analysis_${Date.now()}`
-    });
+    // Use direct API call instead of WebSockets due to connection issues
+    fetch('/api/realtime/propertyAnalysis', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(propertyData),
+    })
+      .then(response => {
+        if (!response.ok) {
+          throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+        return response.json();
+      })
+      .then(data => {
+        console.log('Property analysis response:', data);
+        setPropertyAnalysisResult(data);
+        setPropertyAnalysisLoading(false);
+      })
+      .catch(error => {
+        console.error('Error fetching property analysis:', error);
+        setPropertyAnalysisError(error.message || 'Failed to analyze property');
+        setPropertyAnalysisLoading(false);
+      });
 
-    // If sending failed, update state
-    if (!success) {
-      setPropertyAnalysisLoading(false);
-      setPropertyAnalysisError('Failed to send property analysis request - connection issue');
-    }
-
-    return success;
+    // We always return true since we're using fetch instead of WebSockets
+    return true;
   };
 
   // Implement WebSocketTestPage specific functions
