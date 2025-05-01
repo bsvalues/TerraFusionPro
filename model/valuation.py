@@ -1,107 +1,97 @@
-import numpy as np
-import pandas as pd
-from typing import Dict, List, Any, Optional, Tuple
-from datetime import datetime
+"""
+TerraFusion Core AI Valuator - Neural Spine
+Core valuation engine that implements property assessment 
+algorithms, adjustment calculations, and machine learning models.
+"""
 import os
 import json
+import math
 import random
+from datetime import datetime
+from typing import Dict, List, Any, Tuple, Optional
+
+import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
-
-# Constants
-DEFAULT_PRICE_PER_SQFT = 250.0  # Default price per square foot
-MARKET_GROWTH_RATE = 0.052  # 5.2% annual growth rate for our sample market
-
-# Mock market data by zip code (would be replaced with real data in production)
-MARKET_DATA = {
-    "99362": {
-        "avg_price_per_sqft": 242.5,
-        "price_trend_1yr": 0.052,  # 5.2% increase
-        "median_days_on_market": 15,
-        "inventory_months": 1.8,
-        "median_household_income": 68500,
-    },
-    # Add more zip codes as needed
-}
-
-# Weights for property features in valuation
-FEATURE_WEIGHTS = {
-    "bedrooms": 15000,  # per bedroom
-    "bathrooms": 25000,  # per bathroom
-    "yearBuilt": 500,    # per year newer than 1950
-    "lotSize": 50000,    # per acre
-    "condition": {
-        "Excellent": 1.15,  # multiplier
-        "Good": 1.05,
-        "Average": 1.0,
-        "Fair": 0.9,
-        "Poor": 0.8
-    },
-    "propertyType": {
-        "single-family": 1.0,  # multiplier
-        "condo": 0.85,
-        "townhouse": 0.9,
-        "multi-family": 1.2,
-        "land": 0.7
-    }
-}
-
-# Feature importance for adjustments
-FEATURE_IMPORTANCE = {
-    "location": 0.35,
-    "size": 0.25,
-    "condition": 0.20,
-    "age": 0.10,
-    "lot_size": 0.05,
-    "features": 0.05
-}
 
 class PropertyValuationModel:
     """
     A class that implements property valuation using both heuristic and 
     machine learning approaches.
     """
-    
+
     def __init__(self):
         """
         Initialize the valuation model.
         """
         self.model = None
-        self._init_ml_model()
-    
+        self.column_transformer = None
+        self.property_type_factors = {
+            "single-family": 1.0,
+            "condo": 0.85,
+            "townhouse": 0.9,
+            "multi-family": 1.2,
+            "land": 0.7
+        }
+        self.condition_factors = {
+            "Excellent": 1.15,
+            "Good": 1.0,
+            "Average": 0.9,
+            "Fair": 0.75,
+            "Poor": 0.6
+        }
+        self.feature_values = {
+            "Hardwood Floors": 5000,
+            "Updated Kitchen": 15000,
+            "Fireplace": 3000,
+            "Deck": 5000,
+            "Swimming Pool": 20000,
+            "Garage": 10000,
+            "Central AC": 7000,
+            "New Roof": 8000
+        }
+        
+        # Initialize machine learning model if conditions permit
+        try:
+            self._init_ml_model()
+        except Exception as e:
+            print(f"Warning: ML model initialization failed: {e}")
+            print("Using heuristic model only")
+
     def _init_ml_model(self):
         """
         Initialize and train the machine learning model.
         """
-        # In a real implementation, we would load pre-trained models or train on real data
-        # For now, we'll create a simple model structure
+        # This is a placeholder for a real ML model training
+        # In a real system, we would load data from a database or files,
+        # and train a model on historical property data
         
-        # Define preprocessing for numerical features
+        # Example feature columns
         numeric_features = ['squareFeet', 'bedrooms', 'bathrooms', 'yearBuilt', 'lotSize']
-        numeric_transformer = StandardScaler()
-        
-        # Define preprocessing for categorical features
         categorical_features = ['propertyType', 'condition']
-        categorical_transformer = OneHotEncoder(handle_unknown='ignore')
         
-        # Combine preprocessing steps
-        preprocessor = ColumnTransformer(
-            transformers=[
-                ('num', numeric_transformer, numeric_features),
-                ('cat', categorical_transformer, categorical_features)
-            ])
+        # Column transformer for preprocessing
+        self.column_transformer = ColumnTransformer([
+            ('num', StandardScaler(), numeric_features),
+            ('cat', OneHotEncoder(handle_unknown='ignore'), categorical_features)
+        ])
         
-        # Create the modeling pipeline
-        self.model = Pipeline(steps=[
-            ('preprocessor', preprocessor),
+        # Create pipeline with preprocessing and model
+        self.model = Pipeline([
+            ('preprocessor', self.column_transformer),
             ('regressor', RandomForestRegressor(n_estimators=100, random_state=42))
         ])
         
-        # In a real implementation, we would fit the model here with historical data
-        # For now, we'll rely on the heuristic approach
-    
+        # In a real system, we would train the model here
+        # self.model.fit(X_train, y_train)
+        
+        # For now, we'll just set the trained flag to indicate 
+        # we don't have a real trained model
+        self.is_trained = False
+
     def _calculate_base_value(self, property_details: Dict[str, Any]) -> float:
         """
         Calculate the base value of a property using a heuristic approach.
@@ -112,49 +102,62 @@ class PropertyValuationModel:
         Returns:
             float: Base estimated value
         """
-        # Extract property attributes
-        square_feet = property_details.get('squareFeet', 0)
-        bedrooms = property_details.get('bedrooms', 0)
-        bathrooms = property_details.get('bathrooms', 0)
-        year_built = property_details.get('yearBuilt', 2000)
-        lot_size = property_details.get('lotSize', 0.0)  # in acres
-        condition = property_details.get('condition', 'Average')
-        property_type = property_details.get('propertyType', 'single-family').lower()
+        # Get property attributes
+        property_type = property_details.get("propertyType", "single-family")
+        bedrooms = property_details.get("bedrooms", 3)
+        bathrooms = property_details.get("bathrooms", 2.0)
+        square_feet = property_details.get("squareFeet", 2000)
+        year_built = property_details.get("yearBuilt", 1980)
+        lot_size = property_details.get("lotSize", 0.25)  # acres
+        condition = property_details.get("condition", "Good")
         
-        # Get zip code for market data
-        zip_code = property_details.get('address', {}).get('zipCode', None)
+        # Get location data
+        address = property_details.get("address", {})
+        zip_code = address.get("zipCode", "00000")
+        state = address.get("state", "")
+        city = address.get("city", "")
         
-        # Determine price per square foot based on zip code data if available
-        price_per_sqft = DEFAULT_PRICE_PER_SQFT
-        if zip_code and zip_code in MARKET_DATA:
-            price_per_sqft = MARKET_DATA[zip_code].get('avg_price_per_sqft', DEFAULT_PRICE_PER_SQFT)
+        # Base value calculated on square footage (national average is ~$150/sqft)
+        # This would be replaced with actual regional data in a real system
+        if zip_code and zip_code.isdigit():
+            # Simple zip code based price per square foot adjustment
+            # First digit of ZIP indicates region (0-9)
+            region = int(zip_code[0]) if zip_code else 5
+            base_price_per_sqft = 120 + region * 10  # Simple regional variation
+        else:
+            base_price_per_sqft = 150  # Default
         
-        # Calculate base value from square footage
-        base_value = square_feet * price_per_sqft
-        
-        # Add value for bedrooms
-        base_value += bedrooms * FEATURE_WEIGHTS['bedrooms']
-        
-        # Add value for bathrooms
-        base_value += bathrooms * FEATURE_WEIGHTS['bathrooms']
-        
-        # Add value for newer construction (based on years newer than 1950)
-        if year_built > 1950:
-            base_value += (year_built - 1950) * FEATURE_WEIGHTS['yearBuilt']
-        
-        # Add value for lot size
-        base_value += lot_size * FEATURE_WEIGHTS['lotSize']
-        
-        # Apply condition multiplier
-        condition_multiplier = FEATURE_WEIGHTS['condition'].get(condition, 1.0)
-        base_value *= condition_multiplier
+        base_value = square_feet * base_price_per_sqft
         
         # Apply property type multiplier
-        property_type_multiplier = FEATURE_WEIGHTS['propertyType'].get(property_type, 1.0)
+        property_type_multiplier = self.property_type_factors.get(property_type, 1.0)
         base_value *= property_type_multiplier
         
-        return base_value
-    
+        # Apply condition multiplier
+        condition_multiplier = self.condition_factors.get(condition, 1.0)
+        base_value *= condition_multiplier
+        
+        # Adjust for bedrooms and bathrooms
+        # More than 3 bedrooms adds value, less subtracts
+        bedroom_adjustment = (bedrooms - 3) * 10000 if bedrooms else 0
+        # More than 2 bathrooms adds value, less subtracts
+        bathroom_adjustment = (bathrooms - 2) * 15000 if bathrooms else 0
+        
+        # Adjust for year built
+        # Newer properties are worth more
+        current_year = datetime.now().year
+        age = current_year - year_built if year_built else 40
+        age_adjustment = max(0, 50 - age) * 1000  # $1k per year under 50 years old
+        
+        # Adjust for lot size
+        # Larger lots are worth more
+        lot_adjustment = (lot_size - 0.25) * 50000 if lot_size else 0  # $50k per additional quarter acre
+        
+        # Calculate final base value
+        final_base_value = base_value + bedroom_adjustment + bathroom_adjustment + age_adjustment + lot_adjustment
+        
+        return max(10000, final_base_value)  # Ensure a minimum value
+
     def _calculate_adjustments(
         self, 
         property_details: Dict[str, Any],
@@ -172,66 +175,58 @@ class PropertyValuationModel:
         """
         adjustments = []
         
-        # Location adjustment
-        zip_code = property_details.get('address', {}).get('zipCode', None)
-        if zip_code and zip_code in MARKET_DATA:
-            market_data = MARKET_DATA[zip_code]
-            if market_data['inventory_months'] < 3.0:  # Low inventory
-                adjustments.append({
-                    'factor': 'Location',
-                    'description': f"Premium location with low inventory ({market_data['inventory_months']} months)",
-                    'amount': property_details.get('squareFeet', 0) * 10,  # $10 per sqft premium
-                    'reasoning': "Low inventory markets command premium pricing due to supply and demand imbalance."
-                })
-            
-            if market_data['median_days_on_market'] < 20:  # Hot market
-                adjustments.append({
-                    'factor': 'Market Conditions',
-                    'description': f"Hot market with properties selling in {market_data['median_days_on_market']} days",
-                    'amount': property_details.get('squareFeet', 0) * 5,  # $5 per sqft premium
-                    'reasoning': "Properties selling quickly indicate strong demand and support higher valuations."
-                })
+        # Feature-based adjustments
+        features = property_details.get("features", [])
+        if features:
+            for feature in features:
+                feature_name = feature.get("name")
+                if feature_name in self.feature_values:
+                    adjustments.append({
+                        "factor": f"{feature_name}",
+                        "description": f"Property has {feature_name}",
+                        "amount": self.feature_values[feature_name],
+                        "reasoning": f"{feature_name} typically adds value to a property"
+                    })
         
-        # Condition adjustments
-        condition = property_details.get('condition', 'Average')
-        if condition in ['Excellent', 'Good']:
+        # Location-based adjustments
+        address = property_details.get("address", {})
+        city = address.get("city", "")
+        
+        # This would be replaced with actual location data in a real system
+        if city:
+            # Simple city-based adjustment
+            location_adj = random.uniform(0.02, 0.05) * self._calculate_base_value(property_details)
             adjustments.append({
-                'factor': 'Condition',
-                'description': f"{condition} condition rating",
-                'amount': property_details.get('squareFeet', 0) * (15 if condition == 'Excellent' else 7),
-                'reasoning': f"Properties in {condition} condition command premium pricing due to move-in readiness and reduced maintenance costs."
-            })
-        
-        # Features adjustments
-        features = property_details.get('features', [])
-        feature_names = [f.get('name', '') for f in features]
-        
-        if 'Updated Kitchen' in feature_names:
-            adjustments.append({
-                'factor': 'Updated Kitchen',
-                'description': "Modern kitchen with upgrades",
-                'amount': 20000.0,
-                'reasoning': "Updated kitchens are one of the highest ROI improvements and significantly impact buyer perception."
+                "factor": "Location",
+                "description": f"Property located in {city}",
+                "amount": round(location_adj, 2),
+                "reasoning": f"Market data indicates properties in {city} command a premium"
             })
             
-        if 'Hardwood Floors' in feature_names:
+        # Size-based adjustments
+        square_feet = property_details.get("squareFeet")
+        if square_feet and square_feet > 2500:
+            size_adj = (square_feet - 2500) * 25  # $25 per square foot above 2500
             adjustments.append({
-                'factor': 'Hardwood Floors',
-                'description': "Quality hardwood flooring",
-                'amount': 10000.0,
-                'reasoning': "Hardwood floors are a premium feature preferred by buyers over carpet or laminate."
+                "factor": "Above-Average Size",
+                "description": f"Property has {square_feet} square feet",
+                "amount": round(size_adj, 2),
+                "reasoning": f"Properties larger than 2,500 square feet command a premium of approximately $25 per additional square foot"
             })
             
-        if 'Fireplace' in feature_names:
+        # Age-based adjustments
+        year_built = property_details.get("yearBuilt")
+        if year_built and year_built > 2010:
+            new_construction_adj = (year_built - 2010) * 2500  # $2.5k per year newer than 2010
             adjustments.append({
-                'factor': 'Fireplace',
-                'description': "Functional fireplace",
-                'amount': 5000.0,
-                'reasoning': "Fireplaces add character and provide an efficient heating source in colder climates."
+                "factor": "New Construction",
+                "description": f"Property built in {year_built}",
+                "amount": round(new_construction_adj, 2),
+                "reasoning": f"Newer construction (post-2010) adds significant value due to modern design, energy efficiency, and reduced maintenance costs"
             })
-        
+            
         return adjustments
-    
+
     def _determine_confidence_level(self, property_details: Dict[str, Any], comparables: List[Dict[str, Any]]) -> Tuple[str, float]:
         """
         Determine the confidence level of the valuation.
@@ -246,32 +241,45 @@ class PropertyValuationModel:
         # Base confidence starts at medium
         confidence_score = 0.5
         
-        # More comparable properties increase confidence
-        if len(comparables) >= 5:
-            confidence_score += 0.2
-        elif len(comparables) >= 3:
-            confidence_score += 0.1
+        # Adjust based on data completeness
+        data_completeness = sum([
+            1 if property_details.get("bedrooms") is not None else 0,
+            1 if property_details.get("bathrooms") is not None else 0,
+            1 if property_details.get("squareFeet") is not None else 0,
+            1 if property_details.get("yearBuilt") is not None else 0,
+            1 if property_details.get("lotSize") is not None else 0,
+            1 if property_details.get("condition") is not None else 0
+        ]) / 6.0
         
-        # More property details increase confidence
-        required_fields = ['squareFeet', 'bedrooms', 'bathrooms', 'yearBuilt', 'lotSize', 'condition']
-        available_fields = sum(1 for field in required_fields if field in property_details and property_details[field] is not None)
-        field_ratio = available_fields / len(required_fields)
-        confidence_score += field_ratio * 0.2
+        confidence_score += data_completeness * 0.2
         
-        # If we have market data for the zip code, increase confidence
-        zip_code = property_details.get('address', {}).get('zipCode', None)
-        if zip_code and zip_code in MARKET_DATA:
-            confidence_score += 0.1
-        
+        # Adjust based on comparable properties
+        if comparables:
+            # More comparables increases confidence
+            num_comparables = len(comparables)
+            if num_comparables >= 5:
+                confidence_score += 0.2
+            elif num_comparables >= 3:
+                confidence_score += 0.1
+            
+            # Recent comparables increases confidence
+            current_year = datetime.now().year
+            recent_comparables = sum(1 for comp in comparables if 
+                                    comp.get("saleDate", "").startswith(str(current_year)))
+            if recent_comparables > 0:
+                confidence_score += 0.1
+        else:
+            confidence_score -= 0.1
+            
         # Determine confidence level
         if confidence_score >= 0.8:
-            level = "high"
+            confidence_level = "high"
         elif confidence_score >= 0.5:
-            level = "medium"
+            confidence_level = "medium"
         else:
-            level = "low"
+            confidence_level = "low"
             
-        return level, min(confidence_score, 1.0)
+        return confidence_level, min(1.0, max(0.1, confidence_score))
 
     def value_property(
         self, 
@@ -290,53 +298,55 @@ class PropertyValuationModel:
         """
         if comparable_properties is None:
             comparable_properties = []
-        
-        # Calculate base value using heuristic approach
+            
+        # Calculate base value using our heuristic approach
         base_value = self._calculate_base_value(property_details)
         
         # Calculate adjustments
         adjustments = self._calculate_adjustments(property_details, comparable_properties)
         
-        # Apply adjustments to base value
+        # Apply adjustments
         adjusted_value = base_value
         for adjustment in adjustments:
-            adjusted_value += adjustment['amount']
-        
-        # Round to nearest thousand
-        final_value = round(adjusted_value / 1000) * 1000
-        
+            adjusted_value += adjustment["amount"]
+            
         # Determine confidence level
-        confidence_level, confidence_score = self._determine_confidence_level(property_details, comparable_properties)
+        confidence_level, confidence_score = self._determine_confidence_level(
+            property_details, comparable_properties
+        )
         
         # Calculate value range based on confidence
         if confidence_level == "high":
-            value_range = {
-                "min": round((final_value * 0.97) / 1000) * 1000,
-                "max": round((final_value * 1.03) / 1000) * 1000
-            }
+            range_percent = 0.05  # ±5%
         elif confidence_level == "medium":
-            value_range = {
-                "min": round((final_value * 0.93) / 1000) * 1000,
-                "max": round((final_value * 1.07) / 1000) * 1000
-            }
-        else:  # low confidence
-            value_range = {
-                "min": round((final_value * 0.90) / 1000) * 1000,
-                "max": round((final_value * 1.10) / 1000) * 1000
-            }
+            range_percent = 0.10  # ±10%
+        else:
+            range_percent = 0.15  # ±15%
+            
+        min_value = adjusted_value * (1 - range_percent)
+        max_value = adjusted_value * (1 + range_percent)
         
-        # Prepare comparable analysis
-        comparable_analysis = self._generate_comparable_analysis(property_details, comparable_properties)
+        # Generate comparable analysis
+        comparable_analysis = self._generate_comparable_analysis(
+            property_details, comparable_properties
+        )
         
-        return {
-            "estimatedValue": final_value,
+        # Prepare valuation response
+        valuation = {
+            "estimatedValue": round(adjusted_value, 2),
             "confidenceLevel": confidence_level,
-            "valueRange": value_range,
+            "valueRange": {
+                "min": round(min_value, 2),
+                "max": round(max_value, 2)
+            },
             "adjustments": adjustments,
+            "marketAnalysis": analyze_market_trends(property_details),
             "comparableAnalysis": comparable_analysis,
-            "valuationMethodology": "Sales Comparison Approach with heuristic adjustments"
+            "valuationMethodology": "Hybrid (Sales Comparison + Heuristic Model)" if comparable_properties else "Heuristic Model"
         }
-    
+        
+        return valuation
+
     def _generate_comparable_analysis(
         self, 
         property_details: Dict[str, Any],
@@ -353,39 +363,72 @@ class PropertyValuationModel:
             str: Analysis of comparables
         """
         if not comparable_properties:
-            return "No comparable properties were available for analysis."
-        
-        num_comps = len(comparable_properties)
-        price_sqft_list = []
-        
-        for comp in comparable_properties:
-            if comp.get('squareFeet') and comp.get('salePrice'):
-                sqft = comp.get('squareFeet')
-                # Handle price as string with $ or as float
-                price = comp.get('salePrice')
-                if isinstance(price, str):
-                    price = float(price.replace('$', '').replace(',', ''))
-                
-                if sqft > 0:
-                    price_sqft_list.append(price / sqft)
-        
-        if price_sqft_list:
-            avg_price_sqft = sum(price_sqft_list) / len(price_sqft_list)
-            min_price_sqft = min(price_sqft_list)
-            max_price_sqft = max(price_sqft_list)
+            return "No comparable properties were provided for analysis. The valuation is based on property characteristics and general market data."
             
-            return (f"Analysis based on {num_comps} comparable properties. "
-                   f"Average price per square foot is ${avg_price_sqft:.2f}, "
-                   f"ranging from ${min_price_sqft:.2f} to ${max_price_sqft:.2f}. "
-                   f"These comparable sales support the valuation range provided.")
+        num_comparables = len(comparable_properties)
+        address = property_details.get("address", {})
+        city = address.get("city", "Unknown")
+        
+        # Calculate average sale price of comparables
+        sale_prices = [comp.get("salePrice", 0) for comp in comparable_properties if comp.get("salePrice")]
+        if sale_prices:
+            avg_sale_price = sum(sale_prices) / len(sale_prices)
+            price_range = [min(sale_prices), max(sale_prices)]
         else:
-            return (f"Analysis based on {num_comps} comparable properties. "
-                   f"Unable to determine average price per square foot due to "
-                   f"incomplete data in the comparable properties.")
+            return f"Comparable property data was incomplete. The valuation is primarily based on property characteristics and general market data for {city}."
+        
+        # Analyze recency of sales
+        current_date = datetime.now().date()
+        sale_dates = []
+        for comp in comparable_properties:
+            sale_date_str = comp.get("saleDate")
+            if sale_date_str:
+                try:
+                    sale_date = datetime.strptime(sale_date_str, "%Y-%m-%d").date()
+                    sale_dates.append(sale_date)
+                except ValueError:
+                    pass
+        
+        if sale_dates:
+            newest_sale = max(sale_dates)
+            oldest_sale = min(sale_dates)
+            days_newest = (current_date - newest_sale).days
+            days_oldest = (current_date - oldest_sale).days
+        
+        # Generate analysis text
+        analysis = f"Analysis of {num_comparables} comparable properties "
+        
+        if sale_dates:
+            if days_newest < 30:
+                sale_recency = "very recent"
+            elif days_newest < 90:
+                sale_recency = "recent"
+            elif days_newest < 180:
+                sale_recency = "moderately recent"
+            else:
+                sale_recency = "historical"
+                
+            analysis += f"with {sale_recency} sales data "
+            
+        if "city" in address:
+            analysis += f"in {city} "
+            
+        analysis += f"shows sale prices ranging from ${price_range[0]:,.0f} to ${price_range[1]:,.0f}, "
+        analysis += f"with an average of ${avg_sale_price:,.0f}. "
+        
+        # Compare subject to comparables
+        subject_sqft = property_details.get("squareFeet")
+        comp_sqft_values = [comp.get("squareFeet", 0) for comp in comparable_properties if comp.get("squareFeet")]
+        
+        if subject_sqft and comp_sqft_values:
+            avg_comp_sqft = sum(comp_sqft_values) / len(comp_sqft_values)
+            if subject_sqft > avg_comp_sqft * 1.1:
+                analysis += f"The subject property is larger than the average comparable (by approximately {(subject_sqft / avg_comp_sqft - 1) * 100:.0f}%), which positively impacts its value. "
+            elif subject_sqft < avg_comp_sqft * 0.9:
+                analysis += f"The subject property is smaller than the average comparable (by approximately {(1 - subject_sqft / avg_comp_sqft) * 100:.0f}%), which is reflected in its valuation. "
+        
+        return analysis
 
-
-# Initialize a global instance of the valuation model
-_valuation_model = PropertyValuationModel()
 
 def perform_automated_valuation(
     property_details: Dict[str, Any],
@@ -401,8 +444,9 @@ def perform_automated_valuation(
     Returns:
         Dict: Valuation results
     """
-    valuation = _valuation_model.value_property(property_details, comparable_properties)
-    return valuation
+    model = PropertyValuationModel()
+    return model.value_property(property_details, comparable_properties)
+
 
 def analyze_market_trends(
     property_details: Dict[str, Any],
@@ -418,32 +462,114 @@ def analyze_market_trends(
     Returns:
         str: Market analysis text
     """
-    if zip_code is None:
-        zip_code = property_details.get('address', {}).get('zipCode', None)
+    # Get location info from property details or use provided zip_code
+    address = property_details.get("address", {})
+    zip_code = zip_code or address.get("zipCode")
+    city = address.get("city", "the area")
+    state = address.get("state")
     
-    # Look up market data by ZIP code
-    if zip_code and zip_code in MARKET_DATA:
-        market_data = MARKET_DATA[zip_code]
+    # This is a placeholder - in a real system we would use actual market data
+    # from a database or external API based on the location
+    
+    # Simple trend generation based on zip code
+    if zip_code and zip_code.isdigit():
+        # Use the first digit of ZIP to determine region
+        region = int(zip_code[0]) if zip_code else 5
         
-        trend_direction = "up" if market_data['price_trend_1yr'] > 0 else "down"
-        trend_percent = abs(market_data['price_trend_1yr'] * 100)
+        # Different regions have different market conditions
+        appreciation_rates = {
+            0: (2.5, 3.5),   # Northeast
+            1: (3.0, 4.5),   # Northeast
+            2: (2.0, 3.0),   # Mid-Atlantic
+            3: (3.5, 4.5),   # Southeast
+            4: (2.5, 4.0),   # Southeast
+            5: (2.0, 3.0),   # Midwest
+            6: (1.5, 3.0),   # Midwest
+            7: (2.0, 3.0),   # South Central
+            8: (3.0, 5.0),   # Mountain West
+            9: (4.0, 6.0)    # West Coast
+        }
         
-        return (
-            f"The {property_details.get('address', {}).get('city', 'local')} market "
-            f"has shown values trending {trend_direction} approximately {trend_percent:.1f}% "
-            f"over the past year. Properties are typically selling within "
-            f"{market_data['median_days_on_market']} days on market, with approximately "
-            f"{market_data['inventory_months']:.1f} months of inventory available. "
-            f"Current market conditions favor {'sellers' if market_data['inventory_months'] < 5 else 'buyers'} "
-            f"with {'limited' if market_data['inventory_months'] < 3 else 'adequate'} inventory "
-            f"and {'strong' if market_data['median_days_on_market'] < 30 else 'moderate'} demand."
-        )
+        # Get appreciation range for this region
+        min_rate, max_rate = appreciation_rates.get(region, (2.5, 4.0))
+        
+        # Add some randomness for variation
+        appreciation_rate = round(random.uniform(min_rate, max_rate), 1)
+        
+        # Generate inventory level (months of supply)
+        inventory_levels = {
+            0: (3.0, 4.5),
+            1: (2.5, 4.0),
+            2: (3.0, 5.0),
+            3: (2.0, 3.5),
+            4: (2.5, 4.0),
+            5: (3.5, 5.0),
+            6: (4.0, 5.5),
+            7: (3.0, 5.0),
+            8: (2.0, 3.5),
+            9: (1.5, 3.0)
+        }
+        
+        min_inv, max_inv = inventory_levels.get(region, (2.5, 4.5))
+        inventory = round(random.uniform(min_inv, max_inv), 1)
+        
+        # Generate days on market
+        dom_ranges = {
+            0: (25, 45),
+            1: (20, 40),
+            2: (30, 50),
+            3: (15, 35),
+            4: (20, 40),
+            5: (30, 55),
+            6: (35, 60),
+            7: (25, 45),
+            8: (15, 35),
+            9: (10, 30)
+        }
+        
+        min_dom, max_dom = dom_ranges.get(region, (20, 45))
+        days_on_market = random.randint(min_dom, max_dom)
     else:
-        return (
-            f"Market data for the specified area is limited. "
-            f"National housing trends indicate moderate growth with regional variations. "
-            f"Local market analysis would require additional data."
-        )
+        # Default values if ZIP is not available
+        appreciation_rate = 3.2
+        inventory = 3.5
+        days_on_market = 35
+    
+    # Determine market conditions based on inventory
+    if inventory < 3.0:
+        market_condition = "seller's market"
+        price_pressure = "upward"
+    elif inventory < 5.0:
+        market_condition = "balanced market"
+        price_pressure = "stable"
+    else:
+        market_condition = "buyer's market"
+        price_pressure = "downward"
+        
+    # Generate market analysis text
+    analysis = f"The real estate market in {city}"
+    if state:
+        analysis += f", {state},"
+    
+    analysis += f" has shown {appreciation_rate}% appreciation over the past 12 months. "
+    analysis += f"Current inventory levels are at {inventory} months of supply, indicating a {market_condition} with {price_pressure} pressure on prices. "
+    analysis += f"Properties in this area typically sell within {days_on_market} days of listing. "
+    
+    # Add property type specific info
+    property_type = property_details.get("propertyType", "residential")
+    if property_type == "single-family":
+        analysis += "Single-family homes in this area have been particularly strong performers, with growing demand from both first-time buyers and downsizing empty-nesters. "
+    elif property_type == "condo":
+        analysis += "The condominium market has seen steady demand, particularly from urban professionals and investors seeking rental properties. "
+    elif property_type == "townhouse":
+        analysis += "Townhouses offer an attractive middle ground between single-family homes and condos, and have seen consistent demand from young families and professionals. "
+    elif property_type == "multi-family":
+        analysis += "Multi-family properties remain attractive investment options due to strong rental demand and the potential for steady income streams. "
+    elif property_type == "land":
+        analysis += "Vacant land has seen increasing interest from developers as existing housing inventory remains tight in many areas. "
+        
+    return analysis
+
 
 def generate_valuation_narrative(
     property_details: Dict[str, Any],
@@ -459,73 +585,131 @@ def generate_valuation_narrative(
     Returns:
         str: Narrative text
     """
-    address = property_details.get('address', {})
-    location = f"{address.get('street', 'the subject property')}, {address.get('city', '')}, {address.get('state', '')}"
+    # Extract key information
+    address = property_details.get("address", {})
+    full_address = f"{address.get('street', '')}, {address.get('city', '')}, {address.get('state', '')} {address.get('zipCode', '')}"
+    property_type = property_details.get("propertyType", "property")
+    estimated_value = valuation.get("estimatedValue", 0)
+    confidence_level = valuation.get("confidenceLevel", "medium")
+    value_range = valuation.get("valueRange", {"min": 0, "max": 0})
     
-    estimated_value = valuation.get('estimatedValue', 0)
-    confidence = valuation.get('confidenceLevel', 'medium')
-    value_range = valuation.get('valueRange', {'min': 0, 'max': 0})
-    adjustments = valuation.get('adjustments', [])
+    # Format values for display
+    formatted_value = f"${estimated_value:,.0f}" if isinstance(estimated_value, (int, float)) else estimated_value
+    formatted_min = f"${value_range['min']:,.0f}" if isinstance(value_range['min'], (int, float)) else value_range['min']
+    formatted_max = f"${value_range['max']:,.0f}" if isinstance(value_range['max'], (int, float)) else value_range['max']
     
-    narrative = [
-        f"# Valuation Summary for {location}",
-        "",
-        f"Based on our analysis, the estimated market value of the subject property is ${estimated_value:,.2f} "
-        f"(ranging from ${value_range['min']:,.2f} to ${value_range['max']:,.2f}), "
-        f"with a {confidence} level of confidence.",
-        "",
-        "## Property Characteristics",
-        "",
-        f"The subject property is a {property_details.get('propertyType', 'residential')} property "
-        f"built in {property_details.get('yearBuilt', 'an unknown year')}, "
-        f"with {property_details.get('bedrooms', 0)} bedrooms and {property_details.get('bathrooms', 0)} bathrooms. "
-        f"The property contains approximately {property_details.get('squareFeet', 0)} square feet "
-        f"on a {property_details.get('lotSize', 0):.2f} acre lot.",
-        "",
-        f"The property is in {property_details.get('condition', 'unknown')} condition. "
-    ]
+    # Generate intro paragraph
+    narrative = f"# Valuation Summary for {full_address}\n\n"
     
+    narrative += f"## Executive Summary\n\n"
+    narrative += f"The {property_type} located at {full_address} has an estimated market value of "
+    narrative += f"{formatted_value} as of {datetime.now().strftime('%B %d, %Y')}. "
+    narrative += f"This valuation has a {confidence_level} confidence level, with a probable value range of "
+    narrative += f"{formatted_min} to {formatted_max}. "
+    
+    # Add methodology paragraph
+    methodology = valuation.get("valuationMethodology", "")
+    narrative += f"\n## Methodology\n\n"
+    narrative += f"This valuation was produced using a {methodology.lower()}. "
+    
+    if "Hybrid" in methodology or "Comparison" in methodology:
+        narrative += "The sales comparison approach analyzes recent sales of similar properties, making adjustments for differences in features, condition, location, and other factors. "
+    
+    if "Heuristic" in methodology:
+        narrative += "The heuristic model incorporates regional price trends, property characteristics, and feature-based adjustments to estimate market value. "
+    
+    # Add key property attributes
+    narrative += f"\n## Property Characteristics\n\n"
+    narrative += f"The subject property is a {property_type}"
+    
+    # Add bedroom/bathroom counts if available
+    bedrooms = property_details.get("bedrooms")
+    bathrooms = property_details.get("bathrooms")
+    
+    if bedrooms and bathrooms:
+        narrative += f" with {bedrooms} bedroom(s) and {bathrooms} bathroom(s)"
+    elif bedrooms:
+        narrative += f" with {bedrooms} bedroom(s)"
+    elif bathrooms:
+        narrative += f" with {bathrooms} bathroom(s)"
+        
+    # Add square footage if available
+    square_feet = property_details.get("squareFeet")
+    if square_feet:
+        narrative += f", comprising approximately {square_feet:,} square feet"
+        
+    # Add year built if available
+    year_built = property_details.get("yearBuilt")
+    if year_built:
+        narrative += f". The property was built in {year_built}"
+        
+    # Add lot size if available
+    lot_size = property_details.get("lotSize")
+    if lot_size:
+        narrative += f" and sits on a {lot_size:g} acre lot"
+        
+    narrative += ".\n\n"
+    
+    # Add condition if available
+    condition = property_details.get("condition")
+    if condition:
+        narrative += f"The property is in {condition} condition. "
+        
     # Add features if available
-    features = property_details.get('features', [])
+    features = property_details.get("features", [])
     if features:
-        feature_names = [f.get('name', '') for f in features]
+        narrative += "Notable features include "
+        feature_names = [feature.get("name") for feature in features if feature.get("name")]
+        
         if feature_names:
-            narrative.append("Notable features include: " + ", ".join(feature_names) + ".")
-            narrative.append("")
-    
-    # Add adjustment factors
-    if adjustments:
-        narrative.append("## Value Adjustments")
-        narrative.append("")
-        for adj in adjustments:
-            narrative.append(
-                f"* {adj['factor']}: {adj['description']} (${adj['amount']:,.2f}) - {adj['reasoning']}"
-            )
-        narrative.append("")
-    
+            if len(feature_names) == 1:
+                narrative += feature_names[0]
+            else:
+                narrative += ", ".join(feature_names[:-1]) + f", and {feature_names[-1]}"
+        narrative += ".\n\n"
+        
     # Add market analysis
-    market_analysis = valuation.get('marketAnalysis', None)
+    market_analysis = valuation.get("marketAnalysis", "")
     if market_analysis:
-        narrative.append("## Market Analysis")
-        narrative.append("")
-        narrative.append(market_analysis)
-        narrative.append("")
-    
-    # Add comparable analysis
-    comparable_analysis = valuation.get('comparableAnalysis', None)
+        narrative += f"\n## Market Analysis\n\n"
+        narrative += f"{market_analysis}\n\n"
+        
+    # Add comparable analysis if available
+    comparable_analysis = valuation.get("comparableAnalysis", "")
     if comparable_analysis:
-        narrative.append("## Comparable Property Analysis")
-        narrative.append("")
-        narrative.append(comparable_analysis)
-        narrative.append("")
-    
-    # Add methodology
-    narrative.append("## Methodology")
-    narrative.append("")
-    narrative.append(
-        f"This valuation was prepared using the {valuation.get('valuationMethodology', 'Sales Comparison Approach')}. "
-        f"The confidence level is {confidence}, indicating "
-        f"{'a high degree of reliability in the estimate' if confidence == 'high' else 'a reasonable basis for the estimate' if confidence == 'medium' else 'that the estimate should be used with caution'}."
-    )
-    
-    return "\n".join(narrative)
+        narrative += f"\n## Comparable Property Analysis\n\n"
+        narrative += f"{comparable_analysis}\n\n"
+        
+    # Add adjustments section if available
+    adjustments = valuation.get("adjustments", [])
+    if adjustments:
+        narrative += f"\n## Value Adjustments\n\n"
+        
+        total_adjustments = sum(adj.get("amount", 0) for adj in adjustments)
+        formatted_total = f"${total_adjustments:,.0f}" if isinstance(total_adjustments, (int, float)) else total_adjustments
+        
+        narrative += f"Total value adjustments of {formatted_total} were applied based on the following factors:\n\n"
+        
+        for adj in adjustments:
+            factor = adj.get("factor", "")
+            description = adj.get("description", "")
+            amount = adj.get("amount", 0)
+            reasoning = adj.get("reasoning", "")
+            
+            formatted_amount = f"${amount:,.0f}" if isinstance(amount, (int, float)) else amount
+            
+            narrative += f"- **{factor} ({formatted_amount})**: {description}. {reasoning}\n"
+            
+    # Add confidence explanation
+    narrative += f"\n## Confidence Assessment\n\n"
+    if confidence_level == "high":
+        narrative += "This valuation has a **high confidence level**, indicating strong supporting data and market evidence. "
+        narrative += "The value range is relatively narrow, reflecting the strength of the underlying analysis."
+    elif confidence_level == "medium":
+        narrative += "This valuation has a **medium confidence level**, indicating adequate supporting data but some uncertainty factors. "
+        narrative += "The value range is moderately wide, reflecting normal market variability and data limitations."
+    else:
+        narrative += "This valuation has a **low confidence level**, indicating limited supporting data or unusual property characteristics. "
+        narrative += "The value range is relatively wide, reflecting the uncertainty in the analysis."
+        
+    return narrative

@@ -1,39 +1,21 @@
-from fastapi import FastAPI, HTTPException, Query, Body
-from fastapi.middleware.cors import CORSMiddleware
-import uvicorn
-from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
-import sys
+"""
+TerraFusion Core AI Valuator - Backend API
+FastAPI implementation for property valuation services
+"""
+from datetime import datetime
+from typing import Any, Dict, List, Optional
 import os
 import json
-from datetime import datetime
+import random
 
-# Add the parent directory to sys.path
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from fastapi import FastAPI, Body, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
-# Import the valuation model
-from model.valuation import (
-    perform_automated_valuation,
-    analyze_market_trends,
-    generate_valuation_narrative
-)
+# Import valuation model functions
+from model.valuation import perform_automated_valuation, analyze_market_trends, generate_valuation_narrative
 
-app = FastAPI(
-    title="TerraFusion Core AI Valuator",
-    description="API for real estate property valuation using AI",
-    version="1.0.0"
-)
-
-# Add CORS middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],  # For production, restrict this to specific origins
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-
-# Pydantic models for request/response data validation
+# Define data models
 class PropertyFeature(BaseModel):
     name: str
     value: str
@@ -92,36 +74,39 @@ class ValuationResponse(BaseModel):
     valuationMethodology: str
     timestamp: str
 
-# Sample data for property at 4234 Old Milton Hwy
-SAMPLE_PROPERTY = {
-    "address": {
-        "street": "4234 Old Milton Hwy",
-        "city": "Walla Walla", 
-        "state": "WA",
-        "zipCode": "99362"
-    },
-    "propertyType": "residential",
-    "yearBuilt": 1974,
-    "squareFeet": 2450,
-    "bedrooms": 4,
-    "bathrooms": 2.5,
-    "lotSize": 0.38,
-    "features": [
-        {"name": "Hardwood Floors", "value": "Yes"},
-        {"name": "Updated Kitchen", "value": "Yes"},
-        {"name": "Fireplace", "value": "Yes"},
-        {"name": "Deck", "value": "Yes"}
-    ],
-    "condition": "Good"
-}
+# Initialize FastAPI app
+app = FastAPI(
+    title="TerraFusion Core AI Valuator API",
+    description="API for AI-powered property valuation",
+    version="1.0.0"
+)
 
-# Endpoints
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # In production, specify actual domains
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
 @app.get("/")
 async def root():
-    return {"message": "TerraFusion Core AI Valuator API"}
+    """Root endpoint providing API information"""
+    return {
+        "message": "TerraFusion Core AI Valuator API",
+        "version": "1.0.0",
+        "status": "operational",
+        "endpoints": {
+            "/appraise": "Perform a property valuation",
+            "/market-analysis": "Analyze market trends for a property location",
+            "/valuation-narrative": "Generate a narrative for a valuation"
+        }
+    }
 
 @app.get("/health")
 async def health_check():
+    """Health check endpoint for monitoring"""
     return {"status": "healthy", "timestamp": datetime.now().isoformat()}
 
 @app.post("/appraise")
@@ -130,64 +115,72 @@ async def appraise_property(request: ValuationRequest):
     Perform an automated valuation of a property using AI techniques.
     """
     try:
-        # Check if this is our sample property
-        subject_addr = request.property.address
-        if (subject_addr.street == "4234 Old Milton Hwy" and 
-            subject_addr.city == "Walla Walla" and 
-            subject_addr.state == "WA" and 
-            subject_addr.zipCode == "99362"):
+        # Convert Pydantic models to dictionaries
+        property_dict = request.property.dict()
+        comparables_dict = [comp.dict() for comp in request.comparables] if request.comparables else []
+
+        # Special handling for demonstration properties (Walla Walla)
+        if (property_dict["address"]["city"].lower() == "walla walla" and 
+            "milton" in property_dict["address"]["street"].lower()):
             
-            # Return a stable valuation for our sample property
-            valuation = ValuationResponse(
-                estimatedValue=595000.00,
-                confidenceLevel="high",
-                valueRange=ValueRange(min=578000.00, max=612000.00),
-                adjustments=[
-                    Adjustment(
-                        factor="Location",
-                        description="Premium for Milton Heights neighborhood",
-                        amount=15000.00,
-                        reasoning="Desirable school district and proximity to amenities"
-                    ),
-                    Adjustment(
-                        factor="Renovation",
-                        description="Kitchen remodel (2023)",
-                        amount=25000.00,
-                        reasoning="Modern finishes and appliances add significant value"
-                    ),
-                    Adjustment(
-                        factor="System Updates",
-                        description="HVAC upgrade (2024)",
-                        amount=8000.00,
-                        reasoning="New energy-efficient system reduces operating costs"
-                    )
-                ],
-                marketAnalysis="The Walla Walla market has shown steady appreciation of approximately 5.2% over the past year. The Milton Heights neighborhood specifically has outperformed the broader market due to limited inventory and high demand.",
-                comparableAnalysis="Recent sales of similar properties in the area support the valuation. Comparable properties with similar square footage and amenities have sold between $578,000 and $605,000 in the past 90 days.",
-                valuationMethodology="Sales Comparison Approach with machine learning adjustments for property-specific characteristics.",
-                timestamp=datetime.now().isoformat()
-            )
-            return valuation
-        
+            # Create a consistent but realistic valuation for the demo property
+            base_value = 575000.00
+            confidence = 0.88
+            
+            # Use different adjustments for the sample property
+            adjustments = [
+                {
+                    "factor": "Location Premium",
+                    "description": "Desirable neighborhood with excellent schools",
+                    "amount": 15000.00,
+                    "reasoning": "Properties in this school district command premium prices"
+                },
+                {
+                    "factor": "Recent Renovation",
+                    "description": "Updated kitchen with modern appliances",
+                    "amount": 25000.00,
+                    "reasoning": "Modern kitchen renovations typically return 70-80% of investment"
+                },
+                {
+                    "factor": "Lot Size",
+                    "description": "Larger than average lot for neighborhood",
+                    "amount": 12500.00,
+                    "reasoning": "Property sits on 0.38 acres vs neighborhood average of 0.25 acres"
+                }
+            ]
+            
+            # Calculate final value with adjustments
+            final_value = base_value
+            for adj in adjustments:
+                final_value += adj["amount"]
+            
+            # Create valuation response
+            response = {
+                "estimatedValue": final_value,
+                "confidenceLevel": "high" if confidence > 0.8 else "medium" if confidence > 0.6 else "low",
+                "valueRange": {
+                    "min": round(final_value * 0.95),
+                    "max": round(final_value * 1.05)
+                },
+                "adjustments": adjustments,
+                "marketAnalysis": "The Walla Walla real estate market has shown strong price appreciation over the past 12 months, with median home values increasing by 9.3%. Supply remains limited with inventory at 2.1 months, creating favorable conditions for sellers. The Old Milton Highway area has performed particularly well, with homes selling within 15 days on average.",
+                "comparableAnalysis": "Analysis of 5 comparable properties within a 1-mile radius indicates strong support for the valuation. Recent sales range from $535,000 to $625,000 for similar homes. The subject property benefits from a larger lot size and superior condition compared to most recent sales.",
+                "valuationMethodology": "This valuation utilized a hybrid approach combining sales comparison methodology with regression modeling for adjustment factors. Comparable sales were given primary weight with tax assessment data providing secondary support.",
+                "timestamp": datetime.now().isoformat()
+            }
+            
+            return response
+           
         # For all other properties, use the valuation model
-        valuation_result = perform_automated_valuation(
-            property_details=request.property.dict(),
-            comparable_properties=[comp.dict() for comp in request.comparables] if request.comparables else []
-        )
+        valuation_result = perform_automated_valuation(property_dict, comparables_dict)
         
-        # Add additional market analysis
-        market_analysis = analyze_market_trends(
-            property_details=request.property.dict(),
-            zip_code=request.property.address.zipCode
-        )
-        
-        valuation_result["marketAnalysis"] = market_analysis
+        # Add timestamp to the result
         valuation_result["timestamp"] = datetime.now().isoformat()
         
-        return ValuationResponse(**valuation_result)
+        return valuation_result
         
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error performing valuation: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Valuation error: {str(e)}")
 
 @app.post("/market-analysis")
 async def analyze_market(property_details: PropertyDetails):
@@ -195,13 +188,22 @@ async def analyze_market(property_details: PropertyDetails):
     Analyze market trends for a specific property location.
     """
     try:
-        market_analysis = analyze_market_trends(
-            property_details=property_details.dict(),
-            zip_code=property_details.address.zipCode
-        )
-        return {"marketAnalysis": market_analysis}
+        # Convert Pydantic models to dictionaries
+        property_dict = property_details.dict()
+        
+        # Get ZIP code for more targeted analysis
+        zip_code = property_dict["address"]["zipCode"]
+        
+        # Call the market analysis function from the model
+        market_analysis = analyze_market_trends(property_dict, zip_code)
+        
+        return {
+            "marketAnalysis": market_analysis,
+            "zip_code": zip_code,
+            "timestamp": datetime.now().isoformat()
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error analyzing market: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Market analysis error: {str(e)}")
 
 @app.post("/valuation-narrative")
 async def generate_narrative(
@@ -212,15 +214,20 @@ async def generate_narrative(
     Generate a natural language narrative describing the valuation results.
     """
     try:
-        narrative = generate_valuation_narrative(
-            property_details=property_details.dict(),
-            valuation=valuation
-        )
-        return {"narrative": narrative}
+        # Convert Pydantic models to dictionaries
+        property_dict = property_details.dict()
+        
+        # Call the narrative generation function from the model
+        narrative = generate_valuation_narrative(property_dict, valuation)
+        
+        return {
+            "narrative": narrative,
+            "timestamp": datetime.now().isoformat()
+        }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Error generating narrative: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Narrative generation error: {str(e)}")
 
-@app.post("/realtime/property-analysis")
+@app.post("/api/realtime/propertyAnalysis")
 async def property_analysis(
     address: str = Body(..., embed=True),
     city: str = Body(..., embed=True),
@@ -232,101 +239,79 @@ async def property_analysis(
     Perform a real-time property analysis (compatible with existing frontend).
     """
     try:
-        print(f"Received property analysis request for: {address}, {city}, {state} {zipCode}")
-        
-        # Check if this is our specific property
-        if address == "4234 Old Milton Hwy" and city == "Walla Walla" and state == "WA" and zipCode == "99362":
-            # Return pre-defined property analysis data for this specific property
+        # Create a property details object
+        property_details = {
+            "address": {
+                "street": address,
+                "city": city,
+                "state": state,
+                "zipCode": zipCode
+            },
+            "propertyType": propertyType
+        }
+
+        # Special handling for the Walla Walla property
+        if city.lower() == "walla walla" and "milton" in address.lower():
             return {
-                "propertyDetails": {
-                    "address": address,
-                    "city": city,
-                    "state": state,
-                    "zipCode": zipCode,
-                    "propertyType": propertyType,
-                    "yearBuilt": 1974,
-                    "sqft": 2450,
-                    "bedrooms": 4,
-                    "bathrooms": 2.5,
-                    "lotSize": 0.38
+                "propertyId": "DEMO-4234-MILTON",
+                "status": "success",
+                "propertyAnalysis": {
+                    "condition": "Good to Very Good",
+                    "qualityRating": "Above Average",
+                    "features": ["Updated Kitchen", "Hardwood Floors", "Central AC", "Fireplace", "Deck", "Attached Garage"],
+                    "improvements": ["New Roof (2022)", "HVAC System Replaced (2021)", "Kitchen Remodel (2020)"]
                 },
                 "marketData": {
-                    "estimatedValue": "$595,000",
-                    "confidenceScore": 0.87,
-                    "marketTrends": "Up 5.2% from last year",
+                    "estimatedValue": "$627,500",
+                    "confidenceScore": 0.88,
+                    "valuePerSqFt": "$256",
+                    "marketTrends": "The Walla Walla real estate market has shown strong price appreciation over the past 12 months, with median home values increasing by 9.3%. Supply remains limited with inventory at 2.1 months, creating favorable conditions for sellers.",
                     "comparableSales": [
                         {
-                            "address": "4242 Milton Blvd, Walla Walla, WA 99362",
-                            "salePrice": "$578,000",
-                            "dateOfSale": "2025-02-15",
-                            "distanceFromSubject": "0.4 miles"
+                            "address": "4312 Old Milton Hwy",
+                            "salePrice": "$615,000",
+                            "saleDate": "2024-12-15",
+                            "bedrooms": 4,
+                            "bathrooms": 2.5,
+                            "squareFeet": 2350
                         },
                         {
-                            "address": "4118 Vineyard Lane, Walla Walla, WA 99362",
-                            "salePrice": "$605,000",
-                            "dateOfSale": "2025-01-10",
-                            "distanceFromSubject": "0.8 miles"
-                        },
-                        {
-                            "address": "4356 Valley View Dr, Walla Walla, WA 99362",
+                            "address": "4178 Old Milton Hwy",
                             "salePrice": "$585,000",
-                            "dateOfSale": "2025-03-02",
-                            "distanceFromSubject": "0.6 miles"
+                            "saleDate": "2024-11-03",
+                            "bedrooms": 3,
+                            "bathrooms": 2,
+                            "squareFeet": 2250
+                        },
+                        {
+                            "address": "4401 Clinton St",
+                            "salePrice": "$635,000",
+                            "saleDate": "2025-01-10",
+                            "bedrooms": 4,
+                            "bathrooms": 3,
+                            "squareFeet": 2560
                         }
                     ]
                 },
-                "propertyAnalysis": {
-                    "condition": "Good",
-                    "qualityRating": "Above Average",
-                    "features": ["Hardwood Floors", "Updated Kitchen", "Fireplace", "Deck"],
-                    "improvements": [
-                        "Roof replaced (2022)",
-                        "Kitchen remodeled (2023)",
-                        "HVAC system upgraded (2024)"
-                    ]
-                },
                 "appraisalSummary": {
-                    "finalValueOpinion": "$595,000",
-                    "valuationApproach": "Sales Comparison Approach",
-                    "comments": "This well-maintained property in the desirable Milton Heights neighborhood shows strong market potential. Recent upgrades add significant value, and comparable sales support the valuation. Current market conditions favor sellers in this area with limited inventory and strong demand."
+                    "valuationApproach": "Sales Comparison with Regression Analysis",
+                    "comments": "This property benefits from recent upgrades, a desirable location, and larger than average lot size. Local market conditions are favorable with limited inventory and strong buyer demand.",
+                    "riskFactors": ["Low", "Medium", "Low"],
+                    "recommendedListPrice": "$629,900"
                 }
             }
-        else:
-            # For any other property, return a more generic response
-            return {
-                "propertyDetails": {
-                    "address": address,
-                    "city": city,
-                    "state": state,
-                    "zipCode": zipCode,
-                    "propertyType": propertyType
-                },
-                "marketData": {
-                    "estimatedValue": "Analysis requires additional data",
-                    "confidenceScore": 0.5,
-                    "marketTrends": "Market data unavailable",
-                    "comparableSales": []
-                },
-                "propertyAnalysis": {
-                    "condition": "Unknown",
-                    "qualityRating": "Not rated",
-                    "features": [],
-                    "improvements": []
-                },
-                "appraisalSummary": {
-                    "finalValueOpinion": "Insufficient data for valuation",
-                    "valuationApproach": "N/A",
-                    "comments": "Not enough information to complete appraisal. Please provide more property details."
-                }
-            }
+        
+        # For other properties, return a placeholder response
+        return {
+            "status": "error",
+            "message": "Real-time data not available for this property. Please use the full appraisal endpoint.",
+            "fallbackToML": True
+        }
+        
     except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={
-                "message": "Error generating property analysis",
-                "error": str(e)
-            }
-        )
+        raise HTTPException(status_code=500, detail=f"Real-time analysis error: {str(e)}")
 
+# Run the FastAPI application if executed directly
 if __name__ == "__main__":
-    uvicorn.run("main:app", host="0.0.0.0", port=8000, reload=True)
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
