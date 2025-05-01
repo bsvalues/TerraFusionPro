@@ -42,6 +42,20 @@ export function setupWebSocketServer(server: http.Server) {
   
   console.log('[WebSocket] Setting up WebSocket server on path /ws');
 
+  // Create WebSocket server with verifyClient to handle CORS
+  const wss = new WebSocketServer({ 
+    server,
+    path: '/ws',
+    verifyClient: (info, cb) => {
+      // Allow all origins in development
+      const origin = info.origin || info.req.headers.origin;
+      cb(true, 200, 'Connection accepted');
+    },
+    handleProtocols: (protocols, request) => {
+      return protocols[0]; // Accept first protocol
+    }
+  });
+
   // Configure HTTP server timeouts for long-lived connections
   server.keepAliveTimeout = 65000; // 65 seconds
   server.headersTimeout = 66000; // 66 seconds

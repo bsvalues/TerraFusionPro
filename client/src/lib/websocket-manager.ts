@@ -482,5 +482,11 @@ export const websocketManager = new WebSocketManager(
   },
   (protocol, state) => {
     console.log(`[WebSocketManager] Default connection handler: ${protocol} ${state}`);
+  },
+  {
+    protocols: ['v1.terrafusion.websocket'],
+    reconnectDelayMs: 2000,
+    maxReconnectAttempts: 5,
+    heartbeatIntervalMs: 30000
   }
 );
