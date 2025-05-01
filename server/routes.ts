@@ -3,6 +3,8 @@ import express, { Router } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
+import { setupSSEServer } from "./sse-server";
+import { setupLongPollingServer } from "./long-polling-server";
 import * as Y from 'yjs';
 import * as path from 'path';
 import { NotificationService } from './services/notification-service';
@@ -2700,6 +2702,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log('Notification WebSocket client disconnected');
     });
   });
+  
+  // Set up SSE (Server-Sent Events) for one-way real-time communication
+  const sseInterface = setupSSEServer(app);
+  console.log('[Routes] SSE server initialized');
+  
+  // Set up Long-Polling as final fallback option
+  const longPollingInterface = setupLongPollingServer(app);
+  console.log('[Routes] Long-polling endpoints initialized');
   
   return httpServer;
 }
