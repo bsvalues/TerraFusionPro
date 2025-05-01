@@ -21,6 +21,9 @@ export class WebSocketManager {
   private heartbeatTimeoutMs = 5000;
   private connectPromiseResolver: ((connected: boolean) => void) | null = null;
   private pendingPings: Map<string, { timestamp: number, timeoutId: ReturnType<typeof setTimeout> }> = new Map();
+  
+  // Custom event handlers for WebSocketContext
+  private eventHandlers: Map<string, Set<(data: any) => void>> = new Map();
 
   /**
    * Create a new WebSocketManager
@@ -153,6 +156,9 @@ export class WebSocketManager {
       // Notify connection handler
       this.connectionHandler('websocket', 'connected');
       
+      // Emit connection event for WebSocketContext
+      this.emitEvent('connection', { status: 'connected' });
+      
       // Resolve connect promise
       if (this.connectPromiseResolver) {
         this.connectPromiseResolver(true);
@@ -197,6 +203,13 @@ export class WebSocketManager {
       
       // Notify connection handler
       this.connectionHandler('websocket', 'disconnected');
+      
+      // Emit connection event for WebSocketContext
+      this.emitEvent('connection', { 
+        status: 'disconnected',
+        code: event.code,
+        reason: event.reason || 'Connection closed'
+      });
       
       // Resolve connect promise if still pending
       if (this.connectPromiseResolver) {
@@ -410,4 +423,58 @@ export class WebSocketManager {
       this.reconnectTimeout = null;
     }
   }
+  
+  /**
+   * Register event handler
+   * @param event Event name
+   * @param handler Event handler
+   */
+  public on(event: string, handler: (data: any) => void): void {
+    if (!this.eventHandlers.has(event)) {
+      this.eventHandlers.set(event, new Set());
+    }
+    
+    this.eventHandlers.get(event)?.add(handler);
+  }
+  
+  /**
+   * Unregister event handler
+   * @param event Event name
+   * @param handler Event handler
+   */
+  public off(event: string, handler: (data: any) => void): void {
+    if (!this.eventHandlers.has(event)) {
+      return;
+    }
+    
+    this.eventHandlers.get(event)?.delete(handler);
+  }
+  
+  /**
+   * Emit event to registered handlers
+   * @param event Event name
+   * @param data Event data
+   */
+  private emitEvent(event: string, data: any): void {
+    if (this.eventHandlers.has(event)) {
+      for (const handler of this.eventHandlers.get(event)!) {
+        try {
+          handler(data);
+        } catch (e) {
+          console.error(`[WebSocketManager] Error in event handler for ${event}:`, e);
+        }
+      }
+    }
+  }
 }
+
+// Create a singleton instance of WebSocketManager for easy import across the app
+export const websocketManager = new WebSocketManager(
+  '/ws',
+  (message) => {
+    console.log('[WebSocketManager] Default message handler:', message);
+  },
+  (protocol, state) => {
+    console.log(`[WebSocketManager] Default connection handler: ${protocol} ${state}`);
+  }
+);
