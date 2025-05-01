@@ -31,9 +31,15 @@ const analysisCache = new Map<string, any>();
 
 // Setup WebSocket server
 export function setupWebSocketServer(server: http.Server) {
-  // Increase timeout for WebSocket connections
-  server.keepAliveTimeout = 65000;
-  server.headersTimeout = 66000;
+  // Configure longer timeouts for WebSocket connections
+  server.keepAliveTimeout = 120000; // 2 minutes
+  server.headersTimeout = 121000; // Slightly higher than keepAliveTimeout
+  
+  // Disable Nagle's algorithm for WebSocket connections
+  server.on('connection', (socket) => {
+    socket.setNoDelay(true);
+  });
+  
   console.log('[WebSocket] Setting up WebSocket server on path /ws');
 
   // Configure HTTP server timeouts for long-lived connections
