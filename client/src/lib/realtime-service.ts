@@ -96,33 +96,40 @@ class RealtimeService {
     this.connectionState = 'connecting';
     this.emit('connecting', { protocol: 'none' });
     
-    // First try WebSocket
-    this.log('Trying WebSocket connection...');
-    const wsConnected = await this.webSocketManager.connect();
-    
-    if (wsConnected) {
-      this.log('WebSocket connection successful');
-      this.activeProtocol = 'websocket';
-      return true;
-    }
-    
-    // If WebSocket fails, try SSE
-    this.log('WebSocket connection failed, trying SSE...');
-    const sseConnected = await this.sseHandler.connect();
-    
-    if (sseConnected) {
-      this.log('SSE connection successful');
-      this.activeProtocol = 'sse';
-      return true;
-    }
-    
-    // If SSE fails, try Long Polling
-    this.log('SSE connection failed, trying Long Polling...');
+    // Since we're experiencing WebSocket issues in Replit environment,
+    // we should try the most reliable protocol first - long polling
+    this.log('Trying Long Polling connection first for more reliable connectivity...');
     const lpConnected = await this.longPollingClient.connect();
     
     if (lpConnected) {
       this.log('Long Polling connection successful');
       this.activeProtocol = 'long-polling';
+      this.connectionState = 'connected';
+      this.emit('connected', { protocol: 'long-polling' });
+      return true;
+    }
+    
+    // If Long Polling fails, try SSE
+    this.log('Long Polling connection failed, trying SSE...');
+    const sseConnected = await this.sseHandler.connect();
+    
+    if (sseConnected) {
+      this.log('SSE connection successful');
+      this.activeProtocol = 'sse';
+      this.connectionState = 'connected';
+      this.emit('connected', { protocol: 'sse' });
+      return true;
+    }
+    
+    // Only try WebSocket as a last resort since we've seen it fail in this environment
+    this.log('Trying WebSocket connection as last resort...');
+    const wsConnected = await this.webSocketManager.connect();
+    
+    if (wsConnected) {
+      this.log('WebSocket connection successful');
+      this.activeProtocol = 'websocket';
+      this.connectionState = 'connected';
+      this.emit('connected', { protocol: 'websocket' });
       return true;
     }
     
@@ -222,13 +229,18 @@ class RealtimeService {
       return;
     }
     
-    for (const handler of this.eventHandlers.get(event) || []) {
+    // Convert Set to Array to avoid downlevelIteration error
+    const handlers = this.eventHandlers.has(event) 
+      ? Array.from(this.eventHandlers.get(event) as Set<EventHandler>) 
+      : [];
+      
+    handlers.forEach(handler => {
       try {
         handler(data);
       } catch (err) {
         console.error(`[RealtimeService] Error in event handler for '${event}':`, err);
       }
-    }
+    });
   }
   
   /**

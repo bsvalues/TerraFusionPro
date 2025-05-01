@@ -28,7 +28,9 @@ export default function WebSocketTestPage() {
         setReceivedMessages([
           'Auto-switched to polling mode due to known WebSocket issues in Replit environment',
           `Current connection method: ${realtime.connectionMethod}`,
-          `Current connection status: ${realtime.connectionStatus}`
+          `Current connection status: ${realtime.connectionStatus}`,
+          'WebSockets in Replit environment may fail with 400/403 errors due to proxy settings',
+          'Long-polling and SSE provide more reliable alternatives'
         ]);
       } catch (err) {
         console.error('Error switching to polling mode:', err);
@@ -65,7 +67,7 @@ export default function WebSocketTestPage() {
       endpoint: '/api/test/messages',
       queryKey: ['messages'],
       intervalMs: pollInterval,
-      callback: (data) => {
+      callback: (data: any) => {
         setReceivedMessages((prev) => [...prev, `Received: ${JSON.stringify(data)}`]);
       }
     });

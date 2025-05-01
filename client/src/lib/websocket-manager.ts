@@ -277,6 +277,11 @@ export class WebSocketManager {
     // Schedule reconnect
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectAttempts++;
+      // Emit reconnect attempt event for WebSocketContext
+      this.emitEvent('reconnect_attempt', {
+        attempt: this.reconnectAttempts,
+        maxAttempts: this.maxReconnectAttempts
+      });
       this.connect();
     }, delay);
   }
@@ -457,13 +462,14 @@ export class WebSocketManager {
    */
   private emitEvent(event: string, data: any): void {
     if (this.eventHandlers.has(event)) {
-      for (const handler of this.eventHandlers.get(event)!) {
+      // Convert Set to Array to avoid downlevelIteration error
+      Array.from(this.eventHandlers.get(event)!).forEach(handler => {
         try {
           handler(data);
         } catch (e) {
           console.error(`[WebSocketManager] Error in event handler for ${event}:`, e);
         }
-      }
+      });
     }
   }
 }
