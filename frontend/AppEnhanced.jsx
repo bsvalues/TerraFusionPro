@@ -687,7 +687,26 @@ function AppContent() {
             )}
             
             {!isLoading && valuationResult && (
-              <ValuationResults valuationResult={valuationResult} />
+              <ValuationResults 
+                valuationResult={valuationResult} 
+                propertyDetails={{
+                  address: formData.address,
+                  city: formData.city,
+                  state: formData.state, 
+                  zipCode: formData.zipCode,
+                  propertyType: formData.propertyType,
+                  bedrooms: formData.bedrooms,
+                  bathrooms: formData.bathrooms,
+                  squareFeet: formData.squareFeet,
+                  yearBuilt: formData.yearBuilt,
+                  lotSize: formData.lotSize,
+                  condition: formData.condition,
+                  features: Object.entries(formData.features)
+                    .filter(([_, isChecked]) => isChecked)
+                    .map(([name]) => name)
+                }}
+                shapData={shapData}
+              />
             )}
           </Grid>
         </Grid>
