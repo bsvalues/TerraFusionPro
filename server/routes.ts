@@ -5,7 +5,6 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupSSEServer } from "./sse-server";
 import { setupLongPollingServer } from "./long-polling-server";
-import { initShapWebSocketService } from "./services/shap-ws-service";
 import * as Y from 'yjs';
 import * as path from 'path';
 import { NotificationService } from './services/notification-service';
@@ -2835,9 +2834,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const longPollingInterface = setupLongPollingServer(app);
   console.log('[Routes] Long-polling endpoints initialized');
   
-  // Initialize SHAP WebSocket service for explainable AI
-  const shapWss = initShapWebSocketService(httpServer);
-  console.log('[SHAP] SHAP WebSocket service initialized');
+  // Note: SHAP WebSocket service is initialized in server/index.ts
   
   return httpServer;
 }
