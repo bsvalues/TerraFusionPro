@@ -210,8 +210,8 @@ def get_drift_trends(days: int = 30) -> Dict[str, Any]:
         # Convert date strings to datetime
         drift_df['date'] = pd.to_datetime(drift_df['date'])
         
-        # Filter to recent days
-        cutoff_date = datetime.datetime.now().date() - datetime.timedelta(days=days)
+        # Filter to recent days - making sure to convert both to compatible types
+        cutoff_date = pd.to_datetime(datetime.datetime.now().date() - datetime.timedelta(days=days))
         recent_df = drift_df[drift_df['date'] >= cutoff_date]
         
         # If no recent data, return all data
