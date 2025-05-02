@@ -5,6 +5,7 @@ import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupSSEServer } from "./sse-server";
 import { setupLongPollingServer } from "./long-polling-server";
+import { initShapWebSocketService } from "./services/shap-ws-service";
 import * as Y from 'yjs';
 import * as path from 'path';
 import { NotificationService } from './services/notification-service';
@@ -2758,6 +2759,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register photo enhancement routes for AI-powered property image processing
   app.use('/api/photo-enhancement', photoEnhancementRoutes);
+  
+  // Register SHAP routes for explainable AI features
+  app.use('/api/shap', shapRouter);
   
   // Register photo sync routes for offline-first CRDT synchronization
   app.use('/api/sync', photoSyncRouter);
