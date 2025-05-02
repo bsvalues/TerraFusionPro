@@ -364,14 +364,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/reports/:id", async (req: Request, res: Response) => {
     try {
       const reportId = Number(req.params.id);
+      console.log(`API endpoint called: GET /api/reports/${reportId}`);
+      
       const report = await storage.getAppraisalReport(reportId);
       
       if (!report) {
+        console.log(`No report found with ID: ${reportId}`);
         return res.status(404).json({ message: "Report not found" });
       }
       
+      console.log(`Successfully retrieved report with ID: ${reportId}`);
       res.status(200).json(report);
     } catch (error) {
+      console.error(`Error fetching report with ID ${req.params.id}:`, error);
       res.status(500).json({ message: "Server error fetching report" });
     }
   });
