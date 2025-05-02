@@ -6,19 +6,27 @@ Provides endpoints for analyzing property conditions from uploaded photos.
 import os
 import uuid
 import random
-from typing import List, Dict, Any
+from datetime import datetime
+from typing import List, Dict, Any, Optional
 from tempfile import NamedTemporaryFile
-from fastapi import APIRouter, UploadFile, File, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, HTTPException
 from pydantic import BaseModel
+from fastapi.responses import JSONResponse
 
 # Create API router
 router = APIRouter()
 
-# Define response schema
+# Define response schemas
 class ConditionAnalysisResponse(BaseModel):
     condition_score: float
     description: str
     features: List[Dict[str, Any]]
+    
+class FeedbackResponse(BaseModel):
+    ai_score: float
+    user_score: float
+    logged: bool
+    agreement: bool
 
 @router.post("/api/upload_photo", response_model=ConditionAnalysisResponse)
 async def upload_and_analyze_photo(photo: UploadFile = File(...)):
@@ -58,9 +66,86 @@ async def upload_and_analyze_photo(photo: UploadFile = File(...)):
     except Exception as e:
         print(f"Error processing uploaded photo: {str(e)}")
         # Clean up temp file in case of error
-        if 'temp_file_path' in locals():
+        if temp_file_path is not None and os.path.exists(temp_file_path):
             os.unlink(temp_file_path)
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
+
+@router.post("/api/condition_feedback", response_model=FeedbackResponse)
+async def provide_condition_feedback(
+    photo: UploadFile = File(...),
+    user_score: float = Form(...),
+):
+    """
+    Uploads a property photo, analyzes its condition, and logs user feedback.
+    
+    Args:
+        photo: The property photo file
+        user_score: The user's assessment of the property condition (1-5)
+        
+    Returns:
+        FeedbackResponse: Feedback logging confirmation
+    """
+    # Validate file is an image
+    if not photo.content_type.startswith("image/"):
+        raise HTTPException(status_code=400, detail="File must be an image")
+    
+    # Validate user score
+    if user_score < 1.0 or user_score > 5.0:
+        raise HTTPException(status_code=400, detail="User score must be between 1.0 and 5.0")
+    
+    # Save uploaded file
+    temp_file_path = None
+    try:
+        # Create uploads directory if it doesn't exist
+        os.makedirs("uploads", exist_ok=True)
+        
+        # Create unique filename with original name preserved for traceability
+        original_filename = photo.filename or "unknown.jpg"
+        safe_filename = "".join(c if c.isalnum() or c in "._- " else "_" for c in original_filename)
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        file_extension = os.path.splitext(original_filename)[1] if original_filename else ".jpg"
+        saved_filename = f"{timestamp}_{safe_filename}"
+        file_path = f"uploads/{saved_filename}"
+        
+        # Save the upload file
+        with open(file_path, "wb") as temp_file:
+            content = await photo.read()
+            temp_file.write(content)
+        
+        # Get AI prediction
+        from backend.condition_inference import ConditionScorer
+        
+        # Model path
+        MODEL_DIR = os.path.join(os.getcwd(), "models")
+        MODEL_PATH = os.path.join(MODEL_DIR, "condition_model.pth")
+        
+        # Create model directory if it doesn't exist
+        if not os.path.exists(MODEL_DIR):
+            os.makedirs(MODEL_DIR)
+        
+        # Get AI score
+        scorer = ConditionScorer(MODEL_PATH)
+        ai_score = round(scorer.predict_condition(file_path), 1)
+        ai_score = max(1.0, min(5.0, ai_score))
+        
+        # Log the feedback
+        from backend.log_condition_feedback import log_condition_feedback
+        feedback_result = log_condition_feedback(saved_filename, ai_score, user_score)
+        
+        return FeedbackResponse(
+            ai_score=ai_score,
+            user_score=user_score,
+            logged=feedback_result.get("logged", False),
+            agreement=feedback_result.get("agreement", False)
+        )
+        
+    except Exception as e:
+        print(f"Error processing feedback: {str(e)}")
+        # Clean up temp file in case of error
+        if temp_file_path is not None and os.path.exists(temp_file_path):
+            os.unlink(temp_file_path)
+        raise HTTPException(status_code=500, detail=f"Error processing feedback: {str(e)}")
 
 def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
     """
