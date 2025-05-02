@@ -2773,6 +2773,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/market-analysis', marketAnalysisRouter);
   app.use('/api/snapshots', snapshotsRouter);
   app.use('/api', modelVersionRoutes);
+  app.use('/api', shapRouter);
   
   // Add the valuation proxy router directly at the root level (not under /api)
   // This enables direct access to /appraise and other endpoints

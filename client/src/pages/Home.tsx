@@ -60,20 +60,31 @@ export default function Home() {
                   <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
                   </svg>
-                  New Feature: WebSocket Testing
+                  New Feature: Property Condition AI Explainer
                 </h3>
                 <p className="mb-3">
-                  Test our new WebSocket connection with fallback mechanisms for Replit environment.
+                  Explore how our AI model analyzes property conditions using SHAP values for complete transparency.
                 </p>
-                <Button 
-                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
-                  onClick={() => {
-                    console.log("WebSocket Test clicked");
-                    setLocation('/ws-test');
-                  }}
-                >
-                  Open WebSocket Test Page
-                </Button>
+                <div className="flex gap-3">
+                  <Button 
+                    className="bg-green-600 hover:bg-green-700 text-white"
+                    onClick={() => {
+                      console.log("SHAP Viewer clicked");
+                      setLocation('/shap-viewer');
+                    }}
+                  >
+                    Open SHAP Value Explorer
+                  </Button>
+                  <Button 
+                    className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                    onClick={() => {
+                      console.log("WebSocket Test clicked");
+                      setLocation('/ws-test');
+                    }}
+                  >
+                    WebSocket Test Page
+                  </Button>
+                </div>
               </div>
               
               <p className="mb-4">
