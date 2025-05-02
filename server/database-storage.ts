@@ -106,8 +106,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getComparable(id: number) {
-    const [comparable] = await db.select().from(schema.comparables).where(eq(schema.comparables.id, id));
-    return comparable;
+    try {
+      console.log(`Fetching comparable with ID: ${id}`);
+      const [comparable] = await db.select().from(schema.comparables).where(eq(schema.comparables.id, id));
+      
+      if (!comparable) {
+        console.log(`No comparable found with ID: ${id}`);
+        return undefined;
+      }
+      
+      console.log(`Successfully fetched comparable with ID: ${id}`);
+      return comparable;
+    } catch (error) {
+      console.error(`Error fetching comparable with ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async updateComparable(id: number, comparableData: Partial<schema.InsertComparable>) {
@@ -134,8 +147,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAdjustment(id: number) {
-    const [adjustment] = await db.select().from(schema.adjustments).where(eq(schema.adjustments.id, id));
-    return adjustment;
+    try {
+      console.log(`Fetching adjustment with ID: ${id}`);
+      const [adjustment] = await db.select().from(schema.adjustments).where(eq(schema.adjustments.id, id));
+      
+      if (!adjustment) {
+        console.log(`No adjustment found with ID: ${id}`);
+        return undefined;
+      }
+      
+      console.log(`Successfully fetched adjustment with ID: ${id}`);
+      return adjustment;
+    } catch (error) {
+      console.error(`Error fetching adjustment with ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async updateAdjustment(id: number, adjustmentData: Partial<schema.InsertAdjustment>) {
@@ -166,8 +192,21 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPhoto(id: number) {
-    const [photo] = await db.select().from(schema.photos).where(eq(schema.photos.id, id));
-    return photo;
+    try {
+      console.log(`Fetching photo with ID: ${id}`);
+      const [photo] = await db.select().from(schema.photos).where(eq(schema.photos.id, id));
+      
+      if (!photo) {
+        console.log(`No photo found with ID: ${id}`);
+        return undefined;
+      }
+      
+      console.log(`Successfully fetched photo with ID: ${id}`);
+      return photo;
+    } catch (error) {
+      console.error(`Error fetching photo with ID ${id}:`, error);
+      return undefined;
+    }
   }
 
   async deletePhoto(id: number): Promise<boolean> {
@@ -183,7 +222,8 @@ export class DatabaseStorage implements IStorage {
       return photos;
     } catch (error) {
       console.error(`Error in getPhotosByReportId:`, error);
-      throw error;
+      // Return empty array instead of throwing an error
+      return [];
     }
   }
   
@@ -194,7 +234,8 @@ export class DatabaseStorage implements IStorage {
       return this.getPhotosByReportId(reportId);
     } catch (error) {
       console.error(`Error in getPhotosByReport:`, error);
-      throw error;
+      // Return empty array instead of throwing an error
+      return [];
     }
   }
   
@@ -257,7 +298,8 @@ export class DatabaseStorage implements IStorage {
       return sketches;
     } catch (error) {
       console.error(`Error fetching sketches for report ID ${reportId}:`, error);
-      throw error;
+      // Return empty array instead of throwing an error
+      return [];
     }
   }
 
