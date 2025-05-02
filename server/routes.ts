@@ -2777,7 +2777,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/market-analysis', marketAnalysisRouter);
   app.use('/api/snapshots', snapshotsRouter);
   app.use('/api', modelVersionRoutes);
-  app.use('/api', shapRouter);
   
   // Add the valuation proxy router directly at the root level (not under /api)
   // This enables direct access to /appraise and other endpoints
@@ -2835,6 +2834,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up Long-Polling as final fallback option
   const longPollingInterface = setupLongPollingServer(app);
   console.log('[Routes] Long-polling endpoints initialized');
+  
+  // Initialize SHAP WebSocket service for explainable AI
+  const shapWss = initShapWebSocketService(httpServer);
+  console.log('[SHAP] SHAP WebSocket service initialized');
   
   return httpServer;
 }

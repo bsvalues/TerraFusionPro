@@ -176,5 +176,4 @@ function sendErrorMessage(ws: WebSocket, errorMessage: string): void {
   }
 }
 
-// Log that the service is initialized
-console.log('[SHAP] SHAP WebSocket service initialized');
+// No need for additional initialization log as we already log in the initShapWebSocketService function
