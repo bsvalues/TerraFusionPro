@@ -96,41 +96,85 @@ class RealtimeService {
     this.connectionState = 'connecting';
     this.emit('connecting', { protocol: 'none' });
     
-    // Since we're experiencing WebSocket issues in Replit environment,
-    // we should try the most reliable protocol first - long polling
-    this.log('Trying Long Polling connection first for more reliable connectivity...');
-    const lpConnected = await this.longPollingClient.connect();
+    // Detect if running in Replit environment
+    const isReplit = window.location.hostname.includes('replit.dev');
     
-    if (lpConnected) {
-      this.log('Long Polling connection successful');
-      this.activeProtocol = 'long-polling';
-      this.connectionState = 'connected';
-      this.emit('connected', { protocol: 'long-polling' });
-      return true;
-    }
-    
-    // If Long Polling fails, try SSE
-    this.log('Long Polling connection failed, trying SSE...');
-    const sseConnected = await this.sseHandler.connect();
-    
-    if (sseConnected) {
-      this.log('SSE connection successful');
-      this.activeProtocol = 'sse';
-      this.connectionState = 'connected';
-      this.emit('connected', { protocol: 'sse' });
-      return true;
-    }
-    
-    // Only try WebSocket as a last resort since we've seen it fail in this environment
-    this.log('Trying WebSocket connection as last resort...');
-    const wsConnected = await this.webSocketManager.connect();
-    
-    if (wsConnected) {
-      this.log('WebSocket connection successful');
-      this.activeProtocol = 'websocket';
-      this.connectionState = 'connected';
-      this.emit('connected', { protocol: 'websocket' });
-      return true;
+    // For Replit environment, we use a different connection strategy
+    // due to known WebSocket issues
+    if (isReplit) {
+      this.log('Replit environment detected, using optimized connection strategy');
+      
+      // First try Long Polling as the most reliable option in Replit
+      this.log('Trying Long Polling connection in Replit environment...');
+      const lpConnected = await this.longPollingClient.connect();
+      
+      if (lpConnected) {
+        this.log('Long Polling connection successful');
+        this.activeProtocol = 'long-polling';
+        this.connectionState = 'connected';
+        this.emit('connected', { protocol: 'long-polling' });
+        return true;
+      }
+      
+      // If Long Polling fails, try SSE which is also reliable in Replit
+      this.log('Long Polling connection failed, trying SSE in Replit environment...');
+      const sseConnected = await this.sseHandler.connect();
+      
+      if (sseConnected) {
+        this.log('SSE connection successful');
+        this.activeProtocol = 'sse';
+        this.connectionState = 'connected';
+        this.emit('connected', { protocol: 'sse' });
+        return true;
+      }
+      
+      // Only try WebSocket as a last resort in Replit environment
+      this.log('Trying WebSocket connection as last resort in Replit environment...');
+      const wsConnected = await this.webSocketManager.connect();
+      
+      if (wsConnected) {
+        this.log('WebSocket connection successful in Replit environment');
+        this.activeProtocol = 'websocket';
+        this.connectionState = 'connected';
+        this.emit('connected', { protocol: 'websocket' });
+        return true;
+      }
+    } else {
+      // In non-Replit environments, try WebSocket first as it's the most efficient
+      this.log('Trying WebSocket connection first...');
+      const wsConnected = await this.webSocketManager.connect();
+      
+      if (wsConnected) {
+        this.log('WebSocket connection successful');
+        this.activeProtocol = 'websocket';
+        this.connectionState = 'connected';
+        this.emit('connected', { protocol: 'websocket' });
+        return true;
+      }
+      
+      // If WebSocket fails, try SSE
+      this.log('WebSocket connection failed, trying SSE...');
+      const sseConnected = await this.sseHandler.connect();
+      
+      if (sseConnected) {
+        this.log('SSE connection successful');
+        this.activeProtocol = 'sse';
+        this.connectionState = 'connected';
+        this.emit('connected', { protocol: 'sse' });
+        return true;
+      }
+      
+      // Finally try Long Polling as a fallback
+      this.log('SSE connection failed, trying Long Polling as fallback...');
+      const lpConnected = await this.longPollingClient.connect();
+      
+      if (lpConnected) {
+        this.log('Long Polling connection successful');
+        this.activeProtocol = 'long-polling';
+        this.connectionState = 'connected';
+        this.emit('connected', { protocol: 'long-polling' });
+        return true;
+      }
     }
     
     // All connection attempts failed

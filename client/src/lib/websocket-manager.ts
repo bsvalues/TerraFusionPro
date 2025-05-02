@@ -21,6 +21,7 @@ export class WebSocketManager {
   private heartbeatTimeoutMs = 5000;
   private connectPromiseResolver: ((connected: boolean) => void) | null = null;
   private pendingPings: Map<string, { timestamp: number, timeoutId: ReturnType<typeof setTimeout> }> = new Map();
+  private protocols: string[] = ['json', 'v1.terrafusion.websocket'];
   
   // Custom event handlers for WebSocketContext
   private eventHandlers: Map<string, Set<(data: any) => void>> = new Map();
@@ -34,20 +35,63 @@ export class WebSocketManager {
   constructor(
     endpoint: string,
     messageHandler: (message: any) => void,
-    connectionHandler: (protocol: string, state: string) => void
+    connectionHandler: (protocol: string, state: string) => void,
+    options: {
+      protocols?: string[],
+      reconnectDelayMs?: number,
+      maxReconnectAttempts?: number,
+      heartbeatIntervalMs?: number
+    } = {}
   ) {
-    // Make URL absolute if needed
-    if (endpoint.startsWith('/')) {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      this.url = `${protocol}//${window.location.host}${endpoint}`;
-    } else {
-      this.url = endpoint;
-    }
+    // Get the correct WebSocket URL based on environment
+    this.url = this.getWebSocketUrl(endpoint);
     
+    // Set handlers
     this.messageHandler = messageHandler;
     this.connectionHandler = connectionHandler;
     
+    // Set options with defaults
+    if (options.protocols) {
+      this.protocols = options.protocols;
+    }
+    if (options.reconnectDelayMs) {
+      this.reconnectDelay = options.reconnectDelayMs;
+    }
+    if (options.maxReconnectAttempts) {
+      this.maxReconnectAttempts = options.maxReconnectAttempts;
+    }
+    if (options.heartbeatIntervalMs) {
+      this.heartbeatIntervalMs = options.heartbeatIntervalMs;
+    }
+    
     console.log(`[WebSocketManager] Initialized with URL: ${this.url}`);
+  }
+  
+  /**
+   * Determine the correct WebSocket URL based on the environment
+   */
+  private getWebSocketUrl(endpoint: string): string {
+    // If endpoint is already a full URL, return it
+    if (endpoint.startsWith('ws:') || endpoint.startsWith('wss:')) {
+      return endpoint;
+    }
+    
+    // Make sure endpoint starts with /
+    if (!endpoint.startsWith('/')) {
+      endpoint = '/' + endpoint;
+    }
+    
+    // Detect if running in Replit environment
+    const isReplit = window.location.hostname.includes('replit.dev');
+    
+    if (isReplit) {
+      // In Replit environment, use the current hostname with wss protocol
+      return `wss://${window.location.host}${endpoint}`;
+    } else {
+      // In local development, use the right protocol based on page protocol
+      const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      return `${wsProtocol}//${window.location.host}${endpoint}`;
+    }
   }
 
   /**
@@ -71,8 +115,13 @@ export class WebSocketManager {
       this.connectPromiseResolver = resolve;
       
       try {
-        // Create WebSocket with protocols (to support servers that validate protocol)
-        this.socket = new WebSocket(this.url, ['json', 'v1.websocket.protocol']);
+        // Create WebSocket with proper protocol handling
+        if (this.protocols && this.protocols.length > 0) {
+          this.socket = new WebSocket(this.url, this.protocols);
+        } else {
+          // Fallback protocols if none provided
+          this.socket = new WebSocket(this.url, ['json', 'v1.terrafusion.websocket']);
+        }
         
         // Setup event handlers
         this.setupSocketHandlers();
@@ -484,7 +533,7 @@ export const websocketManager = new WebSocketManager(
     console.log(`[WebSocketManager] Default connection handler: ${protocol} ${state}`);
   },
   {
-    protocols: ['v1.terrafusion.websocket'],
+    protocols: ['json', 'v1.terrafusion.websocket'],
     reconnectDelayMs: 2000,
     maxReconnectAttempts: 5,
     heartbeatIntervalMs: 30000
