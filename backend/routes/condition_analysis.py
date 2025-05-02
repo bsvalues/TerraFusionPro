@@ -4,28 +4,23 @@ Provides endpoints for analyzing property conditions from uploaded photos.
 """
 
 import os
-import tempfile
-import time
+import uuid
 import random
-from typing import List, Dict, Any, Optional
-from fastapi import APIRouter, File, UploadFile, HTTPException, Form
-from fastapi.responses import JSONResponse
+from typing import List, Dict, Any
+from tempfile import NamedTemporaryFile
+from fastapi import APIRouter, UploadFile, File, HTTPException
 from pydantic import BaseModel
 
+# Create API router
 router = APIRouter()
 
-# Model for condition analysis response
+# Define response schema
 class ConditionAnalysisResponse(BaseModel):
     condition_score: float
     description: str
     features: List[Dict[str, Any]]
 
-# Create uploads directory if it doesn't exist
-UPLOAD_DIR = os.path.join(os.getcwd(), "uploads")
-if not os.path.exists(UPLOAD_DIR):
-    os.makedirs(UPLOAD_DIR)
-
-@router.post("/upload_photo", response_model=ConditionAnalysisResponse)
+@router.post("/api/upload_photo", response_model=ConditionAnalysisResponse)
 async def upload_and_analyze_photo(photo: UploadFile = File(...)):
     """
     Uploads a property photo and analyzes its condition using AI.
@@ -36,35 +31,33 @@ async def upload_and_analyze_photo(photo: UploadFile = File(...)):
     Returns:
         ConditionAnalysisResponse: The analyzed condition data
     """
-    if not photo.content_type.startswith('image/'):
+    # Validate file is an image
+    if not photo.content_type.startswith("image/"):
         raise HTTPException(status_code=400, detail="File must be an image")
     
+    # Save uploaded file to temp location
+    temp_file_path = None
     try:
-        # Save the uploaded file temporarily
-        with tempfile.NamedTemporaryFile(delete=False, suffix=os.path.splitext(photo.filename)[1]) as temp_file:
-            temp_file_path = temp_file.name
-            contents = await photo.read()
-            temp_file.write(contents)
+        # Create uploads directory if it doesn't exist
+        os.makedirs("uploads", exist_ok=True)
         
-        # TODO: In production, this would call a real computer vision model
-        # For demo purposes, we'll simulate a condition analysis with a delay
-        time.sleep(1.5)  # Simulate processing time
+        # Create unique filename
+        file_extension = os.path.splitext(photo.filename)[1] if photo.filename else ".jpg"
+        temp_file_path = f"uploads/{uuid.uuid4()}{file_extension}"
         
-        # This is a simplified placeholder. In production, this would be the output of a real AI model
-        # that analyzes the property's condition from the uploaded image
-        condition_analysis = analyze_property_condition(temp_file_path)
+        # Save the upload file
+        with open(temp_file_path, "wb") as temp_file:
+            content = await photo.read()
+            temp_file.write(content)
         
-        # Save the file to a permanent location if needed
-        # final_path = os.path.join(UPLOAD_DIR, photo.filename)
-        # os.rename(temp_file_path, final_path)
+        # Analyze the photo using our model
+        analysis_result = analyze_property_condition(temp_file_path)
         
-        # Clean up the temp file
-        os.unlink(temp_file_path)
-        
-        return condition_analysis
+        return analysis_result
         
     except Exception as e:
-        # Clean up the temp file in case of error
+        print(f"Error processing uploaded photo: {str(e)}")
+        # Clean up temp file in case of error
         if 'temp_file_path' in locals():
             os.unlink(temp_file_path)
         raise HTTPException(status_code=500, detail=f"Error processing image: {str(e)}")
