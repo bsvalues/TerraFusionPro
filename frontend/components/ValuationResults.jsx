@@ -1,331 +1,415 @@
 import React from 'react';
-import { 
-  Card, 
-  CardContent, 
-  Typography, 
-  Box, 
-  Chip, 
+import {
+  Box,
+  Typography,
+  Paper,
+  Divider,
+  Chip,
   Grid,
+  Card,
+  CardContent,
+  List,
+  ListItem,
+  ListItemText,
+  ListItemIcon,
+  IconButton,
   Accordion,
   AccordionSummary,
-  AccordionDetails,
-  LinearProgress,
-  Divider,
-  Paper,
-  styled,
-  useTheme
+  AccordionDetails
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ArrowUpwardIcon from '@mui/icons-material/ArrowUpward';
+import ArrowDownwardIcon from '@mui/icons-material/ArrowDownward';
+import CheckCircleIcon from '@mui/icons-material/CheckCircle';
 import HomeIcon from '@mui/icons-material/Home';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
-import AttachMoneyIcon from '@mui/icons-material/AttachMoney';
-import TrendingUpIcon from '@mui/icons-material/TrendingUp';
-import CompareArrowsIcon from '@mui/icons-material/CompareArrows';
-import InfoIcon from '@mui/icons-material/Info';
-import AdjustIcon from '@mui/icons-material/Adjust';
+import BedIcon from '@mui/icons-material/Bed';
+import SquareFootIcon from '@mui/icons-material/SquareFoot';
+import KingBedIcon from '@mui/icons-material/KingBed';
+import BathtubIcon from '@mui/icons-material/Bathtub';
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
+import AssessmentIcon from '@mui/icons-material/Assessment';
 import ShapVisualization from './ShapVisualization';
 
-// Styled components
-const ValueCard = styled(Card)(({ theme }) => ({
-  position: 'relative',
-  overflow: 'visible',
-  marginBottom: theme.spacing(4),
-  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-  transition: 'transform 0.3s ease, box-shadow 0.3s ease',
-  '&:hover': {
-    transform: 'translateY(-5px)',
-    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.15)',
-  }
-}));
-
-const ConfidenceChip = styled(Chip)(({ theme, confidence }) => {
-  let color;
-  switch (confidence) {
-    case 'high':
-      color = theme.palette.success.main;
-      break;
-    case 'medium':
-      color = theme.palette.warning.main;
-      break;
-    case 'low':
-    default:
-      color = theme.palette.error.main;
-      break;
-  }
-  return {
-    backgroundColor: color,
-    color: theme.palette.common.white,
-    fontWeight: 'bold',
-    position: 'absolute',
-    top: '-12px',
-    right: '20px',
-  };
-});
-
-const AdjustmentCard = styled(Paper)(({ theme, positive }) => ({
-  padding: theme.spacing(2),
-  marginBottom: theme.spacing(2),
-  borderLeft: `4px solid ${positive ? theme.palette.success.main : theme.palette.error.main}`,
-  backgroundColor: positive ? 'rgba(76, 175, 80, 0.05)' : 'rgba(244, 67, 54, 0.05)',
-  transition: 'transform 0.2s ease',
-  '&:hover': {
-    transform: 'translateX(5px)'
-  }
-}));
-
-const Section = styled(Box)(({ theme }) => ({
-  marginBottom: theme.spacing(3),
-}));
-
-const SectionTitle = styled(Typography)(({ theme }) => ({
-  display: 'flex',
-  alignItems: 'center',
-  marginBottom: theme.spacing(2),
-  color: theme.palette.text.primary,
-  '& svg': {
-    marginRight: theme.spacing(1),
-    color: theme.palette.primary.main,
-  }
-}));
-
-const formatCurrency = (value) => {
-  if (!value && value !== 0) return 'N/A';
-  
-  // If it's already a string with a dollar sign, return it
-  if (typeof value === 'string' && value.includes('$')) {
-    return value;
-  }
-  
-  // Otherwise format as currency
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
-    maximumFractionDigits: 0
-  }).format(value);
-};
-
+/**
+ * Component to display valuation results
+ */
 const ValuationResults = ({ valuationResult, propertyDetails, shapData }) => {
-  const theme = useTheme();
+  if (!valuationResult) return null;
   
-  if (!valuationResult) {
-    return null;
-  }
-  
-  const {
-    estimatedValue,
-    confidenceLevel,
-    valueRange,
-    adjustments = [],
-    marketAnalysis,
-    comparableAnalysis,
-    valuationMethodology,
-    propertyAnalysis,
-    appraisalSummary
-  } = valuationResult;
-  
-  // Format the estimated value
-  const formattedEstimatedValue = formatCurrency(estimatedValue);
-  
-  // Format value range
-  const formattedMinValue = valueRange?.min ? formatCurrency(valueRange.min) : 'N/A';
-  const formattedMaxValue = valueRange?.max ? formatCurrency(valueRange.max) : 'N/A';
-  const valueRangeText = `${formattedMinValue} - ${formattedMaxValue}`;
-  
-  // Property details to display
-  const displayAddress = propertyDetails?.address
-    ? `${propertyDetails.address}, ${propertyDetails.city}, ${propertyDetails.state} ${propertyDetails.zipCode}`
-    : 'Address not provided';
+  // Helper function to format currency
+  const formatCurrency = (value) => {
+    if (!value && value !== 0) return 'N/A';
+    if (typeof value === 'string' && value.includes('$')) return value;
     
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      maximumFractionDigits: 0
+    }).format(value);
+  };
+
+  // Helper to format large numbers (e.g. sqft)
+  const formatNumber = (value) => {
+    if (!value && value !== 0) return 'N/A';
+    return new Intl.NumberFormat('en-US').format(value);
+  };
+  
+  // Get confidence color based on level
+  const getConfidenceColor = (level) => {
+    const confidenceLevels = {
+      high: '#4caf50',
+      medium: '#ff9800', 
+      low: '#f44336'
+    };
+    
+    return confidenceLevels[level?.toLowerCase()] || confidenceLevels.medium;
+  };
+
   return (
-    <>
-      <ValueCard elevation={3}>
-        <ConfidenceChip 
-          label={`${confidenceLevel.toUpperCase()} CONFIDENCE`} 
-          confidence={confidenceLevel}
-        />
+    <Box>
+      {/* Valuation Header */}
+      <Card sx={{ mb: 3 }}>
         <CardContent>
-          <Box sx={{ textAlign: 'center', mb: 3 }}>
-            <Typography variant="h6" color="textSecondary" gutterBottom>
-              Estimated Value
-            </Typography>
-            <Typography variant="h3" component="div" sx={{ fontWeight: 'bold', color: theme.palette.primary.main }}>
-              {formattedEstimatedValue}
-            </Typography>
-            <Typography variant="body1" color="textSecondary" sx={{ mt: 1 }}>
-              Value Range: {valueRangeText}
-            </Typography>
-          </Box>
-          
-          <Divider sx={{ my: 2 }} />
-          
           <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
-            <LocationOnIcon color="primary" sx={{ mr: 1 }} />
-            <Typography variant="body1">{displayAddress}</Typography>
+            <AssessmentIcon color="primary" sx={{ mr: 1.5, fontSize: 28 }} />
+            <Typography variant="h5" component="h2">
+              Property Valuation
+            </Typography>
           </Box>
           
+          <Divider sx={{ mb: 3 }} />
+          
+          {/* Main valuation number */}
+          <Box sx={{ textAlign: 'center', mb: 3 }}>
+            <Typography variant="h3" component="div" sx={{ fontWeight: 500 }}>
+              {valuationResult.estimatedValue ? 
+                formatCurrency(valuationResult.estimatedValue) : 
+                'Valuation Pending'}
+            </Typography>
+            
+            {valuationResult.valueRange && (
+              <Typography variant="body1" color="text.secondary" gutterBottom>
+                Range: {formatCurrency(valuationResult.valueRange.min)} - {formatCurrency(valuationResult.valueRange.max)}
+              </Typography>
+            )}
+            
+            {valuationResult.confidenceLevel && (
+              <Chip 
+                label={`${valuationResult.confidenceLevel.toUpperCase()} CONFIDENCE`}
+                sx={{ 
+                  mt: 1, 
+                  bgcolor: getConfidenceColor(valuationResult.confidenceLevel),
+                  color: 'white',
+                  fontWeight: 'bold'
+                }}
+              />
+            )}
+          </Box>
+          
+          {/* Property details summary */}
           <Grid container spacing={2} sx={{ mt: 1 }}>
-            {propertyDetails?.propertyType && (
-              <Grid item xs={6} sm={4}>
-                <Typography variant="body2" color="textSecondary">Type</Typography>
-                <Typography variant="body1">{propertyDetails.propertyType}</Typography>
+            <Grid item xs={12} sm={6}>
+              <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <HomeIcon sx={{ color: 'primary.main', mr: 1 }} />
+                  <Typography variant="subtitle2">
+                    {propertyDetails.propertyType || 'N/A'}
+                  </Typography>
+                </Box>
+                <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                  <LocationOnIcon sx={{ color: 'primary.main', mr: 1 }} />
+                  <Typography variant="subtitle2">
+                    {propertyDetails.address}, {propertyDetails.city}, {propertyDetails.state} {propertyDetails.zipCode}
+                  </Typography>
+                </Box>
+              </Box>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Grid container spacing={1}>
+                <Grid item xs={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BedIcon sx={{ color: 'primary.main', mr: 1 }} />
+                    <Typography variant="subtitle2">
+                      {propertyDetails.bedrooms || 'N/A'} Beds
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <BathtubIcon sx={{ color: 'primary.main', mr: 1 }} />
+                    <Typography variant="subtitle2">
+                      {propertyDetails.bathrooms || 'N/A'} Baths
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <SquareFootIcon sx={{ color: 'primary.main', mr: 1 }} />
+                    <Typography variant="subtitle2">
+                      {formatNumber(propertyDetails.squareFeet) || 'N/A'} sqft
+                    </Typography>
+                  </Box>
+                </Grid>
+                <Grid item xs={6}>
+                  <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                    <CalendarTodayIcon sx={{ color: 'primary.main', mr: 1 }} />
+                    <Typography variant="subtitle2">
+                      Built {propertyDetails.yearBuilt || 'N/A'}
+                    </Typography>
+                  </Box>
+                </Grid>
               </Grid>
-            )}
-            
-            {propertyDetails?.bedrooms && (
-              <Grid item xs={6} sm={4}>
-                <Typography variant="body2" color="textSecondary">Bedrooms</Typography>
-                <Typography variant="body1">{propertyDetails.bedrooms}</Typography>
-              </Grid>
-            )}
-            
-            {propertyDetails?.bathrooms && (
-              <Grid item xs={6} sm={4}>
-                <Typography variant="body2" color="textSecondary">Bathrooms</Typography>
-                <Typography variant="body1">{propertyDetails.bathrooms}</Typography>
-              </Grid>
-            )}
-            
-            {propertyDetails?.squareFeet && (
-              <Grid item xs={6} sm={4}>
-                <Typography variant="body2" color="textSecondary">Square Feet</Typography>
-                <Typography variant="body1">{propertyDetails.squareFeet}</Typography>
-              </Grid>
-            )}
-            
-            {propertyDetails?.yearBuilt && (
-              <Grid item xs={6} sm={4}>
-                <Typography variant="body2" color="textSecondary">Year Built</Typography>
-                <Typography variant="body1">{propertyDetails.yearBuilt}</Typography>
-              </Grid>
-            )}
-            
-            {propertyDetails?.condition && (
-              <Grid item xs={6} sm={4}>
-                <Typography variant="body2" color="textSecondary">Condition</Typography>
-                <Typography variant="body1">{propertyDetails.condition}</Typography>
-              </Grid>
-            )}
+            </Grid>
           </Grid>
         </CardContent>
-      </ValueCard>
+      </Card>
       
       {/* SHAP Visualization */}
-      {shapData && <ShapVisualization shapValues={shapData.shapValues} baseValue={shapData.baseValue} />}
+      {shapData && <ShapVisualization shapData={shapData} />}
       
-      {/* Adjustments */}
-      {adjustments && adjustments.length > 0 && (
-        <Section>
-          <SectionTitle variant="h6">
-            <AdjustIcon />
-            Value Adjustments
-          </SectionTitle>
-          
-          {adjustments.map((adjustment, index) => (
-            <AdjustmentCard 
-              key={index} 
-              elevation={1} 
-              positive={adjustment.amount >= 0}
-            >
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 'bold' }}>
-                  {adjustment.factor}
-                </Typography>
-                <Typography 
-                  variant="subtitle1" 
-                  sx={{ 
-                    fontWeight: 'bold',
-                    color: adjustment.amount >= 0 ? theme.palette.success.main : theme.palette.error.main
-                  }}
-                >
-                  {adjustment.amount >= 0 ? '+' : ''}{formatCurrency(adjustment.amount)}
-                </Typography>
-              </Box>
-              
-              <Typography variant="body2" sx={{ mb: 1 }}>{adjustment.description}</Typography>
-              
-              <Typography variant="body2" color="textSecondary" sx={{ fontStyle: 'italic' }}>
-                {adjustment.reasoning}
-              </Typography>
-            </AdjustmentCard>
-          ))}
-        </Section>
-      )}
-      
-      {/* Analysis Sections */}
-      <Accordion defaultExpanded sx={{ mb: 2 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <TrendingUpIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+      {/* Detailed Analysis */}
+      <Box sx={{ mt: 3 }}>
+        <Accordion defaultExpanded>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6">Market Analysis</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-            {marketAnalysis || 'Market analysis not available.'}
-          </Typography>
-        </AccordionDetails>
-      </Accordion>
-      
-      <Accordion sx={{ mb: 2 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <CompareArrowsIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+          </AccordionSummary>
+          <AccordionDetails>
+            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
+              {valuationResult.marketAnalysis || 'Market analysis not available'}
+            </Typography>
+          </AccordionDetails>
+        </Accordion>
+        
+        <Accordion>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
             <Typography variant="h6">Comparable Properties</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-            {comparableAnalysis || 'Comparable property analysis not available.'}
-          </Typography>
-        </AccordionDetails>
-      </Accordion>
-      
-      {propertyAnalysis && (
-        <Accordion sx={{ mb: 2 }}>
-          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <HomeIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-              <Typography variant="h6">Property Analysis</Typography>
-            </Box>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-              {propertyAnalysis}
+            <Typography variant="body1" sx={{ mb: 2 }}>
+              {valuationResult.comparableAnalysis || 'Comparable analysis not available'}
             </Typography>
+            
+            {valuationResult.marketData?.comparableSales && (
+              <Grid container spacing={2}>
+                {valuationResult.marketData.comparableSales.map((comp, index) => (
+                  <Grid item xs={12} sm={6} md={4} key={index}>
+                    <Card variant="outlined">
+                      <CardContent>
+                        <Typography variant="body2" gutterBottom>
+                          {comp.address}
+                        </Typography>
+                        <Typography variant="h6">{comp.salePrice}</Typography>
+                        <Typography variant="caption" color="text.secondary">
+                          {comp.saleDate}
+                        </Typography>
+                        <Box sx={{ mt: 1 }}>
+                          <Typography variant="body2">
+                            {comp.bedrooms} bd, {comp.bathrooms} ba, {formatNumber(comp.squareFeet)} sqft
+                          </Typography>
+                        </Box>
+                      </CardContent>
+                    </Card>
+                  </Grid>
+                ))}
+              </Grid>
+            )}
           </AccordionDetails>
         </Accordion>
-      )}
-      
-      <Accordion sx={{ mb: 2 }}>
-        <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-          <Box sx={{ display: 'flex', alignItems: 'center' }}>
-            <InfoIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
-            <Typography variant="h6">Valuation Methodology</Typography>
-          </Box>
-        </AccordionSummary>
-        <AccordionDetails>
-          <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-            {valuationMethodology || 'Valuation methodology information not available.'}
-          </Typography>
-        </AccordionDetails>
-      </Accordion>
-      
-      {appraisalSummary && (
-        <Accordion sx={{ mb: 2 }}>
+        
+        <Accordion>
           <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              <AttachMoneyIcon sx={{ mr: 1, color: theme.palette.primary.main }} />
+            <Typography variant="h6">Adjustments</Typography>
+          </AccordionSummary>
+          <AccordionDetails>
+            {valuationResult.adjustments && valuationResult.adjustments.length > 0 ? (
+              <List sx={{ width: '100%' }}>
+                {valuationResult.adjustments.map((adjustment, index) => (
+                  <React.Fragment key={index}>
+                    <ListItem 
+                      secondaryAction={
+                        <Typography 
+                          variant="body1" 
+                          sx={{ 
+                            color: adjustment.amount >= 0 ? 'success.main' : 'error.main',
+                            fontWeight: 'medium'
+                          }}
+                        >
+                          {adjustment.amount >= 0 ? '+' : ''}
+                          {formatCurrency(adjustment.amount)}
+                        </Typography>
+                      }
+                    >
+                      <ListItemIcon>
+                        {adjustment.amount >= 0 ? 
+                          <ArrowUpwardIcon color="success" /> : 
+                          <ArrowDownwardIcon color="error" />
+                        }
+                      </ListItemIcon>
+                      <ListItemText 
+                        primary={adjustment.factor} 
+                        secondary={adjustment.description}
+                      />
+                    </ListItem>
+                    <Typography 
+                      variant="body2" 
+                      color="text.secondary"
+                      sx={{ pl: 7, pr: 2, pb: 2 }}
+                    >
+                      {adjustment.reasoning}
+                    </Typography>
+                    {index < valuationResult.adjustments.length - 1 && <Divider component="li" />}
+                  </React.Fragment>
+                ))}
+              </List>
+            ) : (
+              <Typography variant="body1">No adjustments applied</Typography>
+            )}
+          </AccordionDetails>
+        </Accordion>
+        
+        {valuationResult.appraisalSummary && (
+          <Accordion>
+            <AccordionSummary expandIcon={<ExpandMoreIcon />}>
               <Typography variant="h6">Appraisal Summary</Typography>
-            </Box>
+            </AccordionSummary>
+            <AccordionDetails>
+              <Typography variant="body1" gutterBottom>
+                <strong>Approach:</strong> {valuationResult.appraisalSummary.valuationApproach || valuationResult.valuationMethodology || 'Standard appraisal methodology'}
+              </Typography>
+              
+              {valuationResult.appraisalSummary.comments && (
+                <Typography variant="body1" paragraph>
+                  <strong>Comments:</strong> {valuationResult.appraisalSummary.comments}
+                </Typography>
+              )}
+              
+              {valuationResult.appraisalSummary.recommendedListPrice && (
+                <Typography variant="body1" paragraph>
+                  <strong>Recommended List Price:</strong> {valuationResult.appraisalSummary.recommendedListPrice}
+                </Typography>
+              )}
+              
+              {valuationResult.appraisalSummary.riskFactors && (
+                <Box sx={{ mt: 2 }}>
+                  <Typography variant="body1" gutterBottom>
+                    <strong>Risk Assessment:</strong>
+                  </Typography>
+                  <Grid container spacing={1}>
+                    <Grid item>
+                      <Chip 
+                        size="small"
+                        label={`Market: ${valuationResult.appraisalSummary.riskFactors[0]}`}
+                        sx={{ 
+                          bgcolor: 
+                            valuationResult.appraisalSummary.riskFactors[0].toLowerCase() === 'low' ? 'success.light' : 
+                            valuationResult.appraisalSummary.riskFactors[0].toLowerCase() === 'medium' ? 'warning.light' : 
+                            'error.light'
+                        }}
+                      />
+                    </Grid>
+                    <Grid item>
+                      <Chip 
+                        size="small"
+                        label={`Comps: ${valuationResult.appraisalSummary.riskFactors[1]}`}
+                        sx={{ 
+                          bgcolor: 
+                            valuationResult.appraisalSummary.riskFactors[1].toLowerCase() === 'low' ? 'success.light' : 
+                            valuationResult.appraisalSummary.riskFactors[1].toLowerCase() === 'medium' ? 'warning.light' : 
+                            'error.light'
+                        }}
+                      />
+                    </Grid>
+                    <Grid item>
+                      <Chip 
+                        size="small"
+                        label={`Property: ${valuationResult.appraisalSummary.riskFactors[2]}`}
+                        sx={{ 
+                          bgcolor: 
+                            valuationResult.appraisalSummary.riskFactors[2].toLowerCase() === 'low' ? 'success.light' : 
+                            valuationResult.appraisalSummary.riskFactors[2].toLowerCase() === 'medium' ? 'warning.light' : 
+                            'error.light'
+                        }}
+                      />
+                    </Grid>
+                  </Grid>
+                </Box>
+              )}
+            </AccordionDetails>
+          </Accordion>
+        )}
+      </Box>
+      
+      {/* Property Analysis Details (when available from AI) */}
+      {valuationResult.propertyAnalysis && (
+        <Accordion sx={{ mt: 3 }}>
+          <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+            <Typography variant="h6">Property Analysis</Typography>
           </AccordionSummary>
           <AccordionDetails>
-            <Typography variant="body1" sx={{ whiteSpace: 'pre-line' }}>
-              {appraisalSummary}
-            </Typography>
+            <Grid container spacing={3}>
+              {/* Condition and Quality */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom fontWeight={500}>Condition & Quality</Typography>
+                <Box sx={{ mb: 2 }}>
+                  <Typography component="div" variant="body2">
+                    <strong>Condition:</strong> {valuationResult.propertyAnalysis.condition || 'Not specified'}
+                  </Typography>
+                  <Typography component="div" variant="body2">
+                    <strong>Quality Rating:</strong> {valuationResult.propertyAnalysis.qualityRating || 'Not specified'}
+                  </Typography>
+                </Box>
+              </Grid>
+              
+              {/* Features */}
+              <Grid item xs={12} md={6}>
+                <Typography variant="subtitle1" gutterBottom fontWeight={500}>Features</Typography>
+                <Grid container spacing={1}>
+                  {valuationResult.propertyAnalysis.features && 
+                    valuationResult.propertyAnalysis.features.map((feature, index) => (
+                      <Grid item key={index}>
+                        <Chip
+                          size="small"
+                          label={feature}
+                          icon={<CheckCircleIcon />}
+                          color="primary"
+                          variant="outlined"
+                        />
+                      </Grid>
+                    ))
+                  }
+                </Grid>
+              </Grid>
+              
+              {/* Recent Improvements */}
+              {valuationResult.propertyAnalysis.improvements && 
+                valuationResult.propertyAnalysis.improvements.length > 0 && (
+                <Grid item xs={12}>
+                  <Typography variant="subtitle1" gutterBottom fontWeight={500}>Recent Improvements</Typography>
+                  <List dense>
+                    {valuationResult.propertyAnalysis.improvements.map((improvement, index) => (
+                      <ListItem key={index}>
+                        <ListItemIcon sx={{ minWidth: 36 }}>
+                          <CheckCircleIcon color="success" fontSize="small" />
+                        </ListItemIcon>
+                        <ListItemText primary={improvement} />
+                      </ListItem>
+                    ))}
+                  </List>
+                </Grid>
+              )}
+            </Grid>
           </AccordionDetails>
         </Accordion>
       )}
-    </>
+      
+      {/* Timestamp */}
+      {valuationResult.timestamp && (
+        <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 3, textAlign: 'right' }}>
+          Valuation completed: {new Date(valuationResult.timestamp).toLocaleString()}
+        </Typography>
+      )}
+    </Box>
   );
 };
 

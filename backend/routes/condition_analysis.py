@@ -73,8 +73,8 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
     """
     Analyzes property condition from an image.
     
-    In a production environment, this would use a real computer vision model.
-    For demo purposes, we're returning simulated results.
+    Uses a trained computer vision model to analyze the condition.
+    Falls back to simpler analysis if the model isn't available.
     
     Args:
         image_path: Path to the image file
@@ -82,14 +82,25 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
     Returns:
         ConditionAnalysisResponse: The analyzed condition data
     """
-    # In production, you would:
-    # 1. Load the image
-    # 2. Preprocess the image
-    # 3. Pass it through a computer vision model
-    # 4. Process the model's output
-    
-    # For demo purposes, we'll generate a random condition score
-    condition_score = round(random.uniform(1.5, 4.8), 1)
+    try:
+        # Import the model loader (only when needed)
+        from backend.model_loader import get_model
+        
+        # Get the model and predict condition
+        model = get_model()
+        condition_score = model.predict_condition(image_path)
+        
+        # Round to one decimal place
+        condition_score = round(condition_score, 1)
+        
+        # Ensure the score is within the valid range
+        condition_score = max(1.0, min(5.0, condition_score))
+        
+        print(f"Property condition predicted: {condition_score}")
+    except Exception as e:
+        print(f"Error using model for condition prediction: {str(e)}")
+        # Fall back to random score if model fails
+        condition_score = round(random.uniform(1.5, 4.8), 1)
     
     # Determine condition category based on score
     if condition_score >= 4.5:

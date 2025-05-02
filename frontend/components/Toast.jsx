@@ -1,78 +1,87 @@
-import React, { createContext, useContext, useState, forwardRef } from 'react';
-import { 
-  Snackbar, 
-  Alert as MuiAlert, 
-  Stack, 
-  Typography 
+import React, { createContext, useContext, useState } from 'react';
+import {
+  Snackbar,
+  Alert,
+  AlertTitle,
+  Typography,
+  Box,
+  IconButton
 } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
 
-// Custom styled Alert component
-const Alert = forwardRef(function Alert(props, ref) {
-  return <MuiAlert elevation={6} ref={ref} variant="filled" {...props} />;
-});
-
-// Create a context for the toast system
+// Create context for the toast
 const ToastContext = createContext({
   showToast: () => {},
-  closeToast: () => {}
+  hideToast: () => {}
 });
 
-// Hook to use the toast system
+// Hook to use toast functionality
 export const useToast = () => useContext(ToastContext);
 
-// Main Toast Provider component
+/**
+ * Toast provider component that wraps the application
+ * to provide toast notification functionality
+ */
 export const ToastProvider = ({ children }) => {
-  const [open, setOpen] = useState(false);
-  const [message, setMessage] = useState('');
-  const [title, setTitle] = useState('');
-  const [severity, setSeverity] = useState('info'); // 'error', 'warning', 'info', 'success'
-  const [duration, setDuration] = useState(5000);
-  
-  // Function to show a toast notification
+  const [toast, setToast] = useState({
+    open: false,
+    message: '',
+    severity: 'info', // 'success', 'info', 'warning', 'error'
+    title: null,
+    duration: 5000
+  });
+
+  // Show toast with given parameters
   const showToast = (message, options = {}) => {
-    setMessage(message);
-    setSeverity(options.severity || 'info');
-    setTitle(options.title || '');
-    setDuration(options.duration || 5000);
-    setOpen(true);
+    setToast({
+      open: true,
+      message,
+      severity: options.severity || 'info',
+      title: options.title || null,
+      duration: options.duration || 5000
+    });
   };
-  
-  // Function to close the toast
-  const closeToast = (event, reason) => {
-    if (reason === 'clickaway') {
-      return;
-    }
-    setOpen(false);
+
+  // Hide the toast
+  const hideToast = () => {
+    setToast(prev => ({ ...prev, open: false }));
   };
-  
+
   return (
-    <ToastContext.Provider value={{ showToast, closeToast }}>
+    <ToastContext.Provider value={{ showToast, hideToast }}>
       {children}
       <Snackbar
-        open={open}
-        autoHideDuration={duration}
-        onClose={closeToast}
-        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        open={toast.open}
+        autoHideDuration={toast.duration}
+        onClose={hideToast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        sx={{ maxWidth: 400 }}
       >
         <Alert 
-          onClose={closeToast} 
-          severity={severity}
+          onClose={hideToast} 
+          severity={toast.severity}
+          elevation={3}
+          variant="filled"
           sx={{ width: '100%' }}
+          action={
+            <IconButton
+              size="small"
+              aria-label="close"
+              color="inherit"
+              onClick={hideToast}
+            >
+              <CloseIcon fontSize="small" />
+            </IconButton>
+          }
         >
-          <Stack spacing={0.5}>
-            {title && (
-              <Typography variant="subtitle2" component="span" sx={{ fontWeight: 'bold' }}>
-                {title}
-              </Typography>
-            )}
-            <Typography variant="body2" component="span">
-              {message}
-            </Typography>
-          </Stack>
+          {toast.title && (
+            <AlertTitle sx={{ fontWeight: 600 }}>{toast.title}</AlertTitle>
+          )}
+          <Typography variant="body2">{toast.message}</Typography>
         </Alert>
       </Snackbar>
     </ToastContext.Provider>
   );
 };
 
-export default ToastProvider;
+export default useToast;
