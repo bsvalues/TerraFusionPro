@@ -168,6 +168,24 @@ async def provide_condition_feedback(
             print(f"Inference with feedback logged to audit trail: {saved_filename}")
         except Exception as logging_error:
             print(f"Warning: Failed to log inference to audit trail: {str(logging_error)}")
+            
+        # Additionally, log to the drift monitoring system for advanced analytics
+        try:
+            from backend.drift_monitor import log_feedback, calculate_daily_drift
+            
+            # Log feedback and get result
+            drift_result = log_feedback(saved_filename, ai_score, user_score, model_version)
+            
+            # Merge results for comprehensive response
+            feedback_result.update(drift_result)
+            
+            # Attempt to update drift metrics in the background (non-blocking)
+            import threading
+            threading.Thread(target=calculate_daily_drift).start()
+            
+            print(f"Drift monitoring: Logged feedback for {saved_filename}, AI={ai_score}, User={user_score}, Diff={drift_result.get('difference', 'N/A')}")
+        except Exception as drift_error:
+            print(f"Warning: Could not log to drift monitor: {str(drift_error)}")
         
         return FeedbackResponse(
             ai_score=ai_score,
