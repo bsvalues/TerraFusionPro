@@ -24,6 +24,21 @@ except ImportError:
     MODEL_VERSIONING_AVAILABLE = False
     print("Model versioning system not available. Using local model path.")
 
+# Import deployment logger
+try:
+    from backend.model_deployment_logger import (
+        log_deployment_event,
+        get_fallback_model_version,
+        get_current_deployment_info,
+        EVENT_DEPLOYMENT,
+        EVENT_ERROR,
+        EVENT_RECOVERY
+    )
+    DEPLOYMENT_LOGGER_AVAILABLE = True
+except ImportError:
+    DEPLOYMENT_LOGGER_AVAILABLE = False
+    print("Deployment logger not available. Deployment events will not be tracked.")
+
 class ConditionScorer:
     """
     Handles loading and inference for the property condition model
@@ -40,6 +55,7 @@ class ConditionScorer:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.version = version
         self.model_path = model_path
+        self.fallback_model = None
         
         # Initialize the MobileNetV2 model architecture
         self.model = mobilenet_v2(pretrained=True)
@@ -50,6 +66,9 @@ class ConditionScorer:
         
         # Load model weights using versioning system if available
         self.model_loaded = False
+        
+        # Track if we're using a fallback version
+        self.using_fallback = False
         
         if MODEL_VERSIONING_AVAILABLE and model_path is None:
             try:
@@ -68,11 +87,76 @@ class ConditionScorer:
                 self.model_loaded = True
                 print(f"Model v{self.version} loaded successfully from {resolved_path}")
                 
+                # Log deployment event if logger is available
+                if DEPLOYMENT_LOGGER_AVAILABLE:
+                    metadata = {"device": str(self.device), "path": resolved_path}
+                    log_deployment_event(
+                        EVENT_DEPLOYMENT,
+                        "condition_model",
+                        self.version,
+                        f"Model v{self.version} loaded successfully",
+                        metadata
+                    )
+                
+                # Check if we should preload fallback model
+                if DEPLOYMENT_LOGGER_AVAILABLE:
+                    fallback_version = get_fallback_model_version()
+                    if fallback_version and fallback_version != self.version:
+                        try:
+                            # Load fallback model
+                            fallback_path = get_model_path("condition_model", fallback_version)
+                            self.fallback_model = mobilenet_v2(pretrained=True)
+                            num_ftrs = self.fallback_model.classifier[1].in_features
+                            self.fallback_model.classifier[1] = torch.nn.Linear(num_ftrs, 5)
+                            self.fallback_model.load_state_dict(torch.load(fallback_path, map_location=self.device))
+                            self.fallback_model.eval()
+                            self.fallback_model.to(self.device)
+                            print(f"Fallback model v{fallback_version} loaded successfully (ready for automatic fallback)")
+                        except Exception as e:
+                            print(f"Error loading fallback model: {str(e)}")
+                
             except Exception as e:
                 print(f"Error loading versioned model: {str(e)}")
                 print("Falling back to default model path")
-                # Fall back to provided path or default path
-                self.model_path = model_path or os.path.join(os.getcwd(), "models", "condition_model.pth")
+                
+                # Log error event
+                if DEPLOYMENT_LOGGER_AVAILABLE:
+                    log_deployment_event(
+                        EVENT_ERROR,
+                        "condition_model",
+                        str(self.version) if self.version else "unknown",
+                        f"Error loading model: {str(e)}",
+                        {"error": str(e)}
+                    )
+                
+                # Try to load fallback version if available
+                if DEPLOYMENT_LOGGER_AVAILABLE:
+                    fallback_version = get_fallback_model_version()
+                    if fallback_version:
+                        try:
+                            # Attempt to load the fallback version
+                            fallback_path = get_model_path("condition_model", fallback_version)
+                            self.model.load_state_dict(torch.load(fallback_path, map_location=self.device))
+                            self.model.eval()
+                            self.model_loaded = True
+                            self.using_fallback = True
+                            self.version = fallback_version
+                            print(f"Successfully loaded fallback model v{fallback_version}")
+                            
+                            # Log recovery event
+                            log_deployment_event(
+                                EVENT_RECOVERY,
+                                "condition_model",
+                                fallback_version,
+                                f"Recovered using fallback model v{fallback_version}",
+                                {"fallback_path": fallback_path}
+                            )
+                        except Exception as fallback_error:
+                            print(f"Error loading fallback model: {str(fallback_error)}")
+                
+                # Fall back to provided path or default path if all else fails
+                if not self.model_loaded:
+                    self.model_path = model_path or os.path.join(os.getcwd(), "models", "condition_model.pth")
         
         # Load from specific path if versioning failed or not available
         if not self.model_loaded and self.model_path is not None:
@@ -82,6 +166,16 @@ class ConditionScorer:
                     self.model.eval()  # Set to evaluation mode
                     self.model_loaded = True
                     print(f"Model loaded successfully from {self.model_path}")
+                    
+                    # Log deployment event
+                    if DEPLOYMENT_LOGGER_AVAILABLE and not self.using_fallback:
+                        log_deployment_event(
+                            EVENT_DEPLOYMENT,
+                            "condition_model",
+                            version or "1.0.0",
+                            f"Model loaded from path: {self.model_path}",
+                            {"path": self.model_path}
+                        )
                     
                     # Register this model if versioning is available but it wasn't loaded from registry
                     if MODEL_VERSIONING_AVAILABLE and version is None and not self.model_path.startswith(os.path.join(os.getcwd(), "models", "registry")):
@@ -93,6 +187,16 @@ class ConditionScorer:
                             print(f"Error registering model: {str(e)}")
                 except Exception as e:
                     print(f"Error loading model: {str(e)}")
+                    
+                    # Log error event
+                    if DEPLOYMENT_LOGGER_AVAILABLE:
+                        log_deployment_event(
+                            EVENT_ERROR,
+                            "condition_model",
+                            version or "unknown",
+                            f"Error loading model from path: {str(e)}",
+                            {"error": str(e), "path": self.model_path}
+                        )
             else:
                 print(f"Model file not found at {self.model_path}. Using fallback scoring.")
         
@@ -140,7 +244,55 @@ class ConditionScorer:
                 # Return the weighted score (between 1-5)
                 return float(weighted_score)
         except Exception as e:
-            print(f"Error predicting condition: {str(e)}")
+            print(f"Error predicting condition with primary model: {str(e)}")
+            
+            # Log error event
+            if DEPLOYMENT_LOGGER_AVAILABLE:
+                log_deployment_event(
+                    EVENT_ERROR,
+                    "condition_model",
+                    str(self.version) if self.version else "unknown",
+                    f"Error during prediction: {str(e)}",
+                    {"error": str(e), "image_path": image_path}
+                )
+            
+            # Try using the preloaded fallback model if available
+            if self.fallback_model is not None:
+                try:
+                    print("Attempting prediction with fallback model...")
+                    # Transform the image again to be safe
+                    image = Image.open(image_path).convert('RGB')
+                    image_tensor = self.transform(image).unsqueeze(0).to(self.device)
+                    
+                    # Make prediction with fallback model
+                    with torch.no_grad():
+                        outputs = self.fallback_model(image_tensor)
+                        
+                        # Get softmax probabilities
+                        probabilities = torch.nn.functional.softmax(outputs, dim=1)[0]
+                        
+                        # Calculate weighted average for a more precise score
+                        weighted_score = 0
+                        for i in range(5):
+                            weighted_score += (i + 1) * probabilities[i].item()
+                        
+                        # Log recovery event
+                        if DEPLOYMENT_LOGGER_AVAILABLE:
+                            fallback_version = get_fallback_model_version()
+                            log_deployment_event(
+                                EVENT_RECOVERY,
+                                "condition_model",
+                                fallback_version or "unknown",
+                                f"Successfully used fallback model for prediction",
+                                {"image_path": image_path}
+                            )
+                        
+                        print(f"Fallback model prediction successful: {weighted_score}")
+                        return float(weighted_score)
+                except Exception as fallback_error:
+                    print(f"Error using fallback model: {str(fallback_error)}")
+            
+            # If all else fails, use the algorithmic fallback scoring
             return self._fallback_scoring(image_path)
     
     def _fallback_scoring(self, image_path):
