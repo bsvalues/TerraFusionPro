@@ -54,6 +54,7 @@ import compsRouter from './routes/comps-routes';
 import formsRouter from './routes/forms-routes';
 import { marketAnalysisRouter } from './routes/market-analysis-routes';
 import { snapshotsRouter } from './routes/snapshots-routes';
+import modelVersionRoutes from './model-version-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2769,6 +2770,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api', formsRouter);
   app.use('/api/market-analysis', marketAnalysisRouter);
   app.use('/api/snapshots', snapshotsRouter);
+  app.use('/api', modelVersionRoutes);
   
   // Serve uploaded files (for enhanced photos)
   app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));

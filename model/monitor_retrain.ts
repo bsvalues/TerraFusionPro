@@ -1,6 +1,12 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { parse } from 'csv-parse/sync';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+// Fix for ESM modules where __dirname is not available
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 export interface RetrainLogEntry {
   timestamp: string;
@@ -24,7 +30,7 @@ export function getRetrainLog(): RetrainLogEntry[] {
     const records = parse(fileContent, {
       columns: true,
       skip_empty_lines: true,
-      cast: (value, context) => {
+      cast: (value: string, context: { column: string }) => {
         // Convert numeric fields to numbers
         if (context.column === 'samples_used' || 
             context.column === 'model_version' || 
