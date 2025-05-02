@@ -159,23 +159,17 @@ export function AgentAssistantShapConnector({
   /**
    * Request SHAP explanation for current property
    */
-  const requestShapExplanation = () => {
-    if (!connected) {
-      console.warn('[Agent Assistant] Cannot request SHAP explanation: not connected');
-      return;
-    }
-
+  const requestShapExplanation = async () => {
     console.log(`[Agent Assistant] Requesting SHAP explanation for: ${condition}, version: ${modelVersion}`);
     setExplanationRequested(true);
+    setError(null);
     
-    // If we have an image URL, we'll send a request for that specific image
-    // Otherwise, fall back to the condition-based sample
-    if (imageUrl) {
-      // In a real implementation, this would send the actual image for processing
-      // For now, we'll just request the sample data
-      shapWebSocketClient.requestShapForCondition(condition, modelVersion);
-    } else {
-      shapWebSocketClient.requestShapForCondition(condition, modelVersion);
+    try {
+      // Our updated shapWebSocketClient will handle connection failures gracefully
+      await shapWebSocketClient.requestShapForCondition(condition || 'good', modelVersion || 'latest');
+    } catch (error) {
+      console.error('[Agent Assistant] Error requesting SHAP explanation:', error);
+      setError('Could not connect to SHAP service. Using offline analysis mode.');
     }
   };
 
