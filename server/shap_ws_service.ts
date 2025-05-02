@@ -14,6 +14,8 @@ interface ShapData {
   features: string[];
   values: number[];
   image_path: string;
+  model_version?: string;
+  timestamp?: number;
 }
 
 interface ShapMessage {
@@ -115,13 +117,35 @@ class ShapWebSocketService {
   /**
    * Send SHAP values for a specific condition to a client
    */
-  private sendShapForCondition(ws: WebSocket, condition: string): void {
+  private sendShapForCondition(ws: WebSocket, condition: string, version: string = 'latest'): void {
     try {
-      const shapPath = path.join(this.shapValuesPath, `${condition}_shap.json`);
+      // Handle both condition_shap.json and condition_version_shap.json naming patterns
+      let shapPath = '';
+      
+      if (version && version !== 'latest') {
+        shapPath = path.join(this.shapValuesPath, `${condition}_${version}_shap.json`);
+        // If version-specific file doesn't exist, fall back to generic condition file
+        if (!fs.existsSync(shapPath)) {
+          console.log(`[SHAP WebSocket] No version-specific SHAP data for ${condition} ${version}, trying generic`);
+          shapPath = path.join(this.shapValuesPath, `${condition}_shap.json`);
+        }
+      } else {
+        shapPath = path.join(this.shapValuesPath, `${condition}_shap.json`);
+      }
       
       // Check if the SHAP values file exists for the requested condition
       if (fs.existsSync(shapPath)) {
         const shapData = JSON.parse(fs.readFileSync(shapPath, 'utf8'));
+        
+        // Add version information if not already present
+        if (!shapData.model_version) {
+          shapData.model_version = version === 'latest' ? '1.0.0' : version;
+        }
+        
+        // Update timestamp if not already present
+        if (!shapData.timestamp) {
+          shapData.timestamp = Date.now();
+        }
         
         // Send message with requested SHAP values
         const message: ShapMessage = {
@@ -131,12 +155,26 @@ class ShapWebSocketService {
         };
         
         ws.send(JSON.stringify(message));
-        console.log(`[SHAP WebSocket] Sent ${condition} SHAP data to client`);
+        console.log(`[SHAP WebSocket] Sent ${condition} SHAP data to client (${shapData.model_version})`);
       } else {
         console.log(`[SHAP WebSocket] No SHAP data available for condition: ${condition}`);
+        
+        // Send error response so client knows what happened
+        ws.send(JSON.stringify({
+          type: 'error',
+          error: `No SHAP data available for condition: ${condition}`,
+          timestamp: Date.now()
+        }));
       }
     } catch (error) {
       console.error('[SHAP WebSocket] Error sending condition data:', error);
+      
+      // Send error response
+      ws.send(JSON.stringify({
+        type: 'error',
+        error: 'Internal server error processing SHAP data',
+        timestamp: Date.now()
+      }));
     }
   }
   
