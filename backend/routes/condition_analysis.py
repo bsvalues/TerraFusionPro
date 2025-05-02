@@ -113,6 +113,15 @@ async def provide_condition_feedback(
             content = await photo.read()
             temp_file.write(content)
         
+        # Track timing
+        import time
+        start_time = time.time()
+        
+        # Default values for model tracking
+        model_name = "condition_model"
+        model_version = "2.0.0"  # Default to latest
+        fallback_used = False
+        
         # Get AI prediction
         from backend.condition_inference import ConditionScorer
         
@@ -121,9 +130,44 @@ async def provide_condition_feedback(
         ai_score = round(scorer.predict_condition(file_path), 1)
         ai_score = max(1.0, min(5.0, ai_score))
         
+        # Get the version that was actually used
+        model_version = scorer.version or "2.0.0"
+        fallback_used = scorer.using_fallback if hasattr(scorer, "using_fallback") else False
+        
+        # Calculate execution time
+        execution_time_ms = round((time.time() - start_time) * 1000, 2)
+        
         # Log the feedback
         from backend.log_condition_feedback import log_condition_feedback
         feedback_result = log_condition_feedback(saved_filename, ai_score, user_score)
+        
+        # Also log to the inference audit trail
+        try:
+            from backend.audit_inference import log_inference
+            
+            # Include user feedback in metadata
+            metadata = {
+                "feedback": True,
+                "user_score": user_score,
+                "score_difference": round(user_score - ai_score, 2),
+                "path": file_path,
+                "agreement": feedback_result.get("agreement", False)
+            }
+            
+            # Log the inference with user feedback
+            log_inference(
+                filename=saved_filename,
+                model_name=model_name,
+                model_version=model_version,
+                score=ai_score,
+                execution_time_ms=execution_time_ms,
+                fallback_used=fallback_used,
+                metadata=metadata
+            )
+            
+            print(f"Inference with feedback logged to audit trail: {saved_filename}")
+        except Exception as logging_error:
+            print(f"Warning: Failed to log inference to audit trail: {str(logging_error)}")
         
         return FeedbackResponse(
             ai_score=ai_score,
@@ -152,6 +196,18 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
     Returns:
         ConditionAnalysisResponse: The analyzed condition data
     """
+    import time
+    from pathlib import Path
+    
+    # Track execution time
+    start_time = time.time()
+    
+    # Default values to track model usage
+    model_name = "condition_model"
+    model_version = "2.0.0"  # Default to latest version
+    fallback_used = False
+    confidence = None
+    
     try:
         # Import the condition inference model (only when needed)
         from backend.condition_inference import ConditionScorer
@@ -160,17 +216,35 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
         scorer = ConditionScorer()  # Will use versioning system automatically
         condition_score = scorer.predict_condition(image_path)
         
+        # Get the version that was actually used
+        model_version = scorer.version or "2.0.0"
+        
+        # Note if fallback was used
+        fallback_used = scorer.using_fallback if hasattr(scorer, "using_fallback") else False
+        
         # Round to one decimal place
         condition_score = round(condition_score, 1)
         
         # Ensure the score is within the valid range
         condition_score = max(1.0, min(5.0, condition_score))
         
-        print(f"Property condition predicted: {condition_score}")
+        print(f"Property condition predicted: {condition_score} with model v{model_version}")
     except Exception as e:
         print(f"Error using condition model for prediction: {str(e)}")
-        # Fall back to random score if model fails
-        condition_score = round(random.uniform(1.5, 4.8), 1)
+        # Fall back to algorithmic fallback
+        fallback_used = True
+        model_version = "fallback"
+        
+        # Import simple fallback score function
+        try:
+            from backend.condition_inference import ConditionScorer
+            scorer = ConditionScorer()
+            condition_score = scorer._fallback_scoring(image_path)
+            condition_score = round(condition_score, 1)
+        except Exception as fallback_error:
+            print(f"Error using fallback scoring: {str(fallback_error)}")
+            # Final fallback is a random score
+            condition_score = round(random.uniform(2.5, 3.5), 1)
     
     # Determine condition category based on score
     if condition_score >= 4.5:
@@ -221,6 +295,39 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
     
     # Add a more detailed description based on the category
     description = f"Analysis indicates property is in {condition_category.lower()} condition. {description}"
+    
+    # Calculate execution time
+    execution_time_ms = round((time.time() - start_time) * 1000, 2)
+    
+    # Log this inference to the audit trail
+    try:
+        from backend.audit_inference import log_inference
+        
+        # Extract just the filename from the path
+        filename = Path(image_path).name
+        
+        # Construct metadata about this analysis
+        metadata = {
+            "condition_category": condition_category,
+            "feature_count": len(features),
+            "path": image_path
+        }
+        
+        # Log the inference with all available information
+        log_inference(
+            filename=filename,
+            model_name=model_name,
+            model_version=model_version,
+            score=condition_score,
+            confidence=confidence,
+            execution_time_ms=execution_time_ms,
+            fallback_used=fallback_used,
+            metadata=metadata
+        )
+        
+        print(f"Inference logged to audit trail: {filename}, v{model_version}, score={condition_score}")
+    except Exception as logging_error:
+        print(f"Warning: Failed to log inference to audit trail: {str(logging_error)}")
     
     return ConditionAnalysisResponse(
         condition_score=condition_score,
