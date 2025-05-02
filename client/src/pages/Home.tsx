@@ -10,37 +10,41 @@ export default function Home() {
 
   return (
     <div className="flex-1 p-8 overflow-auto">
-      <div className="max-w-5xl mx-auto">
+      <div className="fixed top-0 left-0 right-0 bg-blue-600 text-white p-2 z-50 flex justify-center">
+        <button 
+          onClick={() => setLocation('/ws-test')}
+          className="font-bold px-4 py-1 bg-blue-700 hover:bg-blue-800 rounded-md"
+        >
+          🔌 Click here to test WebSocket Connectivity
+        </button>
+      </div>
+    
+      <div className="max-w-5xl mx-auto mt-12">
         <h1 className="text-3xl font-bold mb-8">AppraisalCore - Real Estate Appraisal Platform</h1>
         
-        <button 
-          onClick={() => console.log("Native button clicked")} 
-          style={{ 
-            padding: '10px 20px', 
-            background: 'blue', 
-            color: 'white', 
-            border: 'none', 
-            borderRadius: '4px',
-            marginBottom: '20px'
-          }}
-        >
-          Test Native Button (Click Me)
-        </button>
-        
-        <a 
-          href="/form" 
-          style={{ 
-            padding: '10px 20px', 
-            background: 'green', 
-            color: 'white', 
-            textDecoration: 'none',
-            borderRadius: '4px',
-            marginBottom: '20px',
-            display: 'inline-block'
-          }}
-        >
-          Test Native Link to Form Page
-        </a>
+        <div className="flex space-x-4 mb-6">
+          <Button
+            variant="default"
+            onClick={() => setLocation('/ws-test')}
+            className="bg-blue-600 hover:bg-blue-700 text-white"
+          >
+            🔌 WebSocket Test Page
+          </Button>
+          
+          <Button
+            variant="outline"
+            onClick={() => console.log("Native button clicked")}
+          >
+            Test Native Button
+          </Button>
+          
+          <Button
+            variant="secondary"
+            onClick={() => setLocation('/form')}
+          >
+            Go to Form Page
+          </Button>
+        </div>
         
         <div className="space-y-8">
           <Card>
@@ -51,6 +55,27 @@ export default function Home() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+              <div className="bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-800 rounded-md p-4 mb-6">
+                <h3 className="text-lg font-semibold mb-2 flex items-center">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+                  </svg>
+                  New Feature: WebSocket Testing
+                </h3>
+                <p className="mb-3">
+                  Test our new WebSocket connection with fallback mechanisms for Replit environment.
+                </p>
+                <Button 
+                  className="bg-yellow-600 hover:bg-yellow-700 text-white"
+                  onClick={() => {
+                    console.log("WebSocket Test clicked");
+                    setLocation('/ws-test');
+                  }}
+                >
+                  Open WebSocket Test Page
+                </Button>
+              </div>
+              
               <p className="mb-4">
                 You don't have any active appraisal reports. Create a new one to get started or load a demo report.
               </p>

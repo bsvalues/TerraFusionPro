@@ -265,11 +265,15 @@ export class WebSocketManager {
       // Notify connection handler
       this.connectionHandler('websocket', 'disconnected');
       
+      // Special handling for code 1006 (abnormal closure) which is common in Replit
+      const isAbnormalClosure = event.code === 1006;
+      
       // Emit connection event for WebSocketContext
       this.emitEvent('connection', { 
         status: 'disconnected',
         code: event.code,
-        reason: event.reason || 'Connection closed'
+        reason: event.reason || 'Connection closed',
+        isAbnormalClosure
       });
       
       // Resolve connect promise if still pending
@@ -281,6 +285,25 @@ export class WebSocketManager {
       // Attempt reconnect if not explicitly closed by client
       if (event.code !== 1000) {
         this.scheduleReconnect();
+        
+        // Emit a specific event for 1006 errors (common in Replit)
+        if (isAbnormalClosure) {
+          this.emitEvent('replit_connection_issue', {
+            message: 'Abnormal closure (code 1006) detected - common in Replit environments',
+            reconnectAttempt: this.reconnectAttempts + 1,
+            maxAttempts: this.maxReconnectAttempts,
+            willRetry: this.reconnectAttempts < this.maxReconnectAttempts
+          });
+          
+          // If we're at the last attempt, emit a connection_failed event
+          if (this.reconnectAttempts + 1 >= this.maxReconnectAttempts) {
+            this.emitEvent('connection_failed', {
+              reason: 'Maximum reconnection attempts reached after abnormal closures',
+              code: 1006,
+              environment: 'replit'
+            });
+          }
+        }
       }
     };
     

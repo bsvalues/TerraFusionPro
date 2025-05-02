@@ -21,6 +21,7 @@ export default function WebSocketTestPage() {
   const [isReplitEnvironment, setIsReplitEnvironment] = useState<boolean>(false);
   const [connectionAttempts, setConnectionAttempts] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>('controls');
+  const [replitIssueCount, setReplitIssueCount] = useState<number>(0);
   
   // Check if we're in a Replit environment
   useEffect(() => {
@@ -28,61 +29,84 @@ export default function WebSocketTestPage() {
     const isReplit = hostname.includes('replit.dev');
     setIsReplitEnvironment(isReplit);
     
-    if (isReplit) {
+    // Default startup messages
+    setReceivedMessages((prev) => [
+      ...prev,
+      isReplit 
+        ? '📌 Replit environment detected' 
+        : '📌 Standard environment detected',
+      isReplit
+        ? 'Using optimized connection strategy for Replit'
+        : 'Using standard connection strategy',
+      isReplit
+        ? 'Priority: Long Polling → SSE → WebSocket'
+        : 'Priority: WebSocket → SSE → Long Polling',
+      'WebSocket connections in Replit often fail with code 1006 (abnormal closure)',
+      '---'
+    ]);
+      
+    // Listen for connection events to track attempts
+    realtime.on('reconnect_attempt', (data) => {
+      if (data.attempt) {
+        setConnectionAttempts(data.attempt);
+        setReceivedMessages((prev) => [
+          ...prev, 
+          `Connection attempt ${data.attempt}/${data.maxAttempts}: trying alternative methods...`
+        ]);
+      }
+    });
+    
+    // Listen for connection status changes
+    realtime.on('connected', (data) => {
       setReceivedMessages((prev) => [
         ...prev,
-        '📌 Replit environment detected',
-        'Using optimized connection strategy for Replit',
-        'Priority: Long Polling → SSE → WebSocket',
-        '---'
+        `✅ Connected successfully using ${data.protocol || 'unknown'} protocol`
+      ]);
+    });
+    
+    realtime.on('disconnected', (data) => {
+      const message = data.isAbnormalClosure 
+        ? `❌ Disconnected (abnormal closure - code 1006), will attempt reconnection`
+        : `❌ Disconnected (code ${data.code || 'unknown'}), will attempt reconnection`;
+      
+      setReceivedMessages((prev) => [...prev, message]);
+    });
+    
+    // Listen for Replit-specific connection issues (code 1006)
+    realtime.on('replit_connection_issue', (data) => {
+      setReplitIssueCount(prev => prev + 1);
+      setReceivedMessages((prev) => [
+        ...prev,
+        `⚠️ Replit connection issue detected: ${data.message}`,
+        `Attempt ${data.reconnectAttempt}/${data.maxAttempts}${data.willRetry ? ', will retry' : ', giving up'}`
+      ]);
+    });
+    
+    // Listen for connection failures
+    realtime.on('connection_failed', (data) => {
+      const isReplitIssue = data.code === 1006 && data.environment === 'replit';
+      
+      setReceivedMessages((prev) => [
+        ...prev,
+        `⚠️ All connection attempts failed, falling back to polling`,
+        isReplitIssue 
+          ? 'This is a known issue with WebSockets in Replit environments (code 1006)'
+          : `Reason: ${data.reason || 'Unknown'}`,
+        'Activating HTTP long polling fallback for more reliable connection'
       ]);
       
-      // Listen for connection events to track attempts
-      realtime.on('reconnect_attempt', (data) => {
-        if (data.attempt) {
-          setConnectionAttempts(data.attempt);
-          setReceivedMessages((prev) => [
-            ...prev, 
-            `Connection attempt ${data.attempt}/${data.maxAttempts}: trying alternative methods...`
-          ]);
-        }
-      });
-      
-      // Listen for connection status changes
-      realtime.on('connected', (data) => {
-        setReceivedMessages((prev) => [
-          ...prev,
-          `✅ Connected successfully using ${data.protocol || 'unknown'} protocol`
-        ]);
-      });
-      
-      realtime.on('disconnected', () => {
-        setReceivedMessages((prev) => [
-          ...prev,
-          `❌ Disconnected, will automatically attempt reconnection`
-        ]);
-      });
-      
-      // Listen for connection failures
-      realtime.on('connection_failed', () => {
-        setReceivedMessages((prev) => [
-          ...prev,
-          `⚠️ All connection attempts failed, falling back to polling`,
-          'Activating HTTP long polling fallback for more reliable connection'
-        ]);
-        
-        // Auto-switch to polling mode after all connection attempts fail
-        setTimeout(() => {
-          realtime.forcePolling();
-        }, 1000);
-      });
-    }
+      // Auto-switch to polling mode after all connection attempts fail
+      setTimeout(() => {
+        realtime.forcePolling();
+      }, 1000);
+    });
     
     // Cleanup event listeners on unmount
     return () => {
       realtime.off('reconnect_attempt', () => {});
       realtime.off('connected', () => {});
       realtime.off('disconnected', () => {});
+      realtime.off('replit_connection_issue', () => {});
       realtime.off('connection_failed', () => {});
     };
   }, [realtime]);
@@ -178,13 +202,22 @@ export default function WebSocketTestPage() {
         </CardHeader>
 
         {isReplitEnvironment && (
-          <Alert className="mx-6 mb-2">
+          <Alert className="mx-6 mb-2" variant="warning">
             <AlertTriangle className="h-4 w-4" />
             <AlertTitle>Replit Environment Detected</AlertTitle>
             <AlertDescription>
               WebSockets face connection issues in Replit environments due to proxy settings.
               We've implemented a robust fallback strategy: Long Polling → SSE → WebSocket.
-              Connection attempts: {connectionAttempts}/5
+              <div className="mt-2 flex items-center gap-4">
+                <div>
+                  <span className="text-xs font-semibold">Connection attempts:</span> {connectionAttempts}/5
+                </div>
+                {replitIssueCount > 0 && (
+                  <div className="text-amber-700 bg-amber-100 px-2 py-1 rounded-md text-xs">
+                    <span className="font-semibold">Code 1006 errors detected:</span> {replitIssueCount}
+                  </div>
+                )}
+              </div>
             </AlertDescription>
           </Alert>
         )}
