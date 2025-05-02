@@ -266,11 +266,12 @@ export function AgentAssistantShapConnector({
   };
 
   /**
-   * Get progress bar color based on value
+   * Get CSS variable for progress bar color based on value
+   * Note: This is applied through inline styles instead of className
    */
   const getProgressColor = (value: number): string => {
-    if (value >= 0) return "bg-green-500";
-    return "bg-blue-500";
+    if (value >= 0) return "var(--green-500)";
+    return "var(--blue-500)";
   };
 
   /**
@@ -378,7 +379,10 @@ export function AgentAssistantShapConnector({
                             <Progress 
                               value={getProgressValue(shapData.values[index])}
                               className={shapData.values[index] >= 0 ? "bg-green-100" : "bg-blue-100"}
-                              indicatorClassName={getProgressColor(shapData.values[index])}
+                              // Apply the color through a custom CSS class name
+                              style={{
+                                ["--progress-fill-color" as any]: shapData.values[index] >= 0 ? "var(--green-500)" : "var(--blue-500)",
+                              }}
                             />
                           </div>
                         ))}

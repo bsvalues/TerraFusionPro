@@ -517,23 +517,48 @@ export default function EnhancedHome() {
           
           <Card className="group hover:shadow-md transition-all">
             <CardHeader>
-              <CardTitle className="flex items-center">
-                <Brain className="h-5 w-5 mr-2" />
-                <span>AI Valuation Tools</span>
-              </CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle className="flex items-center">
+                  <Brain className="h-5 w-5 mr-2" />
+                  <span>AI Valuation Tools</span>
+                </CardTitle>
+                <Badge variant="outline" className="bg-green-50 text-xs">Updated</Badge>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground mb-4">
-                Leverage advanced AI to get accurate property valuations, market trend analysis, and adjustment recommendations.
+                Leverage advanced AI to get accurate property valuations, market trend analysis, and assistance with URAR forms.
               </p>
-              <Button 
-                variant="ghost" 
-                className="group-hover:translate-x-1 transition-transform"
-                onClick={() => setLocation('/ai-valuation')}
-              >
-                <span>AI Assistant</span>
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
+              <div className="flex flex-col space-y-2">
+                <Button 
+                  variant="ghost" 
+                  className="group-hover:translate-x-1 transition-transform justify-start"
+                  onClick={() => setLocation('/ai-valuation')}
+                >
+                  <span>AI Assistant</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="group-hover:translate-x-1 transition-transform justify-start"
+                  onClick={() => setLocation('/legal-urar')}
+                >
+                  <span className="flex items-center">
+                    <BookOpen className="h-4 w-4 mr-2" />
+                    URAR + AI Assistant
+                    <Badge className="ml-2 h-5" variant="secondary">New</Badge>
+                  </span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  className="group-hover:translate-x-1 transition-transform justify-start"
+                  onClick={() => setLocation('/shap-viewer')}
+                >
+                  <span>SHAP Explorer</span>
+                  <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
           
