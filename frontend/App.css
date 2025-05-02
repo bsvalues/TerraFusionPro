@@ -412,3 +412,87 @@ footer {
 footer p {
   margin: 0;
 }
+
+/* Material UI Enhancements */
+.MuiCard-root {
+  transition: box-shadow 0.3s ease-in-out;
+}
+
+.MuiCard-root:hover {
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+}
+
+.MuiButton-containedPrimary {
+  background-color: var(--primary-color) !important;
+}
+
+.MuiButton-containedPrimary:hover {
+  background-color: var(--primary-dark) !important;
+}
+
+.MuiLinearProgress-barColorPrimary {
+  background-color: var(--primary-color) !important;
+}
+
+.MuiLinearProgress-barColorSuccess {
+  background-color: var(--success-color) !important;
+}
+
+.MuiLinearProgress-barColorWarning {
+  background-color: var(--warning-color) !important;
+}
+
+.MuiLinearProgress-barColorError {
+  background-color: var(--danger-color) !important;
+}
+
+/* Accordion animations */
+.MuiAccordion-root {
+  transition: all 0.3s ease-in-out;
+  overflow: hidden;
+}
+
+.MuiAccordionSummary-root {
+  transition: background-color 0.2s ease;
+}
+
+.MuiAccordionSummary-root:hover {
+  background-color: rgba(0, 0, 0, 0.03);
+}
+
+/* Toast notification enhancements */
+.MuiAlert-filledSuccess {
+  background-color: var(--success-color) !important;
+}
+
+.MuiAlert-filledError {
+  background-color: var(--danger-color) !important;
+}
+
+.MuiAlert-filledWarning {
+  background-color: var(--warning-color) !important;
+}
+
+.MuiAlert-filledInfo {
+  background-color: var(--primary-color) !important;
+}
+
+/* Form field animations */
+.MuiTextField-root .MuiInputBase-root {
+  transition: transform 0.2s ease;
+}
+
+.MuiTextField-root .MuiInputBase-root:focus-within {
+  transform: translateY(-2px);
+}
+
+/* Visual feedback on form submission */
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(42, 107, 184, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(42, 107, 184, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(42, 107, 184, 0); }
+}
+
+.pulse-animation {
+  animation: pulse 1.5s infinite;
+}
