@@ -69,7 +69,10 @@ class ShapWebSocketService {
           
           // Handle request for specific condition SHAP values
           if (data.type === 'request_shap' && data.condition) {
-            this.sendShapForCondition(ws, data.condition);
+            // Use model_version if provided, otherwise default to 'latest'
+            const version = data.model_version || 'latest';
+            console.log(`[SHAP WebSocket] Received request for condition: ${data.condition}, version: ${version}`);
+            this.sendShapForCondition(ws, data.condition, version);
           }
         } catch (error) {
           console.error('[SHAP WebSocket] Error processing message:', error);
