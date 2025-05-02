@@ -18,6 +18,8 @@ export interface ShapData {
   features: string[];
   values: number[];
   image_path: string;
+  model_version?: string;
+  timestamp?: number;
 }
 
 export interface ShapMessage {
@@ -178,9 +180,9 @@ class ShapWebSocketClient {
   }
   
   /**
-   * Request SHAP values for a specific condition
+   * Request SHAP values for a specific condition and model version
    */
-  requestShapForCondition(condition: string): void {
+  requestShapForCondition(condition: string, version: string = "latest"): void {
     if (!this.connected || !this.socket) {
       console.warn('[SHAP WebSocket] Cannot request SHAP values: not connected');
       return;
@@ -189,10 +191,12 @@ class ShapWebSocketClient {
     const request = {
       type: 'request_shap',
       condition,
+      model_version: version,
       clientId: this.clientId,
       timestamp: Date.now()
     };
     
+    console.log(`[SHAP WebSocket] Requesting SHAP values for condition: ${condition}, version: ${version}`);
     this.socket.send(JSON.stringify(request));
   }
   
