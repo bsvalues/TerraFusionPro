@@ -1,6 +1,7 @@
 import { useLocation } from 'wouter';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../components/ui/card";
+import { RouteDebugger } from '@/components/dev/RouteDebugger';
 
 // Simplified version - removed AppraisalContext dependency
 export default function Home() {
@@ -146,6 +147,9 @@ export default function Home() {
               </CardContent>
             </Card>
           </div>
+          
+          {/* Route Debugger */}
+          <RouteDebugger />
         </div>
       </div>
     </div>
