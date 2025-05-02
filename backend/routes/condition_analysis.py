@@ -116,16 +116,8 @@ async def provide_condition_feedback(
         # Get AI prediction
         from backend.condition_inference import ConditionScorer
         
-        # Model path
-        MODEL_DIR = os.path.join(os.getcwd(), "models")
-        MODEL_PATH = os.path.join(MODEL_DIR, "condition_model.pth")
-        
-        # Create model directory if it doesn't exist
-        if not os.path.exists(MODEL_DIR):
-            os.makedirs(MODEL_DIR)
-        
-        # Get AI score
-        scorer = ConditionScorer(MODEL_PATH)
+        # Use versioned model if available
+        scorer = ConditionScorer()  # Will use versioning system automatically
         ai_score = round(scorer.predict_condition(file_path), 1)
         ai_score = max(1.0, min(5.0, ai_score))
         
@@ -164,16 +156,8 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
         # Import the condition inference model (only when needed)
         from backend.condition_inference import ConditionScorer
         
-        # Model path - assumes model is in the models directory
-        MODEL_DIR = os.path.join(os.getcwd(), "models")
-        MODEL_PATH = os.path.join(MODEL_DIR, "condition_model.pth")
-        
-        # Create model directory if it doesn't exist
-        if not os.path.exists(MODEL_DIR):
-            os.makedirs(MODEL_DIR)
-        
-        # Get the scorer and predict condition
-        scorer = ConditionScorer(MODEL_PATH)
+        # Use versioned model if available
+        scorer = ConditionScorer()  # Will use versioning system automatically
         condition_score = scorer.predict_condition(image_path)
         
         # Round to one decimal place
