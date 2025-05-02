@@ -28,6 +28,7 @@ import axios from 'axios';
 import ValuationResults from './components/ValuationResults';
 import ShapVisualization from './components/ShapVisualization';
 import { ToastProvider, useToast } from './components/Toast';
+import ConditionPhotoUpload from './components/ConditionPhotoUpload';
 import './App.css';
 
 // Define property types and conditions
@@ -607,6 +608,33 @@ function AppContent() {
                     />
                   </Grid>
                 </Grid>
+                
+                {/* Property Condition Photo Analysis */}
+                <Typography variant="subtitle1" gutterBottom sx={{ mt: 2, fontWeight: 500 }}>
+                  AI-Powered Condition Analysis
+                </Typography>
+                <Paper elevation={0} sx={{ p: 0, mb: 2, bgcolor: 'background.paper', borderRadius: 1 }}>
+                  <ConditionPhotoUpload 
+                    onScore={(score) => {
+                      // Convert numerical score to condition level
+                      let condition = "";
+                      if (score >= 4.5) condition = "Excellent";
+                      else if (score >= 3.5) condition = "Good";
+                      else if (score >= 2.5) condition = "Average";
+                      else if (score >= 1.5) condition = "Fair";
+                      else condition = "Poor";
+                      
+                      // Update the form data with the condition score
+                      setFormData(prev => ({ ...prev, condition }));
+                      
+                      // Show a toast notification
+                      showToast(`Property condition automatically set to ${condition}`, { 
+                        severity: 'success',
+                        title: 'AI Analysis Complete' 
+                      });
+                    }} 
+                  />
+                </Paper>
                 
                 <FormControl fullWidth margin="normal" variant="outlined">
                   <InputLabel id="condition-label">Condition</InputLabel>
