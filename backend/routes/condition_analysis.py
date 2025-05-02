@@ -66,7 +66,7 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
     """
     Analyzes property condition from an image.
     
-    Uses a trained computer vision model to analyze the condition.
+    Uses our new trained ConditionScorer model to analyze the condition.
     Falls back to simpler analysis if the model isn't available.
     
     Args:
@@ -76,12 +76,20 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
         ConditionAnalysisResponse: The analyzed condition data
     """
     try:
-        # Import the model loader (only when needed)
-        from backend.model_loader import get_model
+        # Import the condition inference model (only when needed)
+        from backend.condition_inference import ConditionScorer
         
-        # Get the model and predict condition
-        model = get_model()
-        condition_score = model.predict_condition(image_path)
+        # Model path - assumes model is in the models directory
+        MODEL_DIR = os.path.join(os.getcwd(), "models")
+        MODEL_PATH = os.path.join(MODEL_DIR, "condition_model.pth")
+        
+        # Create model directory if it doesn't exist
+        if not os.path.exists(MODEL_DIR):
+            os.makedirs(MODEL_DIR)
+        
+        # Get the scorer and predict condition
+        scorer = ConditionScorer(MODEL_PATH)
+        condition_score = scorer.predict_condition(image_path)
         
         # Round to one decimal place
         condition_score = round(condition_score, 1)
@@ -91,7 +99,7 @@ def analyze_property_condition(image_path: str) -> ConditionAnalysisResponse:
         
         print(f"Property condition predicted: {condition_score}")
     except Exception as e:
-        print(f"Error using model for condition prediction: {str(e)}")
+        print(f"Error using condition model for prediction: {str(e)}")
         # Fall back to random score if model fails
         condition_score = round(random.uniform(1.5, 4.8), 1)
     
