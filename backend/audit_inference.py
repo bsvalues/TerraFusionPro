@@ -5,34 +5,15 @@ Logs every model inference with detailed information for tracking and analysis
 
 import os
 import csv
-from datetime import datetime
-from typing import Dict, Any, Optional
+import json
+import time
+import datetime
+from pathlib import Path
+from typing import Dict, Any, List, Optional, Tuple
 
-# Configuration
-AUDIT_DIR = os.path.join(os.getcwd(), "models", "audit_logs")
+# Define the path to store audit logs
+AUDIT_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "models", "audit_logs")
 AUDIT_PATH = os.path.join(AUDIT_DIR, "inference_audit_log.csv")
-
-# Ensure directory exists
-if not os.path.exists(AUDIT_DIR):
-    os.makedirs(AUDIT_DIR)
-
-# Initialize log file with headers if it doesn't exist
-if not os.path.exists(AUDIT_PATH):
-    with open(AUDIT_PATH, "w", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            "timestamp", 
-            "filename", 
-            "model_name", 
-            "model_version", 
-            "score", 
-            "confidence", 
-            "execution_time_ms",
-            "fallback_used",
-            "user_id",
-            "metadata"
-        ])
-    print(f"Created inference audit log: {AUDIT_PATH}")
 
 def log_inference(
     filename: str, 
@@ -59,117 +40,404 @@ def log_inference(
         user_id: Identifier for the user who uploaded the image (optional)
         metadata: Additional information about the inference (optional)
     """
-    timestamp = datetime.now().isoformat()
+    # Create audit directory if it doesn't exist
+    os.makedirs(AUDIT_DIR, exist_ok=True)
     
+    # Get current timestamp
+    timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    
+    # Prepare data for logging
+    row = {
+        "timestamp": timestamp,
+        "filename": filename,
+        "model_name": model_name,
+        "model_version": model_version,
+        "score": score,
+        "confidence": confidence if confidence is not None else "",
+        "execution_time_ms": execution_time_ms if execution_time_ms is not None else "",
+        "fallback_used": str(fallback_used),
+        "user_id": user_id if user_id is not None else "",
+        "metadata": str(metadata) if metadata is not None else ""
+    }
+    
+    # Check if file exists and create with header if not
+    file_exists = os.path.isfile(AUDIT_PATH)
+    
+    # Write to CSV
     with open(AUDIT_PATH, "a", newline="") as f:
-        writer = csv.writer(f)
-        writer.writerow([
-            timestamp, 
-            filename, 
-            model_name, 
-            model_version, 
-            score, 
-            confidence or "", 
-            execution_time_ms or "",
-            fallback_used,
-            user_id or "",
-            str(metadata or {})
-        ])
+        fieldnames = [
+            "timestamp", "filename", "model_name", "model_version", 
+            "score", "confidence", "execution_time_ms", "fallback_used", 
+            "user_id", "metadata"
+        ]
+        
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        
+        if not file_exists:
+            writer.writeheader()
+        
+        writer.writerow(row)
 
-def get_inference_stats(limit: int = 100) -> Dict[str, Any]:
+def get_inferences(limit: Optional[int] = None) -> List[Dict[str, Any]]:
+    """
+    Get recent model inferences
+    
+    Args:
+        limit: Maximum number of records to return (default: all)
+        
+    Returns:
+        List: List of inference records
+    """
+    if not os.path.exists(AUDIT_PATH):
+        return []
+    
+    inferences = []
+    with open(AUDIT_PATH, "r", newline="") as f:
+        reader = csv.DictReader(f)
+        for row in reader:
+            inferences.append(row)
+    
+    # Sort by timestamp (newest first)
+    inferences.sort(key=lambda x: x.get("timestamp", ""), reverse=True)
+    
+    # Apply limit if specified
+    if limit is not None:
+        inferences = inferences[:limit]
+    
+    return inferences
+
+def get_inference_stats(limit: Optional[int] = None) -> Dict[str, Any]:
     """
     Get statistics about recent model inferences
     
     Args:
-        limit: Maximum number of records to analyze (default: 100)
+        limit: Maximum number of records to analyze (default: all)
         
     Returns:
         Dict: Statistics about model inferences
     """
-    if not os.path.exists(AUDIT_PATH):
-        return {"error": "No audit logs found"}
-        
+    # Initialize statistics dictionary
     stats = {
         "total_inferences": 0,
-        "version_usage": {},
-        "fallback_rate": 0.0,
         "average_score": 0.0,
-        "average_execution_time_ms": 0.0,
+        "fallback_rate": 0.0,
+        "version_usage": {},
         "score_distribution": {
             "1.0-1.9": 0,
             "2.0-2.9": 0,
             "3.0-3.9": 0,
             "4.0-5.0": 0
+        },
+        "execution_times": {
+            "average": 0.0,
+            "min": 0.0,
+            "max": 0.0
+        },
+        "feedback_stats": {
+            "total_feedback": 0,
+            "average_difference": 0.0,
+            "agreement_rate": 0.0
         }
     }
     
-    total_score = 0.0
-    total_execution_time = 0.0
-    execution_time_count = 0
-    fallback_count = 0
+    # Get inferences
+    inferences = get_inferences(limit)
     
-    with open(AUDIT_PATH, "r", newline="") as f:
-        reader = csv.reader(f)
-        # Skip header
-        next(reader, None)
-        
-        rows = []
-        for row in reader:
-            rows.append(row)
-        
-        # Get the most recent 'limit' rows
-        recent_rows = rows[-limit:] if len(rows) > limit else rows
-        stats["total_inferences"] = len(recent_rows)
-        
-        if not recent_rows:
-            return stats
-            
-        for row in recent_rows:
+    if not inferences:
+        return stats
+    
+    # Calculate basic statistics
+    stats["total_inferences"] = len(inferences)
+    
+    # Calculate average score
+    total_score = 0
+    score_counts = {
+        "1.0-1.9": 0,
+        "2.0-2.9": 0,
+        "3.0-3.9": 0,
+        "4.0-5.0": 0
+    }
+    
+    # Track execution times
+    execution_times = []
+    
+    # Track feedback
+    feedback_count = 0
+    total_difference = 0.0
+    close_match_count = 0
+    
+    for inf in inferences:
+        # Score stats
+        if "score" in inf and inf["score"]:
             try:
-                # Parse the row
-                model_name = row[2]
-                model_version = row[3]
-                score = float(row[4]) if row[4] else 0.0
-                execution_time = float(row[6]) if row[6] else None
-                fallback = row[7].lower() == "true"
-                
-                # Update version usage
-                version_key = f"{model_name} v{model_version}"
-                stats["version_usage"][version_key] = stats["version_usage"].get(version_key, 0) + 1
-                
-                # Update score statistics
+                score = float(inf["score"])
                 total_score += score
                 
-                # Update score distribution
+                # Count for distribution
                 if 1.0 <= score < 2.0:
-                    stats["score_distribution"]["1.0-1.9"] += 1
+                    score_counts["1.0-1.9"] += 1
                 elif 2.0 <= score < 3.0:
-                    stats["score_distribution"]["2.0-2.9"] += 1
+                    score_counts["2.0-2.9"] += 1
                 elif 3.0 <= score < 4.0:
-                    stats["score_distribution"]["3.0-3.9"] += 1
+                    score_counts["3.0-3.9"] += 1
                 elif 4.0 <= score <= 5.0:
-                    stats["score_distribution"]["4.0-5.0"] += 1
+                    score_counts["4.0-5.0"] += 1
+            except (ValueError, TypeError):
+                pass
+        
+        # Execution time stats
+        if "execution_time_ms" in inf and inf["execution_time_ms"]:
+            try:
+                exec_time = float(inf["execution_time_ms"])
+                execution_times.append(exec_time)
+            except (ValueError, TypeError):
+                pass
+        
+        # Version usage
+        if "model_version" in inf and inf["model_version"]:
+            version = inf["model_version"]
+            if version in stats["version_usage"]:
+                stats["version_usage"][version] += 1
+            else:
+                stats["version_usage"][version] = 1
+        
+        # Fallback stats
+        if "fallback_used" in inf and inf["fallback_used"].lower() == "true":
+            stats["fallback_count"] = stats.get("fallback_count", 0) + 1
+        
+        # Feedback stats
+        if "metadata" in inf and inf["metadata"]:
+            try:
+                metadata_str = inf["metadata"]
                 
-                # Update execution time statistics
-                if execution_time is not None:
-                    total_execution_time += execution_time
-                    execution_time_count += 1
-                
-                # Update fallback statistics
-                if fallback:
-                    fallback_count += 1
+                # Check if this is a feedback entry
+                if "feedback" in metadata_str.lower() and "true" in metadata_str.lower():
+                    feedback_count += 1
                     
-            except (ValueError, IndexError) as e:
-                print(f"Error parsing row: {e}")
-                continue
-        
-        # Calculate average score
-        stats["average_score"] = round(total_score / stats["total_inferences"], 2) if stats["total_inferences"] > 0 else 0.0
-        
-        # Calculate average execution time
-        stats["average_execution_time_ms"] = round(total_execution_time / execution_time_count, 2) if execution_time_count > 0 else 0.0
-        
-        # Calculate fallback rate
-        stats["fallback_rate"] = round(fallback_count / stats["total_inferences"] * 100, 2) if stats["total_inferences"] > 0 else 0.0
-        
+                    # Try to extract score difference
+                    if "score_difference" in metadata_str:
+                        try:
+                            # Try to parse as JSON first
+                            try:
+                                metadata = json.loads(metadata_str.replace("'", "\""))
+                                if "score_difference" in metadata:
+                                    diff = float(metadata["score_difference"])
+                                    total_difference += abs(diff)
+                                    
+                                    # Check if this is a close match (within 0.5 points)
+                                    if abs(diff) <= 0.5:
+                                        close_match_count += 1
+                            except:
+                                # Try regex-based extraction
+                                import re
+                                match = re.search(r"'score_difference':\s*([-\d\.]+)", metadata_str)
+                                if match:
+                                    diff = float(match.group(1))
+                                    total_difference += abs(diff)
+                                    
+                                    # Check if this is a close match (within 0.5 points)
+                                    if abs(diff) <= 0.5:
+                                        close_match_count += 1
+                        except:
+                            pass
+            except:
+                pass
+    
+    # Calculate average score
+    if stats["total_inferences"] > 0:
+        stats["average_score"] = total_score / stats["total_inferences"]
+    
+    # Calculate fallback rate
+    if stats["total_inferences"] > 0:
+        stats["fallback_rate"] = (stats.get("fallback_count", 0) / stats["total_inferences"]) * 100
+    
+    # Calculate execution time stats
+    if execution_times:
+        stats["execution_times"]["average"] = sum(execution_times) / len(execution_times)
+        stats["execution_times"]["min"] = min(execution_times)
+        stats["execution_times"]["max"] = max(execution_times)
+    
+    # Calculate feedback stats
+    if feedback_count > 0:
+        stats["feedback_stats"]["total_feedback"] = feedback_count
+        stats["feedback_stats"]["average_difference"] = total_difference / feedback_count
+        stats["feedback_stats"]["agreement_rate"] = (close_match_count / feedback_count) * 100
+    
+    # Update score distribution
+    stats["score_distribution"] = score_counts
+    
     return stats
+
+def get_version_performance() -> Dict[str, Dict[str, Any]]:
+    """
+    Get performance statistics grouped by model version
+    
+    Returns:
+        Dict: Performance statistics for each model version
+    """
+    if not os.path.exists(AUDIT_PATH):
+        return {}
+    
+    # Read inferences
+    inferences = get_inferences()
+    
+    # Group by version
+    version_stats = {}
+    
+    for inf in inferences:
+        version = inf.get("model_version", "unknown")
+        
+        if version not in version_stats:
+            version_stats[version] = {
+                "count": 0,
+                "total_score": 0,
+                "scores": [],
+                "execution_times": [],
+                "fallback_count": 0
+            }
+        
+        version_stats[version]["count"] += 1
+        
+        # Add score
+        if "score" in inf and inf["score"]:
+            try:
+                score = float(inf["score"])
+                version_stats[version]["total_score"] += score
+                version_stats[version]["scores"].append(score)
+            except (ValueError, TypeError):
+                pass
+        
+        # Add execution time
+        if "execution_time_ms" in inf and inf["execution_time_ms"]:
+            try:
+                exec_time = float(inf["execution_time_ms"])
+                version_stats[version]["execution_times"].append(exec_time)
+            except (ValueError, TypeError):
+                pass
+        
+        # Track fallbacks
+        if "fallback_used" in inf and inf["fallback_used"].lower() == "true":
+            version_stats[version]["fallback_count"] += 1
+    
+    # Calculate statistics for each version
+    for version, stats in version_stats.items():
+        count = stats["count"]
+        
+        if count > 0:
+            # Calculate average score
+            if stats["scores"]:
+                stats["avg_score"] = stats["total_score"] / len(stats["scores"])
+                stats["min_score"] = min(stats["scores"])
+                stats["max_score"] = max(stats["scores"])
+                
+                # Calculate score standard deviation
+                if len(stats["scores"]) > 1:
+                    mean = stats["avg_score"]
+                    variance = sum((x - mean) ** 2 for x in stats["scores"]) / len(stats["scores"])
+                    stats["score_std_dev"] = variance ** 0.5
+                else:
+                    stats["score_std_dev"] = 0
+            
+            # Calculate execution time statistics
+            if stats["execution_times"]:
+                stats["avg_execution_time"] = sum(stats["execution_times"]) / len(stats["execution_times"])
+                stats["min_execution_time"] = min(stats["execution_times"])
+                stats["max_execution_time"] = max(stats["execution_times"])
+                
+                # Calculate execution time standard deviation
+                if len(stats["execution_times"]) > 1:
+                    mean = stats["avg_execution_time"]
+                    variance = sum((x - mean) ** 2 for x in stats["execution_times"]) / len(stats["execution_times"])
+                    stats["execution_time_std_dev"] = variance ** 0.5
+                else:
+                    stats["execution_time_std_dev"] = 0
+            
+            # Calculate fallback rate
+            stats["fallback_rate"] = (stats["fallback_count"] / count) * 100
+        
+        # Clean up temporary data
+        stats.pop("total_score", None)
+        stats.pop("scores", None)
+        stats.pop("execution_times", None)
+    
+    return version_stats
+
+def get_scores_by_date() -> Dict[str, Tuple[float, int]]:
+    """
+    Get average scores grouped by date
+    
+    Returns:
+        Dict: Mapping of dates to (average_score, count) tuples
+    """
+    if not os.path.exists(AUDIT_PATH):
+        return {}
+    
+    # Read inferences
+    inferences = get_inferences()
+    
+    # Group by date
+    date_scores = {}
+    
+    for inf in inferences:
+        if "timestamp" in inf and inf["timestamp"]:
+            try:
+                # Extract date part only
+                date_str = inf["timestamp"].split()[0]
+                
+                if date_str not in date_scores:
+                    date_scores[date_str] = {"total": 0, "count": 0}
+                
+                # Add score
+                if "score" in inf and inf["score"]:
+                    try:
+                        score = float(inf["score"])
+                        date_scores[date_str]["total"] += score
+                        date_scores[date_str]["count"] += 1
+                    except (ValueError, TypeError):
+                        pass
+            except:
+                pass
+    
+    # Calculate averages
+    result = {}
+    for date_str, data in date_scores.items():
+        if data["count"] > 0:
+            avg_score = data["total"] / data["count"]
+            result[date_str] = (avg_score, data["count"])
+    
+    return result
+
+def clear_audit_log(backup: bool = True) -> bool:
+    """
+    Clear the audit log (with option to backup)
+    
+    Args:
+        backup: Whether to create a backup of the log before clearing (default: True)
+        
+    Returns:
+        bool: True if successful, False otherwise
+    """
+    if not os.path.exists(AUDIT_PATH):
+        return True  # Nothing to clear
+    
+    try:
+        # Create backup if requested
+        if backup:
+            timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = f"{AUDIT_PATH}.{timestamp}.backup"
+            with open(AUDIT_PATH, "r") as src, open(backup_path, "w") as dst:
+                dst.write(src.read())
+        
+        # Clear the log (but keep the header)
+        with open(AUDIT_PATH, "w", newline="") as f:
+            writer = csv.writer(f)
+            writer.writerow([
+                "timestamp", "filename", "model_name", "model_version", 
+                "score", "confidence", "execution_time_ms", "fallback_used", 
+                "user_id", "metadata"
+            ])
+        
+        return True
+    except Exception as e:
+        print(f"Error clearing audit log: {str(e)}")
+        return False
