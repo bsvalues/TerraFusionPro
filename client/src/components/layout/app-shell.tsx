@@ -248,6 +248,13 @@ export function AppShell({ children }: AppShellProps) {
       badge: { text: "New", variant: "secondary" },
       description: "AI-generated market trend analysis"
     },
+    { 
+      href: "/legal-urar", 
+      label: "URAR + AI Assistant", 
+      icon: <FileCheck className="h-4 w-4" />,
+      badge: { text: "New", variant: "secondary" },
+      description: "Legal URAR form with AI condition insights"
+    },
   ];
   
   // TerraField Mobile Features
