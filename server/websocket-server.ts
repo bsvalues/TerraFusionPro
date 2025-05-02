@@ -61,9 +61,6 @@ export function setupWebSocketServer(server: http.Server) {
   server.headersTimeout = 66000; // 66 seconds
   console.log('[WebSocket] HTTP Server timeouts configured: keepAliveTimeout=65000ms, headersTimeout=66000ms');
 
-  // Create WebSocket server
-  const wss = new WebSocketServer({ server, path: '/ws' });
-
   // Create alternative WebSocket server as a backup option
   console.log('[WebSocket] Setting up alternative WebSocket server on path /ws-alt');
   const wssAlt = new WebSocketServer({ server, path: '/ws-alt' });
