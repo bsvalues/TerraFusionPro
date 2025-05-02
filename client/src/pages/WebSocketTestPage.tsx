@@ -8,6 +8,9 @@ import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Info, AlertTriangle } from 'lucide-react';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 export default function WebSocketTestPage() {
   const realtime = useRealtime();
@@ -15,29 +18,73 @@ export default function WebSocketTestPage() {
   const [receivedMessages, setReceivedMessages] = useState<string[]>([]);
   const [subscriptionId, setSubscriptionId] = useState<string | null>(null);
   const [pollInterval, setPollInterval] = useState<number>(10000);
+  const [isReplitEnvironment, setIsReplitEnvironment] = useState<boolean>(false);
+  const [connectionAttempts, setConnectionAttempts] = useState<number>(0);
+  const [activeTab, setActiveTab] = useState<string>('controls');
   
-  // Force polling mode by default since WebSockets keep failing
+  // Check if we're in a Replit environment
   useEffect(() => {
-    // Immediately force polling mode without waiting for WebSocket failures
-    const timer = setTimeout(() => {
-      console.log('Forcing polling mode for better reliability');
-      
-      // Force polling mode
-      try {
-        realtime.forcePolling();
-        setReceivedMessages([
-          'Auto-switched to polling mode due to known WebSocket issues in Replit environment',
-          `Current connection method: ${realtime.connectionMethod}`,
-          `Current connection status: ${realtime.connectionStatus}`,
-          'WebSockets in Replit environment may fail with 400/403 errors due to proxy settings',
-          'Long-polling and SSE provide more reliable alternatives'
-        ]);
-      } catch (err) {
-        console.error('Error switching to polling mode:', err);
-      }
-    }, 500);
+    const hostname = window.location.hostname;
+    const isReplit = hostname.includes('replit.dev');
+    setIsReplitEnvironment(isReplit);
     
-    return () => clearTimeout(timer);
+    if (isReplit) {
+      setReceivedMessages((prev) => [
+        ...prev,
+        '📌 Replit environment detected',
+        'Using optimized connection strategy for Replit',
+        'Priority: Long Polling → SSE → WebSocket',
+        '---'
+      ]);
+      
+      // Listen for connection events to track attempts
+      realtime.on('reconnect_attempt', (data) => {
+        if (data.attempt) {
+          setConnectionAttempts(data.attempt);
+          setReceivedMessages((prev) => [
+            ...prev, 
+            `Connection attempt ${data.attempt}/${data.maxAttempts}: trying alternative methods...`
+          ]);
+        }
+      });
+      
+      // Listen for connection status changes
+      realtime.on('connected', (data) => {
+        setReceivedMessages((prev) => [
+          ...prev,
+          `✅ Connected successfully using ${data.protocol || 'unknown'} protocol`
+        ]);
+      });
+      
+      realtime.on('disconnected', () => {
+        setReceivedMessages((prev) => [
+          ...prev,
+          `❌ Disconnected, will automatically attempt reconnection`
+        ]);
+      });
+      
+      // Listen for connection failures
+      realtime.on('connection_failed', () => {
+        setReceivedMessages((prev) => [
+          ...prev,
+          `⚠️ All connection attempts failed, falling back to polling`,
+          'Activating HTTP long polling fallback for more reliable connection'
+        ]);
+        
+        // Auto-switch to polling mode after all connection attempts fail
+        setTimeout(() => {
+          realtime.forcePolling();
+        }, 1000);
+      });
+    }
+    
+    // Cleanup event listeners on unmount
+    return () => {
+      realtime.off('reconnect_attempt', () => {});
+      realtime.off('connected', () => {});
+      realtime.off('disconnected', () => {});
+      realtime.off('connection_failed', () => {});
+    };
   }, [realtime]);
   
   // Status badge colors based on connection status
@@ -117,26 +164,55 @@ export default function WebSocketTestPage() {
     <div className="container mx-auto p-4">
       <Card className="w-full">
         <CardHeader>
-          <CardTitle>WebSocket / Realtime Test</CardTitle>
-          <CardDescription>
-            Test the WebSocket connection and polling fallback functionality
-          </CardDescription>
+          <div className="flex justify-between items-center">
+            <div>
+              <CardTitle>WebSocket / Realtime Test</CardTitle>
+              <CardDescription>
+                Test the WebSocket connection and fallback strategies
+              </CardDescription>
+            </div>
+            <Badge className={getStatusColor(realtime.connectionStatus)}>
+              {realtime.connectionStatus}
+            </Badge>
+          </div>
         </CardHeader>
+
+        {isReplitEnvironment && (
+          <Alert className="mx-6 mb-2">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Replit Environment Detected</AlertTitle>
+            <AlertDescription>
+              WebSockets face connection issues in Replit environments due to proxy settings.
+              We've implemented a robust fallback strategy: Long Polling → SSE → WebSocket.
+              Connection attempts: {connectionAttempts}/5
+            </AlertDescription>
+          </Alert>
+        )}
+
         <CardContent>
           <div className="flex flex-col space-y-4">
             {/* Status section */}
             <div className="flex flex-col space-y-2">
               <h3 className="text-lg font-medium">Connection Status</h3>
-              <div className="flex items-center space-x-2">
-                <Badge className={getStatusColor(realtime.connectionStatus)}>
-                  {realtime.connectionStatus}
-                </Badge>
-                <span className="text-sm">
-                  Method: {realtime.connectionMethod}
-                </span>
-                <span className="text-sm">
-                  Connected: {realtime.isConnected ? 'Yes' : 'No'}
-                </span>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="border rounded-md p-3 flex flex-col justify-between">
+                  <span className="text-sm text-muted-foreground">Status</span>
+                  <Badge className={getStatusColor(realtime.connectionStatus)}>
+                    {realtime.connectionStatus}
+                  </Badge>
+                </div>
+                <div className="border rounded-md p-3 flex flex-col justify-between">
+                  <span className="text-sm text-muted-foreground">Protocol</span>
+                  <span className="font-medium">{realtime.connectionMethod || 'None'}</span>
+                </div>
+                <div className="border rounded-md p-3 flex flex-col justify-between">
+                  <span className="text-sm text-muted-foreground">Connected</span>
+                  <span className="font-medium">{realtime.isConnected ? 'Yes' : 'No'}</span>
+                </div>
+                <div className="border rounded-md p-3 flex flex-col justify-between">
+                  <span className="text-sm text-muted-foreground">Attempts</span>
+                  <span className="font-medium">{connectionAttempts}/5</span>
+                </div>
               </div>
             </div>
             

@@ -22,6 +22,9 @@ type RealtimeContextType = {
   forcePolling: () => void;
   subscribe: (id: string, options: any) => void;
   unsubscribe: (id: string) => void;
+  // Event handling methods
+  on: (event: string, handler: (data: any) => void) => void;
+  off: (event: string, handler: (data: any) => void) => void;
 };
 
 // Create the context with default values
@@ -45,6 +48,9 @@ const RealtimeContext = createContext<RealtimeContextType>({
   forcePolling: () => {},
   subscribe: () => {},
   unsubscribe: () => {},
+  // Event handlers
+  on: () => {},
+  off: () => {},
 });
 
 // Context provider component
@@ -192,6 +198,15 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     // In a real implementation, this would clean up polling or event subscriptions
   };
 
+  // Event handlers pass-through
+  const on = (event: string, handler: (data: any) => void): void => {
+    realtimeService.on(event, handler);
+  };
+
+  const off = (event: string, handler: (data: any) => void): void => {
+    realtimeService.off(event, handler);
+  };
+
   const contextValue = {
     // Original values
     connectionState,
@@ -214,6 +229,10 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     forcePolling,
     subscribe,
     unsubscribe,
+    
+    // Event handling
+    on,
+    off,
   };
 
   return (

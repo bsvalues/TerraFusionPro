@@ -84,9 +84,17 @@ export class WebSocketManager {
     // Detect if running in Replit environment
     const isReplit = window.location.hostname.includes('replit.dev');
     
+    // If this is an alternate attempt and we're already using /ws, try /ws-alt
+    if (this.reconnectAttempts > 0 && endpoint === '/ws') {
+      endpoint = '/ws-alt';
+      console.log('[WebSocketManager] Switching to alternate WebSocket endpoint: /ws-alt');
+    }
+    
     if (isReplit) {
       // In Replit environment, use the current hostname with wss protocol
-      return `wss://${window.location.host}${endpoint}`;
+      // Add a unique cache-busting parameter to avoid proxy caching issues
+      const cacheBuster = `t=${Date.now()}`;
+      return `wss://${window.location.host}${endpoint}?${cacheBuster}`;
     } else {
       // In local development, use the right protocol based on page protocol
       const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -103,6 +111,10 @@ export class WebSocketManager {
     if (this.isConnected || this.isConnecting) {
       return Promise.resolve(this.isConnected);
     }
+    
+    // Get a fresh URL in case we're trying an alternative endpoint
+    // This is important for reconnection attempts to use different endpoints
+    this.url = this.getWebSocketUrl(this.url.includes('/ws-alt') ? '/ws-alt' : '/ws');
     
     console.log(`[WebSocketManager] Connecting to ${this.url}...`);
     this.isConnecting = true;
