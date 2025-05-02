@@ -1,0 +1,26 @@
+version: '3.8'
+services:
+  server:
+    image: your-registry/terrafusion-server:latest
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=...
+    ports:
+      - 5000:5000
+
+  client:
+    image: your-registry/terrafusion-client:latest
+    ports:
+      - 3000:3000
+
+  db:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: terra
+      POSTGRES_USER: terra
+      POSTGRES_PASSWORD: password
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:
