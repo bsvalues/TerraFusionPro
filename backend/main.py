@@ -15,6 +15,9 @@ from pydantic import BaseModel
 # Import valuation model functions
 from model.valuation import perform_automated_valuation, analyze_market_trends, generate_valuation_narrative
 
+# Import routers
+from backend.routes.condition_analysis import router as condition_analysis_router
+
 # Define data models
 class PropertyFeature(BaseModel):
     name: str
@@ -89,6 +92,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(condition_analysis_router, prefix="/api")
 
 @app.get("/")
 async def root():
