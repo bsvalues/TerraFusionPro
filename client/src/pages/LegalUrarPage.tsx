@@ -27,14 +27,18 @@ interface FormData {
   [key: string]: any;
 }
 
-export default function LegalUrarPage() {
+interface LegalUrarPageProps {
+  propertyId?: number;
+}
+
+export default function LegalUrarPage({ propertyId: propId }: LegalUrarPageProps) {
   const [_, setLocation] = useLocation();
   const { toast } = useToast();
   const search = useSearch();
   const queryParams = new URLSearchParams(search);
   
-  // Parse query parameters
-  const propertyId = Number(queryParams.get('propertyId') || 1001);
+  // Use prop value or query param or default
+  const propertyId = propId || Number(queryParams.get('propertyId') || 1001);
   
   // State for form data and insights
   const [formData, setFormData] = useState<FormData>({

@@ -115,8 +115,13 @@ function App() {
                 <Route path="/system-monitor" component={SystemMonitorPage} />
                 <Route path="/system-status" component={SystemMonitorPage} />
                 <Route path="/shap-viewer" component={ShapViewerPage} />
-                <Route path="/legal-urar" component={LegalUrarPage} />
-                <Route path="/legal-urar/:propertyId" component={LegalUrarPage} />
+                {/* URAR + AI Assistant Page */}
+                <Route path="/legal-urar">
+                  {() => <LegalUrarPage />}
+                </Route>
+                <Route path="/legal-urar/:propertyId">
+                  {(params) => <LegalUrarPage propertyId={Number(params.propertyId)} />}
+                </Route>
                 <Route path="/debug/performance">
                   {() => {
                     // Only import PerformanceDebugger in development
