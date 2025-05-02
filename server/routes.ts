@@ -56,6 +56,7 @@ import { marketAnalysisRouter } from './routes/market-analysis-routes';
 import { snapshotsRouter } from './routes/snapshots-routes';
 import modelVersionRoutes from './model-version-routes';
 import { valuationProxyRouter } from './routes/valuation-proxy-routes';
+import shapRouter from './routes/shap-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
