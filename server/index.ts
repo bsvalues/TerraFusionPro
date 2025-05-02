@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocketServer } from "./websocket-server";
+import { shapWebSocketService } from "./shap_ws_service";
 // Import health check module
 import * as healthCheck from './monitoring/health-check';
 
@@ -44,6 +45,10 @@ app.use((req, res, next) => {
   
   // Set up main WebSocket server
   setupWebSocketServer(server);
+  
+  // Set up SHAP WebSocket service
+  shapWebSocketService.initialize(server, '/shap-ws');
+  console.log('[SHAP] SHAP WebSocket service initialized');
   
   // Register health check routes
   healthCheck.registerHealthRoutes(app);
