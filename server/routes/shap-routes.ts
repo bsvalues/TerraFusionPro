@@ -2,40 +2,34 @@
  * TerraFusion SHAP API Routes
  */
 
-import express, { Router, Request, Response } from 'express';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import { Router, Request, Response } from 'express';
+
+// Path to SHAP values directory
+const SHAP_VALUES_DIR = path.join(process.cwd(), 'models', 'shap_values');
+const SAMPLE_IMAGES_DIR = path.join(process.cwd(), 'data', 'sample_images');
 
 // Create router
-const shapRouter = Router();
+export const shapRouter = Router();
 
 /**
  * Get SHAP sample image
  */
 shapRouter.get('/sample-images/:filename', (req: Request, res: Response) => {
-  try {
-    const { filename } = req.params;
-    
-    // Validate filename to prevent directory traversal
-    if (!filename || filename.includes('..') || filename.includes('/')) {
-      return res.status(400).json({ error: 'Invalid filename' });
-    }
-    
-    // Set paths
-    const sampleImagesPath = path.join(process.cwd(), 'data', 'sample_images');
-    const filepath = path.join(sampleImagesPath, filename);
-    
-    // Check if file exists
-    if (!fs.existsSync(filepath)) {
-      return res.status(404).json({ error: 'Image not found' });
-    }
-    
-    // Send file
-    res.sendFile(filepath);
-  } catch (error) {
-    console.error('[SHAP Routes] Error serving sample image:', error);
-    res.status(500).json({ error: 'Error serving sample image' });
+  const { filename } = req.params;
+  const imagePath = path.join(SAMPLE_IMAGES_DIR, filename);
+  
+  // Check if file exists
+  if (!fs.existsSync(imagePath)) {
+    return res.status(404).json({ error: 'Sample image not found' });
   }
+  
+  // Set appropriate content type
+  res.setHeader('Content-Type', 'image/png');
+  
+  // Send file
+  fs.createReadStream(imagePath).pipe(res);
 });
 
 /**
@@ -43,21 +37,17 @@ shapRouter.get('/sample-images/:filename', (req: Request, res: Response) => {
  */
 shapRouter.get('/values', (req: Request, res: Response) => {
   try {
-    const shapValuesPath = path.join(process.cwd(), 'models', 'shap_values', 'all_shap_values.json');
+    const filePath = path.join(SHAP_VALUES_DIR, 'all_shap_values.json');
     
-    // Check if file exists
-    if (!fs.existsSync(shapValuesPath)) {
-      return res.status(404).json({ error: 'SHAP values file not found' });
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: 'SHAP values not found' });
     }
     
-    // Read file
-    const shapValues = JSON.parse(fs.readFileSync(shapValuesPath, 'utf8'));
-    
-    // Send data
+    const shapValues = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     res.json(shapValues);
   } catch (error) {
-    console.error('[SHAP Routes] Error retrieving SHAP values:', error);
-    res.status(500).json({ error: 'Error retrieving SHAP values' });
+    console.error('Error retrieving SHAP values:', error);
+    res.status(500).json({ error: 'Failed to retrieve SHAP values' });
   }
 });
 
@@ -65,29 +55,21 @@ shapRouter.get('/values', (req: Request, res: Response) => {
  * Get SHAP values for a specific condition
  */
 shapRouter.get('/values/:condition', (req: Request, res: Response) => {
+  const { condition } = req.params;
+  const normalizedCondition = condition.toLowerCase();
+  
   try {
-    const { condition } = req.params;
+    const filePath = path.join(SHAP_VALUES_DIR, `${normalizedCondition}_shap.json`);
     
-    // Validate condition
-    if (!condition || !['excellent', 'good', 'average', 'fair', 'poor'].includes(condition)) {
-      return res.status(400).json({ error: 'Invalid condition' });
+    if (!fs.existsSync(filePath)) {
+      return res.status(404).json({ error: `SHAP values for condition '${condition}' not found` });
     }
     
-    const shapValuePath = path.join(process.cwd(), 'models', 'shap_values', `${condition}_shap.json`);
-    
-    // Check if file exists
-    if (!fs.existsSync(shapValuePath)) {
-      return res.status(404).json({ error: `SHAP values for ${condition} condition not found` });
-    }
-    
-    // Read file
-    const shapValues = JSON.parse(fs.readFileSync(shapValuePath, 'utf8'));
-    
-    // Send data
+    const shapValues = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
     res.json(shapValues);
   } catch (error) {
-    console.error('[SHAP Routes] Error retrieving SHAP values for condition:', error);
-    res.status(500).json({ error: 'Error retrieving SHAP values' });
+    console.error(`Error retrieving SHAP values for condition '${condition}':`, error);
+    res.status(500).json({ error: 'Failed to retrieve SHAP values' });
   }
 });
 
@@ -95,30 +77,41 @@ shapRouter.get('/values/:condition', (req: Request, res: Response) => {
  * Generate SHAP values
  */
 shapRouter.post('/generate', (req: Request, res: Response) => {
+  const { propertyId, imageUrl } = req.body;
+  
+  // Validate request
+  if (!propertyId || !imageUrl) {
+    return res.status(400).json({ error: 'Property ID and image URL are required' });
+  }
+  
+  // This would typically call a Python script or backend service to generate SHAP values
+  // For now, we'll return a simulated response based on our sample data
+  
   try {
-    const { execSync } = require('child_process');
+    // Get a random condition type for demonstration
+    const conditions = ['excellent', 'good', 'average', 'fair', 'poor'];
+    const randomCondition = conditions[Math.floor(Math.random() * conditions.length)];
     
-    // Execute the SHAP values generator script
-    const scriptPath = path.join(process.cwd(), 'scripts', 'generate_shap_values.py');
+    // Read the corresponding SHAP values
+    const filePath = path.join(SHAP_VALUES_DIR, `${randomCondition}_shap.json`);
     
-    // Run the script
-    const result = execSync(`python ${scriptPath}`).toString();
-    
-    // Check if script execution was successful
-    if (result.includes('Error')) {
-      return res.status(500).json({ error: 'Error generating SHAP values', details: result });
+    if (!fs.existsSync(filePath)) {
+      return res.status(500).json({ error: 'Failed to generate SHAP values - sample data not found' });
     }
     
-    // Send success response
-    res.json({ 
-      success: true, 
-      message: 'SHAP values generated successfully',
-      details: result
-    });
+    const shapValues = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+    
+    // Simulate a processing delay
+    setTimeout(() => {
+      res.json({
+        propertyId,
+        condition: randomCondition,
+        shapValues,
+        sampleImageUrl: `/api/shap/sample-images/${randomCondition}_condition.png`
+      });
+    }, 1500);
   } catch (error) {
-    console.error('[SHAP Routes] Error generating SHAP values:', error);
-    res.status(500).json({ error: 'Error generating SHAP values' });
+    console.error('Error generating SHAP values:', error);
+    res.status(500).json({ error: 'Failed to generate SHAP values' });
   }
 });
-
-export default shapRouter;

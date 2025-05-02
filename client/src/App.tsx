@@ -27,6 +27,7 @@ import PhotoEnhancementPage from "./pages/PhotoEnhancementPage";
 import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
 import WebSocketTestPage from "./pages/WebSocketTestPage";
+import ShapViewerPage from "./pages/ShapViewerPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { ReportGenerationPage } from "./pages/ReportGenerationPage";
 import MarketAnalysisPage from "./pages/MarketAnalysisPage";
@@ -111,6 +112,7 @@ function App() {
           <Route path="/snapshots/:propertyId" component={SnapshotViewerPage} />
           <Route path="/system-monitor" component={SystemMonitorPage} />
           <Route path="/system-status" component={SystemMonitorPage} />
+          <Route path="/shap-viewer" component={ShapViewerPage} />
           <Route path="/debug/performance">
             {() => {
               // Only import PerformanceDebugger in development
