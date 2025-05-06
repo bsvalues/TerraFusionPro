@@ -160,6 +160,7 @@ export default function EnhancedApp2() {
               <Route path="/snapshots" component={SnapshotViewerPage} />
               <Route path="/snapshots/:propertyId" component={SnapshotViewerPage} />
               <Route path="/shap-viewer" component={ShapViewerPage} />
+              <Route path="/shap" component={ShapViewerPage} />
               <Route path="/ai-analysis" component={MarketAnalysisPage} />
               
               <Route path="/:rest*" component={NotFound} />
