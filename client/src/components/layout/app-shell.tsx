@@ -249,7 +249,7 @@ export function AppShell({ children }: AppShellProps) {
       description: "AI-generated market trend analysis"
     },
     { 
-      href: "/legal-urar", 
+      href: "/urar", 
       label: "URAR + AI Assistant", 
       icon: <FileCheck className="h-4 w-4" />,
       badge: { text: "New", variant: "secondary" },

@@ -28,8 +28,8 @@ import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
 import WebSocketTestPage from "./pages/WebSocketTestPage";
 import ShapViewerPage from "./pages/ShapViewerPage";
-// Import from the file that definitely exists
-import LegalUrarPage from "./pages/LegalUrarPage";
+// Import the new URAR page
+import UrarPage from "./pages/UrarPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { ReportGenerationPage } from "./pages/ReportGenerationPage";
 import MarketAnalysisPage from "./pages/MarketAnalysisPage";
@@ -116,12 +116,18 @@ function App() {
                 <Route path="/system-monitor" component={SystemMonitorPage} />
                 <Route path="/system-status" component={SystemMonitorPage} />
                 <Route path="/shap-viewer" component={ShapViewerPage} />
-                {/* URAR + AI Assistant Page */}
+                {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
+                <Route path="/urar">
+                  {() => <UrarPage />}
+                </Route>
+                <Route path="/urar/:propertyId">
+                  {(params) => <UrarPage propertyId={Number(params.propertyId)} />}
+                </Route>
                 <Route path="/legal-urar">
-                  {() => <LegalUrarPage />}
+                  {() => <UrarPage />}
                 </Route>
                 <Route path="/legal-urar/:propertyId">
-                  {(params) => <LegalUrarPage propertyId={Number(params.propertyId)} />}
+                  {(params) => <UrarPage propertyId={Number(params.propertyId)} />}
                 </Route>
                 <Route path="/debug/performance">
                   {() => {

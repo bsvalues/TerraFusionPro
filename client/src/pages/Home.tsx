@@ -89,7 +89,7 @@ export default function Home() {
                     className="bg-blue-600 hover:bg-blue-700 text-white"
                     onClick={() => {
                       console.log("URAR + AI Assistant clicked");
-                      setLocation('/legal-urar');
+                      setLocation('/urar');
                     }}
                   >
                     URAR + AI Assistant

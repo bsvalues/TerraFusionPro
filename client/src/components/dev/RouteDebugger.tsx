@@ -14,12 +14,12 @@ export function RouteDebugger() {
   // Common routes to test
   const testRoutes = [
     '/',
+    '/urar',
+    '/urar/1001',
     '/legal-urar',
     '/legal-urar/1001',
-    '/legal-urar/1002',
     '/shap-viewer',
     '/ws-test',
-    '/uad-form',
     '/comps',
     '/settings'
   ];
