@@ -28,7 +28,8 @@ import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
 import WebSocketTestPage from "./pages/WebSocketTestPage";
 import ShapViewerPage from "./pages/ShapViewerPage";
-import LegalUrarPage from "./pages/legal-urar";
+// Import from the file that definitely exists
+import LegalUrarPage from "./pages/LegalUrarPage";
 import { WorkflowPage } from "./pages/WorkflowPage";
 import { ReportGenerationPage } from "./pages/ReportGenerationPage";
 import MarketAnalysisPage from "./pages/MarketAnalysisPage";

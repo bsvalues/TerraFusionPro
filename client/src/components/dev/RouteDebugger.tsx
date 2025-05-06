@@ -15,12 +15,13 @@ export function RouteDebugger() {
   const testRoutes = [
     '/',
     '/legal-urar',
+    '/legal-urar/1001',
+    '/legal-urar/1002',
     '/shap-viewer',
     '/ws-test',
     '/uad-form',
     '/comps',
-    '/settings',
-    '/urar-form'
+    '/settings'
   ];
 
   // Add current location to history when it changes

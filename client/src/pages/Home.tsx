@@ -66,7 +66,7 @@ export default function Home() {
                 <p className="mb-3">
                   Explore how our AI model analyzes property conditions using SHAP values for complete transparency.
                 </p>
-                <div className="flex gap-3">
+                <div className="flex gap-3 flex-wrap">
                   <Button 
                     className="bg-green-600 hover:bg-green-700 text-white"
                     onClick={() => {
@@ -84,6 +84,15 @@ export default function Home() {
                     }}
                   >
                     WebSocket Test Page
+                  </Button>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => {
+                      console.log("URAR + AI Assistant clicked");
+                      setLocation('/legal-urar');
+                    }}
+                  >
+                    URAR + AI Assistant
                   </Button>
                 </div>
               </div>
