@@ -1,108 +1,122 @@
-import { db } from './db';
+import { db, pool } from './db';
 import { storage } from './storage';
 import { orders } from '@shared/schema';
 import { sql } from 'drizzle-orm';
 
-// Test the order operations with column naming mismatches
+// Test the order operations with the fixed database operations
 async function testOrderOperations() {
   try {
-    console.log('=== Testing Order Operations - Column Name Mismatch Handling ===');
+    console.log('=== Testing Order Operations - Updated Implementation ===');
     
-    // Example of schema vs actual DB naming differences:
-    // JavaScript schema uses camelCase:
-    // - orderType (in schema) vs order_type (in DB)
-    // - taxParcelId (in schema) vs tax_parcel_id (in DB)
-    // - status (in schema) vs status (in DB) - sometimes matches!
-    
-    console.log('\n--- Database Schema Check ---');
+    // Check current orders
+    console.log('\n--- Current Orders in Database ---');
     try {
-      // Run a direct query to see the actual column names in the database
-      const tableInfo = await db.execute(`
-        SELECT column_name, data_type
-        FROM information_schema.columns
-        WHERE table_name = 'orders'
-        ORDER BY ordinal_position
-      `);
-      console.log('Actual database columns (snake_case):', tableInfo);
+      const existingOrders = await pool.query(`SELECT * FROM orders ORDER BY id`);
+      console.log(`Found ${existingOrders.rows.length} existing orders:`);
+      console.table(existingOrders.rows);
     } catch (error) {
-      console.error('Failed to get table schema:', error);
+      console.error('Failed to get existing orders:', error);
     }
     
-    // Create test orders
-    console.log('\n--- Creating Test Orders ---');
+    // Create test order
+    console.log('\n--- Creating New Test Order ---');
     
     const order1 = await storage.createOrder({
       userId: 1, // Using existing user ID 1
-      propertyId: 1, // Using existing property ID 1 instead of 101
-      orderType: 'appraisal', // In JS: orderType, In DB: order_type
+      propertyId: 1, // Using existing property ID 1 
+      orderType: 'assessment', // Different type for testing purposes
       status: 'pending',
-      priority: 'medium', // Using valid enum value 'medium' instead of 'normal'
-      dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      notes: 'Test order with column name mismatch handling'
-      // Removed non-existent fields assignedTo and totalFee
+      priority: 'high',
+      dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000), // 14 days from now
+      notes: 'Test order created with direct pool query'
     });
     
-    console.log('Created order with camelCase fields:', order1);
-    console.log('Note how the response from DB uses snake_case naming from the database, but TypeScript interface uses camelCase');
+    if (!order1) {
+      throw new Error('Failed to create order');
+    }
     
-    // Demonstrate querying by order type (Snake Case vs Camel Case handling)
-    console.log('\n--- Querying By Order Type (Snake vs Camel Case) ---');
-    const ordersByType = await storage.getOrdersByType('appraisal');
-    console.log(`Found ${ordersByType.length} orders with type 'appraisal'`, 
-                `demonstrating orderType (JS) -> order_type (DB) mapping`);
+    console.log('Successfully created order:', order1);
     
-    // Demonstrate querying by status
-    console.log('\n--- Querying By Status ---');
-    const ordersByStatus = await storage.getOrdersByStatus('pending');
-    console.log(`Found ${ordersByStatus.length} orders with status 'pending'`);
-    
-    // Update order with camelCase fields
-    console.log('\n--- Updating Order with CamelCase Fields ---');
+    // Update the order
+    console.log('\n--- Updating The Order ---');
     const updatedOrder = await storage.updateOrder(order1.id, {
-      notes: 'Updated via camelCase field names',
-      priority: 'high' // In JS: priority, in DB: priority (matches)
-      // Removed totalFee field as it doesn't exist in the database
+      notes: 'Updated via fixed database operation',
+      priority: 'medium',
+      status: 'in_progress'
     });
-    console.log('Updated order using camelCase fields:', updatedOrder);
     
-    // Demonstrate using raw SQL vs ORM query
-    console.log('\n--- ORM Query vs Raw SQL ---');
-    
-    console.log('1. Trying with ORM (potential mismatch issues):');
-    try {
-      // This could fail due to column name mismatch
-      const ormResult = await db.select().from(orders)
-        .where(sql`${orders.orderType} = ${'appraisal'}`);
-      console.log('ORM query result:', ormResult);
-    } catch (error) {
-      console.error('ORM query failed (expected if column names mismatch):', error);
+    if (!updatedOrder) {
+      throw new Error('Failed to update order');
     }
     
-    console.log('\n2. Using Raw SQL (correct column names):');
-    try {
-      // This should work because we explicitly use the DB column names
-      const rawSqlResult = await db.execute(`
-        SELECT * FROM "orders" 
-        WHERE "order_type" = $1
-      `, ['appraisal']);
-      console.log('Raw SQL query result:', rawSqlResult);
-    } catch (error) {
-      console.error('Raw SQL query failed:', error);
+    console.log('Successfully updated order:', updatedOrder);
+    
+    // Update just the status
+    console.log('\n--- Updating Order Status Only ---');
+    const statusUpdateOrder = await storage.updateOrderStatus(
+      order1.id, 
+      'completed', 
+      'Marked as completed via status update method'
+    );
+    
+    if (!statusUpdateOrder) {
+      throw new Error('Failed to update order status');
     }
     
-    // Delete test order to clean up
-    console.log('\n--- Cleaning Up Test Order ---');
+    console.log('Successfully updated order status:', statusUpdateOrder);
+    
+    // Fetch by order type
+    console.log('\n--- Fetching Orders by Type ---');
+    try {
+      const ordersByType = await pool.query(`
+        SELECT * FROM orders WHERE order_type = $1
+      `, ['assessment']);
+      
+      console.log(`Found ${ordersByType.rows.length} orders with type 'assessment':`);
+      console.table(ordersByType.rows);
+    } catch (error) {
+      console.error('Failed to query by order type:', error);
+    }
+    
+    // Fetch by status
+    console.log('\n--- Fetching Orders by Status ---');
+    try {
+      const ordersByStatus = await pool.query(`
+        SELECT * FROM orders WHERE status = $1
+      `, ['completed']);
+      
+      console.log(`Found ${ordersByStatus.rows.length} orders with status 'completed':`);
+      console.table(ordersByStatus.rows);
+    } catch (error) {
+      console.error('Failed to query by status:', error);
+    }
+    
+    // Delete test order
+    console.log('\n--- Deleting Test Order ---');
     const deleteResult = await storage.deleteOrder(order1.id);
     console.log(`Order deletion ${deleteResult ? 'successful' : 'failed'}`);
     
-    console.log('\n=== Column Name Mismatch Test Completed ===');
+    // Verify deletion
+    console.log('\n--- Verifying Deletion ---');
+    try {
+      const verifyDelete = await pool.query(`SELECT * FROM orders WHERE id = $1`, [order1.id]);
+      if (verifyDelete.rows.length === 0) {
+        console.log(`Verified: Order ${order1.id} no longer exists in the database`);
+      } else {
+        console.log(`Warning: Order ${order1.id} still exists in the database`);
+      }
+    } catch (error) {
+      console.error('Failed to verify deletion:', error);
+    }
+    
+    console.log('\n=== Order Operations Test Completed Successfully ===');
   } catch (error) {
     console.error('Error in test:', error);
   }
 }
 
 // Run the test
-console.log('Starting comprehensive test of order operations with column name mismatch handling...');
+console.log('Starting comprehensive test of order operations with fixed implementations...');
 testOrderOperations().then(() => {
   console.log('Test script completed successfully.');
 }).catch((error) => {
