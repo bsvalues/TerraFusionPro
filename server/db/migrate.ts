@@ -10,6 +10,7 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import * as schema from '../../shared/schema';
 import fs from 'fs';
 import path from 'path';
+import { fileURLToPath } from 'url';
 import ws from 'ws';
 
 // Configure neonConfig to use WebSocket
@@ -20,6 +21,10 @@ if (!process.env.DATABASE_URL) {
   console.error('❌ DATABASE_URL must be set');
   process.exit(1);
 }
+
+// Get the directory name in ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function main() {
   console.log('🔄 Starting database migration process...');
