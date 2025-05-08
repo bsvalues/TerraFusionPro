@@ -2,7 +2,6 @@ import { pool, db } from '../db';
 import fs from 'fs';
 import path from 'path';
 import { eq, sql } from 'drizzle-orm';
-import { schema_version } from '@shared/schema';
 
 /**
  * Robust Migration System for TerraFusion Platform
@@ -97,13 +96,16 @@ function getAvailableMigrations(): Migration[] {
  */
 async function getAppliedMigrations(): Promise<string[]> {
   try {
-    // Get all applied migrations
-    const appliedMigrations = await db.select()
-      .from(schema_version)
-      .orderBy(schema_version.version);
+    // Get all applied migrations using raw query since we don't have schema_version in our schema
+    const result = await pool.query(`
+      SELECT version
+      FROM schema_version
+      WHERE success = true
+      ORDER BY version
+    `);
     
     // Return array of version strings
-    return appliedMigrations.map(migration => migration.version);
+    return result.rows.map(row => row.version);
   } catch (error) {
     // If the table doesn't exist yet, return empty array
     console.error('Error getting applied migrations:', error);
@@ -148,10 +150,13 @@ async function applyMigration(migration: Migration): Promise<boolean> {
     
     // Record failed migration
     try {
+      // Cast error to type with message property
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      
       await client.query(
         `INSERT INTO schema_version (version, description, success, error_message) 
          VALUES ($1, $2, $3, $4)`,
-        [migration.version, migration.description, false, error.message]
+        [migration.version, migration.description, false, errorMessage]
       );
     } catch (recordError) {
       console.error('Error recording failed migration:', recordError);
@@ -225,15 +230,19 @@ export async function getCurrentSchemaVersion(): Promise<string | null> {
     // Ensure schema_version table exists
     await ensureSchemaVersionTable();
     
-    // Get most recent successful migration
-    const [latestMigration] = await db.select()
-      .from(schema_version)
-      .where(eq(schema_version.success, true))
-      .orderBy(sql`${schema_version.version} DESC`)
-      .limit(1);
+    // Get most recent successful migration using raw query
+    const result = await pool.query(`
+      SELECT version, applied_at
+      FROM schema_version
+      WHERE success = true
+      ORDER BY version DESC
+      LIMIT 1
+    `);
     
-    if (latestMigration) {
-      return latestMigration.version;
+    if (result.rows.length > 0) {
+      const { version, applied_at } = result.rows[0];
+      console.log(`📋 Current schema version: ${version} (applied at ${applied_at})`);
+      return version;
     }
     
     return null;
