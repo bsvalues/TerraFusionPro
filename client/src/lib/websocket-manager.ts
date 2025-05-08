@@ -591,8 +591,12 @@ export const websocketManager = new WebSocketManager(
   },
   {
     protocols: ['json', 'v1.terrafusion.websocket'],
-    reconnectDelayMs: 2000,
-    maxReconnectAttempts: 5,
-    heartbeatIntervalMs: 30000
+    reconnectDelayMs: 1000, // Faster initial reconnect
+    maxReconnectAttempts: 3, // Reduced attempts before falling back to polling
+    heartbeatIntervalMs: 15000 // More frequent heartbeats for better connection monitoring
   }
 );
+
+// Log initialization
+console.log('[WebSocketManager] Resilient connection manager initialized with enhanced fallback support');
+console.log('[WebSocketManager] WebSocket → Long Polling fallback enabled for Replit environment');

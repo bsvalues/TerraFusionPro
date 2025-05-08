@@ -23,6 +23,8 @@ const WebSocketContext = createContext<WebSocketContextType>({
   isConnected: false,
   connectionError: null,
   reconnectAttempts: 0,
+  connectionType: 'none',
+  usingFallback: false,
   connect: () => {},
   disconnect: () => {},
   send: () => false,
@@ -34,6 +36,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   const [connectionError, setConnectionError] = useState<string | null>(null);
   const [reconnectAttempts, setReconnectAttempts] = useState(0);
   const [lastPing, setLastPing] = useState<number | null>(null);
+  const [connectionType, setConnectionType] = useState<'websocket' | 'long-polling' | 'none'>('none');
+  const [usingFallback, setUsingFallback] = useState(false);
   const { toast } = useToast();
   
   // Derived state
@@ -41,8 +45,24 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
   
   useEffect(() => {
     // Handle connection state changes
-    const handleConnection = (data: { status: string; message?: string; code?: number }) => {
+    const handleConnection = (data: { 
+      status: string; 
+      message?: string; 
+      code?: number; 
+      protocol?: string; 
+      isFallback?: boolean 
+    }) => {
       setConnectionStatus(data.status as ConnectionStatus);
+      
+      // Update connection type if provided
+      if (data.protocol) {
+        const connType = data.protocol === 'websocket' ? 'websocket' : 
+                        (data.protocol === 'long-polling' ? 'long-polling' : 'none');
+        setConnectionType(connType);
+        
+        // Update fallback state
+        setUsingFallback(!!data.isFallback);
+      }
       
       if (data.status === 'connecting') {
         setConnectionError(null);
@@ -52,11 +72,18 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         setReconnectAttempts(0);
         setLastPing(Date.now());
         
+        // Update connection type based on protocol
+        if (!data.protocol) {
+          setConnectionType('websocket'); // Default if not specified
+          setUsingFallback(false);
+        }
+        
         // Toast notification only if reconnecting (not on initial connection)
         if (reconnectAttempts > 0) {
+          const connMethod = data.isFallback ? 'Long-polling fallback' : 'WebSocket';
           toast({
             title: "Connection Restored",
-            description: "WebSocket connection has been re-established",
+            description: `${connMethod} connection has been established`,
             variant: "default",
           });
         }
@@ -142,9 +169,13 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
     const handleConnectionFailed = (data: any) => {
       console.log('[WebSocketContext] WebSocket connection failed, switching to polling fallback');
       
+      // Update connection type and fallback status
+      setConnectionType('long-polling');
+      setUsingFallback(true);
+      
       toast({
         title: "Switching Connection Method",
-        description: "WebSocket connection failed. Using fallback method to stay connected.",
+        description: "WebSocket connection failed. Using HTTP long-polling fallback to stay connected.",
         variant: "default",
       });
       
@@ -168,6 +199,8 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         isConnected,
         connectionError,
         reconnectAttempts,
+        connectionType,
+        usingFallback,
         connect: () => {
           toast({
             title: "Connecting",
@@ -178,6 +211,11 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         disconnect: () => {
           websocketManager.disconnect();
           stopLongPolling(); // Also stop polling fallback
+          
+          // Reset connection type and fallback state
+          setConnectionType('none');
+          setUsingFallback(false);
+          
           toast({
             title: "Disconnected",
             description: "WebSocket connection closed",
