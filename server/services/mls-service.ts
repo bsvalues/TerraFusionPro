@@ -2,14 +2,17 @@
  * MLS Service
  * Provides functionality to connect to and sync data from MLS systems
  */
-
 import axios from 'axios';
 import { db } from '../db';
-import { eq } from 'drizzle-orm';
 import { 
-  mlsSystems, mlsPropertyMappings, mlsFieldMappings, mlsComparableMappings,
-  properties, comparableSales
+  mlsSystems,
+  mlsPropertyMappings,
+  mlsComparableMappings,
+  mlsFieldMappings,
+  properties,
+  comparableSales
 } from '@shared/schema';
+import { eq } from 'drizzle-orm';
 
 interface MlsCredentials {
   username?: string;
@@ -34,17 +37,20 @@ export class MlsService {
    * Initialize MLS service
    */
   constructor() {
-    console.log('[MLS Service] Initializing');
+    console.log('MLS Service initialized');
   }
 
   /**
    * Get all available MLS systems
    */
   async getActiveMlsSystems() {
-    return await db
-      .select()
-      .from(mlsSystems)
-      .where(eq(mlsSystems.status, 'active'));
+    try {
+      const systems = await db.select().from(mlsSystems).where(eq(mlsSystems.isActive, true));
+      return systems;
+    } catch (error) {
+      console.error('Error fetching active MLS systems:', error);
+      throw new Error('Failed to fetch active MLS systems');
+    }
   }
 
   /**
@@ -52,71 +58,54 @@ export class MlsService {
    */
   async authenticate(systemId: number): Promise<boolean> {
     try {
-      // Get MLS system details
-      const [system] = await db
-        .select()
-        .from(mlsSystems)
-        .where(eq(mlsSystems.id, systemId));
+      // Check if we already have an active connection
+      const existingConnection = this.activeConnections.get(systemId);
+      if (existingConnection && existingConnection.authenticated) {
+        // Check if the token is still valid (if expiry is set)
+        if (existingConnection.expiresAt && existingConnection.expiresAt > new Date()) {
+          return true;
+        }
+      }
 
+      // Get the MLS system from the database
+      const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, systemId));
+      
       if (!system) {
-        console.error(`[MLS Service] System ID ${systemId} not found`);
-        return false;
+        throw new Error(`MLS system with ID ${systemId} not found`);
       }
 
-      let authToken: string | undefined = undefined;
-      let expiresAt: Date | undefined = undefined;
-
-      // Different authentication methods based on system type
+      // Authenticate based on the system type
+      let authResult;
       switch (system.systemType) {
-        case 'rets':
-          const retsResult = await this.authenticateRets(system);
-          authToken = retsResult.authToken;
-          expiresAt = retsResult.expiresAt;
+        case 'RETS':
+          authResult = await this.authenticateRets(system);
           break;
-        
-        case 'web_api':
-          const webApiResult = await this.authenticateWebApi(system);
-          authToken = webApiResult.authToken;
-          expiresAt = webApiResult.expiresAt;
+        case 'Web API':
+          authResult = await this.authenticateWebApi(system);
           break;
-        
-        case 'idx':
-          const idxResult = await this.authenticateIdx(system);
-          authToken = idxResult.authToken;
-          expiresAt = idxResult.expiresAt;
+        case 'IDX':
+          authResult = await this.authenticateIdx(system);
           break;
-
-        case 'custom':
-          const customResult = await this.authenticateCustom(system);
-          authToken = customResult.authToken;
-          expiresAt = customResult.expiresAt;
+        case 'Custom':
+          authResult = await this.authenticateCustom(system);
           break;
+        default:
+          throw new Error(`Unsupported MLS system type: ${system.systemType}`);
       }
 
-      if (authToken) {
-        // Store the connection
-        this.activeConnections.set(systemId, {
-          systemId,
-          authToken,
-          expiresAt,
-          authenticated: true
-        });
+      // Create or update the connection
+      const connection: MlsConnection = {
+        systemId,
+        authToken: authResult.authToken,
+        expiresAt: authResult.expiresAt,
+        authenticated: !!authResult.authToken
+      };
 
-        // Update the database with the last authenticated time
-        await db
-          .update(mlsSystems)
-          .set({ 
-            lastSyncedAt: new Date(),
-            updatedAt: new Date()
-          })
-          .where(eq(mlsSystems.id, systemId));
-
-        return true;
-      }
-
-      return false;
+      this.activeConnections.set(systemId, connection);
+      
+      return connection.authenticated;
     } catch (error) {
-      console.error(`[MLS Service] Authentication error:`, error);
+      console.error(`Error authenticating with MLS system ${systemId}:`, error);
       return false;
     }
   }
@@ -125,49 +114,56 @@ export class MlsService {
    * RETS Authentication
    */
   private async authenticateRets(system: typeof mlsSystems.$inferSelect): Promise<{ authToken?: string, expiresAt?: Date }> {
-    // This would use a RETS client library in a full implementation
-    console.log(`[MLS Service] RETS authentication for ${system.name}`);
+    console.log(`Authenticating with RETS system: ${system.name}`);
     
-    // Mock implementation - in real world, use a proper RETS client
-    try {
-      if (!system.loginUrl || !system.username || !system.password) {
-        throw new Error('Missing required RETS credentials');
-      }
-
-      // In a real implementation, this would use a RETS client library
-      return {
-        authToken: `mock-rets-token-${Date.now()}`,
-        expiresAt: new Date(Date.now() + 3600000) // 1 hour
-      };
-    } catch (error) {
-      console.error(`[MLS Service] RETS authentication error:`, error);
-      return {};
-    }
+    // In a real implementation, we would use a RETS library to authenticate
+    // For now, we'll simulate a successful authentication
+    
+    // Simulated successful authentication
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 2); // Token valid for 2 hours
+    
+    return {
+      authToken: `rets-token-${Date.now()}`,
+      expiresAt
+    };
   }
 
   /**
    * Web API Authentication
    */
   private async authenticateWebApi(system: typeof mlsSystems.$inferSelect): Promise<{ authToken?: string, expiresAt?: Date }> {
-    console.log(`[MLS Service] Web API authentication for ${system.name}`);
+    console.log(`Authenticating with Web API system: ${system.name}`);
     
     try {
-      if (!system.baseUrl || !system.tokenUrl || !system.clientId || !system.clientSecret) {
-        throw new Error('Missing required Web API credentials');
-      }
-
-      // In a real implementation, fetch a token from the OAuth endpoint
-      const tokenUrl = system.tokenUrl;
+      // In a real implementation, we would make an actual API call
+      // For demonstration purposes, we'll simulate a successful authentication
       
-      // This is a mock - in a real implementation this would call the actual API
-      const expirySeconds = 3600; // 1 hour
+      // Example of how the actual implementation might look:
+      /*
+      const response = await axios.post(`${system.url}/auth`, {
+        username: system.username,
+        password: system.password,
+        apiKey: system.apiKey
+      });
+      
       return {
-        authToken: `mock-web-api-token-${Date.now()}`,
-        expiresAt: new Date(Date.now() + expirySeconds * 1000)
+        authToken: response.data.token,
+        expiresAt: new Date(response.data.expires_at)
+      };
+      */
+      
+      // Simulated successful authentication
+      const expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + 2); // Token valid for 2 hours
+      
+      return {
+        authToken: `webapi-token-${Date.now()}`,
+        expiresAt
       };
     } catch (error) {
-      console.error(`[MLS Service] Web API authentication error:`, error);
-      return {};
+      console.error(`Error authenticating with Web API system ${system.name}:`, error);
+      return { authToken: undefined, expiresAt: undefined };
     }
   }
 
@@ -175,69 +171,38 @@ export class MlsService {
    * IDX Authentication
    */
   private async authenticateIdx(system: typeof mlsSystems.$inferSelect): Promise<{ authToken?: string, expiresAt?: Date }> {
-    console.log(`[MLS Service] IDX authentication for ${system.name}`);
+    console.log(`Authenticating with IDX system: ${system.name}`);
     
-    try {
-      if (!system.apiKey) {
-        throw new Error('Missing required IDX API Key');
-      }
-
-      // IDX systems typically just use an API key
-      return {
-        authToken: system.apiKey,
-        expiresAt: undefined // API keys typically don't expire
-      };
-    } catch (error) {
-      console.error(`[MLS Service] IDX authentication error:`, error);
-      return {};
-    }
+    // In a real implementation, we would use the appropriate IDX authentication method
+    // For now, we'll simulate a successful authentication
+    
+    // Simulated successful authentication
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 6); // Token valid for 6 hours
+    
+    return {
+      authToken: `idx-token-${Date.now()}`,
+      expiresAt
+    };
   }
 
   /**
    * Custom MLS Authentication
    */
   private async authenticateCustom(system: typeof mlsSystems.$inferSelect): Promise<{ authToken?: string, expiresAt?: Date }> {
-    console.log(`[MLS Service] Custom authentication for ${system.name}`);
+    console.log(`Authenticating with custom MLS system: ${system.name}`);
     
-    // This would be customized based on the specific MLS system
-    try {
-      // For custom implementations, check the config for auth details
-      const config = system.config as Record<string, any> || {};
-      const authMethod = config.authMethod || 'none';
-      
-      switch (authMethod) {
-        case 'basic':
-          if (!system.username || !system.password) {
-            throw new Error('Missing credentials for basic auth');
-          }
-          return {
-            authToken: `Basic ${Buffer.from(`${system.username}:${system.password}`).toString('base64')}`,
-            expiresAt: undefined
-          };
-          
-        case 'api_key':
-          if (!system.apiKey) {
-            throw new Error('Missing API key');
-          }
-          return {
-            authToken: system.apiKey,
-            expiresAt: undefined
-          };
-          
-        case 'oauth':
-          // Implementation would depend on the specific OAuth flow
-          return {
-            authToken: `mock-oauth-token-${Date.now()}`,
-            expiresAt: new Date(Date.now() + 3600000)
-          };
-          
-        default:
-          return {};
-      }
-    } catch (error) {
-      console.error(`[MLS Service] Custom authentication error:`, error);
-      return {};
-    }
+    // For custom MLS systems, we would implement specific authentication logic based on the system
+    // For now, we'll simulate a successful authentication
+    
+    // Simulated successful authentication
+    const expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + 24); // Token valid for 24 hours
+    
+    return {
+      authToken: `custom-token-${Date.now()}`,
+      expiresAt
+    };
   }
 
   /**
@@ -245,60 +210,48 @@ export class MlsService {
    */
   async searchProperties(systemId: number, searchCriteria: Record<string, any>) {
     try {
-      // Make sure we're authenticated
-      if (!this.activeConnections.has(systemId)) {
-        const authenticated = await this.authenticate(systemId);
-        if (!authenticated) {
-          throw new Error(`Could not authenticate with MLS system ${systemId}`);
-        }
-      }
-
-      const connection = this.activeConnections.get(systemId)!;
+      // First, authenticate with the MLS system
+      const isAuthenticated = await this.authenticate(systemId);
       
-      // Get the MLS system information
-      const [system] = await db
-        .select()
-        .from(mlsSystems)
-        .where(eq(mlsSystems.id, systemId));
+      if (!isAuthenticated) {
+        throw new Error(`Failed to authenticate with MLS system ${systemId}`);
+      }
+      
+      const connection = this.activeConnections.get(systemId);
+      if (!connection) {
+        throw new Error(`No active connection for MLS system ${systemId}`);
+      }
+      
+      // Get the MLS system from the database
+      const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, systemId));
       
       if (!system) {
-        throw new Error(`MLS system ${systemId} not found`);
+        throw new Error(`MLS system with ID ${systemId} not found`);
       }
-
-      // Get field mappings for this MLS system
-      const fieldMappings = await db
-        .select()
-        .from(mlsFieldMappings)
-        .where(eq(mlsFieldMappings.mlsSystemId, systemId));
       
-      // Different search logic based on system type
-      let searchResults;
-      
+      // Search based on the system type
+      let results;
       switch (system.systemType) {
-        case 'rets':
-          searchResults = await this.searchRetsProperties(system, connection, searchCriteria, fieldMappings);
+        case 'RETS':
+          results = await this.searchRetsProperties(searchCriteria, system, connection);
           break;
-          
-        case 'web_api':
-          searchResults = await this.searchWebApiProperties(system, connection, searchCriteria, fieldMappings);
+        case 'Web API':
+          results = await this.searchWebApiProperties(searchCriteria, system, connection);
           break;
-          
-        case 'idx':
-          searchResults = await this.searchIdxProperties(system, connection, searchCriteria, fieldMappings);
+        case 'IDX':
+          results = await this.searchIdxProperties(searchCriteria, system, connection);
           break;
-          
-        case 'custom':
-          searchResults = await this.searchCustomProperties(system, connection, searchCriteria, fieldMappings);
+        case 'Custom':
+          results = await this.searchCustomProperties(searchCriteria, system, connection);
           break;
-          
         default:
           throw new Error(`Unsupported MLS system type: ${system.systemType}`);
       }
       
-      return searchResults;
+      return results;
     } catch (error) {
-      console.error(`[MLS Service] Search error:`, error);
-      throw error;
+      console.error(`Error searching properties in MLS system ${systemId}:`, error);
+      throw new Error(`Failed to search properties: ${error.message}`);
     }
   }
 
@@ -306,30 +259,32 @@ export class MlsService {
    * Search for properties in a RETS system
    */
   private async searchRetsProperties(
-    system: typeof mlsSystems.$inferSelect, 
-    connection: MlsConnection,
     searchCriteria: Record<string, any>,
-    fieldMappings: typeof mlsFieldMappings.$inferSelect[]
+    system: typeof mlsSystems.$inferSelect,
+    connection: MlsConnection
   ) {
-    // This would use a RETS client library in a full implementation
-    console.log(`[MLS Service] RETS search for ${system.name}`);
+    console.log(`Searching RETS system: ${system.name} with criteria:`, searchCriteria);
     
-    // Mock implementation - in a real scenario, this would query the RETS server
+    // In a real implementation, we would use a RETS library to search for properties
+    // For now, we'll return mock data
+    
     return [
-      { 
-        id: `mock-listing-${Date.now()}`, 
-        mlsNumber: 'MLS12345',
-        status: 'Active',
-        listPrice: 500000,
+      {
+        mlsNumber: 'RETS123456',
         address: '123 Main St',
-        city: 'Anytown',
+        city: 'Cityville',
         state: 'CA',
-        zipCode: '90210',
+        zipCode: '12345',
+        propertyType: 'Residential',
         bedrooms: 3,
-        bathrooms: 2.5,
-        squareFeet: 2200,
-        lotSize: 0.25,
-        yearBuilt: 2005
+        bathrooms: 2,
+        squareFeet: 1500,
+        yearBuilt: 2010,
+        listPrice: 450000,
+        status: 'Active',
+        rawData: {
+          // Additional MLS-specific fields would be here
+        }
       }
     ];
   }
@@ -338,49 +293,50 @@ export class MlsService {
    * Search for properties in a Web API system
    */
   private async searchWebApiProperties(
-    system: typeof mlsSystems.$inferSelect, 
-    connection: MlsConnection,
     searchCriteria: Record<string, any>,
-    fieldMappings: typeof mlsFieldMappings.$inferSelect[]
+    system: typeof mlsSystems.$inferSelect,
+    connection: MlsConnection
   ) {
-    console.log(`[MLS Service] Web API search for ${system.name}`);
+    console.log(`Searching Web API system: ${system.name} with criteria:`, searchCriteria);
     
     try {
-      if (!system.searchUrl) {
-        throw new Error('Missing search URL for Web API');
-      }
+      // In a real implementation, we would make an actual API call
+      // For demonstration purposes, we'll return mock data
       
-      // In a real implementation, this would call the API with axios
-      // const response = await axios.get(system.searchUrl, {
-      //   headers: {
-      //     'Authorization': `Bearer ${connection.authToken}`
-      //   },
-      //   params: searchCriteria
-      // });
+      // Example of how the actual implementation might look:
+      /*
+      const response = await axios.get(`${system.url}/properties`, {
+        headers: {
+          Authorization: `Bearer ${connection.authToken}`
+        },
+        params: searchCriteria
+      });
       
-      // return response.data;
+      return response.data.properties;
+      */
       
-      // Mock response for development
       return [
-        { 
-          id: `api-listing-${Date.now()}`, 
-          mlsNumber: 'MLS54321',
-          status: 'Active',
-          listPrice: 750000,
+        {
+          mlsNumber: 'API789012',
           address: '456 Oak Ave',
-          city: 'Sometown',
+          city: 'Townsville',
           state: 'NY',
-          zipCode: '10001',
-          bedrooms: 4,
-          bathrooms: 3,
-          squareFeet: 3000,
-          lotSize: 0.5,
-          yearBuilt: 2010
+          zipCode: '67890',
+          propertyType: 'Condo',
+          bedrooms: 2,
+          bathrooms: 2,
+          squareFeet: 1200,
+          yearBuililt: 2015,
+          listPrice: 350000,
+          status: 'Active',
+          rawData: {
+            // Additional MLS-specific fields would be here
+          }
         }
       ];
     } catch (error) {
-      console.error(`[MLS Service] Web API search error:`, error);
-      throw error;
+      console.error(`Error searching Web API system ${system.name}:`, error);
+      throw new Error(`Failed to search properties: ${error.message}`);
     }
   }
 
@@ -388,29 +344,32 @@ export class MlsService {
    * Search for properties in an IDX system
    */
   private async searchIdxProperties(
-    system: typeof mlsSystems.$inferSelect, 
-    connection: MlsConnection,
     searchCriteria: Record<string, any>,
-    fieldMappings: typeof mlsFieldMappings.$inferSelect[]
+    system: typeof mlsSystems.$inferSelect,
+    connection: MlsConnection
   ) {
-    console.log(`[MLS Service] IDX search for ${system.name}`);
+    console.log(`Searching IDX system: ${system.name} with criteria:`, searchCriteria);
     
-    // Implementation would depend on the specific IDX system's API
+    // In a real implementation, we would use the appropriate IDX API
+    // For now, we'll return mock data
+    
     return [
-      { 
-        id: `idx-listing-${Date.now()}`, 
-        mlsNumber: 'MLS98765',
-        status: 'Pending',
-        listPrice: 600000,
-        address: '789 Pine St',
-        city: 'Othertown',
+      {
+        mlsNumber: 'IDX345678',
+        address: '789 Pine Ln',
+        city: 'Villageton',
         state: 'FL',
-        zipCode: '33139',
-        bedrooms: 2,
-        bathrooms: 2,
-        squareFeet: 1800,
-        lotSize: 0.1,
-        yearBuilt: 2018
+        zipCode: '34567',
+        propertyType: 'Single Family',
+        bedrooms: 4,
+        bathrooms: 3,
+        squareFeet: 2200,
+        yearBuilt: 2005,
+        listPrice: 550000,
+        status: 'Active',
+        rawData: {
+          // Additional MLS-specific fields would be here
+        }
       }
     ];
   }
@@ -419,38 +378,32 @@ export class MlsService {
    * Search for properties in a custom MLS system
    */
   private async searchCustomProperties(
-    system: typeof mlsSystems.$inferSelect, 
-    connection: MlsConnection,
     searchCriteria: Record<string, any>,
-    fieldMappings: typeof mlsFieldMappings.$inferSelect[]
+    system: typeof mlsSystems.$inferSelect,
+    connection: MlsConnection
   ) {
-    console.log(`[MLS Service] Custom search for ${system.name}`);
+    console.log(`Searching custom MLS system: ${system.name} with criteria:`, searchCriteria);
     
-    // Implementation would be based on the custom system's configuration
-    const config = system.config as Record<string, any> || {};
-    const searchEndpoint = config.searchEndpoint;
+    // For custom MLS systems, we would implement specific search logic based on the system
+    // For now, we'll return mock data
     
-    if (!searchEndpoint) {
-      throw new Error('Missing search endpoint in custom MLS config');
-    }
-    
-    // In a real implementation, this would call the configured endpoint
-    // For now, return mock data
     return [
-      { 
-        id: `custom-listing-${Date.now()}`, 
-        mlsNumber: 'MLS24680',
-        status: 'Active',
-        listPrice: 425000,
-        address: '321 Maple Dr',
-        city: 'Newtown',
+      {
+        mlsNumber: 'CUSTOM901234',
+        address: '901 Cedar Dr',
+        city: 'Hamletburg',
         state: 'TX',
-        zipCode: '75001',
-        bedrooms: 3,
-        bathrooms: 2,
-        squareFeet: 2100,
-        lotSize: 0.3,
-        yearBuilt: 2000
+        zipCode: '90123',
+        propertyType: 'Multi-Family',
+        bedrooms: 6,
+        bathrooms: 4,
+        squareFeet: 3000,
+        yearBuilt: 2000,
+        listPrice: 750000,
+        status: 'Active',
+        rawData: {
+          // Additional MLS-specific fields would be here
+        }
       }
     ];
   }
@@ -459,97 +412,56 @@ export class MlsService {
    * Save property data from MLS to the database
    */
   async savePropertyFromMls(
-    systemId: number, 
-    mlsNumber: string, 
-    mlsData: Record<string, any>
+    systemId: number,
+    propertyData: Record<string, any>,
+    userId: number
   ) {
     try {
-      // First, check if this MLS property already exists
-      const [existingMapping] = await db
-        .select()
-        .from(mlsPropertyMappings)
-        .where(eq(mlsPropertyMappings.mlsSystemId, systemId))
-        .where(eq(mlsPropertyMappings.mlsNumber, mlsNumber));
-
-      if (existingMapping) {
-        // Update the existing mapping
-        const [property] = await db
-          .select()
-          .from(properties)
-          .where(eq(properties.id, existingMapping.propertyId));
-
-        if (!property) {
-          throw new Error(`Associated property ${existingMapping.propertyId} not found`);
+      // Get field mappings for this MLS system
+      const fieldMappings = await db.select()
+        .from(mlsFieldMappings)
+        .where(eq(mlsFieldMappings.mlsSystemId, systemId));
+      
+      // Create a property object with mapped fields
+      const propertyInfo: any = {
+        userId: userId || 1, // Default to user 1 if not provided
+      };
+      
+      // Apply field mappings to transform MLS data to our application format
+      for (const mapping of fieldMappings) {
+        // Using correct field names from the schema
+        if (propertyData[mapping.mlsFieldName] !== undefined) {
+          propertyInfo[mapping.appFieldName] = this.transformValue(
+            propertyData[mapping.mlsFieldName],
+            mapping.dataType,
+            mapping.transformationRule
+          );
         }
-
-        // Update property with new data
-        await db
-          .update(properties)
-          .set({
-            address: mlsData.address,
-            city: mlsData.city,
-            state: mlsData.state,
-            zipCode: mlsData.zipCode,
-            yearBuilt: mlsData.yearBuilt,
-            squareFeet: mlsData.squareFeet,
-            bedrooms: mlsData.bedrooms,
-            bathrooms: mlsData.bathrooms,
-            // Add other fields as needed
-            updatedAt: new Date()
-          })
-          .where(eq(properties.id, property.id));
-
-        // Update the mapping
-        await db
-          .update(mlsPropertyMappings)
-          .set({
-            mlsStatus: mlsData.status,
-            rawData: mlsData,
-            lastSynced: new Date(),
-            updatedAt: new Date()
-          })
-          .where(eq(mlsPropertyMappings.id, existingMapping.id));
-
-        return property.id;
-      } else {
-        // Create a new property and mapping
-        const [newProperty] = await db
-          .insert(properties)
-          .values({
-            address: mlsData.address,
-            city: mlsData.city,
-            state: mlsData.state,
-            zipCode: mlsData.zipCode,
-            propertyType: 'residential', // Default, adjust based on MLS data
-            yearBuilt: mlsData.yearBuilt,
-            squareFeet: mlsData.squareFeet,
-            bedrooms: mlsData.bedrooms,
-            bathrooms: mlsData.bathrooms,
-            // Add other fields as needed
-            createdAt: new Date(),
-            updatedAt: new Date()
-          })
-          .returning();
-
-        // Create the MLS property mapping
-        await db
-          .insert(mlsPropertyMappings)
-          .values({
-            mlsSystemId: systemId,
-            mlsNumber: mlsNumber,
-            propertyId: newProperty.id,
-            mlsStatus: mlsData.status,
-            rawData: mlsData,
-            lastSynced: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-
-        return newProperty.id;
       }
+      
+      // Insert the property into the database
+      const [newProperty] = await db.insert(properties).values(propertyInfo).returning();
+      
+      // Save the MLS mapping
+      const propertyMapping = {
+        mlsSystemId: systemId,
+        propertyId: newProperty.id,
+        mlsNumber: propertyData.mlsNumber,
+        mlsStatus: propertyData.status || 'Unknown',
+        rawData: propertyData.rawData || propertyData,
+        lastSynced: new Date()
+      };
+      
+      const [mapping] = await db.insert(mlsPropertyMappings).values(propertyMapping).returning();
+      
+      // Return the property with its MLS mapping
+      return {
+        ...newProperty,
+        mlsMapping: mapping
+      };
     } catch (error) {
-      console.error(`[MLS Service] Error saving property from MLS:`, error);
-      throw error;
+      console.error(`Error saving property from MLS system ${systemId}:`, error);
+      throw new Error(`Failed to save property: ${error.message}`);
     }
   }
 
@@ -557,109 +469,101 @@ export class MlsService {
    * Save comparable sale data from MLS to the database
    */
   async saveComparableFromMls(
-    systemId: number, 
-    mlsNumber: string, 
-    mlsData: Record<string, any>,
-    propertyId?: number
+    systemId: number,
+    comparableData: Record<string, any>,
+    propertyId: number
   ) {
     try {
-      // First, check if this MLS comparable already exists
-      const [existingMapping] = await db
-        .select()
-        .from(mlsComparableMappings)
-        .where(eq(mlsComparableMappings.mlsSystemId, systemId))
-        .where(eq(mlsComparableMappings.mlsNumber, mlsNumber));
-
-      if (existingMapping) {
-        // Update the existing comparable
-        const [comparable] = await db
-          .select()
-          .from(comparableSales)
-          .where(eq(comparableSales.id, existingMapping.comparableId));
-
-        if (!comparable) {
-          throw new Error(`Associated comparable ${existingMapping.comparableId} not found`);
+      // Get field mappings for this MLS system
+      const fieldMappings = await db.select()
+        .from(mlsFieldMappings)
+        .where(eq(mlsFieldMappings.mlsSystemId, systemId));
+      
+      // Create a comparable object with mapped fields
+      const comparableInfo: any = {
+        propertyId // Link to the subject property
+      };
+      
+      // Apply field mappings to transform MLS data to our application format
+      for (const mapping of fieldMappings) {
+        // Using correct field names from the schema for comparables
+        if (comparableData[mapping.mlsFieldName] !== undefined) {
+          comparableInfo[mapping.appFieldName] = this.transformValue(
+            comparableData[mapping.mlsFieldName],
+            mapping.dataType,
+            mapping.transformationRule
+          );
         }
-
-        // Update comparable with new data
-        await db
-          .update(comparableSales)
-          .set({
-            propertyId: propertyId, // Optional reference to the subject property
-            address: mlsData.address,
-            city: mlsData.city,
-            state: mlsData.state,
-            zipCode: mlsData.zipCode,
-            county: mlsData.county || '',
-            saleAmount: mlsData.salePrice || mlsData.closePrice,
-            saleDate: new Date(mlsData.saleDate || mlsData.closeDate),
-            propertyType: mlsData.propertyType || 'residential',
-            yearBuilt: mlsData.yearBuilt,
-            squareFeet: mlsData.squareFeet,
-            bedrooms: mlsData.bedrooms,
-            bathrooms: mlsData.bathrooms,
-            acreage: mlsData.lotSize,
-            // Other fields as needed
-            updatedAt: new Date()
-          })
-          .where(eq(comparableSales.id, comparable.id));
-
-        // Update the mapping
-        await db
-          .update(mlsComparableMappings)
-          .set({
-            mlsStatus: mlsData.status,
-            rawData: mlsData,
-            lastSynced: new Date(),
-            updatedAt: new Date()
-          })
-          .where(eq(mlsComparableMappings.id, existingMapping.id));
-
-        return comparable.id;
-      } else {
-        // Create a new comparable and mapping
-        const [newComparable] = await db
-          .insert(comparableSales)
-          .values({
-            propertyId: propertyId, // Optional reference to the subject property
-            address: mlsData.address,
-            city: mlsData.city,
-            state: mlsData.state,
-            zipCode: mlsData.zipCode,
-            county: mlsData.county || '',
-            saleAmount: mlsData.salePrice || mlsData.closePrice,
-            saleDate: new Date(mlsData.saleDate || mlsData.closeDate),
-            propertyType: mlsData.propertyType || 'residential',
-            yearBuilt: mlsData.yearBuilt,
-            squareFeet: mlsData.squareFeet,
-            bedrooms: mlsData.bedrooms,
-            bathrooms: mlsData.bathrooms,
-            acreage: mlsData.lotSize,
-            // Other fields as needed
-            createdAt: new Date(),
-            updatedAt: new Date()
-          })
-          .returning();
-
-        // Create the MLS comparable mapping
-        await db
-          .insert(mlsComparableMappings)
-          .values({
-            mlsSystemId: systemId,
-            mlsNumber: mlsNumber,
-            comparableId: newComparable.id,
-            mlsStatus: mlsData.status,
-            rawData: mlsData,
-            lastSynced: new Date(),
-            createdAt: new Date(),
-            updatedAt: new Date()
-          });
-
-        return newComparable.id;
       }
+      
+      // Set required fields if not present
+      if (!comparableInfo.address) comparableInfo.address = comparableData.address || 'Unknown';
+      if (!comparableInfo.city) comparableInfo.city = comparableData.city || 'Unknown';
+      if (!comparableInfo.state) comparableInfo.state = comparableData.state || 'Unknown';
+      if (!comparableInfo.zipCode) comparableInfo.zipCode = comparableData.zipCode || 'Unknown';
+      if (!comparableInfo.county) comparableInfo.county = comparableData.county || 'Unknown';
+      if (!comparableInfo.saleDate) comparableInfo.saleDate = new Date(comparableData.saleDate || Date.now());
+      if (!comparableInfo.saleAmount) comparableInfo.saleAmount = comparableData.salePrice || 0;
+      if (!comparableInfo.propertyType) comparableInfo.propertyType = comparableData.propertyType || 'Unknown';
+      
+      // Insert the comparable into the database
+      const [newComparable] = await db.insert(comparableSales).values(comparableInfo).returning();
+      
+      // Save the MLS mapping
+      const comparableMapping = {
+        mlsSystemId: systemId,
+        comparableId: newComparable.id,
+        mlsNumber: comparableData.mlsNumber,
+        mlsStatus: comparableData.status || 'Sold', // Assume sold for comparables
+        rawData: comparableData.rawData || comparableData,
+        lastSynced: new Date()
+      };
+      
+      const [mapping] = await db.insert(mlsComparableMappings).values(comparableMapping).returning();
+      
+      // Return the comparable with its MLS mapping
+      return {
+        ...newComparable,
+        mlsMapping: mapping
+      };
     } catch (error) {
-      console.error(`[MLS Service] Error saving comparable from MLS:`, error);
-      throw error;
+      console.error(`Error saving comparable from MLS system ${systemId}:`, error);
+      throw new Error(`Failed to save comparable: ${error.message}`);
     }
+  }
+
+  /**
+   * Transform a value based on the data type and optional transformation rule
+   */
+  private transformValue(
+    value: any,
+    dataType: string,
+    transformationRule?: string
+  ): any {
+    if (value === null || value === undefined) {
+      return null;
+    }
+    
+    // Apply data type conversion
+    switch (dataType) {
+      case 'string':
+        return String(value);
+      case 'number':
+        return Number(value);
+      case 'boolean':
+        return Boolean(value);
+      case 'date':
+        return new Date(value);
+      case 'json':
+        return typeof value === 'string' ? JSON.parse(value) : value;
+      default:
+        return value;
+    }
+    
+    // In a real implementation, we would also apply transformation rules
+    // based on the transformationRule string. For example:
+    // if (transformationRule === 'UPPERCASE') {
+    //   return value.toUpperCase();
+    // }
   }
 }
