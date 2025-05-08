@@ -597,23 +597,22 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching order with ID: ${id}`);
       
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL with direct pool access
       const query = `
         SELECT *
-        FROM "orders"
-        WHERE "id" = $1
+        FROM orders
+        WHERE id = $1
       `;
       
-      const result = await db.execute(query, [id]);
-      const order = result[0];
+      const result = await pool.query(query, [id]);
       
-      if (!order) {
+      if (!result.rows || result.rows.length === 0) {
         console.log(`No order found with ID: ${id}`);
         return undefined;
       }
       
       console.log(`Successfully fetched order with ID: ${id}`);
-      return order;
+      return result.rows[0];
     } catch (error) {
       console.error(`Error fetching order with ID ${id}:`, error);
       return undefined;
@@ -624,16 +623,16 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Fetching all orders');
       
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL with direct pool access
       const query = `
         SELECT *
-        FROM "orders"
-        ORDER BY "created_at" DESC
+        FROM orders
+        ORDER BY created_at DESC
       `;
       
-      const orders = await db.execute(query);
-      console.log(`Successfully fetched ${orders.length} orders`);
-      return orders;
+      const result = await pool.query(query);
+      console.log(`Successfully fetched ${result.rows.length} orders`);
+      return result.rows;
     } catch (error) {
       console.error('Error fetching all orders:', error);
       return [];
@@ -644,17 +643,17 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching orders for user ID: ${userId}`);
       
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL with direct pool access
       const query = `
         SELECT *
-        FROM "orders"
-        WHERE "user_id" = $1
-        ORDER BY "created_at" DESC
+        FROM orders
+        WHERE user_id = $1
+        ORDER BY created_at DESC
       `;
       
-      const orders = await db.execute(query, [userId]);
-      console.log(`Successfully fetched ${orders.length} orders for user ID: ${userId}`);
-      return orders;
+      const result = await pool.query(query, [userId]);
+      console.log(`Successfully fetched ${result.rows.length} orders for user ID: ${userId}`);
+      return result.rows;
     } catch (error) {
       console.error(`Error fetching orders for user ID ${userId}:`, error);
       return [];
@@ -665,17 +664,17 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching orders for property ID: ${propertyId}`);
       
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL with direct pool access
       const query = `
         SELECT *
-        FROM "orders"
-        WHERE "property_id" = $1
-        ORDER BY "created_at" DESC
+        FROM orders
+        WHERE property_id = $1
+        ORDER BY created_at DESC
       `;
       
-      const orders = await db.execute(query, [propertyId]);
-      console.log(`Successfully fetched ${orders.length} orders for property ID: ${propertyId}`);
-      return orders;
+      const result = await pool.query(query, [propertyId]);
+      console.log(`Successfully fetched ${result.rows.length} orders for property ID: ${propertyId}`);
+      return result.rows;
     } catch (error) {
       console.error(`Error fetching orders for property ID ${propertyId}:`, error);
       return [];
