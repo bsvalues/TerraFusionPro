@@ -1,11 +1,13 @@
 import { db } from './db';
-import { eq } from 'drizzle-orm';
+import { eq, sql, and, desc, asc } from 'drizzle-orm';
 import * as schema from '../shared/schema';
 import type { 
   IStorage, 
   FileImportResult,
   FileImportResultUpdate,
-  InsertFileImportResult
+  InsertFileImportResult,
+  Order,
+  InsertOrder
 } from './storage';
 
 export class DatabaseStorage implements IStorage {
@@ -588,5 +590,176 @@ export class DatabaseStorage implements IStorage {
       .where(eq(schema.properties.address, address))
       .where(eq(schema.properties.city, city))
       .where(eq(schema.properties.state, state));
+  }
+
+  // Order operations
+  async getOrder(id: number): Promise<Order | undefined> {
+    try {
+      console.log(`Fetching order with ID: ${id}`);
+      const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
+      
+      if (!order) {
+        console.log(`No order found with ID: ${id}`);
+        return undefined;
+      }
+      
+      console.log(`Successfully fetched order with ID: ${id}`);
+      return order;
+    } catch (error) {
+      console.error(`Error fetching order with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getOrders(): Promise<Order[]> {
+    try {
+      console.log('Fetching all orders');
+      const orders = await db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt));
+      console.log(`Successfully fetched ${orders.length} orders`);
+      return orders;
+    } catch (error) {
+      console.error('Error fetching all orders:', error);
+      return [];
+    }
+  }
+
+  async getOrdersByUser(userId: number): Promise<Order[]> {
+    try {
+      console.log(`Fetching orders for user ID: ${userId}`);
+      const orders = await db.select().from(schema.orders)
+        .where(eq(schema.orders.userId, userId))
+        .orderBy(desc(schema.orders.createdAt));
+      console.log(`Successfully fetched ${orders.length} orders for user ID: ${userId}`);
+      return orders;
+    } catch (error) {
+      console.error(`Error fetching orders for user ID ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getOrdersByProperty(propertyId: number): Promise<Order[]> {
+    try {
+      console.log(`Fetching orders for property ID: ${propertyId}`);
+      const orders = await db.select().from(schema.orders)
+        .where(eq(schema.orders.propertyId, propertyId))
+        .orderBy(desc(schema.orders.createdAt));
+      console.log(`Successfully fetched ${orders.length} orders for property ID: ${propertyId}`);
+      return orders;
+    } catch (error) {
+      console.error(`Error fetching orders for property ID ${propertyId}:`, error);
+      return [];
+    }
+  }
+
+  async getOrdersByStatus(status: string): Promise<Order[]> {
+    try {
+      console.log(`Fetching orders with status: ${status}`);
+      // Handle snake_case vs camelCase in status field
+      const statusField = schema.orders.status;
+      const orders = await db.select().from(schema.orders)
+        .where(sql`LOWER(${statusField}::text) = LOWER(${status})`)
+        .orderBy(desc(schema.orders.createdAt));
+      console.log(`Successfully fetched ${orders.length} orders with status: ${status}`);
+      return orders;
+    } catch (error) {
+      console.error(`Error fetching orders with status ${status}:`, error);
+      return [];
+    }
+  }
+
+  async getOrdersByType(type: string): Promise<Order[]> {
+    try {
+      console.log(`Fetching orders with type: ${type}`);
+      // Handle snake_case vs camelCase in orderType field
+      const typeField = schema.orders.orderType;
+      const orders = await db.select().from(schema.orders)
+        .where(sql`LOWER(${typeField}::text) = LOWER(${type})`)
+        .orderBy(desc(schema.orders.createdAt));
+      console.log(`Successfully fetched ${orders.length} orders with type: ${type}`);
+      return orders;
+    } catch (error) {
+      console.error(`Error fetching orders with type ${type}:`, error);
+      return [];
+    }
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    try {
+      console.log('Creating new order:', order);
+      const [createdOrder] = await db.insert(schema.orders).values(order).returning();
+      console.log('Order created successfully:', createdOrder);
+      return createdOrder;
+    } catch (error) {
+      console.error('Error creating order:', error);
+      throw error; // Rethrow to allow proper error handling in the route
+    }
+  }
+
+  async updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined> {
+    try {
+      console.log(`Updating order with ID: ${id}`);
+      const [updatedOrder] = await db
+        .update(schema.orders)
+        .set({
+          ...orderData,
+          updatedAt: new Date()
+        })
+        .where(eq(schema.orders.id, id))
+        .returning();
+      
+      if (!updatedOrder) {
+        console.log(`No order found with ID: ${id} to update`);
+        return undefined;
+      }
+      
+      console.log('Order updated successfully:', updatedOrder);
+      return updatedOrder;
+    } catch (error) {
+      console.error(`Error updating order with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async updateOrderStatus(id: number, status: string, notes?: string): Promise<Order | undefined> {
+    try {
+      console.log(`Updating status of order with ID: ${id} to ${status}`);
+      const updateData: any = {
+        status,
+        updatedAt: new Date()
+      };
+      
+      if (notes) {
+        updateData.notes = notes;
+      }
+      
+      const [updatedOrder] = await db
+        .update(schema.orders)
+        .set(updateData)
+        .where(eq(schema.orders.id, id))
+        .returning();
+      
+      if (!updatedOrder) {
+        console.log(`No order found with ID: ${id} to update status`);
+        return undefined;
+      }
+      
+      console.log('Order status updated successfully:', updatedOrder);
+      return updatedOrder;
+    } catch (error) {
+      console.error(`Error updating status of order with ID ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteOrder(id: number): Promise<boolean> {
+    try {
+      console.log(`Deleting order with ID: ${id}`);
+      await db.delete(schema.orders).where(eq(schema.orders.id, id));
+      console.log(`Order with ID: ${id} deleted successfully`);
+      return true;
+    } catch (error) {
+      console.error(`Error deleting order with ID ${id}:`, error);
+      return false;
+    }
   }
 }
