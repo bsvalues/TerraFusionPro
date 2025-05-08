@@ -822,20 +822,35 @@ export class DatabaseStorage implements IStorage {
   async updateOrderStatus(id: number, status: string, notes?: string): Promise<Order | undefined> {
     try {
       console.log(`Updating status of order with ID: ${id} to ${status}`);
-      const updateData: any = {
-        status,
-        updatedAt: new Date()
-      };
       
+      // Prepare SET clause parts for the SQL query
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
+      
+      // Always update status and updated_at fields
+      setClauses.push(`"status" = $${paramIndex++}`);
+      values.push(status);
+      
+      setClauses.push(`"updated_at" = NOW()`);
+      
+      // Add notes if provided
       if (notes) {
-        updateData.notes = notes;
+        setClauses.push(`"notes" = $${paramIndex++}`);
+        values.push(notes);
       }
       
-      const [updatedOrder] = await db
-        .update(schema.orders)
-        .set(updateData)
-        .where(eq(schema.orders.id, id))
-        .returning();
+      // Build and execute the SQL update query
+      const query = `
+        UPDATE "orders"
+        SET ${setClauses.join(', ')}
+        WHERE "id" = $${paramIndex}
+        RETURNING *
+      `;
+      
+      values.push(id);
+      const result = await db.execute(query, values);
+      const updatedOrder = result[0];
       
       if (!updatedOrder) {
         console.log(`No order found with ID: ${id} to update status`);
@@ -853,7 +868,14 @@ export class DatabaseStorage implements IStorage {
   async deleteOrder(id: number): Promise<boolean> {
     try {
       console.log(`Deleting order with ID: ${id}`);
-      await db.delete(schema.orders).where(eq(schema.orders.id, id));
+      
+      // Use raw SQL for the delete operation
+      const query = `
+        DELETE FROM "orders"
+        WHERE "id" = $1
+      `;
+      
+      await db.execute(query, [id]);
       console.log(`Order with ID: ${id} deleted successfully`);
       return true;
     } catch (error) {
