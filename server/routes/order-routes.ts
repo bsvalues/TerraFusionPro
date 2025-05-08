@@ -1,5 +1,5 @@
 import express from 'express';
-import { eq, or, and, isNull } from 'drizzle-orm';
+import { eq, or, and, isNull, sql } from 'drizzle-orm';
 import { db } from '../db';
 import { properties, orders, users } from '@shared/schema';
 import { z } from 'zod';
@@ -8,19 +8,72 @@ const router = express.Router();
 
 /**
  * Flexible property identifier lookup utility function
- * Supports finding properties by parcel_id, tax_parcel_id, or propertyIdentifier
+ * Supports finding properties by any available identifier field
  */
 async function findPropertyByAnyIdentifier(identifier: string) {
-  // Try multiple identifier fields to handle database schema variations
-  const property = await db.query.properties.findFirst({
-    where: or(
-      eq(properties.parcelId, identifier),
-      eq(properties.taxParcelId, identifier),
-      eq(properties.propertyIdentifier, identifier)
-    ),
-  });
-
-  return property;
+  try {
+    // First attempt to get the property by any identifier
+    return await db.query.properties.findFirst({
+      where: or(
+        eq(properties.parcelId, identifier),
+        eq(properties.taxParcelId, identifier),
+        eq(properties.propertyIdentifier, identifier)
+      ),
+    });
+  } catch (error) {
+    // If there's a column does not exist error, try a more careful approach
+    if (error instanceof Error && error.message.includes('column') && error.message.includes('does not exist')) {
+      console.log(`[PropertyIdentifier] Column error detected, trying fallback approach: ${error.message}`);
+      
+      // Try each field individually wrapped in try/catch to deal with missing columns
+      try {
+        // Try looking up by parcelId
+        return await db.query.properties.findFirst({
+          where: eq(properties.parcelId, identifier)
+        });
+      } catch (e1) {
+        console.log('[PropertyIdentifier] parcelId column not available, trying next identifier');
+      }
+      
+      try {
+        // Try looking up by taxParcelId
+        return await db.query.properties.findFirst({
+          where: eq(properties.taxParcelId, identifier)
+        });
+      } catch (e2) {
+        console.log('[PropertyIdentifier] taxParcelId column not available, trying next identifier');
+      }
+      
+      try {
+        // Try looking up by propertyIdentifier
+        return await db.query.properties.findFirst({
+          where: eq(properties.propertyIdentifier, identifier)
+        });
+      } catch (e3) {
+        console.log('[PropertyIdentifier] propertyIdentifier column not available, all identifier attempts failed');
+      }
+      
+      // If everything fails, try direct SQL query (most reliable fallback)
+      try {
+        console.log('[PropertyIdentifier] Attempting direct SQL query as last resort');
+        const result = await db.execute(
+          sql`SELECT * FROM properties WHERE id = ${identifier} OR property_identifier = ${identifier} LIMIT 1`
+        );
+        if (result.rows && result.rows[0]) {
+          console.log('[PropertyIdentifier] Direct SQL query succeeded');
+          return result.rows[0];
+        }
+        return null;
+      } catch (e4) {
+        console.error('[PropertyIdentifier] Direct SQL query failed:', e4);
+        return null;
+      }
+    }
+    
+    // For other errors, just log and rethrow
+    console.error('[PropertyIdentifier] Unexpected error in property lookup:', error);
+    throw error;
+  }
 }
 
 // Get all orders
@@ -98,7 +151,7 @@ router.post('/', async (req, res) => {
       
       if (identifier) {
         const property = await findPropertyByAnyIdentifier(identifier);
-        if (property) {
+        if (property && typeof property === 'object' && 'id' in property && typeof property.id === 'number') {
           propertyId = property.id;
         } else {
           return res.status(404).json({ 
@@ -233,10 +286,12 @@ router.get('/property-lookup/:identifier', async (req, res) => {
     return res.json(property);
   } catch (error) {
     console.error('Error in property lookup:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
     return res.status(500).json({ 
       error: 'Failed to lookup property',
-      message: error.message,
-      details: error.stack 
+      message: errorMessage,
+      details: errorStack
     });
   }
 });
