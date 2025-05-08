@@ -342,6 +342,40 @@ export const apiKeys = pgTable("api_keys", {
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
 });
 
+// Order Management
+export const orderTypeEnum = pgEnum("order_type", [
+  "appraisal",
+  "assessment",
+  "tax",
+  "other"
+]);
+
+export const orderStatusEnum = pgEnum("order_status", [
+  "pending",
+  "in_progress", 
+  "completed",
+  "cancelled"
+]);
+
+export const orderPriorityEnum = pgEnum("order_priority", [
+  "low",
+  "medium",
+  "high"
+]);
+
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  orderType: orderTypeEnum("order_type").notNull(),
+  status: orderStatusEnum("order_status").notNull().default("pending"),
+  priority: orderPriorityEnum("order_priority").notNull().default("medium"),
+  dueDate: timestamp("due_date", { mode: "date" }),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
 // Audit logs
 export const auditLogs = pgTable("audit_logs", {
   id: serial("id").primaryKey(),
@@ -366,7 +400,8 @@ export const usersRelations = relations(users, ({ many }) => ({
   aiAgents: many(aiAgents, { relationName: "createdAgents" }),
   updatedAiAgents: many(aiAgents, { relationName: "updatedAgents" }),
   apiKeys: many(apiKeys),
-  auditLogs: many(auditLogs)
+  auditLogs: many(auditLogs),
+  orders: many(orders)
 }));
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -374,7 +409,19 @@ export const propertiesRelations = relations(properties, ({ many }) => ({
   taxBills: many(taxBills),
   exemptions: many(exemptions),
   appeals: many(appeals),
-  comparableSales: many(comparableSales, { relationName: "comparableProperties" })
+  comparableSales: many(comparableSales, { relationName: "comparableProperties" }),
+  orders: many(orders)
+}));
+
+export const ordersRelations = relations(orders, ({ one }) => ({
+  user: one(users, {
+    fields: [orders.userId],
+    references: [users.id]
+  }),
+  property: one(properties, {
+    fields: [orders.propertyId],
+    references: [properties.id]
+  })
 }));
 
 export const valuationsRelations = relations(valuations, ({ one, many }) => ({
@@ -594,6 +641,11 @@ export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, c
 export const selectApiKeySchema = createSelectSchema(apiKeys);
 export type ApiKey = z.infer<typeof selectApiKeySchema>;
 export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
+
+export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectOrderSchema = createSelectSchema(orders);
+export type Order = z.infer<typeof selectOrderSchema>;
+export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, timestamp: true });
 export const selectAuditLogSchema = createSelectSchema(auditLogs);
