@@ -16,6 +16,8 @@ import {
   adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
   collaborationComments, CollaborationComment, InsertCollaborationComment,
   marketData, MarketData, InsertMarketData,
+  // Order entities
+  orders, Order, InsertOrder,
   // Terminology entities
   realEstateTerms, RealEstateTerm, InsertRealEstateTerm,
   // Field Notes entities
@@ -169,6 +171,18 @@ export interface IStorage {
   getMarketDataByDateRange(startDate: Date, endDate: Date): Promise<MarketData[]>;
   createMarketData(data: InsertMarketData): Promise<MarketData>;
   deleteMarketData(id: number): Promise<boolean>;
+  
+  // Order operations
+  getOrder(id: number): Promise<Order | undefined>;
+  getOrders(): Promise<Order[]>;
+  getOrdersByUser(userId: number): Promise<Order[]>;
+  getOrdersByProperty(propertyId: number): Promise<Order[]>;
+  getOrdersByStatus(status: string): Promise<Order[]>;
+  getOrdersByType(type: string): Promise<Order[]>;
+  createOrder(order: InsertOrder): Promise<Order>;
+  updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order | undefined>;
+  updateOrderStatus(id: number, status: string, notes?: string): Promise<Order | undefined>;
+  deleteOrder(id: number): Promise<boolean>;
   
   // Achievement Definition operations
   getAchievementDefinition(id: number): Promise<AchievementDefinition | undefined>;
