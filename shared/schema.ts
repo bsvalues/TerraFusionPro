@@ -789,3 +789,85 @@ export const fieldNoteSchema = z.object({
   createdBy: z.string(),
   userId: z.number()
 });
+
+// MLS Integration Zod schemas
+export const insertMlsSystemSchema = createInsertSchema(mlsSystems).omit({ id: true, createdAt: true, updatedAt: true, lastSyncedAt: true });
+export const selectMlsSystemSchema = createSelectSchema(mlsSystems);
+export type MlsSystem = z.infer<typeof selectMlsSystemSchema>;
+export type InsertMlsSystem = z.infer<typeof insertMlsSystemSchema>;
+
+export const insertMlsPropertyMappingSchema = createInsertSchema(mlsPropertyMappings).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectMlsPropertyMappingSchema = createSelectSchema(mlsPropertyMappings);
+export type MlsPropertyMapping = z.infer<typeof selectMlsPropertyMappingSchema>;
+export type InsertMlsPropertyMapping = z.infer<typeof insertMlsPropertyMappingSchema>;
+
+export const insertMlsFieldMappingSchema = createInsertSchema(mlsFieldMappings).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectMlsFieldMappingSchema = createSelectSchema(mlsFieldMappings);
+export type MlsFieldMapping = z.infer<typeof selectMlsFieldMappingSchema>;
+export type InsertMlsFieldMapping = z.infer<typeof insertMlsFieldMappingSchema>;
+
+export const insertPublicRecordSourceSchema = createInsertSchema(publicRecordSources).omit({ id: true, createdAt: true, updatedAt: true, lastSuccessfulSync: true });
+export const selectPublicRecordSourceSchema = createSelectSchema(publicRecordSources);
+export type PublicRecordSource = z.infer<typeof selectPublicRecordSourceSchema>;
+export type InsertPublicRecordSource = z.infer<typeof insertPublicRecordSourceSchema>;
+
+export const insertPublicRecordMappingSchema = createInsertSchema(publicRecordMappings).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectPublicRecordMappingSchema = createSelectSchema(publicRecordMappings);
+export type PublicRecordMapping = z.infer<typeof selectPublicRecordMappingSchema>;
+export type InsertPublicRecordMapping = z.infer<typeof insertPublicRecordMappingSchema>;
+
+export const insertMlsComparableMappingSchema = createInsertSchema(mlsComparableMappings).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectMlsComparableMappingSchema = createSelectSchema(mlsComparableMappings);
+export type MlsComparableMapping = z.infer<typeof selectMlsComparableMappingSchema>;
+export type InsertMlsComparableMapping = z.infer<typeof insertMlsComparableMappingSchema>;
+
+// MLS Integration Relations
+export const mlsSystemsRelations = relations(mlsSystems, ({ many }) => ({
+  propertyMappings: many(mlsPropertyMappings),
+  fieldMappings: many(mlsFieldMappings),
+  comparableMappings: many(mlsComparableMappings)
+}));
+
+export const mlsPropertyMappingsRelations = relations(mlsPropertyMappings, ({ one }) => ({
+  mlsSystem: one(mlsSystems, {
+    fields: [mlsPropertyMappings.mlsSystemId],
+    references: [mlsSystems.id]
+  }),
+  property: one(properties, {
+    fields: [mlsPropertyMappings.propertyId],
+    references: [properties.id]
+  })
+}));
+
+export const mlsFieldMappingsRelations = relations(mlsFieldMappings, ({ one }) => ({
+  mlsSystem: one(mlsSystems, {
+    fields: [mlsFieldMappings.mlsSystemId],
+    references: [mlsSystems.id]
+  })
+}));
+
+export const publicRecordSourcesRelations = relations(publicRecordSources, ({ many }) => ({
+  recordMappings: many(publicRecordMappings)
+}));
+
+export const publicRecordMappingsRelations = relations(publicRecordMappings, ({ one }) => ({
+  source: one(publicRecordSources, {
+    fields: [publicRecordMappings.sourceId],
+    references: [publicRecordSources.id]
+  }),
+  property: one(properties, {
+    fields: [publicRecordMappings.propertyId],
+    references: [properties.id]
+  })
+}));
+
+export const mlsComparableMappingsRelations = relations(mlsComparableMappings, ({ one }) => ({
+  mlsSystem: one(mlsSystems, {
+    fields: [mlsComparableMappings.mlsSystemId],
+    references: [mlsSystems.id]
+  }),
+  comparable: one(comparableSales, {
+    fields: [mlsComparableMappings.comparableId],
+    references: [comparableSales.id]
+  })
+}));
