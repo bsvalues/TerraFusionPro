@@ -56,13 +56,35 @@ async function findPropertyByAnyIdentifier(identifier: string) {
       // If everything fails, try direct SQL query (most reliable fallback)
       try {
         console.log('[PropertyIdentifier] Attempting direct SQL query as last resort');
-        const result = await db.execute(
-          sql`SELECT * FROM properties WHERE id = ${identifier} OR property_identifier = ${identifier} LIMIT 1`
+        
+        // First try with a pure string match on tax_parcel_id
+        const textResult = await db.execute(
+          sql`SELECT * FROM properties WHERE tax_parcel_id = ${identifier} LIMIT 1`
         );
-        if (result.rows && result.rows[0]) {
-          console.log('[PropertyIdentifier] Direct SQL query succeeded');
-          return result.rows[0];
+        
+        if (textResult.rows && textResult.rows[0]) {
+          console.log('[PropertyIdentifier] Direct SQL query succeeded with text match');
+          return textResult.rows[0];
         }
+        
+        // If no match with text, try with numeric ID (catching any conversion errors)
+        try {
+          // Only attempt numeric lookup if the identifier appears to be numeric
+          if (/^\d+$/.test(identifier)) {
+            const numericId = parseInt(identifier, 10);
+            const numericResult = await db.execute(
+              sql`SELECT * FROM properties WHERE id = ${numericId} LIMIT 1`
+            );
+            
+            if (numericResult.rows && numericResult.rows[0]) {
+              console.log('[PropertyIdentifier] Direct SQL query succeeded with numeric ID');
+              return numericResult.rows[0];
+            }
+          }
+        } catch (numericError) {
+          console.log('[PropertyIdentifier] Numeric ID lookup failed:', numericError.message);
+        }
+        
         return null;
       } catch (e4) {
         console.error('[PropertyIdentifier] Direct SQL query failed:', e4);
