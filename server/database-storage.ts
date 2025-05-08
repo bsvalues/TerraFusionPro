@@ -728,31 +728,42 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Creating new order:', order);
       
-      // Use raw SQL to ensure proper column names are used, excluding fields that don't exist
-      // Based on the schema check, we know the actual columns are:
-      // id, user_id, property_id, order_type, status, priority, due_date, notes, created_at, updated_at
-      const query = sql`
-        INSERT INTO "orders" (
-          "user_id", 
-          "property_id", 
-          "order_type", 
-          "status", 
-          "priority", 
-          "due_date", 
-          "notes"
+      // Use parameterized query to ensure proper SQL escaping
+      const query = `
+        INSERT INTO orders (
+          user_id, 
+          property_id, 
+          order_type, 
+          status, 
+          priority, 
+          due_date, 
+          notes
         ) VALUES (
-          ${order.userId}, 
-          ${order.propertyId}, 
-          ${order.orderType}, 
-          ${order.status}, 
-          ${order.priority || 'normal'}, 
-          ${order.dueDate}, 
-          ${order.notes}
+          $1, $2, $3, $4, $5, $6, $7
         )
         RETURNING *
       `;
       
-      const [createdOrder] = await db.execute(query);
+      // Ensure all values are properly formatted for database
+      const priority = order.priority || 'medium'; // Default to 'medium' if not specified
+      
+      // Execute the query with the values array
+      const result = await db.execute(query, [
+        order.userId,
+        order.propertyId,
+        order.orderType,
+        order.status,
+        priority,
+        order.dueDate,
+        order.notes || null  // Handle null notes
+      ]);
+      
+      // Handle empty result
+      if (!result || result.length === 0) {
+        throw new Error('No order was created');
+      }
+      
+      const createdOrder = result[0];
       console.log('Order created successfully:', createdOrder);
       return createdOrder;
     } catch (error) {
@@ -834,12 +845,14 @@ export class DatabaseStorage implements IStorage {
       
       values.push(id);
       const result = await db.execute(query, values);
-      const updatedOrder = result[0];
       
-      if (!updatedOrder) {
+      // Check if results were returned
+      if (!result || result.length === 0) {
         console.log(`No order found with ID: ${id} to update`);
         return undefined;
       }
+      
+      const updatedOrder = result[0];
       
       console.log('Order updated successfully:', updatedOrder);
       return updatedOrder;
@@ -880,12 +893,14 @@ export class DatabaseStorage implements IStorage {
       
       values.push(id);
       const result = await db.execute(query, values);
-      const updatedOrder = result[0];
       
-      if (!updatedOrder) {
+      // Check if results were returned
+      if (!result || result.length === 0) {
         console.log(`No order found with ID: ${id} to update status`);
         return undefined;
       }
+      
+      const updatedOrder = result[0];
       
       console.log('Order status updated successfully:', updatedOrder);
       return updatedOrder;
