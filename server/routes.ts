@@ -59,6 +59,7 @@ import { valuationProxyRouter } from './routes/valuation-proxy-routes';
 import { shapRouter } from './routes/shap-routes';
 import orderRoutes from './routes/order-routes';
 import healthCheckRoutes from './routes/health-check';
+import mlsRoutes from './routes/mls-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2778,6 +2779,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/market-analysis', marketAnalysisRouter);
   app.use('/api/snapshots', snapshotsRouter);
   app.use('/api/orders', orderRoutes);
+  app.use('/api/mls', mlsRoutes);
   app.use('/api', modelVersionRoutes);
   
   // Add the valuation proxy router directly at the root level (not under /api)

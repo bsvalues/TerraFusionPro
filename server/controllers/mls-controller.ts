@@ -2,426 +2,412 @@
  * MLS Controller
  * Handles API endpoints for MLS integration
  */
-
 import { Request, Response } from 'express';
-import { z } from 'zod';
-import { MlsService } from '../services/mls-service';
 import { db } from '../db';
-import { eq } from 'drizzle-orm';
-import { 
-  mlsSystems, mlsPropertyMappings, mlsFieldMappings, publicRecordSources, 
-  publicRecordMappings, insertMlsSystemSchema, insertMlsFieldMappingSchema 
-} from '@shared/schema';
+import { mlsSystems, mlsFieldMappings, mlsPropertyMappings, mlsComparableMappings } from '@shared/schema';
+import { MlsService } from '../services/mls-service';
+import { eq, and } from 'drizzle-orm';
+import { z } from 'zod';
 
-// Initialize MLS service
+// Create an instance of the MLS service for handling connections and data sync
 const mlsService = new MlsService();
 
-// Get all MLS systems
+/**
+ * Get all MLS systems
+ */
 export async function getMlsSystems(req: Request, res: Response) {
   try {
-    const systems = await db
-      .select()
-      .from(mlsSystems);
-    
-    res.json(systems);
+    const systems = await db.select().from(mlsSystems);
+    return res.status(200).json(systems);
   } catch (error) {
     console.error('Error fetching MLS systems:', error);
-    res.status(500).json({ message: 'Error fetching MLS systems' });
+    return res.status(500).json({ error: 'Failed to fetch MLS systems' });
   }
 }
 
-// Get a specific MLS system
+/**
+ * Get a specific MLS system by ID
+ */
 export async function getMlsSystem(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
+    const id = parseInt(req.params.id, 10);
     
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid MLS system ID' });
     }
     
-    const [system] = await db
-      .select()
-      .from(mlsSystems)
-      .where(eq(mlsSystems.id, systemId));
+    const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, id));
     
     if (!system) {
-      return res.status(404).json({ message: 'MLS system not found' });
+      return res.status(404).json({ error: 'MLS system not found' });
     }
     
-    res.json(system);
+    return res.status(200).json(system);
   } catch (error) {
     console.error('Error fetching MLS system:', error);
-    res.status(500).json({ message: 'Error fetching MLS system' });
+    return res.status(500).json({ error: 'Failed to fetch MLS system' });
   }
 }
 
-// Create a new MLS system
+/**
+ * Create a new MLS system
+ */
 export async function createMlsSystem(req: Request, res: Response) {
   try {
-    const validationResult = insertMlsSystemSchema.safeParse(req.body);
+    const systemSchema = z.object({
+      name: z.string().min(1),
+      systemType: z.enum(['RETS', 'Web API', 'IDX', 'Custom']),
+      url: z.string().url(),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      apiKey: z.string().optional(),
+      clientId: z.string().optional(),
+      clientSecret: z.string().optional(),
+      version: z.string().optional(),
+      userAgent: z.string().optional(),
+      isActive: z.boolean().default(true),
+      metadata: z.record(z.any()).optional(),
+    });
+
+    const validatedData = systemSchema.parse(req.body);
+    const [newSystem] = await db.insert(mlsSystems).values(validatedData).returning();
     
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid MLS system data', 
-        errors: validationResult.error.errors 
-      });
-    }
-    
-    const [newSystem] = await db
-      .insert(mlsSystems)
-      .values({
-        ...validationResult.data,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-    
-    res.status(201).json(newSystem);
+    return res.status(201).json(newSystem);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
     console.error('Error creating MLS system:', error);
-    res.status(500).json({ message: 'Error creating MLS system' });
+    return res.status(500).json({ error: 'Failed to create MLS system' });
   }
 }
 
-// Update an MLS system
+/**
+ * Update an existing MLS system
+ */
 export async function updateMlsSystem(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
+    const id = parseInt(req.params.id, 10);
     
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid MLS system ID' });
     }
     
-    const validationResult = insertMlsSystemSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid MLS system data', 
-        errors: validationResult.error.errors 
-      });
-    }
-    
-    const [existingSystem] = await db
-      .select()
-      .from(mlsSystems)
-      .where(eq(mlsSystems.id, systemId));
-    
-    if (!existingSystem) {
-      return res.status(404).json({ message: 'MLS system not found' });
-    }
+    const systemSchema = z.object({
+      name: z.string().min(1).optional(),
+      systemType: z.enum(['RETS', 'Web API', 'IDX', 'Custom']).optional(),
+      url: z.string().url().optional(),
+      username: z.string().optional(),
+      password: z.string().optional(),
+      apiKey: z.string().optional(),
+      clientId: z.string().optional(),
+      clientSecret: z.string().optional(),
+      version: z.string().optional(),
+      userAgent: z.string().optional(),
+      isActive: z.boolean().optional(),
+      metadata: z.record(z.any()).optional(),
+    });
+
+    const validatedData = systemSchema.parse(req.body);
     
     const [updatedSystem] = await db
       .update(mlsSystems)
-      .set({
-        ...validationResult.data,
-        updatedAt: new Date()
-      })
-      .where(eq(mlsSystems.id, systemId))
+      .set({ ...validatedData, updatedAt: new Date() })
+      .where(eq(mlsSystems.id, id))
       .returning();
     
-    res.json(updatedSystem);
+    if (!updatedSystem) {
+      return res.status(404).json({ error: 'MLS system not found' });
+    }
+    
+    return res.status(200).json(updatedSystem);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
     console.error('Error updating MLS system:', error);
-    res.status(500).json({ message: 'Error updating MLS system' });
+    return res.status(500).json({ error: 'Failed to update MLS system' });
   }
 }
 
-// Delete an MLS system
+/**
+ * Delete an MLS system
+ */
 export async function deleteMlsSystem(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
+    const id = parseInt(req.params.id, 10);
     
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid MLS system ID' });
     }
     
-    // Check if system exists
-    const [existingSystem] = await db
-      .select()
-      .from(mlsSystems)
-      .where(eq(mlsSystems.id, systemId));
+    const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, id));
     
-    if (!existingSystem) {
-      return res.status(404).json({ message: 'MLS system not found' });
+    if (!system) {
+      return res.status(404).json({ error: 'MLS system not found' });
     }
     
-    // Check for any dependent records
-    const propertyMappings = await db
-      .select()
-      .from(mlsPropertyMappings)
-      .where(eq(mlsPropertyMappings.mlsSystemId, systemId));
+    // Delete any related data (mappings, etc.)
+    await db.delete(mlsFieldMappings).where(eq(mlsFieldMappings.mlsSystemId, id));
+    await db.delete(mlsPropertyMappings).where(eq(mlsPropertyMappings.mlsSystemId, id));
+    await db.delete(mlsComparableMappings).where(eq(mlsComparableMappings.mlsSystemId, id));
     
-    if (propertyMappings.length > 0) {
-      return res.status(400).json({ 
-        message: 'Cannot delete MLS system with existing property mappings',
-        count: propertyMappings.length
-      });
-    }
+    // Now delete the system itself
+    await db.delete(mlsSystems).where(eq(mlsSystems.id, id));
     
-    // Delete field mappings first (foreign key constraint)
-    await db
-      .delete(mlsFieldMappings)
-      .where(eq(mlsFieldMappings.mlsSystemId, systemId));
-    
-    // Delete the system
-    await db
-      .delete(mlsSystems)
-      .where(eq(mlsSystems.id, systemId));
-    
-    res.status(204).send();
+    return res.status(204).end();
   } catch (error) {
     console.error('Error deleting MLS system:', error);
-    res.status(500).json({ message: 'Error deleting MLS system' });
+    return res.status(500).json({ error: 'Failed to delete MLS system' });
   }
 }
 
-// Test MLS connection
+/**
+ * Test connection to an MLS system
+ */
 export async function testMlsConnection(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
+    const id = parseInt(req.params.id, 10);
     
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid MLS system ID' });
     }
     
-    const success = await mlsService.authenticate(systemId);
+    const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, id));
     
-    if (success) {
-      res.json({ success: true, message: 'Successfully connected to MLS system' });
+    if (!system) {
+      return res.status(404).json({ error: 'MLS system not found' });
+    }
+    
+    // Test the connection using the MLS service
+    const isConnected = await mlsService.authenticate(id);
+    
+    if (isConnected) {
+      return res.status(200).json({ status: 'success', message: 'Successfully connected to MLS system' });
     } else {
-      res.status(400).json({ success: false, message: 'Failed to connect to MLS system' });
+      return res.status(400).json({ status: 'failed', message: 'Failed to connect to MLS system' });
     }
   } catch (error) {
     console.error('Error testing MLS connection:', error);
-    res.status(500).json({ message: 'Error testing MLS connection' });
+    return res.status(500).json({ error: 'Failed to test MLS connection' });
   }
 }
 
-// Search MLS properties
+/**
+ * Search for properties in the MLS
+ */
 export async function searchMlsProperties(req: Request, res: Response) {
   try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
+    const id = parseInt(req.body.mlsSystemId, 10);
+    const searchCriteria = req.body.searchCriteria;
     
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
+    if (isNaN(id) || !searchCriteria) {
+      return res.status(400).json({ error: 'Invalid MLS system ID or missing search criteria' });
     }
     
-    // Validate search criteria
-    const searchSchema = z.object({
-      criteria: z.record(z.any())
-    });
-    
-    const validationResult = searchSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid search criteria', 
-        errors: validationResult.error.errors 
-      });
-    }
-    
-    const results = await mlsService.searchProperties(systemId, validationResult.data.criteria);
-    res.json(results);
-  } catch (error) {
-    console.error('Error searching MLS properties:', error);
-    res.status(500).json({ message: 'Error searching MLS properties' });
-  }
-}
-
-// Import a property from MLS
-export async function importMlsProperty(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
-    
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
-    }
-    
-    // Validate import data
-    const importSchema = z.object({
-      mlsNumber: z.string(),
-      propertyData: z.record(z.any())
-    });
-    
-    const validationResult = importSchema.safeParse(req.body);
-    
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid property data', 
-        errors: validationResult.error.errors 
-      });
-    }
-    
-    const { mlsNumber, propertyData } = validationResult.data;
-    
-    const propertyId = await mlsService.savePropertyFromMls(systemId, mlsNumber, propertyData);
-    
-    res.json({ 
-      success: true, 
-      message: 'Property imported successfully',
-      propertyId
-    });
-  } catch (error) {
-    console.error('Error importing MLS property:', error);
-    res.status(500).json({ message: 'Error importing MLS property' });
-  }
-}
-
-// Get field mappings for an MLS system
-export async function getFieldMappings(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
-    
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
-    }
-    
-    const mappings = await db
-      .select()
-      .from(mlsFieldMappings)
-      .where(eq(mlsFieldMappings.mlsSystemId, systemId));
-    
-    res.json(mappings);
-  } catch (error) {
-    console.error('Error fetching field mappings:', error);
-    res.status(500).json({ message: 'Error fetching field mappings' });
-  }
-}
-
-// Create a field mapping
-export async function createFieldMapping(req: Request, res: Response) {
-  try {
-    const { id } = req.params;
-    const systemId = parseInt(id);
-    
-    if (isNaN(systemId)) {
-      return res.status(400).json({ message: 'Invalid MLS system ID' });
-    }
-    
-    // Check if the MLS system exists
-    const [system] = await db
-      .select()
-      .from(mlsSystems)
-      .where(eq(mlsSystems.id, systemId));
+    const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, id));
     
     if (!system) {
-      return res.status(404).json({ message: 'MLS system not found' });
+      return res.status(404).json({ error: 'MLS system not found' });
     }
     
-    const validationResult = insertMlsFieldMappingSchema.safeParse({
-      ...req.body,
-      mlsSystemId: systemId
-    });
+    // Search properties using the MLS service
+    const properties = await mlsService.searchProperties(id, searchCriteria);
     
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid field mapping data', 
-        errors: validationResult.error.errors 
-      });
-    }
-    
-    const [newMapping] = await db
-      .insert(mlsFieldMappings)
-      .values({
-        ...validationResult.data,
-        createdAt: new Date(),
-        updatedAt: new Date()
-      })
-      .returning();
-    
-    res.status(201).json(newMapping);
+    return res.status(200).json(properties);
   } catch (error) {
-    console.error('Error creating field mapping:', error);
-    res.status(500).json({ message: 'Error creating field mapping' });
+    console.error('Error searching MLS properties:', error);
+    return res.status(500).json({ error: 'Failed to search MLS properties' });
   }
 }
 
-// Update a field mapping
+/**
+ * Import a property from the MLS
+ */
+export async function importMlsProperty(req: Request, res: Response) {
+  try {
+    const { mlsSystemId, mlsNumber, propertyType } = req.body;
+    
+    if (!mlsSystemId || !mlsNumber || !propertyType) {
+      return res.status(400).json({ error: 'Missing required fields: mlsSystemId, mlsNumber, propertyType' });
+    }
+    
+    const id = parseInt(mlsSystemId, 10);
+    
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid MLS system ID' });
+    }
+    
+    const [system] = await db.select().from(mlsSystems).where(eq(mlsSystems.id, id));
+    
+    if (!system) {
+      return res.status(404).json({ error: 'MLS system not found' });
+    }
+    
+    // Search for the specified property by MLS number
+    const properties = await mlsService.searchProperties(id, { mlsNumber });
+    
+    if (!properties || properties.length === 0) {
+      return res.status(404).json({ error: 'Property not found in MLS' });
+    }
+    
+    // Import/save the property using the MLS service
+    const savedProperty = await mlsService.savePropertyFromMls(id, properties[0], req.body.userId);
+    
+    return res.status(201).json(savedProperty);
+  } catch (error) {
+    console.error('Error importing MLS property:', error);
+    return res.status(500).json({ error: 'Failed to import MLS property' });
+  }
+}
+
+/**
+ * Get field mappings for an MLS system
+ */
+export async function getFieldMappings(req: Request, res: Response) {
+  try {
+    const mlsSystemId = parseInt(req.query.mlsSystemId as string, 10);
+    const category = req.query.category as string;
+    
+    if (isNaN(mlsSystemId)) {
+      return res.status(400).json({ error: 'Invalid MLS system ID' });
+    }
+    
+    let query = db.select().from(mlsFieldMappings);
+    
+    if (mlsSystemId) {
+      if (category) {
+        query = db.select().from(mlsFieldMappings)
+          .where(and(
+            eq(mlsFieldMappings.mlsSystemId, mlsSystemId),
+            eq(mlsFieldMappings.category, category)
+          ));
+      } else {
+        query = db.select().from(mlsFieldMappings)
+          .where(eq(mlsFieldMappings.mlsSystemId, mlsSystemId));
+      }
+    }
+    
+    const mappings = await query;
+    return res.status(200).json(mappings);
+  } catch (error) {
+    console.error('Error fetching field mappings:', error);
+    return res.status(500).json({ error: 'Failed to fetch field mappings' });
+  }
+}
+
+/**
+ * Create a new field mapping
+ */
+export async function createFieldMapping(req: Request, res: Response) {
+  try {
+    const mappingSchema = z.object({
+      mlsSystemId: z.number(),
+      mlsField: z.string(),
+      appField: z.string(),
+      category: z.string(),
+      dataType: z.string(),
+      mappingType: z.string().optional(),
+      transformationFunction: z.string().optional(),
+      isRequired: z.boolean().default(false),
+      metadata: z.record(z.any()).optional(),
+    });
+
+    const validatedData = mappingSchema.parse(req.body);
+    
+    // Check if mapping with same fields already exists
+    const existingMappings = await db.select()
+      .from(mlsFieldMappings)
+      .where(
+        and(
+          eq(mlsFieldMappings.mlsSystemId, validatedData.mlsSystemId),
+          eq(mlsFieldMappings.mlsField, validatedData.mlsField),
+          eq(mlsFieldMappings.appField, validatedData.appField)
+        )
+      );
+    
+    if (existingMappings.length > 0) {
+      return res.status(409).json({ error: 'Mapping already exists for these fields' });
+    }
+    
+    const [newMapping] = await db.insert(mlsFieldMappings).values(validatedData).returning();
+    
+    return res.status(201).json(newMapping);
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
+    console.error('Error creating field mapping:', error);
+    return res.status(500).json({ error: 'Failed to create field mapping' });
+  }
+}
+
+/**
+ * Update an existing field mapping
+ */
 export async function updateFieldMapping(req: Request, res: Response) {
   try {
-    const { id, mappingId } = req.params;
-    const systemId = parseInt(id);
-    const fieldMappingId = parseInt(mappingId);
+    const id = parseInt(req.params.id, 10);
     
-    if (isNaN(systemId) || isNaN(fieldMappingId)) {
-      return res.status(400).json({ message: 'Invalid IDs' });
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid field mapping ID' });
     }
     
-    // Check if the mapping exists and belongs to the system
-    const [existingMapping] = await db
-      .select()
-      .from(mlsFieldMappings)
-      .where(eq(mlsFieldMappings.id, fieldMappingId))
-      .where(eq(mlsFieldMappings.mlsSystemId, systemId));
-    
-    if (!existingMapping) {
-      return res.status(404).json({ message: 'Field mapping not found' });
-    }
-    
-    const validationResult = insertMlsFieldMappingSchema.safeParse({
-      ...req.body,
-      mlsSystemId: systemId
+    const mappingSchema = z.object({
+      mlsField: z.string().optional(),
+      appField: z.string().optional(),
+      category: z.string().optional(),
+      dataType: z.string().optional(),
+      mappingType: z.string().optional(),
+      transformationFunction: z.string().optional(),
+      isRequired: z.boolean().optional(),
+      metadata: z.record(z.any()).optional(),
     });
-    
-    if (!validationResult.success) {
-      return res.status(400).json({ 
-        message: 'Invalid field mapping data', 
-        errors: validationResult.error.errors 
-      });
-    }
+
+    const validatedData = mappingSchema.parse(req.body);
     
     const [updatedMapping] = await db
       .update(mlsFieldMappings)
-      .set({
-        ...validationResult.data,
-        updatedAt: new Date()
-      })
-      .where(eq(mlsFieldMappings.id, fieldMappingId))
+      .set({ ...validatedData, updatedAt: new Date() })
+      .where(eq(mlsFieldMappings.id, id))
       .returning();
     
-    res.json(updatedMapping);
+    if (!updatedMapping) {
+      return res.status(404).json({ error: 'Field mapping not found' });
+    }
+    
+    return res.status(200).json(updatedMapping);
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return res.status(400).json({ error: 'Validation error', details: error.errors });
+    }
     console.error('Error updating field mapping:', error);
-    res.status(500).json({ message: 'Error updating field mapping' });
+    return res.status(500).json({ error: 'Failed to update field mapping' });
   }
 }
 
-// Delete a field mapping
+/**
+ * Delete a field mapping
+ */
 export async function deleteFieldMapping(req: Request, res: Response) {
   try {
-    const { id, mappingId } = req.params;
-    const systemId = parseInt(id);
-    const fieldMappingId = parseInt(mappingId);
+    const id = parseInt(req.params.id, 10);
     
-    if (isNaN(systemId) || isNaN(fieldMappingId)) {
-      return res.status(400).json({ message: 'Invalid IDs' });
+    if (isNaN(id)) {
+      return res.status(400).json({ error: 'Invalid field mapping ID' });
     }
     
-    // Check if the mapping exists and belongs to the system
-    const [existingMapping] = await db
-      .select()
-      .from(mlsFieldMappings)
-      .where(eq(mlsFieldMappings.id, fieldMappingId))
-      .where(eq(mlsFieldMappings.mlsSystemId, systemId));
+    const [mapping] = await db.select().from(mlsFieldMappings).where(eq(mlsFieldMappings.id, id));
     
-    if (!existingMapping) {
-      return res.status(404).json({ message: 'Field mapping not found' });
+    if (!mapping) {
+      return res.status(404).json({ error: 'Field mapping not found' });
     }
     
-    await db
-      .delete(mlsFieldMappings)
-      .where(eq(mlsFieldMappings.id, fieldMappingId));
+    await db.delete(mlsFieldMappings).where(eq(mlsFieldMappings.id, id));
     
-    res.status(204).send();
+    return res.status(204).end();
   } catch (error) {
     console.error('Error deleting field mapping:', error);
-    res.status(500).json({ message: 'Error deleting field mapping' });
+    return res.status(500).json({ error: 'Failed to delete field mapping' });
   }
 }

@@ -93,6 +93,48 @@ CREATE TABLE IF NOT EXISTS "public_record_mappings" (
     "updated_at" timestamp NOT NULL DEFAULT now()
 );
 
+-- Make sure properties table exists
+CREATE TABLE IF NOT EXISTS "properties" (
+    "id" serial PRIMARY KEY,
+    "user_id" integer NOT NULL,
+    "address" text NOT NULL,
+    "city" text NOT NULL,
+    "state" text NOT NULL,
+    "zip_code" text NOT NULL,
+    "county" text,
+    "property_type" text NOT NULL,
+    "year_built" integer,
+    "square_feet" integer,
+    "acreage" real,
+    "bedrooms" integer,
+    "bathrooms" real,
+    "created_at" timestamp NOT NULL DEFAULT now(),
+    "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
+-- Make sure comparable_sales table exists
+CREATE TABLE IF NOT EXISTS "comparable_sales" (
+    "id" serial PRIMARY KEY,
+    "property_id" integer REFERENCES "properties"("id"),
+    "address" text NOT NULL,
+    "city" text NOT NULL,
+    "state" text NOT NULL,
+    "zip_code" text NOT NULL,
+    "county" text NOT NULL,
+    "sale_date" timestamp NOT NULL,
+    "sale_amount" real NOT NULL,
+    "property_type" text NOT NULL,
+    "year_built" integer,
+    "square_feet" integer,
+    "acreage" real,
+    "bedrooms" integer,
+    "bathrooms" real,
+    "distance_to_subject" real,
+    "adjusted_sale_amount" real,
+    "created_at" timestamp NOT NULL DEFAULT now(),
+    "updated_at" timestamp NOT NULL DEFAULT now()
+);
+
 -- MLS Comparable Mappings
 CREATE TABLE IF NOT EXISTS "mls_comparable_mappings" (
     "id" serial PRIMARY KEY,
