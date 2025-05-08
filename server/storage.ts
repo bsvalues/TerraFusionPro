@@ -273,6 +273,7 @@ export class MemStorage implements IStorage {
   private sketches: Map<number, Sketch>;
   private complianceChecks: Map<number, ComplianceCheck>;
   private realEstateTerms: Map<number, RealEstateTerm>;
+  private orders: Map<number, Order>;
   
   private currentUserId: number;
   private currentPropertyId: number;
@@ -283,6 +284,7 @@ export class MemStorage implements IStorage {
   private currentSketchId: number;
   private currentComplianceCheckId: number;
   private currentRealEstateTermId: number;
+  private currentOrderId: number;
 
   constructor() {
     this.users = new Map();
@@ -294,6 +296,7 @@ export class MemStorage implements IStorage {
     this.sketches = new Map();
     this.complianceChecks = new Map();
     this.realEstateTerms = new Map();
+    this.orders = new Map();
     
     this.currentUserId = 1;
     this.currentPropertyId = 1;
@@ -304,6 +307,7 @@ export class MemStorage implements IStorage {
     this.currentSketchId = 1;
     this.currentComplianceCheckId = 1;
     this.currentRealEstateTermId = 1;
+    this.currentOrderId = 1;
     
     // Add demo user
     this.users.set(1, {
@@ -682,6 +686,88 @@ export class MemStorage implements IStorage {
   
   async deleteRealEstateTerm(id: number): Promise<boolean> {
     return this.realEstateTerms.delete(id);
+  }
+  
+  // Order operations
+  async getOrder(id: number): Promise<Order | undefined> {
+    return this.orders.get(id);
+  }
+
+  async getOrders(): Promise<Order[]> {
+    return Array.from(this.orders.values());
+  }
+
+  async getOrdersByUser(userId: number): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (order) => order.userId === userId
+    );
+  }
+
+  async getOrdersByProperty(propertyId: number): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (order) => order.propertyId === propertyId
+    );
+  }
+
+  async getOrdersByStatus(status: string): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (order) => order.status.toLowerCase() === status.toLowerCase()
+    );
+  }
+
+  async getOrdersByType(type: string): Promise<Order[]> {
+    return Array.from(this.orders.values()).filter(
+      (order) => order.orderType.toLowerCase() === type.toLowerCase()
+    );
+  }
+
+  async createOrder(order: InsertOrder): Promise<Order> {
+    const id = this.currentOrderId++;
+    const now = new Date();
+    const newOrder: Order = {
+      ...order,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.orders.set(id, newOrder);
+    return newOrder;
+  }
+
+  async updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined> {
+    const order = this.orders.get(id);
+    if (!order) return undefined;
+    
+    const updatedOrder: Order = {
+      ...order,
+      ...orderData,
+      updatedAt: new Date()
+    };
+    
+    this.orders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+
+  async updateOrderStatus(id: number, status: string, notes?: string): Promise<Order | undefined> {
+    const order = this.orders.get(id);
+    if (!order) return undefined;
+    
+    const updatedOrder: Order = {
+      ...order,
+      status,
+      updatedAt: new Date()
+    };
+    
+    if (notes) {
+      updatedOrder.notes = notes;
+    }
+    
+    this.orders.set(id, updatedOrder);
+    return updatedOrder;
+  }
+
+  async deleteOrder(id: number): Promise<boolean> {
+    return this.orders.delete(id);
   }
 }
 
