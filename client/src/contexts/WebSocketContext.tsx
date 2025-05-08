@@ -180,7 +180,32 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       });
       
       // Start long polling as a fallback
-      startLongPolling();
+      const { clientId, apiBaseUrl } = websocketManager.getConfig();
+      const handlePollingMessage = (message: any) => {
+        // Process the message based on its type
+        if (message.type === 'pong' || message.type === 'heartbeat') {
+          setLastPing(Date.now());
+        }
+        // Route the message through the WebSocket manager's event system
+        websocketManager.handleMessage(message);
+      };
+      
+      const handlePollingConnection = (state: 'connected' | 'disconnected' | 'error', reason?: string) => {
+        // Update connection status based on polling state
+        setConnectionStatus(state);
+        if (state === 'connected') {
+          setConnectionError(null);
+        } else if (state === 'error') {
+          setConnectionError(reason || 'Polling connection error');
+        }
+      };
+      
+      startLongPolling(
+        `/api/poll`, 
+        clientId || `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+        handlePollingMessage,
+        handlePollingConnection
+      );
     };
     
     websocketManager.on('reconnect_attempt', handleReconnectAttempt);
