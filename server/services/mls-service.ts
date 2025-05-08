@@ -45,7 +45,7 @@ export class MlsService {
    */
   async getActiveMlsSystems() {
     try {
-      const systems = await db.select().from(mlsSystems).where(eq(mlsSystems.isActive, true));
+      const systems = await db.select().from(mlsSystems).where(eq(mlsSystems.active, true));
       return systems;
     } catch (error) {
       console.error('Error fetching active MLS systems:', error);
@@ -77,16 +77,16 @@ export class MlsService {
       // Authenticate based on the system type
       let authResult;
       switch (system.systemType) {
-        case 'RETS':
+        case 'rets':
           authResult = await this.authenticateRets(system);
           break;
-        case 'Web API':
+        case 'web_api':
           authResult = await this.authenticateWebApi(system);
           break;
-        case 'IDX':
+        case 'idx':
           authResult = await this.authenticateIdx(system);
           break;
-        case 'Custom':
+        case 'custom':
           authResult = await this.authenticateCustom(system);
           break;
         default:
@@ -232,16 +232,16 @@ export class MlsService {
       // Search based on the system type
       let results;
       switch (system.systemType) {
-        case 'RETS':
+        case 'rets':
           results = await this.searchRetsProperties(searchCriteria, system, connection);
           break;
-        case 'Web API':
+        case 'web_api':
           results = await this.searchWebApiProperties(searchCriteria, system, connection);
           break;
-        case 'IDX':
+        case 'idx':
           results = await this.searchIdxProperties(searchCriteria, system, connection);
           break;
-        case 'Custom':
+        case 'custom':
           results = await this.searchCustomProperties(searchCriteria, system, connection);
           break;
         default:
