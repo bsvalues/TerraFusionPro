@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { ConnectionStatus } from '@/components/ui/connection-status';
 import { AlertCircle, CheckCircle2, Database, RefreshCw, Server, Zap } from 'lucide-react';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
@@ -269,6 +270,10 @@ export default function SystemMonitorPage() {
                       <div className="flex justify-between items-center">
                         <span>Listening:</span>
                         <span className="font-medium">{data.components.webSocketServer.listening ? 'Yes' : 'No'}</span>
+                      </div>
+                      <div className="flex justify-between items-center mt-2 pt-2 border-t">
+                        <span>Client Connection:</span>
+                        <ConnectionStatus />
                       </div>
                       {data.components.webSocketServer.error && (
                         <div className="mt-2 text-red-500 text-sm bg-red-50 p-2 rounded">
