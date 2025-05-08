@@ -32,11 +32,11 @@ async function testOrderOperations() {
     console.log('\n--- Creating Test Orders ---');
     
     const order1 = await storage.createOrder({
-      userId: 1,
-      propertyId: 101,
+      userId: 1, // Using existing user ID 1
+      propertyId: 1, // Using existing property ID 1 instead of 101
       orderType: 'appraisal', // In JS: orderType, In DB: order_type
       status: 'pending',
-      priority: 'normal',
+      priority: 'medium', // Using valid enum value 'medium' instead of 'normal'
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
       notes: 'Test order with column name mismatch handling'
       // Removed non-existent fields assignedTo and totalFee
