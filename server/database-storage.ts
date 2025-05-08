@@ -728,42 +728,48 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Creating new order:', order);
       
-      // Use parameterized query to ensure proper SQL escaping
+      // Use parameterized query with explicit column names that match the DB
       const query = `
-        INSERT INTO orders (
-          user_id, 
-          property_id, 
-          order_type, 
-          status, 
-          priority, 
-          due_date, 
-          notes
+        INSERT INTO "orders" (
+          "user_id", 
+          "property_id", 
+          "order_type", 
+          "status", 
+          "priority", 
+          "due_date", 
+          "notes"
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7
         )
         RETURNING *
       `;
       
+      // The column name for status in the database is "status", but it's representing the orderStatusEnum
       // Ensure all values are properly formatted for database
       const priority = order.priority || 'medium'; // Default to 'medium' if not specified
+      const status = order.status || 'pending'; // Default to 'pending' if not specified
       
-      // Execute the query with the values array
-      const result = await db.execute(query, [
+      const params = [
         order.userId,
         order.propertyId,
         order.orderType,
-        order.status,
+        status,
         priority,
-        order.dueDate,
-        order.notes || null  // Handle null notes
-      ]);
+        order.dueDate || null,
+        order.notes || null
+      ];
+      
+      console.log('Executing query with params:', params);
+      
+      // Execute the query with the values array
+      const result = await db.execute(query, params);
       
       // Handle empty result
-      if (!result || result.length === 0) {
+      if (!result || !result.rows || result.rows.length === 0) {
         throw new Error('No order was created');
       }
       
-      const createdOrder = result[0];
+      const createdOrder = result.rows[0];
       console.log('Order created successfully:', createdOrder);
       return createdOrder;
     } catch (error) {
