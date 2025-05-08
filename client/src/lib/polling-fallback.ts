@@ -140,7 +140,7 @@ export class PollingFallback {
   /**
    * Send batched messages to the server
    */
-  private async sendBatch(): void {
+  private async sendBatch(): Promise<void> {
     if (this.messageBatch.length === 0) {
       this.batchTimeoutId = null;
       return;
@@ -182,7 +182,7 @@ export class PollingFallback {
   /**
    * Poll for messages
    */
-  private async poll(): void {
+  private async poll(): Promise<void> {
     if (!this.isPolling) {
       return;
     }
@@ -318,4 +318,52 @@ export class PollingFallback {
   public getCurrentInterval(): number {
     return this.adaptiveInterval;
   }
+}
+
+// Singleton instance for global use
+let pollingInstance: PollingFallback | null = null;
+
+/**
+ * Initialize and start long polling
+ */
+export function startLongPolling(
+  baseUrl: string, 
+  clientId: string, 
+  messageHandler: (message: any) => void,
+  connectionHandler: (state: 'connected' | 'disconnected' | 'error', reason?: string) => void
+): void {
+  // If already initialized, stop it first
+  if (pollingInstance) {
+    pollingInstance.stop('Restarting polling');
+    pollingInstance = null;
+  }
+  
+  // Create new instance
+  pollingInstance = new PollingFallback(baseUrl, clientId, messageHandler, connectionHandler);
+  
+  // Start polling
+  pollingInstance.start();
+}
+
+/**
+ * Stop long polling
+ */
+export function stopLongPolling(reason?: string): void {
+  if (pollingInstance) {
+    pollingInstance.stop(reason);
+    pollingInstance = null;
+  }
+}
+
+/**
+ * Send message using HTTP fallback
+ */
+export function sendViaHttp(message: any): boolean {
+  if (!pollingInstance) {
+    console.warn('[PollingFallback] Attempting to send while not initialized');
+    return false;
+  }
+  
+  pollingInstance.send(message);
+  return true;
 }
