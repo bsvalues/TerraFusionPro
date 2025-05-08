@@ -728,15 +728,9 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Creating new order:', order);
       
-      // Convert camelCase to snake_case for fields that require it
-      const mappedOrder = {
-        ...order,
-        // Map field names to match database snake_case columns
-        // The error shows 'order_status' doesn't exist, indicating we need to transform
-        // the 'status' field to match the database column name
-      };
-      
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL to ensure proper column names are used, excluding fields that don't exist
+      // Based on the schema check, we know the actual columns are:
+      // id, user_id, property_id, order_type, status, priority, due_date, notes, created_at, updated_at
       const query = sql`
         INSERT INTO "orders" (
           "user_id", 
@@ -745,9 +739,7 @@ export class DatabaseStorage implements IStorage {
           "status", 
           "priority", 
           "due_date", 
-          "notes", 
-          "assigned_to", 
-          "total_fee"
+          "notes"
         ) VALUES (
           ${order.userId}, 
           ${order.propertyId}, 
@@ -755,9 +747,7 @@ export class DatabaseStorage implements IStorage {
           ${order.status}, 
           ${order.priority || 'normal'}, 
           ${order.dueDate}, 
-          ${order.notes}, 
-          ${order.assignedTo}, 
-          ${order.totalFee}
+          ${order.notes}
         )
         RETURNING *
       `;
@@ -784,6 +774,7 @@ export class DatabaseStorage implements IStorage {
       setClauses.push(`"updated_at" = NOW()`);
       
       // Add other fields that need to be updated
+      // Only include fields that exist in the database based on our schema check
       if (orderData.userId !== undefined) {
         setClauses.push(`"user_id" = $${paramIndex++}`);
         values.push(orderData.userId);
@@ -819,15 +810,8 @@ export class DatabaseStorage implements IStorage {
         values.push(orderData.notes);
       }
       
-      if (orderData.assignedTo !== undefined) {
-        setClauses.push(`"assigned_to" = $${paramIndex++}`);
-        values.push(orderData.assignedTo);
-      }
-      
-      if (orderData.totalFee !== undefined) {
-        setClauses.push(`"total_fee" = $${paramIndex++}`);
-        values.push(orderData.totalFee);
-      }
+      // Skip fields that don't exist in the database
+      // assignedTo and totalFee are not present in the actual database schema
       
       // If no fields to update, return existing record
       if (setClauses.length <= 1) { // Only updated_at

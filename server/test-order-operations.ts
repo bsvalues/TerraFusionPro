@@ -38,9 +38,8 @@ async function testOrderOperations() {
       status: 'pending',
       priority: 'normal',
       dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
-      notes: 'Test order with column name mismatch handling',
-      assignedTo: null,
-      totalFee: 350.00 // In JS: totalFee, In DB: total_fee
+      notes: 'Test order with column name mismatch handling'
+      // Removed non-existent fields assignedTo and totalFee
     });
     
     console.log('Created order with camelCase fields:', order1);
@@ -61,8 +60,8 @@ async function testOrderOperations() {
     console.log('\n--- Updating Order with CamelCase Fields ---');
     const updatedOrder = await storage.updateOrder(order1.id, {
       notes: 'Updated via camelCase field names',
-      priority: 'high', // In JS: priority, in DB: priority (matches)
-      totalFee: 375.50  // In JS: totalFee, in DB: total_fee
+      priority: 'high' // In JS: priority, in DB: priority (matches)
+      // Removed totalFee field as it doesn't exist in the database
     });
     console.log('Updated order using camelCase fields:', updatedOrder);
     
