@@ -728,23 +728,23 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log('Creating new order:', order);
       
-      // Use parameterized query with explicit column names that match the DB
+      // Execute a simple raw SQL query without quotes around table/column names
+      // This matches our successful manual SQL test
       const query = `
-        INSERT INTO "orders" (
-          "user_id", 
-          "property_id", 
-          "order_type", 
-          "status", 
-          "priority", 
-          "due_date", 
-          "notes"
+        INSERT INTO orders (
+          user_id, 
+          property_id, 
+          order_type, 
+          status, 
+          priority, 
+          due_date, 
+          notes
         ) VALUES (
           $1, $2, $3, $4, $5, $6, $7
         )
         RETURNING *
       `;
       
-      // The column name for status in the database is "status", but it's representing the orderStatusEnum
       // Ensure all values are properly formatted for database
       const priority = order.priority || 'medium'; // Default to 'medium' if not specified
       const status = order.status || 'pending'; // Default to 'pending' if not specified
@@ -761,10 +761,10 @@ export class DatabaseStorage implements IStorage {
       
       console.log('Executing query with params:', params);
       
-      // Execute the query with the values array
-      const result = await db.execute(query, params);
+      // Execute the query using the pool directly for maximum compatibility
+      const result = await pool.query(query, params);
       
-      // Handle empty result
+      // PostgreSQL returns rows array
       if (!result || !result.rows || result.rows.length === 0) {
         throw new Error('No order was created');
       }
@@ -788,42 +788,42 @@ export class DatabaseStorage implements IStorage {
       let paramIndex = 1;
       
       // Always update the updated_at field
-      setClauses.push(`"updated_at" = NOW()`);
+      setClauses.push(`updated_at = NOW()`);
       
       // Add other fields that need to be updated
       // Only include fields that exist in the database based on our schema check
       if (orderData.userId !== undefined) {
-        setClauses.push(`"user_id" = $${paramIndex++}`);
+        setClauses.push(`user_id = $${paramIndex++}`);
         values.push(orderData.userId);
       }
       
       if (orderData.propertyId !== undefined) {
-        setClauses.push(`"property_id" = $${paramIndex++}`);
+        setClauses.push(`property_id = $${paramIndex++}`);
         values.push(orderData.propertyId);
       }
       
       if (orderData.orderType !== undefined) {
-        setClauses.push(`"order_type" = $${paramIndex++}`);
+        setClauses.push(`order_type = $${paramIndex++}`);
         values.push(orderData.orderType);
       }
       
       if (orderData.status !== undefined) {
-        setClauses.push(`"status" = $${paramIndex++}`);
+        setClauses.push(`status = $${paramIndex++}`);
         values.push(orderData.status);
       }
       
       if (orderData.priority !== undefined) {
-        setClauses.push(`"priority" = $${paramIndex++}`);
+        setClauses.push(`priority = $${paramIndex++}`);
         values.push(orderData.priority);
       }
       
       if (orderData.dueDate !== undefined) {
-        setClauses.push(`"due_date" = $${paramIndex++}`);
+        setClauses.push(`due_date = $${paramIndex++}`);
         values.push(orderData.dueDate);
       }
       
       if (orderData.notes !== undefined) {
-        setClauses.push(`"notes" = $${paramIndex++}`);
+        setClauses.push(`notes = $${paramIndex++}`);
         values.push(orderData.notes);
       }
       
@@ -834,31 +834,32 @@ export class DatabaseStorage implements IStorage {
       if (setClauses.length <= 1) { // Only updated_at
         const query = `
           SELECT *
-          FROM "orders"
-          WHERE "id" = $1
+          FROM orders
+          WHERE id = $1
         `;
-        const result = await db.execute(query, [id]);
-        return result[0];
+        const result = await pool.query(query, [id]);
+        return result.rows[0];
       }
       
       // Build and execute the SQL update query
       const query = `
-        UPDATE "orders"
+        UPDATE orders
         SET ${setClauses.join(', ')}
-        WHERE "id" = $${paramIndex}
+        WHERE id = $${paramIndex}
         RETURNING *
       `;
       
       values.push(id);
-      const result = await db.execute(query, values);
+      console.log('Executing update query with values:', values);
+      const result = await pool.query(query, values);
       
       // Check if results were returned
-      if (!result || result.length === 0) {
+      if (!result || !result.rows || result.rows.length === 0) {
         console.log(`No order found with ID: ${id} to update`);
         return undefined;
       }
       
-      const updatedOrder = result[0];
+      const updatedOrder = result.rows[0];
       
       console.log('Order updated successfully:', updatedOrder);
       return updatedOrder;
@@ -878,35 +879,36 @@ export class DatabaseStorage implements IStorage {
       let paramIndex = 1;
       
       // Always update status and updated_at fields
-      setClauses.push(`"status" = $${paramIndex++}`);
+      setClauses.push(`status = $${paramIndex++}`);
       values.push(status);
       
-      setClauses.push(`"updated_at" = NOW()`);
+      setClauses.push(`updated_at = NOW()`);
       
       // Add notes if provided
       if (notes) {
-        setClauses.push(`"notes" = $${paramIndex++}`);
+        setClauses.push(`notes = $${paramIndex++}`);
         values.push(notes);
       }
       
       // Build and execute the SQL update query
       const query = `
-        UPDATE "orders"
+        UPDATE orders
         SET ${setClauses.join(', ')}
-        WHERE "id" = $${paramIndex}
+        WHERE id = $${paramIndex}
         RETURNING *
       `;
       
       values.push(id);
-      const result = await db.execute(query, values);
+      console.log('Executing status update query with values:', values);
+      const result = await pool.query(query, values);
       
       // Check if results were returned
-      if (!result || result.length === 0) {
+      if (!result || !result.rows || result.rows.length === 0) {
         console.log(`No order found with ID: ${id} to update status`);
         return undefined;
       }
       
-      const updatedOrder = result[0];
+      const updatedOrder = result.rows[0];
       
       console.log('Order status updated successfully:', updatedOrder);
       return updatedOrder;
@@ -920,15 +922,15 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Deleting order with ID: ${id}`);
       
-      // Use raw SQL for the delete operation
+      // Use raw SQL for the delete operation with unquoted identifiers
       const query = `
-        DELETE FROM "orders"
-        WHERE "id" = $1
+        DELETE FROM orders
+        WHERE id = $1
       `;
       
-      await db.execute(query, [id]);
-      console.log(`Order with ID: ${id} deleted successfully`);
-      return true;
+      const result = await pool.query(query, [id]);
+      console.log(`Order with ID: ${id} deleted successfully, affected rows:`, result.rowCount);
+      return result.rowCount > 0;
     } catch (error) {
       console.error(`Error deleting order with ID ${id}:`, error);
       return false;
