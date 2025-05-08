@@ -596,7 +596,16 @@ export class DatabaseStorage implements IStorage {
   async getOrder(id: number): Promise<Order | undefined> {
     try {
       console.log(`Fetching order with ID: ${id}`);
-      const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = `
+        SELECT *
+        FROM "orders"
+        WHERE "id" = $1
+      `;
+      
+      const result = await db.execute(query, [id]);
+      const order = result[0];
       
       if (!order) {
         console.log(`No order found with ID: ${id}`);
@@ -614,7 +623,15 @@ export class DatabaseStorage implements IStorage {
   async getOrders(): Promise<Order[]> {
     try {
       console.log('Fetching all orders');
-      const orders = await db.select().from(schema.orders).orderBy(desc(schema.orders.createdAt));
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = `
+        SELECT *
+        FROM "orders"
+        ORDER BY "created_at" DESC
+      `;
+      
+      const orders = await db.execute(query);
       console.log(`Successfully fetched ${orders.length} orders`);
       return orders;
     } catch (error) {
@@ -626,9 +643,16 @@ export class DatabaseStorage implements IStorage {
   async getOrdersByUser(userId: number): Promise<Order[]> {
     try {
       console.log(`Fetching orders for user ID: ${userId}`);
-      const orders = await db.select().from(schema.orders)
-        .where(eq(schema.orders.userId, userId))
-        .orderBy(desc(schema.orders.createdAt));
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = `
+        SELECT *
+        FROM "orders"
+        WHERE "user_id" = $1
+        ORDER BY "created_at" DESC
+      `;
+      
+      const orders = await db.execute(query, [userId]);
       console.log(`Successfully fetched ${orders.length} orders for user ID: ${userId}`);
       return orders;
     } catch (error) {
@@ -640,9 +664,16 @@ export class DatabaseStorage implements IStorage {
   async getOrdersByProperty(propertyId: number): Promise<Order[]> {
     try {
       console.log(`Fetching orders for property ID: ${propertyId}`);
-      const orders = await db.select().from(schema.orders)
-        .where(eq(schema.orders.propertyId, propertyId))
-        .orderBy(desc(schema.orders.createdAt));
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = `
+        SELECT *
+        FROM "orders"
+        WHERE "property_id" = $1
+        ORDER BY "created_at" DESC
+      `;
+      
+      const orders = await db.execute(query, [propertyId]);
       console.log(`Successfully fetched ${orders.length} orders for property ID: ${propertyId}`);
       return orders;
     } catch (error) {
@@ -654,11 +685,16 @@ export class DatabaseStorage implements IStorage {
   async getOrdersByStatus(status: string): Promise<Order[]> {
     try {
       console.log(`Fetching orders with status: ${status}`);
-      // Handle snake_case vs camelCase in status field
-      const statusField = schema.orders.status;
-      const orders = await db.select().from(schema.orders)
-        .where(sql`LOWER(${statusField}::text) = LOWER(${status})`)
-        .orderBy(desc(schema.orders.createdAt));
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = `
+        SELECT *
+        FROM "orders"
+        WHERE LOWER("status"::text) = LOWER($1)
+        ORDER BY "created_at" DESC
+      `;
+      
+      const orders = await db.execute(query, [status]);
       console.log(`Successfully fetched ${orders.length} orders with status: ${status}`);
       return orders;
     } catch (error) {
@@ -670,11 +706,16 @@ export class DatabaseStorage implements IStorage {
   async getOrdersByType(type: string): Promise<Order[]> {
     try {
       console.log(`Fetching orders with type: ${type}`);
-      // Handle snake_case vs camelCase in orderType field
-      const typeField = schema.orders.orderType;
-      const orders = await db.select().from(schema.orders)
-        .where(sql`LOWER(${typeField}::text) = LOWER(${type})`)
-        .orderBy(desc(schema.orders.createdAt));
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = `
+        SELECT *
+        FROM "orders"
+        WHERE LOWER("order_type"::text) = LOWER($1)
+        ORDER BY "created_at" DESC
+      `;
+      
+      const orders = await db.execute(query, [type]);
       console.log(`Successfully fetched ${orders.length} orders with type: ${type}`);
       return orders;
     } catch (error) {
@@ -790,8 +831,13 @@ export class DatabaseStorage implements IStorage {
       
       // If no fields to update, return existing record
       if (setClauses.length <= 1) { // Only updated_at
-        const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
-        return order;
+        const query = `
+          SELECT *
+          FROM "orders"
+          WHERE "id" = $1
+        `;
+        const result = await db.execute(query, [id]);
+        return result[0];
       }
       
       // Build and execute the SQL update query
