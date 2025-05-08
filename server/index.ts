@@ -2,7 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocketServer } from "./websocket-server-enhanced";
-import { networkHealth } from "./utils/network-health";
+// Network health monitor is used by WebSocket servers, but not directly in index.ts
 import { shapWebSocketService } from "./shap_ws_service";
 // Import health check module
 import * as healthCheck from './monitoring/health-check';
