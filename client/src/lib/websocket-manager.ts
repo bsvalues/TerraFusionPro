@@ -571,6 +571,17 @@ export class WebSocketManager {
   }
   
   /**
+   * Get the current configuration
+   * @returns Configuration object with clientId and apiBaseUrl
+   */
+  public getConfig(): { clientId: string | null; apiBaseUrl: string } {
+    return {
+      clientId: this.getClientId(), // Use getClientId to ensure we have a client ID
+      apiBaseUrl: window.location.origin
+    };
+  }
+  
+  /**
    * Handle a message (used by polling fallback)
    * @param message The message to handle
    */

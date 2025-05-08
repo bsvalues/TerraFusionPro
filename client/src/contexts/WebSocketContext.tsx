@@ -180,7 +180,9 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       });
       
       // Start long polling as a fallback
-      const { clientId, apiBaseUrl } = websocketManager.getConfig();
+      const { clientId } = websocketManager.getConfig();
+      
+      // Create handlers for the polling system
       const handlePollingMessage = (message: any) => {
         // Process the message based on its type
         if (message.type === 'pong' || message.type === 'heartbeat') {
@@ -200,9 +202,13 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         }
       };
       
+      // Start the long polling with the appropriate client ID
+      const generatedClientId = clientId || `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+      console.log(`[WebSocketContext] Starting long polling fallback with client ID: ${generatedClientId}`);
+      
       startLongPolling(
         `/api/poll`, 
-        clientId || `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`,
+        generatedClientId,
         handlePollingMessage,
         handlePollingConnection
       );
@@ -253,15 +259,10 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
           // If WebSocket send fails, try HTTP
           if (!sentViaWebSocket) {
             console.log('[WebSocketContext] Sending via HTTP fallback');
-            sendViaHttp(data)
-              .then(success => {
-                if (!success) {
-                  console.error('[WebSocketContext] Failed to send via HTTP fallback');
-                }
-              })
-              .catch(err => {
-                console.error('[WebSocketContext] Error sending via HTTP fallback:', err);
-              });
+            const success = sendViaHttp(data);
+            if (!success) {
+              console.error('[WebSocketContext] Failed to send via HTTP fallback');
+            }
           }
           
           // Return if initial send was successful

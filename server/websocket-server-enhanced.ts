@@ -253,7 +253,7 @@ export function setupWebSocketServer(server: http.Server) {
       cb(true, 200, 'Connection accepted');
     },
     handleProtocols: (protocols) => {
-      if (protocols && protocols.length > 0) {
+      if (protocols && Array.isArray(protocols) && protocols.length > 0) {
         return protocols[0]; // Accept first protocol
       }
       return false;
