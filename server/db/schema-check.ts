@@ -17,7 +17,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Configure neonConfig to use WebSocket
-neonConfig.webSocketConstructor = ws;
+neonConfig.webSocketConstructor = ws as any;
+neonConfig.wsProxy = (url) => url; // Use direct WebSocket connection
 
 // Environment validation
 if (!process.env.DATABASE_URL) {
@@ -25,7 +26,7 @@ if (!process.env.DATABASE_URL) {
   process.exit(1);
 }
 
-async function checkSchema() {
+export async function checkSchema() {
   console.log('🔍 Starting database schema validation...');
   
   // Connect to the database

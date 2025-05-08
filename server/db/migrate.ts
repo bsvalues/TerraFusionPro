@@ -1,118 +1,145 @@
 /**
  * Database Migration Runner
  * 
- * This script manages the execution of database migrations and ensures
- * the database schema is up-to-date with the application's models.
+ * This script runs all pending SQL migrations from the migrations directory.
+ * Migrations are run in order based on their timestamp prefixes.
+ * 
+ * Usage: npx tsx server/db/migrate.ts
  */
-import { migrate } from 'drizzle-orm/postgres-js/migrator';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import * as schema from '../../shared/schema';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { Pool, neonConfig } from '@neondatabase/serverless';
 import ws from 'ws';
 
-// Configure neonConfig to use WebSocket
-neonConfig.webSocketConstructor = ws;
+// Configure Neon for WebSocket connectivity
+neonConfig.webSocketConstructor = ws as any;
+neonConfig.wsProxy = (url) => url;
 
-// Environment validation
-if (!process.env.DATABASE_URL) {
-  console.error('❌ DATABASE_URL must be set');
-  process.exit(1);
-}
-
-// Get the directory name in ESM
+// Get directory name for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-async function main() {
-  console.log('🔄 Starting database migration process...');
+// Path to migrations directory
+const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
+
+/**
+ * Runs all pending migrations
+ */
+async function runMigrations(): Promise<void> {
+  console.log('🔄 Checking for migrations to run...');
   
-  // Create the migrations directory if it doesn't exist
-  const migrationDir = path.join(__dirname, 'migrations');
-  if (!fs.existsSync(migrationDir)) {
-    console.log('📁 Creating migrations directory...');
-    fs.mkdirSync(migrationDir, { recursive: true });
-    console.log('✓ Migrations directory created');
+  // Make sure migrations directory exists
+  if (!fs.existsSync(MIGRATIONS_DIR)) {
+    fs.mkdirSync(MIGRATIONS_DIR, { recursive: true });
+    console.log(`Created migrations directory at ${MIGRATIONS_DIR}`);
   }
   
-  // Connect to the database
-  console.log('🔌 Connecting to database...');
+  // Connect to database
+  if (!process.env.DATABASE_URL) {
+    console.error('❌ DATABASE_URL must be set');
+    process.exit(1);
+  }
+  
   const pool = new Pool({ connectionString: process.env.DATABASE_URL });
-  const db = drizzle(pool, { schema });
-
+  
   try {
-    // Run migrations
-    console.log('📊 Applying migrations...');
+    // Check if schema_version table exists
+    const tableExists = await pool.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' 
+        AND table_name = 'schema_version'
+      )
+    `);
     
-    // Create migrations table if it doesn't exist
-    try {
+    // If the table doesn't exist, create it with our structure
+    if (!tableExists.rows[0].exists) {
+      console.log('Creating schema_version table');
       await pool.query(`
-        CREATE TABLE IF NOT EXISTS __drizzle_migrations (
+        CREATE TABLE schema_version (
           id SERIAL PRIMARY KEY,
-          hash text NOT NULL,
-          created_at timestamptz DEFAULT now()
+          version VARCHAR(255) NOT NULL,
+          description TEXT,
+          applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP
         )
       `);
-    } catch (error) {
-      console.error('Error creating migrations table:', error);
-      process.exit(1);
     }
     
-    // Run the migrations
-    await migrate(db, { migrationsFolder: path.join(__dirname, 'migrations') });
+    // Get list of already applied migrations
+    const appliedResult = await pool.query(`
+      SELECT version FROM schema_version ORDER BY version
+    `);
+    const appliedVersions = appliedResult.rows.map(row => row.version);
     
-    console.log('✅ Database migration completed successfully');
+    // Get list of migration files
+    const migrationFiles = fs.readdirSync(MIGRATIONS_DIR)
+      .filter(file => file.endsWith('.sql'))
+      .sort(); // Sort by filename (which starts with timestamp)
     
-    // Create version tracking table if it doesn't exist
+    console.log(`Found ${migrationFiles.length} migration files`);
+    console.log(`${appliedVersions.length} migrations already applied`);
+    
+    // Determine which migrations need to be applied
+    const pendingMigrations = migrationFiles.filter(filename => {
+      // Extract version from filename
+      const version = filename.split('_')[0];
+      return !appliedVersions.includes(version);
+    });
+    
+    if (pendingMigrations.length === 0) {
+      console.log('✅ No pending migrations to apply');
+      return;
+    }
+    
+    console.log(`🔄 Applying ${pendingMigrations.length} pending migrations...`);
+    
+    // Start a transaction for all migrations
+    const client = await pool.connect();
     try {
-      await pool.query(`
-        CREATE TABLE IF NOT EXISTS schema_version (
-          id SERIAL PRIMARY KEY,
-          version TEXT NOT NULL,
-          applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-          description TEXT
-        )
-      `);
+      await client.query('BEGIN');
       
-      // Insert current version based on timestamp if not exists
-      const version = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
-      const description = 'Migration applied via migrate.ts';
-      
-      await pool.query(`
-        INSERT INTO schema_version (version, description)
-        SELECT $1, $2
-        WHERE NOT EXISTS (
-          SELECT 1 FROM schema_version WHERE version = $1
-        )
-      `, [version, description]);
-      
-      // Get current version
-      const result = await pool.query('SELECT version FROM schema_version ORDER BY applied_at DESC LIMIT 1');
-      if (result.rows.length > 0) {
-        console.log(`📝 Current schema version: ${result.rows[0].version}`);
+      // Apply each pending migration
+      for (const filename of pendingMigrations) {
+        const migrationPath = path.join(MIGRATIONS_DIR, filename);
+        const sql = fs.readFileSync(migrationPath, 'utf8');
+        
+        console.log(`Applying migration: ${filename}`);
+        
+        // Execute the migration SQL
+        await client.query(sql);
       }
+      
+      // Commit the transaction
+      await client.query('COMMIT');
+      console.log('✅ Successfully applied all migrations');
+      
     } catch (error) {
-      console.error('Error tracking schema version:', error);
+      // Rollback in case of error
+      await client.query('ROLLBACK');
+      console.error('❌ Error applying migrations:', error);
+      throw error;
+    } finally {
+      client.release();
     }
     
   } catch (error) {
-    console.error('❌ Migration failed:', error);
+    console.error('❌ Migration error:', error);
     process.exit(1);
   } finally {
-    // Close the connection
     await pool.end();
   }
 }
 
-// Only run standalone if directly executed
-// For ESM modules, we use import.meta.url to check if this is the main module
+// Run migrations if this script is executed directly
 if (import.meta.url.endsWith('migrate.ts') || 
     import.meta.url.endsWith('migrate.js')) {
-  // Run the main function
-  main().catch(err => {
-    console.error('Unhandled error in migration process:', err);
+  runMigrations().then(() => {
+    console.log('✅ Migration complete');
+  }).catch(err => {
+    console.error('❌ Unhandled error in migration:', err);
     process.exit(1);
   });
 }
+
+export { runMigrations };

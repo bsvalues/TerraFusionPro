@@ -1,28 +1,15 @@
--- Migration: Initial Schema Migration
--- Generated: 2025-05-08
--- Description: Sets up the initial database schema and adds schema version tracking
+-- Initial Schema Migration
+-- This script sets up the initial database schema
 
--- Create schema version tracking table
+-- Create schema_version table to track migrations
 CREATE TABLE IF NOT EXISTS schema_version (
   id SERIAL PRIMARY KEY,
-  version TEXT NOT NULL,
-  applied_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
-  description TEXT
+  version VARCHAR(255) NOT NULL,
+  description TEXT,
+  applied_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  applied_by VARCHAR(255)
 );
 
--- Insert initial version record
+-- Record this migration
 INSERT INTO schema_version (version, description)
-VALUES ('20250508000000', 'Initial schema version');
-
--- Create migration tracking table for Drizzle
-CREATE TABLE IF NOT EXISTS __drizzle_migrations (
-  id SERIAL PRIMARY KEY,
-  hash text NOT NULL,
-  created_at timestamptz DEFAULT now()
-);
-
--- Record this migration in Drizzle migrations
-INSERT INTO __drizzle_migrations (hash)
-VALUES ('00000000000000_initial_schema');
-
--- Add other schema changes or initial schema setup here if needed
+VALUES ('00000000000000', 'Initial schema setup');

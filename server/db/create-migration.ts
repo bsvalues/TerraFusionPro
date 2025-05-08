@@ -4,85 +4,72 @@
  * This script creates a new migration file with the provided description.
  * Usage: npx tsx server/db/create-migration.ts "Description of migration"
  */
-import { fileURLToPath } from 'url';
-import path from 'path';
 import fs from 'fs';
+import path from 'path';
+import { fileURLToPath } from 'url';
 
 // Get directory name for ESM
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// Path to migrations directory
+const MIGRATIONS_DIR = path.join(__dirname, 'migrations');
+
 /**
  * Creates a new migration file
  */
 function createMigration(description: string): void {
-  // Create timestamp identifier for the migration
-  const timestamp = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
-  const migrationName = `${timestamp}_${description.toLowerCase().replace(/[^a-z0-9]+/g, '_')}`;
-  const migrationPath = path.join(__dirname, 'migrations', `${migrationName}.sql`);
-  
-  // Create migrations directory if it doesn't exist
-  const migrationsDir = path.join(__dirname, 'migrations');
-  if (!fs.existsSync(migrationsDir)) {
-    console.log('📁 Creating migrations directory...');
-    fs.mkdirSync(migrationsDir, { recursive: true });
+  // Make sure migrations directory exists
+  if (!fs.existsSync(MIGRATIONS_DIR)) {
+    fs.mkdirSync(MIGRATIONS_DIR, { recursive: true });
+    console.log(`Created migrations directory at ${MIGRATIONS_DIR}`);
   }
   
-  // Check if the migration already exists
-  if (fs.existsSync(migrationPath)) {
-    console.error(`❌ Migration file already exists: ${migrationPath}`);
-    process.exit(1);
-  }
+  // Generate timestamp for migration file (YYYYMMDDHHMMSS format)
+  const now = new Date();
+  const timestamp = now.getFullYear().toString() +
+    (now.getMonth() + 1).toString().padStart(2, '0') +
+    now.getDate().toString().padStart(2, '0') +
+    now.getHours().toString().padStart(2, '0') +
+    now.getMinutes().toString().padStart(2, '0') +
+    now.getSeconds().toString().padStart(2, '0');
   
-  // Create the migration template
-  const template = `-- Migration: ${description}
--- Generated: ${new Date().toISOString().split('T')[0]}
--- Description: ${description}
+  // Sanitize description for filename (replace spaces with underscores, remove special chars)
+  const sanitizedDesc = description
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, '')
+    .replace(/\s+/g, '_');
+  
+  // Create filename with timestamp and description
+  const filename = `${timestamp}_${sanitizedDesc}.sql`;
+  const filePath = path.join(MIGRATIONS_DIR, filename);
+  
+  // Create migration file content
+  const templateContent = `-- Migration: ${description}
+-- Date: ${now.toISOString().split('T')[0]}
+-- Description: This migration [description of what this migration does]
 
--- Your SQL goes here
-
--- Example: Add a column
--- DO $$ 
--- BEGIN
---     IF NOT EXISTS (
---         SELECT FROM information_schema.columns 
---         WHERE table_name = 'table_name' 
---         AND column_name = 'column_name'
---         AND table_schema = 'public'
---     ) THEN
---         ALTER TABLE table_name ADD COLUMN column_name TEXT;
---     END IF;
--- END $$;
-
--- Example: Create a table
--- CREATE TABLE IF NOT EXISTS table_name (
---   id SERIAL PRIMARY KEY,
---   name TEXT NOT NULL,
---   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
--- );
-
--- Update schema version
-INSERT INTO schema_version (version, description)
-VALUES ('${timestamp}', '${description}');
+-- Write your migration SQL here
+-- Example:
+-- ALTER TABLE table_name ADD COLUMN new_column_name column_type;
 
 -- Record this migration
-INSERT INTO __drizzle_migrations (hash)
-VALUES ('${migrationName}');
+INSERT INTO schema_version (version, description, applied_by)
+VALUES ('${timestamp}', '${description}', CURRENT_USER);
 `;
   
-  // Write the template to the file
-  fs.writeFileSync(migrationPath, template);
-  
-  console.log(`✅ Migration file created: ${migrationPath}`);
+  // Write migration file
+  fs.writeFileSync(filePath, templateContent);
+  console.log(`✅ Created migration file: ${filePath}`);
 }
 
-// Main execution
+// Get description from command line arguments
 const args = process.argv.slice(2);
 if (args.length === 0) {
-  console.error('❌ Migration description is required');
+  console.error('❌ Error: Please provide a description for the migration');
   console.error('Usage: npx tsx server/db/create-migration.ts "Description of migration"');
   process.exit(1);
 }
 
-const description = args[0];
-createMigration(description);
+// Create migration with provided description
+createMigration(args[0]);
