@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { websocketManager } from '@/lib/websocket-manager';
+import { startLongPolling, stopLongPolling, sendViaHttp } from '@/lib/polling-fallback';
 import { useToast } from '@/hooks/use-toast';
 
 type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
@@ -9,6 +10,8 @@ interface WebSocketContextType {
   isConnected: boolean;
   connectionError: string | null;
   reconnectAttempts: number;
+  connectionType: 'websocket' | 'long-polling' | 'none';
+  usingFallback: boolean;
   connect: () => void;
   disconnect: () => void;
   send: (data: any) => boolean;
@@ -135,12 +138,28 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
       setReconnectAttempts(prev => prev + 1);
     };
     
+    // Handle WebSocket connection failure by switching to polling
+    const handleConnectionFailed = (data: any) => {
+      console.log('[WebSocketContext] WebSocket connection failed, switching to polling fallback');
+      
+      toast({
+        title: "Switching Connection Method",
+        description: "WebSocket connection failed. Using fallback method to stay connected.",
+        variant: "default",
+      });
+      
+      // Start long polling as a fallback
+      startLongPolling();
+    };
+    
     websocketManager.on('reconnect_attempt', handleReconnectAttempt);
+    websocketManager.on('connection_failed', handleConnectionFailed);
     
     return () => {
       websocketManager.off('reconnect_attempt', handleReconnectAttempt);
+      websocketManager.off('connection_failed', handleConnectionFailed);
     };
-  }, []);
+  }, [toast]);
   
   return (
     <WebSocketContext.Provider 
@@ -158,12 +177,33 @@ export function WebSocketProvider({ children }: { children: React.ReactNode }) {
         },
         disconnect: () => {
           websocketManager.disconnect();
+          stopLongPolling(); // Also stop polling fallback
           toast({
             title: "Disconnected",
             description: "WebSocket connection closed",
           });
         },
-        send: (data) => websocketManager.send(data),
+        send: (data) => {
+          // Try WebSocket first, fall back to HTTP if not available
+          const sentViaWebSocket = websocketManager.send(data);
+          
+          // If WebSocket send fails, try HTTP
+          if (!sentViaWebSocket) {
+            console.log('[WebSocketContext] Sending via HTTP fallback');
+            sendViaHttp(data)
+              .then(success => {
+                if (!success) {
+                  console.error('[WebSocketContext] Failed to send via HTTP fallback');
+                }
+              })
+              .catch(err => {
+                console.error('[WebSocketContext] Error sending via HTTP fallback:', err);
+              });
+          }
+          
+          // Return if initial send was successful
+          return sentViaWebSocket;
+        },
         lastPing,
       }}
     >

@@ -22,6 +22,7 @@ export class WebSocketManager {
   private connectPromiseResolver: ((connected: boolean) => void) | null = null;
   private pendingPings: Map<string, { timestamp: number, timeoutId: ReturnType<typeof setTimeout> }> = new Map();
   private protocols: string[] = ['json', 'v1.terrafusion.websocket'];
+  private clientId: string | null = null;
   
   // Custom event handlers for WebSocketContext
   private eventHandlers: Map<string, Set<(data: any) => void>> = new Map();
@@ -555,6 +556,27 @@ export class WebSocketManager {
         }
       });
     }
+  }
+  
+  /**
+   * Get the client ID
+   * @returns The client ID, or null if not set
+   */
+  public getClientId(): string | null {
+    if (!this.clientId) {
+      // Generate a client ID if not set
+      this.clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`;
+    }
+    return this.clientId;
+  }
+  
+  /**
+   * Handle a message (used by polling fallback)
+   * @param message The message to handle
+   */
+  public handleMessage(message: any): void {
+    // Directly invoke message handler as if it came from WebSocket
+    this.messageHandler(message);
   }
 }
 
