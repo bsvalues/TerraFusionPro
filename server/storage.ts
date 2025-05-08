@@ -782,4 +782,8 @@ export interface FileImportResultUpdate {
   warnings?: string[];
 }
 
+// Import DatabaseStorage now that we've implemented the Order methods
+import { DatabaseStorage } from "./database-storage";
+
+// Use DatabaseStorage for production
 export const storage = new DatabaseStorage();
