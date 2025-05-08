@@ -55,12 +55,17 @@ export const propertyTypeEnum = pgEnum("property_type", [
 
 export const properties = pgTable("properties", {
   id: serial("id").primaryKey(),
-  parcelId: text("parcel_id").notNull().unique(),
+  // Make parcelId optional to support flexible identification
+  parcelId: text("parcel_id").unique(),
+  // Add tax_parcel_id for compatibility with existing database
+  taxParcelId: text("tax_parcel_id"),
+  // Additional flexible identifier that can be used for various ID types
+  propertyIdentifier: text("property_identifier"),
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
   zipCode: text("zip_code").notNull(),
-  county: text("county").notNull(),
+  county: text("county"),
   legalDescription: text("legal_description"),
   propertyType: propertyTypeEnum("property_type").notNull(),
   acreage: real("acreage"),
@@ -72,6 +77,8 @@ export const properties = pgTable("properties", {
   lastSaleAmount: real("last_sale_amount"),
   latitude: real("latitude"),
   longitude: real("longitude"),
+  // Add a flexible metadata field for additional property data
+  metadata: jsonb("metadata"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
 });
