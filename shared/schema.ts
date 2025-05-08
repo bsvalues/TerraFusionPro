@@ -372,6 +372,7 @@ export const orders = pgTable("orders", {
   priority: orderPriorityEnum("order_priority").notNull().default("medium"),
   dueDate: timestamp("due_date", { mode: "date" }),
   notes: text("notes"),
+  attachmentPath: text("attachment_path"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
 });
