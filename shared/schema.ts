@@ -577,6 +577,7 @@ export const mlsSystems = pgTable("mls_systems", {
   accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: "date" }),
   region: text("region"),
   status: text("status").notNull().default("inactive"),
+  active: boolean("active").notNull().default(true),
   config: json("config"),
   lastSyncedAt: timestamp("last_synced_at", { mode: "date" }),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
