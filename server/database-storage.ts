@@ -686,7 +686,42 @@ export class DatabaseStorage implements IStorage {
   async createOrder(order: InsertOrder): Promise<Order> {
     try {
       console.log('Creating new order:', order);
-      const [createdOrder] = await db.insert(schema.orders).values(order).returning();
+      
+      // Convert camelCase to snake_case for fields that require it
+      const mappedOrder = {
+        ...order,
+        // Map field names to match database snake_case columns
+        // The error shows 'order_status' doesn't exist, indicating we need to transform
+        // the 'status' field to match the database column name
+      };
+      
+      // Use raw SQL to ensure proper column names are used
+      const query = sql`
+        INSERT INTO "orders" (
+          "user_id", 
+          "property_id", 
+          "order_type", 
+          "status", 
+          "priority", 
+          "due_date", 
+          "notes", 
+          "assigned_to", 
+          "total_fee"
+        ) VALUES (
+          ${order.userId}, 
+          ${order.propertyId}, 
+          ${order.orderType}, 
+          ${order.status}, 
+          ${order.priority || 'normal'}, 
+          ${order.dueDate}, 
+          ${order.notes}, 
+          ${order.assignedTo}, 
+          ${order.totalFee}
+        )
+        RETURNING *
+      `;
+      
+      const [createdOrder] = await db.execute(query);
       console.log('Order created successfully:', createdOrder);
       return createdOrder;
     } catch (error) {
@@ -698,14 +733,78 @@ export class DatabaseStorage implements IStorage {
   async updateOrder(id: number, orderData: Partial<InsertOrder>): Promise<Order | undefined> {
     try {
       console.log(`Updating order with ID: ${id}`);
-      const [updatedOrder] = await db
-        .update(schema.orders)
-        .set({
-          ...orderData,
-          updatedAt: new Date()
-        })
-        .where(eq(schema.orders.id, id))
-        .returning();
+      
+      // Prepare SET clause parts for the SQL query
+      const setClauses = [];
+      const values = [];
+      let paramIndex = 1;
+      
+      // Always update the updated_at field
+      setClauses.push(`"updated_at" = NOW()`);
+      
+      // Add other fields that need to be updated
+      if (orderData.userId !== undefined) {
+        setClauses.push(`"user_id" = $${paramIndex++}`);
+        values.push(orderData.userId);
+      }
+      
+      if (orderData.propertyId !== undefined) {
+        setClauses.push(`"property_id" = $${paramIndex++}`);
+        values.push(orderData.propertyId);
+      }
+      
+      if (orderData.orderType !== undefined) {
+        setClauses.push(`"order_type" = $${paramIndex++}`);
+        values.push(orderData.orderType);
+      }
+      
+      if (orderData.status !== undefined) {
+        setClauses.push(`"status" = $${paramIndex++}`);
+        values.push(orderData.status);
+      }
+      
+      if (orderData.priority !== undefined) {
+        setClauses.push(`"priority" = $${paramIndex++}`);
+        values.push(orderData.priority);
+      }
+      
+      if (orderData.dueDate !== undefined) {
+        setClauses.push(`"due_date" = $${paramIndex++}`);
+        values.push(orderData.dueDate);
+      }
+      
+      if (orderData.notes !== undefined) {
+        setClauses.push(`"notes" = $${paramIndex++}`);
+        values.push(orderData.notes);
+      }
+      
+      if (orderData.assignedTo !== undefined) {
+        setClauses.push(`"assigned_to" = $${paramIndex++}`);
+        values.push(orderData.assignedTo);
+      }
+      
+      if (orderData.totalFee !== undefined) {
+        setClauses.push(`"total_fee" = $${paramIndex++}`);
+        values.push(orderData.totalFee);
+      }
+      
+      // If no fields to update, return existing record
+      if (setClauses.length <= 1) { // Only updated_at
+        const [order] = await db.select().from(schema.orders).where(eq(schema.orders.id, id));
+        return order;
+      }
+      
+      // Build and execute the SQL update query
+      const query = `
+        UPDATE "orders"
+        SET ${setClauses.join(', ')}
+        WHERE "id" = $${paramIndex}
+        RETURNING *
+      `;
+      
+      values.push(id);
+      const result = await db.execute(query, values);
+      const updatedOrder = result[0];
       
       if (!updatedOrder) {
         console.log(`No order found with ID: ${id} to update`);
