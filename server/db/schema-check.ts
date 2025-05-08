@@ -9,6 +9,12 @@ import { Pool, neonConfig } from '@neondatabase/serverless';
 import { drizzle } from 'drizzle-orm/neon-serverless';
 import * as schema from '../../shared/schema';
 import ws from 'ws';
+import { fileURLToPath } from 'url';
+import path from 'path';
+
+// Get directory name for ESM
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 // Configure neonConfig to use WebSocket
 neonConfig.webSocketConstructor = ws;
@@ -40,11 +46,17 @@ async function checkSchema() {
     // Get schema tables from Drizzle models
     const schemaTableNames = Object.keys(schema)
       .filter(key => key.endsWith('Relations') === false)
-      .filter(key => typeof schema[key] === 'object' && schema[key] !== null);
+      .filter(key => {
+        // Check if it's a table object (has a name property)
+        const obj = schema[key as keyof typeof schema];
+        return typeof obj === 'object' && 
+               obj !== null && 
+               obj.hasOwnProperty('name');
+      });
     
     // Convert camelCase schema names to snake_case for comparison
     const expectedTableNames = schemaTableNames.map(name => 
-      name.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
+      name.replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`)
     );
     
     console.log(`📝 Found ${expectedTableNames.length} tables in schema`);
@@ -77,27 +89,31 @@ async function checkSchema() {
       const dbColumns = columnsResult.rows.map(row => row.column_name);
       
       // Find corresponding schema table (convert snake_case to camelCase)
-      const schemaTableName = tableName.replace(/_([a-z])/g, (_, letter) => letter.toUpperCase());
+      const schemaTableName = tableName.replace(/_([a-z])/g, (_: string, letter: string) => letter.toUpperCase());
       
-      // If we have this table in our schema, compare columns
-      if (schema[schemaTableName]) {
-        const schemaTable = schema[schemaTableName];
-        // Get expected columns from schema, excluding symbol properties
-        const schemaColumns = Object.getOwnPropertyNames(schemaTable)
-          .filter(key => typeof key === 'string' && !key.startsWith('_'));
+      // Check if this table exists in our schema
+      if (schemaTableName in schema) {
+        // Safe access using known key with type assertion
+        const schemaTable = schema[schemaTableName as keyof typeof schema] as Record<string, any>;
         
-        // Convert camelCase to snake_case for column names
-        const expectedColumns = schemaColumns.map(col => 
-          col.replace(/[A-Z]/g, letter => `_${letter.toLowerCase()}`)
-        );
+        if (typeof schemaTable === 'object' && schemaTable !== null) {
+          // Get expected columns from schema, excluding symbol properties
+          const schemaColumns = Object.getOwnPropertyNames(schemaTable)
+            .filter(key => typeof key === 'string' && !key.startsWith('_'));
+          
+          // Convert camelCase to snake_case for column names
+          const expectedColumns = schemaColumns.map(col => 
+            col.replace(/[A-Z]/g, (letter: string) => `_${letter.toLowerCase()}`)
+          );
         
-        // Find missing columns
-        const missingColumns = expectedColumns.filter(col => !dbColumns.includes(col));
-        if (missingColumns.length > 0) {
-          columnMismatches.push({
-            table: tableName,
-            missingColumns
-          });
+          // Find missing columns
+          const missingColumns = expectedColumns.filter(col => !dbColumns.includes(col));
+          if (missingColumns.length > 0) {
+            columnMismatches.push({
+              table: tableName,
+              missingColumns
+            });
+          }
         }
       }
     }
@@ -141,12 +157,17 @@ async function checkSchema() {
   }
 }
 
-// Run the validation
-checkSchema().then(isValid => {
-  if (!isValid) {
+// Only run standalone if directly executed
+// For ESM modules, we use import.meta.url to check if this is the main module
+if (import.meta.url.endsWith('schema-check.ts') || 
+    import.meta.url.endsWith('schema-check.js')) {
+  // Run the validation
+  checkSchema().then(isValid => {
+    if (!isValid) {
+      process.exit(1);
+    }
+  }).catch(err => {
+    console.error('Unhandled error in schema validation:', err);
     process.exit(1);
-  }
-}).catch(err => {
-  console.error('Unhandled error in schema validation:', err);
-  process.exit(1);
-});
+  });
+}

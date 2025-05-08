@@ -5,6 +5,8 @@ import { setupWebSocketServer } from "./websocket-server";
 import { shapWebSocketService } from "./shap_ws_service";
 // Import health check module
 import * as healthCheck from './monitoring/health-check';
+// Import database startup checks
+import { runStartupChecks } from "./db";
 
 const app = express();
 app.use(express.json());
@@ -41,6 +43,9 @@ app.use((req, res, next) => {
 });
 
 (async () => {
+  // Run database startup checks
+  await runStartupChecks();
+  
   const server = await registerRoutes(app);
   
   // Set up main WebSocket server

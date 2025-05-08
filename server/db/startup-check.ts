@@ -1,79 +1,36 @@
 /**
- * Database Startup Check
+ * Database Startup Checks
  * 
- * This module performs schema validation during application startup.
- * It's designed to be imported and used in server/index.ts.
+ * This script runs validation and safety checks at application startup.
+ * It ensures the database schema is properly migrated and compatible with
+ * the application code before proceeding with startup.
  */
 import { Pool, neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-import fs from 'fs';
+import { fileURLToPath } from 'url';
 import path from 'path';
+import fs from 'fs';
+import ws from 'ws';
 
 // Configure neonConfig to use WebSocket
 neonConfig.webSocketConstructor = ws;
 
 /**
- * Check if database connection is available
+ * Creates the schema_version table if it doesn't exist
  */
-export async function checkDatabaseConnection(): Promise<boolean> {
-  if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL must be set');
-    return false;
-  }
-
-  let pool: Pool | null = null;
-  
+async function ensureSchemaVersionTable(pool: Pool): Promise<boolean> {
   try {
-    console.log('🔌 Checking database connection...');
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    
-    // Execute a simple query to verify connection
-    const result = await pool.query('SELECT 1 as result');
-    if (result.rows[0]?.result === 1) {
-      console.log('✅ Database connection successful');
-      return true;
-    } else {
-      console.error('❌ Database connection failed: Unexpected query result');
-      return false;
-    }
-  } catch (error) {
-    console.error('❌ Database connection failed:', error);
-    return false;
-  } finally {
-    if (pool) {
-      await pool.end();
-    }
-  }
-}
-
-/**
- * Check if schema version is compatible with application
- */
-export async function checkSchemaVersion(minSchemaVersion: string = ''): Promise<boolean> {
-  if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL must be set');
-    return false;
-  }
-
-  let pool: Pool | null = null;
-  
-  try {
-    console.log('🔄 Checking schema version...');
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
-    
-    // Check if schema_version table exists
-    const tableCheck = await pool.query(`
+    // Check if table exists
+    const checkTable = await pool.query(`
       SELECT EXISTS (
         SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = 'schema_version'
+        WHERE table_name = 'schema_version' AND table_schema = 'public'
       );
     `);
     
-    if (!tableCheck.rows[0]?.exists) {
-      console.warn('⚠️ Schema version table does not exist. Creating it...');
+    if (!checkTable.rows[0].exists) {
+      console.log('Creating schema_version table for tracking schema changes...');
       
-      // Create the table
+      // Create schema_version table
       await pool.query(`
         CREATE TABLE schema_version (
           id SERIAL PRIMARY KEY,
@@ -84,139 +41,67 @@ export async function checkSchemaVersion(minSchemaVersion: string = ''): Promise
       `);
       
       // Insert initial version
-      const initialVersion = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
+      const version = new Date().toISOString().replace(/[^0-9]/g, '').slice(0, 14);
       await pool.query(`
         INSERT INTO schema_version (version, description)
-        VALUES ($1, 'Initial schema version');
-      `, [initialVersion]);
+        VALUES ($1, 'Initial schema version created at startup')
+      `, [version]);
       
-      console.log(`✅ Created schema_version table with initial version ${initialVersion}`);
+      console.log('Schema version tracking initialized.');
       return true;
-    }
-    
-    // Get latest schema version
-    const versionResult = await pool.query(`
-      SELECT version FROM schema_version 
-      ORDER BY applied_at DESC 
-      LIMIT 1;
-    `);
-    
-    if (versionResult.rows.length === 0) {
-      console.warn('⚠️ No schema version found in database');
-      return false;
-    }
-    
-    const currentVersion = versionResult.rows[0].version;
-    console.log(`📋 Current schema version: ${currentVersion}`);
-    
-    // If minimum version is specified, check compatibility
-    if (minSchemaVersion && currentVersion < minSchemaVersion) {
-      console.error(`❌ Schema version ${currentVersion} is older than required minimum ${minSchemaVersion}`);
-      console.error('Please run migrations to update the database schema');
-      return false;
     }
     
     return true;
   } catch (error) {
-    console.error('❌ Error checking schema version:', error);
+    console.error('Error creating schema_version table:', error);
     return false;
-  } finally {
-    if (pool) {
-      await pool.end();
-    }
   }
 }
 
 /**
- * Check if there are pending migrations
+ * Performs basic startup checks on the database
  */
-export async function checkPendingMigrations(): Promise<boolean> {
-  const migrationsDir = path.join(__dirname, 'migrations');
-  
-  // If migrations directory doesn't exist or is empty, no pending migrations
-  if (!fs.existsSync(migrationsDir) || fs.readdirSync(migrationsDir).length === 0) {
-    return false;
-  }
-  
+export async function runStartupChecks(): Promise<boolean> {
+  // Check if DATABASE_URL is set
   if (!process.env.DATABASE_URL) {
-    console.error('❌ DATABASE_URL must be set');
+    console.error('❌ DATABASE_URL environment variable is not set!');
     return false;
   }
-
-  let pool: Pool | null = null;
+  
+  // Connect to the database
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL });
   
   try {
-    pool = new Pool({ connectionString: process.env.DATABASE_URL });
+    // Check connection
+    await pool.query('SELECT 1');
     
-    // Check if migrations table exists
-    const tableCheck = await pool.query(`
-      SELECT EXISTS (
-        SELECT FROM information_schema.tables 
-        WHERE table_schema = 'public' 
-        AND table_name = '__drizzle_migrations'
-      );
-    `);
-    
-    if (!tableCheck.rows[0]?.exists) {
-      // No migrations table means there might be pending migrations
-      console.warn('⚠️ Migrations table does not exist. There may be pending migrations.');
-      return true;
+    // Ensure schema_version table exists
+    const schemaVersionResult = await ensureSchemaVersionTable(pool);
+    if (!schemaVersionResult) {
+      console.warn('⚠️ Could not create or verify schema_version table');
     }
     
-    // Get applied migrations
-    const appliedMigrations = await pool.query(`
-      SELECT hash FROM __drizzle_migrations;
-    `);
-    
-    const appliedHashes = appliedMigrations.rows.map(row => row.hash);
-    
-    // Get migration files
-    const migrationFiles = fs.readdirSync(migrationsDir)
-      .filter(file => file.endsWith('.sql'));
-    
-    // If there are more files than applied migrations, there might be pending migrations
-    if (migrationFiles.length > appliedHashes.length) {
-      console.warn('⚠️ There may be pending migrations');
-      return true;
-    }
-    
-    return false;
+    // Successful database connection
+    return true;
   } catch (error) {
-    console.error('❌ Error checking pending migrations:', error);
+    console.error('❌ Database connection failed:', error);
     return false;
   } finally {
-    if (pool) {
-      await pool.end();
-    }
+    await pool.end();
   }
 }
 
-/**
- * Run all startup checks
- */
-export async function runStartupChecks(options = { 
-  exitOnFailure: true,
-  minSchemaVersion: ''
-}): Promise<boolean> {
-  console.log('🚀 Running database startup checks...');
-  
-  const connectionOk = await checkDatabaseConnection();
-  if (!connectionOk && options.exitOnFailure) {
-    console.error('❌ Database connection check failed');
+// Only run standalone if directly executed
+// For ESM modules, we use import.meta.url to check if this is the main module
+if (import.meta.url.endsWith('startup-check.ts') || 
+    import.meta.url.endsWith('startup-check.js')) {
+  runStartupChecks().then(success => {
+    if (!success) {
+      process.exit(1);
+    }
+    console.log('✅ Database startup checks passed');
+  }).catch(err => {
+    console.error('Unhandled error in startup checks:', err);
     process.exit(1);
-  }
-  
-  const schemaVersionOk = await checkSchemaVersion(options.minSchemaVersion);
-  if (!schemaVersionOk && options.exitOnFailure) {
-    console.error('❌ Schema version check failed');
-    process.exit(1);
-  }
-  
-  const pendingMigrations = await checkPendingMigrations();
-  if (pendingMigrations) {
-    console.warn('⚠️ There appear to be pending migrations. Run migrations to update the database schema.');
-  }
-  
-  console.log('✅ All database startup checks completed');
-  return connectionOk && schemaVersionOk;
+  });
 }

@@ -61,7 +61,7 @@ async function main() {
     }
     
     // Run the migrations
-    await migrate(db, { migrationsFolder: 'migrations' });
+    await migrate(db, { migrationsFolder: path.join(__dirname, 'migrations') });
     
     console.log('✅ Database migration completed successfully');
     
@@ -106,8 +106,13 @@ async function main() {
   }
 }
 
-// Run the main function
-main().catch(err => {
-  console.error('Unhandled error in migration process:', err);
-  process.exit(1);
-});
+// Only run standalone if directly executed
+// For ESM modules, we use import.meta.url to check if this is the main module
+if (import.meta.url.endsWith('migrate.ts') || 
+    import.meta.url.endsWith('migrate.js')) {
+  // Run the main function
+  main().catch(err => {
+    console.error('Unhandled error in migration process:', err);
+    process.exit(1);
+  });
+}
