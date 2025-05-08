@@ -8,9 +8,14 @@ import { websocketManager } from './websocket-manager';
 
 let isPolling = false;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
-const pollIntervalMs = 2000;
+let currentPollIntervalMs = 3000; // Start with a reasonable default
+const initialPollIntervalMs = 3000;
+const minPollIntervalMs = 1000;
+const maxPollIntervalMs = 10000;
 const maxPollingErrors = 5;
 let pollingErrors = 0;
+let consecutiveEmptyResponses = 0;
+const maxConsecutiveEmptyResponses = 5; // After this many empty responses, we'll increase the poll interval
 
 /**
  * Start long polling to server
@@ -21,6 +26,10 @@ export function startLongPolling(): void {
   isPolling = true;
   console.log('[PollingFallback] Starting long polling fallback...');
   
+  // Reset adaptive polling parameters
+  currentPollIntervalMs = initialPollIntervalMs;
+  consecutiveEmptyResponses = 0;
+  
   // Notify about fallback mode
   websocketManager.handleMessage({
     type: 'connection_status',
@@ -30,7 +39,7 @@ export function startLongPolling(): void {
   });
   
   // Start poll interval
-  pollInterval = setInterval(pollServer, pollIntervalMs);
+  pollInterval = setInterval(pollServer, currentPollIntervalMs);
   
   // Initial poll
   pollServer();
@@ -107,14 +116,59 @@ async function pollServer(): Promise<void> {
       // Adjust poll interval if server suggests it
       if (data.control && data.control.interval) {
         const newInterval = data.control.interval;
-        if (newInterval !== pollIntervalMs && newInterval >= 1000 && newInterval <= 10000) {
+        if (newInterval !== currentPollIntervalMs && newInterval >= minPollIntervalMs && newInterval <= maxPollIntervalMs) {
           // Only change interval if it's in a reasonable range
           console.log(`[PollingFallback] Adjusting poll interval to ${newInterval}ms`);
+          
+          // Update current interval
+          currentPollIntervalMs = newInterval;
           
           // Restart polling with new interval
           if (pollInterval) {
             clearInterval(pollInterval);
-            pollInterval = setInterval(pollServer, newInterval);
+            pollInterval = setInterval(pollServer, currentPollIntervalMs);
+          }
+        }
+      }
+      
+      // Check if the response had any messages
+      if (!data.messages || data.messages.length === 0) {
+        consecutiveEmptyResponses++;
+        
+        // If we've received too many empty responses, increase poll interval to reduce server load
+        if (consecutiveEmptyResponses >= maxConsecutiveEmptyResponses && currentPollIntervalMs < maxPollIntervalMs) {
+          // Increase interval by 500ms up to max
+          const newInterval = Math.min(currentPollIntervalMs + 500, maxPollIntervalMs);
+          console.log(`[PollingFallback] Increasing poll interval to ${newInterval}ms due to inactivity`);
+          
+          // Update current interval
+          currentPollIntervalMs = newInterval;
+          
+          // Restart polling with new interval
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = setInterval(pollServer, currentPollIntervalMs);
+          }
+          
+          // Reset consecutive empty responses counter
+          consecutiveEmptyResponses = 0;
+        }
+      } else {
+        // Reset consecutive empty responses counter on any message
+        consecutiveEmptyResponses = 0;
+        
+        // If we got messages and our interval is high, decrease it for faster responsiveness
+        if (currentPollIntervalMs > initialPollIntervalMs) {
+          const newInterval = Math.max(currentPollIntervalMs - 500, initialPollIntervalMs);
+          console.log(`[PollingFallback] Decreasing poll interval to ${newInterval}ms for faster responsiveness`);
+          
+          // Update current interval
+          currentPollIntervalMs = newInterval;
+          
+          // Restart polling with new interval
+          if (pollInterval) {
+            clearInterval(pollInterval);
+            pollInterval = setInterval(pollServer, currentPollIntervalMs);
           }
         }
       }
