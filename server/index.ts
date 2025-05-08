@@ -1,7 +1,8 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupWebSocketServer } from "./websocket-server";
+import { setupWebSocketServer } from "./websocket-server-enhanced";
+import { healthMiddleware } from "./utils/network-health";
 import { shapWebSocketService } from "./shap_ws_service";
 // Import health check module
 import * as healthCheck from './monitoring/health-check';

@@ -1,239 +1,321 @@
-import { websocketManager } from './websocket-manager';
-
 /**
- * Long polling fallback when WebSockets aren't available
- * This module provides HTTP long-polling as a backup when WebSocket
- * connections fail in the Replit environment
+ * Adaptive Long Polling Fallback
+ * 
+ * This module provides an adaptive long-polling fallback mechanism for when WebSocket
+ * connections are unavailable or unstable in the Replit environment.
+ * 
+ * Features:
+ * - Automatically adjusts polling intervals based on activity
+ * - Implements exponential backoff on failures
+ * - Batches messages to reduce network overhead
+ * - Provides transparent reconnection
  */
 
-let isPolling = false;
-let pollInterval: ReturnType<typeof setInterval> | null = null;
-let currentPollIntervalMs = 3000; // Start with a reasonable default
-const initialPollIntervalMs = 3000;
-const minPollIntervalMs = 1000;
-const maxPollIntervalMs = 10000;
-const maxPollingErrors = 5;
-let pollingErrors = 0;
-let consecutiveEmptyResponses = 0;
-const maxConsecutiveEmptyResponses = 5; // After this many empty responses, we'll increase the poll interval
-
-/**
- * Start long polling to server
- */
-export function startLongPolling(): void {
-  if (isPolling) return;
-  
-  isPolling = true;
-  console.log('[PollingFallback] Starting long polling fallback...');
-  
-  // Reset adaptive polling parameters
-  currentPollIntervalMs = initialPollIntervalMs;
-  consecutiveEmptyResponses = 0;
-  
-  // Notify about fallback mode
-  websocketManager.handleMessage({
-    type: 'connection_status',
-    status: 'connected',
-    protocol: 'long-polling',
-    isFallback: true
-  });
-  
-  // Start poll interval
-  pollInterval = setInterval(pollServer, currentPollIntervalMs);
-  
-  // Initial poll
-  pollServer();
+interface PollingOptions {
+  initialInterval?: number;
+  minInterval?: number;
+  maxInterval?: number;
+  inactivityThreshold?: number;
+  maxConsecutiveErrors?: number;
+  backoffFactor?: number;
 }
 
-/**
- * Stop long polling to server
- */
-export function stopLongPolling(): void {
-  if (!isPolling) return;
+export class PollingFallback {
+  private baseUrl: string;
+  private clientId: string;
+  private messageHandler: (message: any) => void;
+  private connectionHandler: (state: 'connected' | 'disconnected' | 'error', reason?: string) => void;
   
-  isPolling = false;
-  console.log('[PollingFallback] Stopping long polling');
+  private pollInterval: number;
+  private minInterval: number;
+  private maxInterval: number;
+  private inactivityThreshold: number;
+  private maxConsecutiveErrors: number;
+  private backoffFactor: number;
   
-  if (pollInterval) {
-    clearInterval(pollInterval);
-    pollInterval = null;
+  private pollTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private lastActivityTimestamp: number = Date.now();
+  private isPolling: boolean = false;
+  private consecutiveErrors: number = 0;
+  private messageBatch: any[] = [];
+  private batchTimeoutId: ReturnType<typeof setTimeout> | null = null;
+  private consecutiveEmptyResponses: number = 0;
+  private adaptiveInterval: number;
+  
+  constructor(
+    baseUrl: string,
+    clientId: string,
+    messageHandler: (message: any) => void,
+    connectionHandler: (state: 'connected' | 'disconnected' | 'error', reason?: string) => void,
+    options: PollingOptions = {}
+  ) {
+    this.baseUrl = baseUrl;
+    this.clientId = clientId;
+    this.messageHandler = messageHandler;
+    this.connectionHandler = connectionHandler;
+    
+    // Initialize polling parameters with defaults
+    this.minInterval = options.minInterval || 1000;
+    this.maxInterval = options.maxInterval || 10000;
+    this.pollInterval = options.initialInterval || 2000;
+    this.adaptiveInterval = this.pollInterval;
+    this.inactivityThreshold = options.inactivityThreshold || 10000;
+    this.maxConsecutiveErrors = options.maxConsecutiveErrors || 5;
+    this.backoffFactor = options.backoffFactor || 1.5;
+    
+    // Log initialization
+    console.log(`[PollingFallback] Initialized with URL: ${baseUrl}, Client ID: ${clientId}`);
   }
   
-  pollingErrors = 0;
-}
-
-// Store the last message ID we've received
-let lastMessageId: string | null = null;
-
-/**
- * Poll the server for updates
- */
-async function pollServer(): Promise<void> {
-  try {
-    // Get client ID from WebSocketManager
-    const clientId = websocketManager.getClientId() || 'unknown';
-    
-    // Build query params
-    const params = new URLSearchParams({
-      clientId: clientId,
-      timestamp: Date.now().toString()
-    });
-    
-    // Add last message ID if we have it
-    if (lastMessageId) {
-      params.append('lastId', lastMessageId);
+  /**
+   * Start long polling
+   */
+  public start(): void {
+    if (this.isPolling) {
+      console.log('[PollingFallback] Already polling, ignoring start request');
+      return;
     }
     
-    const response = await fetch(`/api/poll?${params.toString()}`, {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'application/json'
-      }
-    });
+    console.log('[PollingFallback] Starting long polling fallback...');
+    this.isPolling = true;
+    this.consecutiveErrors = 0;
+    this.adaptiveInterval = this.pollInterval;
     
-    if (response.ok) {
+    // Notify connection handler
+    this.connectionHandler('connected', 'Long polling started');
+    
+    // Start polling immediately
+    this.poll();
+  }
+  
+  /**
+   * Stop long polling
+   */
+  public stop(reason: string = 'Manually stopped'): void {
+    if (!this.isPolling) {
+      return;
+    }
+    
+    console.log('[PollingFallback] Stopping long polling');
+    this.isPolling = false;
+    
+    // Clear any pending timeouts
+    if (this.pollTimeoutId) {
+      clearTimeout(this.pollTimeoutId);
+      this.pollTimeoutId = null;
+    }
+    
+    if (this.batchTimeoutId) {
+      clearTimeout(this.batchTimeoutId);
+      this.batchTimeoutId = null;
+    }
+    
+    // Notify connection handler
+    this.connectionHandler('disconnected', reason);
+  }
+  
+  /**
+   * Send a message to the server using POST
+   */
+  public send(message: any): void {
+    if (!this.isPolling) {
+      console.warn('[PollingFallback] Attempting to send while not polling');
+      return;
+    }
+    
+    // Record activity
+    this.recordActivity();
+    
+    // Add message to batch
+    this.messageBatch.push(message);
+    
+    // If this is the first message in the batch, set up a timeout to send the batch
+    if (this.messageBatch.length === 1 && !this.batchTimeoutId) {
+      this.batchTimeoutId = setTimeout(() => {
+        this.sendBatch();
+      }, 50); // Short delay to batch messages
+    }
+  }
+  
+  /**
+   * Send batched messages to the server
+   */
+  private async sendBatch(): void {
+    if (this.messageBatch.length === 0) {
+      this.batchTimeoutId = null;
+      return;
+    }
+    
+    const batch = [...this.messageBatch];
+    this.messageBatch = [];
+    this.batchTimeoutId = null;
+    
+    try {
+      const response = await fetch(`${this.baseUrl}/send`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: this.clientId,
+          messages: batch
+        })
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      
+      // Successfully sent batch
+      this.consecutiveErrors = 0;
+    } catch (error) {
+      console.error('[PollingFallback] Error sending batch:', error);
+      this.consecutiveErrors++;
+      
+      // If too many consecutive errors, stop polling
+      if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
+        this.stop('Too many send errors');
+      }
+    }
+  }
+  
+  /**
+   * Poll for messages
+   */
+  private async poll(): void {
+    if (!this.isPolling) {
+      return;
+    }
+    
+    try {
+      // Add timestamp to avoid caching
+      const timestamp = Date.now();
+      const url = `${this.baseUrl}?clientId=${encodeURIComponent(this.clientId)}&t=${timestamp}`;
+      
+      const response = await fetch(url);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      
+      // Reset consecutive errors on success
+      this.consecutiveErrors = 0;
+      
       const data = await response.json();
       
-      // Reset error count on success
-      pollingErrors = 0;
-      
       // Process messages
-      if (data && Array.isArray(data.messages) && data.messages.length > 0) {
-        // Update last message ID for next poll
-        const lastMessage = data.messages[data.messages.length - 1];
-        if (lastMessage && lastMessage.id) {
-          lastMessageId = lastMessage.id;
-        }
-        
-        // Process each message
-        data.messages.forEach((message: any) => {
-          // Invoke WebSocketManager message handler
-          websocketManager.handleMessage(message.data || message);
-        });
-      }
-      
-      // Adjust poll interval if server suggests it
-      if (data.control && data.control.interval) {
-        const newInterval = data.control.interval;
-        if (newInterval !== currentPollIntervalMs && newInterval >= minPollIntervalMs && newInterval <= maxPollIntervalMs) {
-          // Only change interval if it's in a reasonable range
-          console.log(`[PollingFallback] Adjusting poll interval to ${newInterval}ms`);
-          
-          // Update current interval
-          currentPollIntervalMs = newInterval;
-          
-          // Restart polling with new interval
-          if (pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = setInterval(pollServer, currentPollIntervalMs);
-          }
-        }
-      }
-      
-      // Check if the response had any messages
-      if (!data.messages || data.messages.length === 0) {
-        consecutiveEmptyResponses++;
-        
-        // If we've received too many empty responses, increase poll interval to reduce server load
-        if (consecutiveEmptyResponses >= maxConsecutiveEmptyResponses && currentPollIntervalMs < maxPollIntervalMs) {
-          // Increase interval by 500ms up to max
-          const newInterval = Math.min(currentPollIntervalMs + 500, maxPollIntervalMs);
-          console.log(`[PollingFallback] Increasing poll interval to ${newInterval}ms due to inactivity`);
-          
-          // Update current interval
-          currentPollIntervalMs = newInterval;
-          
-          // Restart polling with new interval
-          if (pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = setInterval(pollServer, currentPollIntervalMs);
-          }
-          
+      if (data && data.messages && Array.isArray(data.messages)) {
+        if (data.messages.length > 0) {
           // Reset consecutive empty responses counter
-          consecutiveEmptyResponses = 0;
-        }
-      } else {
-        // Reset consecutive empty responses counter on any message
-        consecutiveEmptyResponses = 0;
-        
-        // If we got messages and our interval is high, decrease it for faster responsiveness
-        if (currentPollIntervalMs > initialPollIntervalMs) {
-          const newInterval = Math.max(currentPollIntervalMs - 500, initialPollIntervalMs);
-          console.log(`[PollingFallback] Decreasing poll interval to ${newInterval}ms for faster responsiveness`);
+          this.consecutiveEmptyResponses = 0;
           
-          // Update current interval
-          currentPollIntervalMs = newInterval;
+          // Record activity when messages are received
+          this.recordActivity();
           
-          // Restart polling with new interval
-          if (pollInterval) {
-            clearInterval(pollInterval);
-            pollInterval = setInterval(pollServer, currentPollIntervalMs);
+          // Process each message
+          data.messages.forEach((message: any) => {
+            this.messageHandler(message);
+          });
+          
+          // Adjust polling interval down when there's activity
+          this.adjustPollingInterval(true);
+        } else {
+          this.consecutiveEmptyResponses++;
+          
+          // Adjust polling interval up after consecutive empty responses
+          if (this.consecutiveEmptyResponses > 3) {
+            this.adjustPollingInterval(false);
           }
         }
       }
-    } else {
-      handlePollingError(new Error(`HTTP error: ${response.status} ${response.statusText}`));
-    }
-  } catch (error) {
-    handlePollingError(error as Error);
-  }
-}
-
-/**
- * Send data to server via HTTP POST instead of WebSocket
- */
-export async function sendViaHttp(data: any): Promise<boolean> {
-  try {
-    const clientId = websocketManager.getClientId() || 'unknown';
-    
-    const response = await fetch(`/api/poll/send?clientId=${encodeURIComponent(clientId)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'X-Client-ID': clientId
-      },
-      body: JSON.stringify(data)
-    });
-    
-    if (response.ok) {
-      const result = await response.json();
-      if (result.success) {
-        return true;
-      } else {
-        console.error('[PollingFallback] Server reported failure:', result.error || 'Unknown error');
-        return false;
+      
+      // Schedule next poll
+      this.schedulePoll();
+    } catch (error) {
+      console.error('[PollingFallback] Polling error:', error);
+      this.consecutiveErrors++;
+      
+      // Use exponential backoff for errors
+      const backoffDelay = Math.min(
+        this.adaptiveInterval * Math.pow(this.backoffFactor, this.consecutiveErrors),
+        this.maxInterval
+      );
+      
+      // If too many consecutive errors, stop polling
+      if (this.consecutiveErrors >= this.maxConsecutiveErrors) {
+        this.stop('Too many polling errors');
+        return;
       }
-    } else {
-      console.error('[PollingFallback] Failed to send data:', response.status, response.statusText);
-      return false;
+      
+      // Schedule next poll with backoff
+      this.pollTimeoutId = setTimeout(() => {
+        this.poll();
+      }, backoffDelay);
     }
-  } catch (error) {
-    console.error('[PollingFallback] Error sending data:', error);
-    return false;
   }
-}
-
-/**
- * Handle polling errors
- */
-function handlePollingError(error: Error): void {
-  console.error('[PollingFallback] Polling error:', error);
   
-  pollingErrors++;
+  /**
+   * Schedule the next poll based on activity
+   */
+  private schedulePoll(): void {
+    if (!this.isPolling) {
+      return;
+    }
+    
+    // Clear any existing timeout
+    if (this.pollTimeoutId) {
+      clearTimeout(this.pollTimeoutId);
+    }
+    
+    // Check inactivity
+    const inactiveDuration = Date.now() - this.lastActivityTimestamp;
+    
+    // Adjust interval based on activity
+    if (inactiveDuration > this.inactivityThreshold) {
+      // Slow down polling during inactivity
+      this.adaptiveInterval = Math.min(this.adaptiveInterval + 500, this.maxInterval);
+      console.log(`[PollingFallback] Increasing poll interval to ${this.adaptiveInterval}ms due to inactivity`);
+    }
+    
+    // Schedule next poll
+    this.pollTimeoutId = setTimeout(() => {
+      this.poll();
+    }, this.adaptiveInterval);
+  }
   
-  // If too many errors, stop polling
-  if (pollingErrors >= maxPollingErrors) {
-    console.error(`[PollingFallback] Too many polling errors (${pollingErrors}), stopping`);
-    
-    stopLongPolling();
-    
-    // Notify client of disconnection
-    websocketManager.handleMessage({
-      type: 'connection_status',
-      status: 'disconnected',
-      reason: 'Too many polling errors',
-      protocol: 'long-polling'
-    });
+  /**
+   * Record user activity to adjust polling frequency
+   */
+  public recordActivity(): void {
+    this.lastActivityTimestamp = Date.now();
+  }
+  
+  /**
+   * Adjust polling interval based on activity
+   */
+  private adjustPollingInterval(hasActivity: boolean): void {
+    if (hasActivity) {
+      // Decrease interval when there's activity (faster polling)
+      this.adaptiveInterval = Math.max(this.adaptiveInterval - 500, this.minInterval);
+      console.log(`[PollingFallback] Adjusting poll interval to ${this.adaptiveInterval}ms`);
+    } else {
+      // Increase interval when there's no activity (slower polling)
+      this.adaptiveInterval = Math.min(this.adaptiveInterval + 500, this.maxInterval);
+      console.log(`[PollingFallback] Increasing poll interval to ${this.adaptiveInterval}ms due to inactivity`);
+    }
+  }
+  
+  /**
+   * Check if currently polling
+   */
+  public isActive(): boolean {
+    return this.isPolling;
+  }
+  
+  /**
+   * Get the current polling interval
+   */
+  public getCurrentInterval(): number {
+    return this.adaptiveInterval;
   }
 }
