@@ -11,7 +11,8 @@ import {
   real,
   uuid,
   jsonb,
-  numeric
+  numeric,
+  varchar
 } from "drizzle-orm/pg-core";
 import { createInsertSchema, createSelectSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -547,6 +548,107 @@ export const complianceChecksRelations = relations(complianceChecks, ({ one }) =
     relationName: "reportComplianceChecks"
   })
 }));
+
+// MLS Integration tables
+export const mlsSystemTypeEnum = pgEnum("mls_system_type", [
+  "rets",
+  "web_api",
+  "idx",
+  "custom"
+]);
+
+export const mlsSystems = pgTable("mls_systems", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  systemType: mlsSystemTypeEnum("system_type").notNull(),
+  baseUrl: text("base_url").notNull(),
+  loginUrl: text("login_url"),
+  metadataUrl: text("metadata_url"),
+  searchUrl: text("search_url"),
+  username: text("username"),
+  password: text("password"),
+  userAgent: text("user_agent"),
+  apiKey: text("api_key"),
+  apiVersion: text("api_version"),
+  clientId: text("client_id"),
+  clientSecret: text("client_secret"),
+  tokenUrl: text("token_url"),
+  refreshToken: text("refresh_token"),
+  accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: "date" }),
+  region: text("region"),
+  status: text("status").notNull().default("inactive"),
+  config: json("config"),
+  lastSyncedAt: timestamp("last_synced_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+export const mlsPropertyMappings = pgTable("mls_property_mappings", {
+  id: serial("id").primaryKey(),
+  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
+  mlsNumber: varchar("mls_number", { length: 50 }).notNull(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  mlsStatus: text("mls_status"),
+  rawData: json("raw_data"),
+  lastSynced: timestamp("last_synced", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+export const mlsFieldMappings = pgTable("mls_field_mappings", {
+  id: serial("id").primaryKey(),
+  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
+  mlsFieldName: text("mls_field_name").notNull(),
+  appFieldName: text("app_field_name").notNull(),
+  dataType: text("data_type").notNull(),
+  transformationRule: text("transformation_rule"),
+  isRequired: boolean("is_required").default(false),
+  defaultValue: text("default_value"),
+  notes: text("notes"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+export const publicRecordSources = pgTable("public_record_sources", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  sourceType: text("source_type").notNull(),  // api, ftp, web_scrape, csv_import
+  baseUrl: text("base_url"),
+  apiKey: text("api_key"),
+  username: text("username"),
+  password: text("password"),
+  countyId: text("county_id"),
+  state: text("state"),
+  config: json("config"),
+  status: text("status").notNull().default("inactive"),
+  refreshSchedule: text("refresh_schedule"),  // cron format
+  lastSuccessfulSync: timestamp("last_successful_sync", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+export const publicRecordMappings = pgTable("public_record_mappings", {
+  id: serial("id").primaryKey(),
+  sourceId: integer("source_id").references(() => publicRecordSources.id).notNull(),
+  parcelId: text("parcel_id").notNull(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  rawData: json("raw_data"),
+  lastSynced: timestamp("last_synced", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+export const mlsComparableMappings = pgTable("mls_comparable_mappings", {
+  id: serial("id").primaryKey(),
+  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
+  mlsNumber: varchar("mls_number", { length: 50 }).notNull(),
+  comparableId: integer("comparable_id").references(() => comparableSales.id).notNull(),
+  mlsStatus: text("mls_status"),
+  rawData: json("raw_data"),
+  lastSynced: timestamp("last_synced", { mode: "date" }).notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
 
 // Real Estate Term Glossary
 export const propertyShareLinks = pgTable("property_share_links", {
