@@ -58,6 +58,7 @@ import modelVersionRoutes from './model-version-routes';
 import { valuationProxyRouter } from './routes/valuation-proxy-routes';
 import { shapRouter } from './routes/shap-routes';
 import { orderRoutes } from './routes/order-routes';
+import healthCheckRoutes from './routes/health-check';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {

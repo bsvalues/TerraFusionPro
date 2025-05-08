@@ -1,12 +1,7 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import { v4 as uuidv4 } from 'uuid';
-import {
-  trackConnection,
-  getHealthReport,
-  shouldAttemptReconnect,
-  closeAllConnections
-} from './utils/network-health';
+import { networkHealth } from './utils/network-health';
 
 // Define client connection state types
 interface ConnectedClient {
@@ -153,7 +148,7 @@ async function checkNetworkHealth(): Promise<void> {
   }
   
   // Check if reconnection is needed
-  const shouldReconnect = await shouldAttemptReconnect();
+  const shouldReconnect = networkHealth.shouldReconnectWebSocket();
   
   if (shouldReconnect) {
     console.log('[WebSocket] Network health check indicates reconnection needed');
@@ -164,7 +159,20 @@ async function checkNetworkHealth(): Promise<void> {
     // to force clients to reconnect
     if (serverState.reconnectAttempt <= 3) {
       notifyClientsOfReconnection();
-      closeAllConnections();
+      
+      // Close active connections
+      const activeConnections = Array.from(clients.values());
+      console.log(`Closing ${activeConnections.length} active connections`);
+      
+      activeConnections.forEach(client => {
+        if (client.socket.readyState === WebSocket.OPEN) {
+          try {
+            client.socket.close(1012, "Reconnecting due to network issues");
+          } catch (err) {
+            console.error(`Error closing connection for client ${client.id}:`, err);
+          }
+        }
+      });
     }
   }
 }
@@ -352,8 +360,8 @@ function handleConnection(socket: WebSocket, request: http.IncomingMessage, conn
   
   console.log(`[WebSocket] New ${connectionType} connection from ${ipAddress}, ID: ${clientId}, Protocol: ${protocol}`);
   
-  // Track connection for network health monitoring
-  trackConnection(clientId, request.socket);
+  // Track connection in client list only
+  // No need to track in network health monitor
   
   // Store client
   const client: ConnectedClient = {
@@ -377,7 +385,11 @@ function handleConnection(socket: WebSocket, request: http.IncomingMessage, conn
     message: 'Connected to TerraFusion real-time server',
     serverVersion: '2.0.0',
     reconnectStrategy: 'automatic',
-    serverHealth: getHealthReport()
+    serverHealth: {
+      status: 'online',
+      uptime: Date.now() - serverState.startTime,
+      activeConnections: clients.size
+    }
   });
   
   // Set socket ping options to improve stability in Replit environment
@@ -546,7 +558,16 @@ function handleHealthCheck(clientId: string) {
   sendToClient(clientId, {
     type: 'health_report',
     timestamp: Date.now(),
-    health: getHealthReport()
+    health: {
+      status: 'online',
+      uptime: Date.now() - serverState.startTime,
+      activeConnections: clients.size,
+      serverState: {
+        reconnectAttempt: serverState.reconnectAttempt,
+        lastReconnectTime: serverState.lastReconnectTime,
+        memoryUsage: process.memoryUsage()
+      }
+    }
   });
 }
 

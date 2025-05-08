@@ -1,15 +1,42 @@
 -- Migration to add missing columns that are defined in the schema but missing in the database
 -- This migration uses functions to check if columns exist before attempting to add them
 
--- Create drizzle schema if it doesn't exist
-CREATE SCHEMA IF NOT EXISTS drizzle;
+-- Functions to check if schema and table exist
+DO $$
+DECLARE
+  schema_exists BOOLEAN;
+BEGIN
+  -- Check if drizzle schema exists
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.schemata WHERE schema_name = 'drizzle'
+  ) INTO schema_exists;
+  
+  -- Create schema if it doesn't exist
+  IF NOT schema_exists THEN
+    EXECUTE 'CREATE SCHEMA drizzle';
+  END IF;
+END $$;
 
 -- Create migrations table if it doesn't exist
-CREATE TABLE IF NOT EXISTS drizzle.migrations (
-  id TEXT PRIMARY KEY,
-  hash TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
-);
+DO $$
+DECLARE
+  table_exists BOOLEAN;
+BEGIN
+  -- Check if migrations table exists
+  SELECT EXISTS (
+    SELECT 1 FROM information_schema.tables 
+    WHERE table_schema = 'drizzle' AND table_name = 'migrations'
+  ) INTO table_exists;
+  
+  -- Create migrations table if it doesn't exist
+  IF NOT table_exists THEN
+    CREATE TABLE drizzle.migrations (
+      id TEXT PRIMARY KEY,
+      hash TEXT NOT NULL,
+      created_at TIMESTAMP WITH TIME ZONE DEFAULT now()
+    );
+  END IF;
+END $$;
 
 -- Set up a function to check if a column exists before adding it
 CREATE OR REPLACE FUNCTION column_exists(
