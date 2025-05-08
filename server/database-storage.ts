@@ -1,4 +1,4 @@
-import { db } from './db';
+import { db, pool } from './db';
 import { eq, sql, and, desc, asc } from 'drizzle-orm';
 import * as schema from '../shared/schema';
 import type { 
@@ -686,17 +686,17 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching orders with status: ${status}`);
       
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL with direct pool access
       const query = `
         SELECT *
-        FROM "orders"
-        WHERE LOWER("status"::text) = LOWER($1)
-        ORDER BY "created_at" DESC
+        FROM orders
+        WHERE LOWER(status::text) = LOWER($1)
+        ORDER BY created_at DESC
       `;
       
-      const orders = await db.execute(query, [status]);
-      console.log(`Successfully fetched ${orders.length} orders with status: ${status}`);
-      return orders;
+      const result = await pool.query(query, [status]);
+      console.log(`Successfully fetched ${result.rows.length} orders with status: ${status}`);
+      return result.rows;
     } catch (error) {
       console.error(`Error fetching orders with status ${status}:`, error);
       return [];
@@ -707,17 +707,17 @@ export class DatabaseStorage implements IStorage {
     try {
       console.log(`Fetching orders with type: ${type}`);
       
-      // Use raw SQL to ensure proper column names are used
+      // Use raw SQL with direct pool access
       const query = `
         SELECT *
-        FROM "orders"
-        WHERE LOWER("order_type"::text) = LOWER($1)
-        ORDER BY "created_at" DESC
+        FROM orders
+        WHERE LOWER(order_type::text) = LOWER($1)
+        ORDER BY created_at DESC
       `;
       
-      const orders = await db.execute(query, [type]);
-      console.log(`Successfully fetched ${orders.length} orders with type: ${type}`);
-      return orders;
+      const result = await pool.query(query, [type]);
+      console.log(`Successfully fetched ${result.rows.length} orders with type: ${type}`);
+      return result.rows;
     } catch (error) {
       console.error(`Error fetching orders with type ${type}:`, error);
       return [];
