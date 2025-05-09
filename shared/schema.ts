@@ -392,8 +392,108 @@ export const auditLogs = pgTable("audit_logs", {
   timestamp: timestamp("timestamp", { mode: "date" }).defaultNow().notNull()
 });
 
+// Gamification Types
+export const achievementTypeEnum = pgEnum("achievement_type", [
+  "property_evaluations", 
+  "valuations_completed",
+  "accurate_prediction",
+  "team_collaboration",
+  "training_completed",
+  "early_adopter",
+  "streak"
+]);
+
+export const achievementTierEnum = pgEnum("achievement_tier", [
+  "bronze",
+  "silver", 
+  "gold",
+  "platinum",
+  "diamond"
+]);
+
+// Achievement definitions
+export const achievementDefinitions = pgTable("achievement_definitions", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull().unique(),
+  description: text("description").notNull(),
+  type: achievementTypeEnum("type").notNull(),
+  tier: achievementTierEnum("tier").notNull(),
+  pointsAwarded: integer("points_awarded").notNull(),
+  threshold: integer("threshold").notNull(),
+  iconUrl: text("icon_url"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// User achievements
+export const userAchievements = pgTable("user_achievements", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  achievementId: integer("achievement_id").references(() => achievementDefinitions.id).notNull(),
+  progress: integer("progress").notNull().default(0),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// User progress tracking
+export const userProgress = pgTable("user_progress", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  totalPoints: integer("total_points").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  propertyEvaluations: integer("property_evaluations").notNull().default(0),
+  accuracyScore: real("accuracy_score"),
+  currentStreak: integer("current_streak").notNull().default(0),
+  longestStreak: integer("longest_streak").notNull().default(0),
+  lastActive: timestamp("last_active", { mode: "date" }).defaultNow().notNull(),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Levels definition
+export const levels = pgTable("levels", {
+  id: serial("id").primaryKey(),
+  level: integer("level").notNull().unique(),
+  name: text("name").notNull(),
+  pointsRequired: integer("points_required").notNull(),
+  badgeUrl: text("badge_url"),
+  benefits: json("benefits"),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Challenges for users to complete
+export const userChallenges = pgTable("user_challenges", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  pointsAwarded: integer("points_awarded").notNull(),
+  startDate: timestamp("start_date", { mode: "date" }).notNull(),
+  endDate: timestamp("end_date", { mode: "date" }),
+  completed: boolean("completed").notNull().default(false),
+  completedAt: timestamp("completed_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// User notifications
+export const userNotifications = pgTable("user_notifications", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  type: text("type").notNull(),
+  title: text("title").notNull(),
+  message: text("message").notNull(),
+  read: boolean("read").notNull().default(false),
+  readAt: timestamp("read_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
+});
+
 // Relations
-export const usersRelations = relations(users, ({ many }) => ({
+export const usersRelations = relations(users, ({ many, one }) => ({
   valuations: many(valuations, { relationName: "createdValuations" }),
   approvedValuations: many(valuations, { relationName: "approvedValuations" }),
   appeals: many(appeals, { relationName: "assignedAppeals" }),
@@ -403,7 +503,15 @@ export const usersRelations = relations(users, ({ many }) => ({
   updatedAiAgents: many(aiAgents, { relationName: "updatedAgents" }),
   apiKeys: many(apiKeys),
   auditLogs: many(auditLogs),
-  orders: many(orders)
+  orders: many(orders),
+  // Add gamification relations
+  userAchievements: many(userAchievements),
+  userProgress: one(userProgress, {
+    fields: [users.id],
+    references: [userProgress.userId]
+  }),
+  userChallenges: many(userChallenges),
+  userNotifications: many(userNotifications)
 }));
 
 export const propertiesRelations = relations(properties, ({ many }) => ({
@@ -546,6 +654,47 @@ export const complianceChecksRelations = relations(complianceChecks, ({ one }) =
     fields: [complianceChecks.reportId],
     references: [valuations.id],
     relationName: "reportComplianceChecks"
+  })
+}));
+
+// Relations for gamification tables
+export const achievementDefinitionsRelations = relations(achievementDefinitions, ({ many }) => ({
+  userAchievements: many(userAchievements)
+}));
+
+export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
+  user: one(users, {
+    fields: [userAchievements.userId],
+    references: [users.id]
+  }),
+  achievement: one(achievementDefinitions, {
+    fields: [userAchievements.achievementId],
+    references: [achievementDefinitions.id]
+  })
+}));
+
+export const userProgressRelations = relations(userProgress, ({ one }) => ({
+  user: one(users, {
+    fields: [userProgress.userId],
+    references: [users.id]
+  })
+}));
+
+export const levelsRelations = relations(levels, ({ many }) => ({
+  userProgress: many(userProgress)
+}));
+
+export const userChallengesRelations = relations(userChallenges, ({ one }) => ({
+  user: one(users, {
+    fields: [userChallenges.userId],
+    references: [users.id]
+  })
+}));
+
+export const userNotificationsRelations = relations(userNotifications, ({ one }) => ({
+  user: one(users, {
+    fields: [userNotifications.userId],
+    references: [users.id]
   })
 }));
 
@@ -760,6 +909,37 @@ export const insertRealEstateTermSchema = createInsertSchema(realEstateTerms).om
 export const selectRealEstateTermSchema = createSelectSchema(realEstateTerms);
 export type RealEstateTerm = z.infer<typeof selectRealEstateTermSchema>;
 export type InsertRealEstateTerm = z.infer<typeof insertRealEstateTermSchema>;
+
+// Gamification schemas
+export const insertAchievementDefinitionSchema = createInsertSchema(achievementDefinitions).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectAchievementDefinitionSchema = createSelectSchema(achievementDefinitions);
+export type AchievementDefinition = z.infer<typeof selectAchievementDefinitionSchema>;
+export type InsertAchievementDefinition = z.infer<typeof insertAchievementDefinitionSchema>;
+
+export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
+export const selectUserAchievementSchema = createSelectSchema(userAchievements);
+export type UserAchievement = z.infer<typeof selectUserAchievementSchema>;
+export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
+
+export const insertUserProgressSchema = createInsertSchema(userProgress).omit({ id: true, createdAt: true, updatedAt: true, lastActive: true });
+export const selectUserProgressSchema = createSelectSchema(userProgress);
+export type UserProgress = z.infer<typeof selectUserProgressSchema>;
+export type InsertUserProgress = z.infer<typeof insertUserProgressSchema>;
+
+export const insertLevelSchema = createInsertSchema(levels).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectLevelSchema = createSelectSchema(levels);
+export type Level = z.infer<typeof selectLevelSchema>;
+export type InsertLevel = z.infer<typeof insertLevelSchema>;
+
+export const insertUserChallengeSchema = createInsertSchema(userChallenges).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
+export const selectUserChallengeSchema = createSelectSchema(userChallenges);
+export type UserChallenge = z.infer<typeof selectUserChallengeSchema>;
+export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
+
+export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true, readAt: true });
+export const selectUserNotificationSchema = createSelectSchema(userNotifications);
+export type UserNotification = z.infer<typeof selectUserNotificationSchema>;
+export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
 
 export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true, createdAt: true });
 export const selectPhotoSchema = createSelectSchema(photos);
