@@ -73,13 +73,38 @@ class PropertyValuationModel:
         Returns:
             float: Estimated property value
         """
-        logger.info(f"Predicting value for property: {property_data.get('address', {}).get('street', 'Unknown')}")
+        # Extract address info safely
+        address = property_data.get('address', {})
+        if isinstance(address, dict):
+            street = address.get('street', 'Unknown')
+        else:
+            street = 'Unknown'
+        
+        logger.info(f"Predicting value for property: {street}")
         
         # Base valuation using heuristics
         base = 100000  # base heuristic
-        type_factor = self.property_type_factors.get(property_data.get("propertyType"), 1.0)
-        condition_factor = self.condition_factors.get(property_data.get("condition"), 1.0)
-        size_factor = (property_data.get("squareFeet") or 1000) / 1000
+        
+        # Get property type with safe type checking
+        property_type = property_data.get("propertyType", "")
+        if isinstance(property_type, str):
+            type_factor = self.property_type_factors.get(property_type, 1.0)
+        else:
+            type_factor = 1.0
+            
+        # Get condition with safe type checking
+        condition = property_data.get("condition", "")
+        if isinstance(condition, str):
+            condition_factor = self.condition_factors.get(condition, 1.0)
+        else:
+            condition_factor = 1.0
+            
+        # Get square feet with safe type checking
+        square_feet = property_data.get("squareFeet")
+        if square_feet is not None and isinstance(square_feet, (int, float)):
+            size_factor = square_feet / 1000
+        else:
+            size_factor = 1.0
         
         # Calculate special feature adjustments
         feature_bonus = sum([
@@ -166,15 +191,24 @@ class PropertyValuationModel:
         
         # Feature adjustments
         features = property_data.get("features", [])
-        for feature in features:
-            value = self.feature_values.get(feature, 0)
-            if value > 0:
-                adjustments.append({
-                    "factor": "Special Feature",
-                    "description": feature,
-                    "amount": value,
-                    "reasoning": f"{feature} adds value to the property"
-                })
+        if features and isinstance(features, list):
+            for feature in features:
+                # Handle both string features and dict features with a name field
+                if isinstance(feature, str):
+                    feature_name = feature
+                elif isinstance(feature, dict) and "name" in feature:
+                    feature_name = feature["name"]
+                else:
+                    continue
+                    
+                value = self.feature_values.get(feature_name, 0)
+                if value > 0:
+                    adjustments.append({
+                        "factor": "Special Feature",
+                        "description": feature_name,
+                        "amount": value,
+                        "reasoning": f"{feature_name} adds value to the property"
+                    })
         
         return adjustments
     

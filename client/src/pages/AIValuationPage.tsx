@@ -149,17 +149,39 @@ export default function AIValuationPage() {
         features: comp.features ? comp.features.split(',').map(f => f.trim()) : [],
       }));
       
-      const response = await fetch('/api/ai/automated-valuation', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          subjectProperty,
-          comparableProperties,
-          useRealAI: true,
-        }),
-      });
+      // First attempt to use the new AI valuation endpoint if a property ID is provided
+      // This demonstrates the new Flask API endpoint we just created
+      const propertyId = 1; // For testing, we'll use property ID 1
+      
+      let response;
+      try {
+        console.log('Attempting to use new AI value endpoint by property ID...');
+        response = await fetch(`/ai/value/${propertyId}`, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          }
+        });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to get valuation from new endpoint: ${response.status}`);
+        }
+      } catch (error) {
+        console.warn('New AI valuation endpoint failed, falling back to existing endpoint:', error);
+        
+        // Fall back to the existing endpoint if the new one fails
+        response = await fetch('/api/ai/automated-valuation', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            subjectProperty,
+            comparableProperties,
+            useRealAI: true,
+          }),
+        });
+      }
       
       if (!response.ok) {
         const errorText = await response.text();
@@ -428,7 +450,38 @@ export default function AIValuationPage() {
                     />
                   </div>
                   
-                  <Button type="submit">Continue to Comparables</Button>
+                  <div className="flex gap-4">
+                    <Button type="submit">Continue to Comparables</Button>
+                    <Button 
+                      type="button" 
+                      className="bg-green-600 hover:bg-green-700" 
+                      onClick={() => {
+                        // Direct test of new AI value endpoint
+                        setIsLoading(true);
+                        fetch(`/ai/value/1`)
+                          .then(response => {
+                            if (!response.ok) {
+                              throw new Error(`API request failed: ${response.status}`);
+                            }
+                            return response.json();
+                          })
+                          .then(data => {
+                            console.log('Direct API call result:', data);
+                            setValuationResult(data);
+                            setActiveTab("results");
+                          })
+                          .catch(err => {
+                            console.error('Error calling AI value endpoint:', err);
+                            alert('Error calling new AI endpoint: ' + err.message);
+                          })
+                          .finally(() => {
+                            setIsLoading(false);
+                          });
+                      }}
+                    >
+                      Test New AI Endpoint (Property #1)
+                    </Button>
+                  </div>
                 </form>
               </Form>
             </CardContent>

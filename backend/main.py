@@ -96,6 +96,7 @@ app.add_middleware(
 
 # Include routers
 app.include_router(condition_analysis_router, prefix="/api")
+app.include_router(valuation_api_router, prefix="/ai")
 
 @app.get("/")
 async def root():
