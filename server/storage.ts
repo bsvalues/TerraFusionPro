@@ -29,6 +29,12 @@ import {
   levels, Level, InsertLevel,
   userProgress, UserProgress, InsertUserProgress,
   userChallenges, UserChallenge, InsertUserChallenge,
+  // Reviewer UX entities
+  reviewRequests, ReviewRequest, InsertReviewRequest,
+  comments, Comment, InsertComment,
+  annotations, Annotation, InsertAnnotation,
+  revisionHistory, RevisionHistory, InsertRevisionHistory,
+  // Enhanced Notification entities
   userNotifications, UserNotification, InsertUserNotification,
   // File import system
   fileImportResults, FileImportResult, InsertFileImportResult
@@ -231,11 +237,50 @@ export interface IStorage {
   incrementChallengeProgress(id: number, incrementBy?: number): Promise<UserChallenge | undefined>;
   deleteUserChallenge(id: number): Promise<boolean>;
   
-  // User Notification operations
+  // Review Request operations
+  getReviewRequest(id: number): Promise<ReviewRequest | undefined>;
+  getReviewRequestsByObject(objectType: string, objectId: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByRequestor(userId: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByAssignee(userId: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByStatus(status: string): Promise<ReviewRequest[]>;
+  createReviewRequest(request: InsertReviewRequest): Promise<ReviewRequest>;
+  updateReviewRequest(id: number, request: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined>;
+  updateReviewRequestStatus(id: number, status: string): Promise<ReviewRequest | undefined>;
+  deleteReviewRequest(id: number): Promise<boolean>;
+  
+  // Comment operations
+  getComment(id: number): Promise<Comment | undefined>;
+  getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]>;
+  getCommentsByUser(userId: number): Promise<Comment[]>;
+  getCommentsByParent(parentId: number): Promise<Comment[]>;
+  getCommentsByType(commentType: string): Promise<Comment[]>;
+  createComment(comment: InsertComment): Promise<Comment>;
+  updateComment(id: number, comment: Partial<InsertComment>): Promise<Comment | undefined>;
+  resolveComment(id: number, resolved: boolean): Promise<Comment | undefined>;
+  deleteComment(id: number): Promise<boolean>;
+  
+  // Annotation operations
+  getAnnotation(id: number): Promise<Annotation | undefined>;
+  getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]>;
+  getAnnotationsByUser(userId: number): Promise<Annotation[]>;
+  getAnnotationsByType(annotationType: string): Promise<Annotation[]>;
+  createAnnotation(annotation: InsertAnnotation): Promise<Annotation>;
+  updateAnnotation(id: number, annotation: Partial<InsertAnnotation>): Promise<Annotation | undefined>;
+  deleteAnnotation(id: number): Promise<boolean>;
+  
+  // Revision History operations
+  getRevisionHistory(id: number): Promise<RevisionHistory | undefined>;
+  getRevisionHistoryByObject(objectType: string, objectId: number): Promise<RevisionHistory[]>;
+  getRevisionHistoryByUser(userId: number): Promise<RevisionHistory[]>;
+  createRevisionHistory(revision: InsertRevisionHistory): Promise<RevisionHistory>;
+  
+  // Enhanced User Notification operations
   getUserNotification(id: number): Promise<UserNotification | undefined>;
   getUserNotificationsByUser(userId: number): Promise<UserNotification[]>;
   getUnreadNotificationsByUser(userId: number): Promise<UserNotification[]>;
   getUserNotificationsByType(type: string, userId?: number): Promise<UserNotification[]>;
+  getUserNotificationsByObject(objectType: string, objectId: number, userId?: number): Promise<UserNotification[]>;
+  getUserNotificationsBySourceUser(sourceUserId: number): Promise<UserNotification[]>;
   createUserNotification(notification: InsertUserNotification): Promise<UserNotification>;
   markNotificationAsRead(id: number): Promise<UserNotification | undefined>;
   markAllUserNotificationsAsRead(userId: number): Promise<boolean>;
@@ -284,6 +329,12 @@ export class MemStorage implements IStorage {
   private userNotifications: Map<number, UserNotification>;
   private orders: Map<number, Order>;
   
+  // Reviewer UX system
+  private reviewRequests: Map<number, ReviewRequest>;
+  private comments: Map<number, Comment>;
+  private annotations: Map<number, Annotation>;
+  private revisionHistory: Map<number, RevisionHistory>;
+  
   private currentUserId: number;
   private currentPropertyId: number;
   private currentReportId: number;
@@ -300,6 +351,12 @@ export class MemStorage implements IStorage {
   private currentUserProgressId: number;
   private currentUserChallengeId: number;
   private currentUserNotificationId: number;
+  
+  // Reviewer UX ID counters
+  private currentReviewRequestId: number;
+  private currentCommentId: number;
+  private currentAnnotationId: number;
+  private currentRevisionHistoryId: number;
 
   constructor() {
     this.users = new Map();
@@ -321,6 +378,12 @@ export class MemStorage implements IStorage {
     this.userChallenges = new Map();
     this.userNotifications = new Map();
     
+    // Initialize reviewer UX maps
+    this.reviewRequests = new Map();
+    this.comments = new Map();
+    this.annotations = new Map();
+    this.revisionHistory = new Map();
+    
     this.currentUserId = 1;
     this.currentPropertyId = 1;
     this.currentReportId = 1;
@@ -339,6 +402,12 @@ export class MemStorage implements IStorage {
     this.currentUserProgressId = 1;
     this.currentUserChallengeId = 1;
     this.currentUserNotificationId = 1;
+    
+    // Initialize reviewer UX ID counters
+    this.currentReviewRequestId = 1;
+    this.currentCommentId = 1;
+    this.currentAnnotationId = 1;
+    this.currentRevisionHistoryId = 1;
     
     // Add demo user
     this.users.set(1, {
@@ -717,6 +786,81 @@ export class MemStorage implements IStorage {
   
   async deleteRealEstateTerm(id: number): Promise<boolean> {
     return this.realEstateTerms.delete(id);
+  }
+  
+  // Review Request methods
+  async getReviewRequest(id: number): Promise<ReviewRequest | undefined> {
+    return this.reviewRequests.get(id);
+  }
+  
+  async getReviewRequestsByObject(objectType: string, objectId: number): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(
+      (request) => request.objectType === objectType && request.objectId === objectId
+    );
+  }
+  
+  async getReviewRequestsByRequestor(userId: number): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(
+      (request) => request.requestorId === userId
+    );
+  }
+  
+  async getReviewRequestsByAssignee(userId: number): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(
+      (request) => request.assigneeId === userId
+    );
+  }
+  
+  async getReviewRequestsByStatus(status: string): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(
+      (request) => request.status === status
+    );
+  }
+  
+  async createReviewRequest(request: InsertReviewRequest): Promise<ReviewRequest> {
+    const id = this.currentReviewRequestId++;
+    const now = new Date();
+    const newRequest: ReviewRequest = {
+      ...request,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    
+    this.reviewRequests.set(id, newRequest);
+    return newRequest;
+  }
+  
+  async updateReviewRequest(id: number, request: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined> {
+    const reviewRequest = this.reviewRequests.get(id);
+    if (!reviewRequest) return undefined;
+    
+    const updatedRequest: ReviewRequest = {
+      ...reviewRequest,
+      ...request,
+      updatedAt: new Date()
+    };
+    
+    this.reviewRequests.set(id, updatedRequest);
+    return updatedRequest;
+  }
+  
+  async updateReviewRequestStatus(id: number, status: string): Promise<ReviewRequest | undefined> {
+    const reviewRequest = this.reviewRequests.get(id);
+    if (!reviewRequest) return undefined;
+    
+    const updatedRequest: ReviewRequest = {
+      ...reviewRequest,
+      status,
+      updatedAt: new Date()
+    };
+    
+    this.reviewRequests.set(id, updatedRequest);
+    return updatedRequest;
+  }
+  
+  async deleteReviewRequest(id: number): Promise<boolean> {
+    return this.reviewRequests.delete(id);
   }
 
   // Achievement Definition methods

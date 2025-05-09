@@ -1105,6 +1105,28 @@ export const selectUserChallengeSchema = createSelectSchema(userChallenges);
 export type UserChallenge = z.infer<typeof selectUserChallengeSchema>;
 export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
 
+// Reviewer UX schemas
+export const insertReviewRequestSchema = createInsertSchema(reviewRequests).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
+export const selectReviewRequestSchema = createSelectSchema(reviewRequests);
+export type ReviewRequest = z.infer<typeof selectReviewRequestSchema>;
+export type InsertReviewRequest = z.infer<typeof insertReviewRequestSchema>;
+
+export const insertCommentSchema = createInsertSchema(comments).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectCommentSchema = createSelectSchema(comments);
+export type Comment = z.infer<typeof selectCommentSchema>;
+export type InsertComment = z.infer<typeof insertCommentSchema>;
+
+export const insertAnnotationSchema = createInsertSchema(annotations).omit({ id: true, createdAt: true, updatedAt: true });
+export const selectAnnotationSchema = createSelectSchema(annotations);
+export type Annotation = z.infer<typeof selectAnnotationSchema>;
+export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
+
+export const insertRevisionHistorySchema = createInsertSchema(revisionHistory).omit({ id: true, createdAt: true });
+export const selectRevisionHistorySchema = createSelectSchema(revisionHistory);
+export type RevisionHistory = z.infer<typeof selectRevisionHistorySchema>;
+export type InsertRevisionHistory = z.infer<typeof insertRevisionHistorySchema>;
+
+// Enhanced Notification Schema
 export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true, readAt: true });
 export const selectUserNotificationSchema = createSelectSchema(userNotifications);
 export type UserNotification = z.infer<typeof selectUserNotificationSchema>;
