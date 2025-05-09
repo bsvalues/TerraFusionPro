@@ -31,54 +31,18 @@ import {
   Plus, Filter, Eye, Trash2, Edit
 } from 'lucide-react';
 
-// Types for the reviewer functionality
-type ReviewRequest = {
-  id: number;
-  requesterId: number;
-  reviewerId: number | null;
-  objectType: string;
-  objectId: number;
-  status: 'pending' | 'in_progress' | 'completed' | 'rejected';
-  requestedAt: Date;
-  completedAt: Date | null;
-  priority: 'low' | 'medium' | 'high';
-  notes: string | null;
-};
-
-type Comment = {
-  id: number;
-  userId: number;
-  objectType: string;
-  objectId: number;
-  content: string;
-  createdAt: Date;
-  updatedAt: Date;
-  threadId: number | null;
-  parentId: number | null;
-};
-
-type Annotation = {
-  id: number;
-  userId: number;
-  objectType: string;
-  objectId: number;
-  content: string;
-  createdAt: Date;
-  updatedAt: Date;
-  annotationType: string;
-  position: string;
-};
-
-type RevisionHistory = {
-  id: number;
-  userId: number;
-  objectType: string;
-  objectId: number;
-  revisionType: string;
-  revisionContent: string;
-  createdAt: Date;
-  previousVersionId: number | null;
-};
+// Import mock data and types
+import {
+  ReviewRequest,
+  Comment,
+  Annotation,
+  RevisionHistory,
+  getReviewRequests,
+  getCommentsByObject,
+  getAnnotationsByObject,
+  getRevisionHistoryByObject,
+  updateReviewRequestStatus
+} from '@/lib/mockReviewerData';
 
 type User = {
   id: number;
@@ -298,6 +262,7 @@ export default function ReviewerPage() {
     error: requestsError
   } = useQuery({
     queryKey: ['/api/reviewer/requests'],
+    queryFn: getReviewRequests,
     select: (data) => data as ReviewRequest[],
   });
 
@@ -307,6 +272,7 @@ export default function ReviewerPage() {
     isLoading: isLoadingComments 
   } = useQuery({
     queryKey: ['/api/reviewer/comments', selectedRequest?.objectType, selectedRequest?.objectId],
+    queryFn: () => selectedRequest ? getCommentsByObject(selectedRequest.objectType, selectedRequest.objectId) : Promise.resolve([]),
     select: (data) => data as Comment[],
     enabled: !!selectedRequest,
   });
@@ -317,6 +283,7 @@ export default function ReviewerPage() {
     isLoading: isLoadingAnnotations 
   } = useQuery({
     queryKey: ['/api/reviewer/annotations', selectedRequest?.objectType, selectedRequest?.objectId],
+    queryFn: () => selectedRequest ? getAnnotationsByObject(selectedRequest.objectType, selectedRequest.objectId) : Promise.resolve([]),
     select: (data) => data as Annotation[],
     enabled: !!selectedRequest,
   });
@@ -327,6 +294,7 @@ export default function ReviewerPage() {
     isLoading: isLoadingRevisions 
   } = useQuery({
     queryKey: ['/api/reviewer/revision-history', selectedRequest?.objectType, selectedRequest?.objectId],
+    queryFn: () => selectedRequest ? getRevisionHistoryByObject(selectedRequest.objectType, selectedRequest.objectId) : Promise.resolve([]),
     select: (data) => data as RevisionHistory[],
     enabled: !!selectedRequest,
   });
@@ -334,10 +302,7 @@ export default function ReviewerPage() {
   // Update review request status mutation
   const updateReviewStatus = useMutation({
     mutationFn: (data: { id: number, status: string }) => {
-      return apiRequest(`/api/reviewer/requests/${data.id}`, {
-        method: 'PATCH',
-        data: { status: data.status }
-      });
+      return updateReviewRequestStatus(data.id, data.status);
     },
     onSuccess: () => {
       toast({
