@@ -39,6 +39,7 @@ import { ReportGenerationPage } from './pages/ReportGenerationPage';
 import WebSocketTestPage from './pages/WebSocketTestPage';
 import SnapshotViewerPage from './pages/SnapshotViewerPage';
 import ShapViewerPage from './pages/ShapViewerPage';
+import BatchAdjustmentPage from './pages/BatchAdjustmentPage';
 
 // Import the enhanced versions of pages
 import EnhancedHome from './pages/Home.enhanced';
@@ -162,6 +163,7 @@ export default function EnhancedApp2() {
               <Route path="/shap-viewer" component={ShapViewerPage} />
               <Route path="/shap" component={ShapViewerPage} />
               <Route path="/ai-analysis" component={MarketAnalysisPage} />
+              <Route path="/batch-adjustment" component={BatchAdjustmentPage} />
               
               <Route path="/:rest*" component={NotFound} />
               <Toaster />
