@@ -302,6 +302,7 @@ export function setupWebSocketServer(server: http.Server) {
   // This prevents conflicts between multiple upgrade listeners
   server.on('upgrade', (request, socket, head) => {
     console.log(`[WebSocket] Upgrade request for: ${request.url}`);
+    console.log(`[WebSocket] Headers: ${JSON.stringify(request.headers)}`);
     
     try {
       // Parse the URL to get the pathname
@@ -315,6 +316,20 @@ export function setupWebSocketServer(server: http.Server) {
         console.log('[WebSocket] Routing to primary WebSocket server');
         wss.handleUpgrade(request, socket, head, (ws) => {
           console.log('[WebSocket] New connection on primary endpoint');
+          
+          // Send immediate welcome message to confirm connection
+          try {
+            ws.send(JSON.stringify({
+              type: 'connection_established',
+              data: { 
+                timestamp: Date.now(),
+                message: 'WebSocket connection established on primary endpoint'
+              }
+            }));
+          } catch (err) {
+            console.error('[WebSocket] Error sending welcome message:', err);
+          }
+          
           wss.emit('connection', ws, request);
         });
       } 
@@ -322,6 +337,20 @@ export function setupWebSocketServer(server: http.Server) {
         console.log('[WebSocket] Routing to alternative WebSocket server');
         wssAlt.handleUpgrade(request, socket, head, (ws) => {
           console.log('[WebSocket] New connection on alternative endpoint');
+          
+          // Send immediate welcome message to confirm connection
+          try {
+            ws.send(JSON.stringify({
+              type: 'connection_established',
+              data: { 
+                timestamp: Date.now(),
+                message: 'WebSocket connection established on alternative endpoint'
+              }
+            }));
+          } catch (err) {
+            console.error('[WebSocket] Error sending welcome message:', err);
+          }
+          
           wssAlt.emit('connection', ws, request);
         });
       }
