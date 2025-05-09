@@ -118,6 +118,9 @@ reviewerRouter.post("/review-requests/:id/complete", async (req, res) => {
       return res.status(404).json({ error: "Review request not found" });
     }
     
+    // Notify connected clients via WebSocket
+    reviewerWsService.notifyUpdatedReviewRequest(completedRequest);
+    
     res.json(completedRequest);
   } catch (error) {
     console.error("Error completing review request:", error);
@@ -196,6 +199,10 @@ reviewerRouter.post("/comments", async (req, res) => {
     }
     
     const comment = await storage.createComment(validationResult.data);
+    
+    // Notify connected clients via WebSocket
+    reviewerWsService.notifyNewComment(comment);
+    
     res.status(201).json(comment);
   } catch (error) {
     console.error("Error creating comment:", error);
@@ -299,6 +306,10 @@ reviewerRouter.post("/annotations", async (req, res) => {
     }
     
     const annotation = await storage.createAnnotation(validationResult.data);
+    
+    // Notify connected clients via WebSocket
+    reviewerWsService.notifyNewAnnotation(annotation);
+    
     res.status(201).json(annotation);
   } catch (error) {
     console.error("Error creating annotation:", error);
@@ -399,6 +410,10 @@ reviewerRouter.post("/revision-history", async (req, res) => {
     }
     
     const revision = await storage.createRevisionHistory(validationResult.data);
+    
+    // Notify connected clients via WebSocket
+    reviewerWsService.notifyNewRevision(revision);
+    
     res.status(201).json(revision);
   } catch (error) {
     console.error("Error creating revision history:", error);

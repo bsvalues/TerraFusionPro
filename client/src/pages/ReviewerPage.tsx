@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest } from '@/lib/queryClient';
+import websocketClient from '@/lib/websocketClient';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -250,9 +251,125 @@ export default function ReviewerPage() {
   const [objectTypeFilter, setObjectTypeFilter] = useState<string>("all");
   const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
+  const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  
+  // Connect to WebSocket and set up listeners
+  useEffect(() => {
+    // Connect to the WebSocket server
+    websocketClient.connect();
+    
+    // Listen for connection state changes
+    const unsubscribeConnectionState = websocketClient.onConnectionStateChange((connected) => {
+      console.log(`[ReviewerPage] WebSocket connection state: ${connected ? 'connected' : 'disconnected'}`);
+      setIsWebSocketConnected(connected);
+      
+      if (connected) {
+        toast({
+          title: "Real-time updates enabled",
+          description: "You will receive instant notifications for review changes",
+          variant: "default",
+        });
+      } else {
+        toast({
+          title: "Real-time updates disabled",
+          description: "Connection to update server lost. Retrying...",
+          variant: "destructive",
+        });
+      }
+    });
+    
+    // Subscribe to new review request notifications
+    const unsubscribeNewRequest = websocketClient.subscribe('new_review_request', (data) => {
+      console.log('[ReviewerPage] New review request received:', data);
+      // Add the new review request to the cache or refetch
+      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/review-requests'] });
+      
+      toast({
+        title: "New Review Request",
+        description: `A new ${data.objectType} review request has been created`,
+      });
+    });
+    
+    // Subscribe to updated review request notifications
+    const unsubscribeUpdatedRequest = websocketClient.subscribe('updated_review_request', (data) => {
+      console.log('[ReviewerPage] Updated review request received:', data);
+      // Update the cached review request
+      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/review-requests'] });
+      
+      toast({
+        title: "Review Request Updated",
+        description: `Review request #${data.id} has been updated`,
+      });
+    });
+    
+    // Subscribe to new comment notifications
+    const unsubscribeNewComment = websocketClient.subscribe('new_comment', (data) => {
+      console.log('[ReviewerPage] New comment received:', data);
+      // If the comment is for the currently selected request, update the UI
+      if (selectedRequest && 
+          data.objectType === selectedRequest.objectType && 
+          data.objectId === selectedRequest.objectId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/reviewer/comments', selectedRequest.objectType, selectedRequest.objectId] 
+        });
+        
+        toast({
+          title: "New Comment",
+          description: "A new comment has been added to this request",
+        });
+      }
+    });
+    
+    // Subscribe to new annotation notifications
+    const unsubscribeNewAnnotation = websocketClient.subscribe('new_annotation', (data) => {
+      console.log('[ReviewerPage] New annotation received:', data);
+      // If the annotation is for the currently selected request, update the UI
+      if (selectedRequest && 
+          data.objectType === selectedRequest.objectType && 
+          data.objectId === selectedRequest.objectId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/reviewer/annotations', selectedRequest.objectType, selectedRequest.objectId] 
+        });
+        
+        toast({
+          title: "New Annotation",
+          description: "A new annotation has been added to this request",
+        });
+      }
+    });
+    
+    // Subscribe to new revision history notifications
+    const unsubscribeNewRevision = websocketClient.subscribe('new_revision', (data) => {
+      console.log('[ReviewerPage] New revision received:', data);
+      // If the revision is for the currently selected request, update the UI
+      if (selectedRequest && 
+          data.objectType === selectedRequest.objectType && 
+          data.objectId === selectedRequest.objectId) {
+        queryClient.invalidateQueries({ 
+          queryKey: ['/api/reviewer/revision-history', selectedRequest.objectType, selectedRequest.objectId] 
+        });
+        
+        toast({
+          title: "Document Updated",
+          description: `A new revision has been saved: ${data.revisionType}`,
+        });
+      }
+    });
+    
+    // Clean up subscriptions when component unmounts
+    return () => {
+      unsubscribeConnectionState();
+      unsubscribeNewRequest();
+      unsubscribeUpdatedRequest();
+      unsubscribeNewComment();
+      unsubscribeNewAnnotation();
+      unsubscribeNewRevision();
+      websocketClient.disconnect();
+    };
+  }, [queryClient, selectedRequest, toast]);
 
   // Fetch review requests
   const { 
@@ -439,9 +556,17 @@ export default function ReviewerPage() {
     <div className="container mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Reviewer Dashboard</h1>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" /> New Review Request
-        </Button>
+        <div className="flex items-center gap-4">
+          <div className="flex items-center text-sm">
+            <div className={`w-2 h-2 rounded-full mr-2 ${isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+            <span className="text-muted-foreground">
+              {isWebSocketConnected ? 'Real-time updates enabled' : 'Connecting...'}
+            </span>
+          </div>
+          <Button>
+            <Plus className="w-4 h-4 mr-2" /> New Review Request
+          </Button>
+        </div>
       </div>
 
       <Tabs 
