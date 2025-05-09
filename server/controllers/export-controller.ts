@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import pdfBatchExporter from '../lib/exporters/pdf-batch-exporter';
 import { IStorage } from '../storage';
-const config = require('../../shared/config.js');
+import config from '../../shared/config.js';
 
 export class ExportController {
   constructor(private storage: IStorage) {}

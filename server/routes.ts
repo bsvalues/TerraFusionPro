@@ -62,6 +62,7 @@ import { shapRouter } from './routes/shap-routes';
 import orderRoutes from './routes/order-routes';
 import healthCheckRoutes from './routes/health-check';
 import mlsRoutes from './routes/mls-routes';
+import { registerExportRoutes } from './routes/export-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2798,6 +2799,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/orders', orderRoutes);
   app.use('/api/mls', mlsRoutes);
   app.use('/api', modelVersionRoutes);
+  
+  // Register export routes for PDF and ZIP export functionality
+  const apiRouter = express.Router();
+  registerExportRoutes(apiRouter, storage);
+  app.use('/api', apiRouter);
   
   // Add the valuation proxy router directly at the root level (not under /api)
   // This enables direct access to /appraise and other endpoints

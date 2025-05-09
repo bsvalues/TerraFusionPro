@@ -1,121 +1,46 @@
 /**
  * TerraFusion Platform Configuration
- * 
- * This file contains global configuration settings for the TerraFusion platform.
- * Modify these settings to control various aspects of the application.
+ * Shared between frontend and backend
  */
 
 const config = {
-  /**
-   * Demo Mode Toggle
-   * 
-   * When enabled, the application will use demo data and simulated functionality.
-   * This is useful for demonstrations, testing, or when certain backend services
-   * are unavailable.
-   * 
-   * Set to true to enable demo mode, false to use real data and services.
-   */
-  demoMode: true,
-  
-  /**
-   * API Configuration
-   */
-  api: {
-    /**
-     * Base URL for API requests
-     */
-    baseUrl: '/api',
-    
-    /**
-     * Timeout for API requests in milliseconds
-     */
-    timeout: 30000,
-    
-    /**
-     * Retry configuration
-     */
-    retry: {
-      /**
-       * Maximum number of retry attempts
-       */
-      maxRetries: 3,
-      
-      /**
-       * Base delay between retries in milliseconds
-       */
-      retryDelay: 1000
-    }
+  // Demo mode configuration
+  demoMode: {
+    enabled: true,
+    showDemoLabel: true,
+    demoLabelText: "DEMO MODE",
   },
-  
-  /**
-   * PDF Export Configuration
-   */
+
+  // PDF export settings
   pdfExport: {
-    /**
-     * Enable AI annotations in exported PDFs
-     */
     enableAIAnnotations: true,
-    
-    /**
-     * Add watermark to exported PDFs
-     */
     addWatermark: true,
-    
-    /**
-     * Default watermark text
-     */
-    watermarkText: 'TerraFusion Pro',
-    
-    /**
-     * Batch export settings
-     */
-    batchExport: {
-      /**
-       * Maximum number of PDFs to export in a single batch
-       */
-      maxBatchSize: 20,
-      
-      /**
-       * Enable batch adjustments
-       */
-      enableBatchAdjustments: true
-    }
+    watermarkText: "TerraFusion - SAMPLE REPORT",
+    defaultOptionsIncludeCover: true,
+    defaultOptionsIncludePhotos: true,
+    defaultOptionsIncludeAdjustments: true,
   },
-  
-  /**
-   * Reviewer Configuration
-   */
-  reviewer: {
-    /**
-     * Enable reviewer mode
-     */
-    enableReviewerMode: true,
-    
-    /**
-     * Allow batch review operations
-     */
-    allowBatchReview: true
-  },
-  
-  /**
-   * ZIP Export Configuration
-   */
+
+  // ZIP export settings
   zipExport: {
-    /**
-     * Enable ZIP export functionality
-     */
-    enableZipExport: true,
-    
-    /**
-     * Default ZIP file name
-     */
-    defaultFileName: 'TerraFusion_Export',
-    
-    /**
-     * Include export metadata JSON file
-     */
-    includeMetadata: true
+    includeMetadata: true,
+    metadataFormat: "json", // json or csv
+    addIndexFile: true,
+  },
+
+  // AI integration settings
+  aiIntegration: {
+    enabled: true,
+    confidenceLevelsEnabled: true,
+    suggestAdjustments: true,
+  },
+
+  // Reviewer mode settings
+  reviewerMode: {
+    enabled: true,
+    trackChanges: true,
+    requireApproval: false,
   }
 };
 
-module.exports = config;
+export default config;
