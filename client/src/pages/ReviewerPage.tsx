@@ -252,14 +252,18 @@ export default function ReviewerPage() {
   const [selectedRequest, setSelectedRequest] = useState<ReviewRequest | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
+  const [fallbackActive, setFallbackActive] = useState(false);
   
   const { toast } = useToast();
   const queryClient = useQueryClient();
   
   // Connect to WebSocket and set up listeners
   useEffect(() => {
-    // Connect to the WebSocket server
-    websocketClient.connect();
+    // Don't attempt to connect if fallback mode is already active
+    if (!fallbackActive) {
+      // Connect to the WebSocket server
+      websocketClient.connect();
+    }
     
     // Listen for connection state changes
     const unsubscribeConnectionState = websocketClient.onConnectionStateChange((connected) => {
@@ -267,17 +271,27 @@ export default function ReviewerPage() {
       setIsWebSocketConnected(connected);
       
       if (connected) {
+        // Connection successful, disable fallback mode
+        setFallbackActive(false);
         toast({
           title: "Real-time updates enabled",
           description: "You will receive instant notifications for review changes",
           variant: "default",
         });
-      } else {
+      } else if (!fallbackActive) {
+        // Only show toast for initial disconnection, not when already in fallback mode
         toast({
           title: "Real-time updates disabled",
           description: "Connection to update server lost. Retrying...",
           variant: "destructive",
         });
+        
+        // If we've received a maximum reconnection attempts notification,
+        // activate fallback mode
+        if (websocketClient.getReconnectAttempts() >= websocketClient.getMaxReconnectAttempts() - 5) {
+          console.log("[ReviewerPage] Maximum reconnection attempts nearly reached, activating fallback mode");
+          setFallbackActive(true);
+        }
       }
     });
     
@@ -369,7 +383,7 @@ export default function ReviewerPage() {
       unsubscribeNewRevision();
       websocketClient.disconnect();
     };
-  }, [queryClient, selectedRequest, toast]);
+  }, [queryClient, selectedRequest, toast, fallbackActive]);
 
   // Fetch review requests
   const { 

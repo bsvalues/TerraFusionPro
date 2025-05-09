@@ -237,6 +237,16 @@ class WebSocketClient {
   isSocketConnected(): boolean {
     return this.isConnected;
   }
+  
+  // Get current reconnect attempts
+  getReconnectAttempts(): number {
+    return this.reconnectAttempts;
+  }
+  
+  // Get max reconnect attempts
+  getMaxReconnectAttempts(): number {
+    return this.maxReconnectAttempts;
+  }
 }
 
 // Create a singleton instance
