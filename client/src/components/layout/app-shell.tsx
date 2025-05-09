@@ -245,6 +245,13 @@ export function AppShell({ children }: AppShellProps) {
       badge: { text: "New", variant: "secondary" },
       description: "Review and collaborate on appraisal reports"
     },
+    { 
+      href: "/reviewer-test", 
+      label: "Reviewer Test", 
+      icon: <ClipboardList className="h-4 w-4" />,
+      badge: { text: "Debug", variant: "destructive" },
+      description: "Test page for reviewer functionality"
+    },
   ];
   
   // AI Assistant Tools - AI-powered features
