@@ -273,6 +273,14 @@ export class MemStorage implements IStorage {
   private sketches: Map<number, Sketch>;
   private complianceChecks: Map<number, ComplianceCheck>;
   private realEstateTerms: Map<number, RealEstateTerm>;
+  
+  // Gamification system
+  private achievementDefinitions: Map<number, AchievementDefinition>;
+  private userAchievements: Map<number, UserAchievement>;
+  private levels: Map<number, Level>;
+  private userProgress: Map<number, UserProgress>;
+  private userChallenges: Map<number, UserChallenge>;
+  private userNotifications: Map<number, UserNotification>;
   private orders: Map<number, Order>;
   
   private currentUserId: number;
@@ -297,6 +305,14 @@ export class MemStorage implements IStorage {
     this.complianceChecks = new Map();
     this.realEstateTerms = new Map();
     this.orders = new Map();
+    
+    // Initialize gamification maps
+    this.achievementDefinitions = new Map();
+    this.userAchievements = new Map();
+    this.levels = new Map();
+    this.userProgress = new Map();
+    this.userChallenges = new Map();
+    this.userNotifications = new Map();
     
     this.currentUserId = 1;
     this.currentPropertyId = 1;
