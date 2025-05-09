@@ -267,18 +267,6 @@ export function setupWebSocketServer(server: http.Server) {
     }
   });
   
-  // Handle upgrade manually for more control
-  server.on('upgrade', (request, socket, head) => {
-    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
-    
-    if (pathname === '/api/ws') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        console.log('[WebSocket] New connection on primary endpoint');
-        wss.emit('connection', ws, request);
-      });
-    }
-  });
-
   // Configure HTTP server timeouts for long-lived connections
   server.keepAliveTimeout = 120000; // 120 seconds (2 minutes)
   server.headersTimeout = 121000; // 121 seconds
@@ -308,21 +296,40 @@ export function setupWebSocketServer(server: http.Server) {
     }
   });
   
-  // Update server.on('upgrade') handler to handle the alternative endpoint
+  // Set up a single upgrade handler for all WebSocket paths
+  // This prevents conflicts between multiple upgrade listeners
   server.on('upgrade', (request, socket, head) => {
-    const pathname = new URL(request.url || '', `http://${request.headers.host}`).pathname;
+    console.log(`[WebSocket] Upgrade request for: ${request.url}`);
     
-    if (pathname === '/api/ws') {
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        console.log('[WebSocket] New connection on primary endpoint');
-        wss.emit('connection', ws, request);
-      });
-    } 
-    else if (pathname === '/api/ws-alt') {
-      wssAlt.handleUpgrade(request, socket, head, (ws) => {
-        console.log('[WebSocket] New connection on alternative endpoint');
-        wssAlt.emit('connection', ws, request);
-      });
+    try {
+      // Parse the URL to get the pathname
+      const url = new URL(request.url || '', `http://${request.headers.host}`);
+      const pathname = url.pathname;
+      
+      console.log(`[WebSocket] Upgrade request pathname: ${pathname}`);
+      
+      // Route to the appropriate WebSocket server based on path
+      if (pathname === '/api/ws') {
+        console.log('[WebSocket] Routing to primary WebSocket server');
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          console.log('[WebSocket] New connection on primary endpoint');
+          wss.emit('connection', ws, request);
+        });
+      } 
+      else if (pathname === '/api/ws-alt') {
+        console.log('[WebSocket] Routing to alternative WebSocket server');
+        wssAlt.handleUpgrade(request, socket, head, (ws) => {
+          console.log('[WebSocket] New connection on alternative endpoint');
+          wssAlt.emit('connection', ws, request);
+        });
+      }
+      else {
+        console.log(`[WebSocket] No handler for path: ${pathname}`);
+        socket.destroy();
+      }
+    } catch (err) {
+      console.error('[WebSocket] Error processing upgrade request:', err);
+      socket.destroy();
     }
   });
 
