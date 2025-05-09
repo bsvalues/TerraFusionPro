@@ -261,12 +261,12 @@ export default function ReviewerPage() {
     isError: isRequestsError,
     error: requestsError
   } = useQuery({
-    queryKey: ['/api/reviewer/requests'],
+    queryKey: ['/api/reviewer/review-requests'],
     // Using proper API request with a fallback to mock data
     queryFn: async () => {
       try {
         // Try the real API endpoint first
-        return await apiRequest('/api/reviewer/requests');
+        return await apiRequest('/api/reviewer/review-requests');
       } catch (error) {
         console.log("Falling back to mock data for review requests");
         // Fall back to mock data if the API fails
@@ -347,8 +347,8 @@ export default function ReviewerPage() {
     mutationFn: async (data: { id: number, status: string }) => {
       try {
         // Try the real API endpoint first
-        return await apiRequest(`/api/reviewer/requests/${data.id}`, {
-          method: 'PATCH',
+        return await apiRequest(`/api/reviewer/review-requests/${data.id}`, {
+          method: 'PUT',
           data: { status: data.status }
         });
       } catch (error) {
@@ -362,7 +362,7 @@ export default function ReviewerPage() {
         title: "Status updated",
         description: "Review request status has been updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/requests'] });
+      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/review-requests'] });
     },
     onError: (error) => {
       toast({

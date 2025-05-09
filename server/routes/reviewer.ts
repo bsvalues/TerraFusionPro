@@ -2,6 +2,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { storage } from "../storage";
 import { insertReviewRequestSchema, insertCommentSchema, insertAnnotationSchema, insertRevisionHistorySchema } from "@shared/schema";
+import * as reviewerWsService from "../services/reviewer-ws-service";
 
 export const reviewerRouter = Router();
 
@@ -63,6 +64,10 @@ reviewerRouter.post("/review-requests", async (req, res) => {
     }
     
     const request = await storage.createReviewRequest(validationResult.data);
+    
+    // Notify connected clients via WebSocket
+    reviewerWsService.notifyNewReviewRequest(request);
+    
     res.status(201).json(request);
   } catch (error) {
     console.error("Error creating review request:", error);
@@ -87,6 +92,9 @@ reviewerRouter.put("/review-requests/:id", async (req, res) => {
     if (!updatedRequest) {
       return res.status(404).json({ error: "Review request not found" });
     }
+    
+    // Notify connected clients via WebSocket
+    reviewerWsService.notifyUpdatedReviewRequest(updatedRequest);
     
     res.json(updatedRequest);
   } catch (error) {
