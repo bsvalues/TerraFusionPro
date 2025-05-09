@@ -41,6 +41,7 @@ import { AppProvider } from "./contexts/AppContext";
 import { PerformanceProvider } from "./contexts/PerformanceContext";
 import { RealtimeProvider } from "./contexts/RealtimeContext";
 import { AppShell } from "./components/layout/app-shell";
+import WebSocketManager from "./components/WebSocketManager";
 import { useState, useEffect } from "react";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout

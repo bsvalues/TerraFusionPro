@@ -33,12 +33,14 @@ class WebSocketClient {
       // Default to port 5000 which is our Express server port
       const serverPort = "5000";
       
-      // Direct WebSocket URLs using the server port rather than the Vite port
-      // Server is trying to handle /ws and /ws-alt (without the /api prefix) 
-      const wsUrl = `${protocol}//${baseHost}:${serverPort}/ws`;
-      const wsAltUrl = `${protocol}//${baseHost}:${serverPort}/ws-alt`;
+      // In Replit, we need to use the same hostname without specifying a custom port
+      // This ensures the request goes through Replit's proxy correctly
+      // Adding a timestamp query parameter to prevent caching issues
+      const timestamp = Date.now();
+      const wsUrl = `${protocol}//${window.location.host}/ws?t=${timestamp}`;
+      const wsAltUrl = `${protocol}//${window.location.host}/ws-alt?t=${timestamp}`;
       
-      console.log(`[WebSocketClient] Connecting to ${wsUrl} (direct server port)`);
+      console.log(`[WebSocketClient] Connecting to ${wsUrl} (Replit proxy)`);
       
       try {
         this.socket = new WebSocket(wsUrl);
