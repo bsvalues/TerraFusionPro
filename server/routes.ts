@@ -64,6 +64,7 @@ import healthCheckRoutes from './routes/health-check';
 import mlsRoutes from './routes/mls-routes';
 import { registerExportRoutes } from './routes/export-routes';
 import { reviewerRouter } from './routes/reviewer';
+import websocketRouter from './routes/websocket-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
@@ -2803,6 +2804,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Register reviewer UX routes for collaborative review functionality
   app.use('/api/reviewer', reviewerRouter);
+  
+  // Register WebSocket routes to ensure they're handled by Express
+  // This prevents Vite from intercepting these paths
+  app.use('/api', websocketRouter);
   
   // Register export routes for PDF and ZIP export functionality
   const apiRouter = express.Router();
