@@ -17,6 +17,7 @@ from model.valuation import perform_automated_valuation, analyze_market_trends, 
 
 # Import routers
 from backend.routes.condition_analysis import router as condition_analysis_router
+from backend.routes.valuation_api import router as valuation_api_router
 
 # Define data models
 class PropertyFeature(BaseModel):
