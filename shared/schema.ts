@@ -480,15 +480,124 @@ export const userChallenges = pgTable("user_challenges", {
   updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
 });
 
-// User notifications
+// Review status enum
+export const reviewStatusEnum = pgEnum("review_status", [
+  "pending",
+  "in_review",
+  "approved",
+  "rejected",
+  "changes_requested"
+]);
+
+// Review priority enum
+export const reviewPriorityEnum = pgEnum("review_priority", [
+  "low",
+  "medium",
+  "high",
+  "urgent"
+]);
+
+// Review workflow table
+export const reviewRequests = pgTable("review_requests", {
+  id: serial("id").primaryKey(),
+  objectType: text("object_type").notNull(), // "appraisal", "property", "valuation"
+  objectId: integer("object_id").notNull(),
+  requestedBy: integer("requested_by").references(() => users.id).notNull(),
+  assignedTo: integer("assigned_to").references(() => users.id),
+  status: reviewStatusEnum("status").notNull().default("pending"),
+  priority: reviewPriorityEnum("priority").notNull().default("medium"),
+  dueDate: timestamp("due_date", { mode: "date" }),
+  description: text("description"),
+  completedAt: timestamp("completed_at", { mode: "date" }),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Comment type enum
+export const commentTypeEnum = pgEnum("comment_type", [
+  "general",
+  "issue",
+  "suggestion",
+  "approval",
+  "rejection"
+]);
+
+// Comments table
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  objectType: text("object_type").notNull(), // "property", "valuation", "review", etc.
+  objectId: integer("object_id").notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  parentId: integer("parent_id").references(() => comments.id), // For threaded comments
+  content: text("content").notNull(),
+  commentType: commentTypeEnum("comment_type").default("general"),
+  resolved: boolean("resolved").default(false),
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Annotation type enum
+export const annotationTypeEnum = pgEnum("annotation_type", [
+  "highlight",
+  "note",
+  "correction",
+  "question",
+  "drawing"
+]);
+
+// Annotations table (for documents, images, etc.)
+export const annotations = pgTable("annotations", {
+  id: serial("id").primaryKey(),
+  objectType: text("object_type").notNull(), // "photo", "sketch", "document", etc.
+  objectId: integer("object_id").notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  annotationType: annotationTypeEnum("annotation_type").default("note"),
+  content: text("content"),
+  coordinates: json("coordinates"), // JSON data for position/area on the document
+  metadata: json("metadata"), // Additional info: color, size, style, etc.
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
+  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Revision history table
+export const revisionHistory = pgTable("revision_history", {
+  id: serial("id").primaryKey(),
+  objectType: text("object_type").notNull(), // "property", "valuation", etc.
+  objectId: integer("object_id").notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  revisionType: text("revision_type").notNull(), // "create", "update", "delete"
+  previousVersion: json("previous_version"),
+  currentVersion: json("current_version"),
+  changes: json("changes"), // Detailed changes made
+  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
+});
+
+// Enhanced notification types enum
+export const notificationTypeEnum = pgEnum("notification_type", [
+  "review_request",
+  "comment",
+  "achievement",
+  "level_up",
+  "approval",
+  "changes_requested",
+  "mention",
+  "system"
+]);
+
+// User notifications (Enhanced)
 export const userNotifications = pgTable("user_notifications", {
   id: serial("id").primaryKey(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  type: text("type").notNull(),
+  type: notificationTypeEnum("type").notNull(),
   title: text("title").notNull(),
   message: text("message").notNull(),
+  objectType: text("object_type"), // Optional reference to object type
+  objectId: integer("object_id"), // Optional reference to object ID
+  sourceUserId: integer("source_user_id").references(() => users.id), // Who triggered the notification
   read: boolean("read").notNull().default(false),
   readAt: timestamp("read_at", { mode: "date" }),
+  actionUrl: text("action_url"), // Link to take action on the notification
+  importance: text("importance").default("normal"),
   createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
 });
 
@@ -695,7 +804,67 @@ export const userNotificationsRelations = relations(userNotifications, ({ one })
   user: one(users, {
     fields: [userNotifications.userId],
     references: [users.id]
+  }),
+  sourceUser: one(users, {
+    fields: [userNotifications.sourceUserId],
+    references: [users.id],
+    relationName: "sentNotifications"
   })
+}));
+
+// Reviewer UX relation definitions
+export const reviewRequestsRelations = relations(reviewRequests, ({ one, many }) => ({
+  requestor: one(users, {
+    fields: [reviewRequests.requestedBy],
+    references: [users.id],
+    relationName: "requestedReviews"
+  }),
+  reviewer: one(users, {
+    fields: [reviewRequests.assignedTo],
+    references: [users.id],
+    relationName: "assignedReviews"
+  }),
+  comments: many(comments, { relationName: "reviewComments" })
+}));
+
+export const commentsRelations = relations(comments, ({ one, many }) => ({
+  user: one(users, {
+    fields: [comments.userId],
+    references: [users.id],
+    relationName: "userComments"
+  }),
+  parentComment: one(comments, {
+    fields: [comments.parentId],
+    references: [comments.id],
+    relationName: "childComments"
+  }),
+  childComments: many(comments, { relationName: "childComments" })
+}));
+
+export const annotationsRelations = relations(annotations, ({ one }) => ({
+  user: one(users, {
+    fields: [annotations.userId],
+    references: [users.id],
+    relationName: "userAnnotations"
+  })
+}));
+
+export const revisionHistoryRelations = relations(revisionHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [revisionHistory.userId],
+    references: [users.id],
+    relationName: "userRevisions"
+  })
+}));
+
+// Update user relations with new reviewer UX relations
+export const usersRelationsExtended = relations(users, ({ many }) => ({
+  requestedReviews: many(reviewRequests, { relationName: "requestedReviews" }),
+  assignedReviews: many(reviewRequests, { relationName: "assignedReviews" }),
+  comments: many(comments, { relationName: "userComments" }),
+  annotations: many(annotations, { relationName: "userAnnotations" }),
+  revisions: many(revisionHistory, { relationName: "userRevisions" }),
+  sentNotifications: many(userNotifications, { relationName: "sentNotifications" })
 }));
 
 // MLS Integration tables
