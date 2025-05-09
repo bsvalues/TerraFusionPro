@@ -557,11 +557,31 @@ export default function ReviewerPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold tracking-tight">Reviewer Dashboard</h1>
         <div className="flex items-center gap-4">
-          <div className="flex items-center text-sm">
-            <div className={`w-2 h-2 rounded-full mr-2 ${isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
-            <span className="text-muted-foreground">
-              {isWebSocketConnected ? 'Real-time updates enabled' : 'Connecting...'}
-            </span>
+          <div className="flex items-center gap-2">
+            <div className="flex items-center text-sm">
+              <div className={`w-2 h-2 rounded-full mr-2 ${isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span className="text-muted-foreground">
+                {isWebSocketConnected 
+                  ? 'Real-time updates enabled' 
+                  : fallbackActive 
+                    ? 'Using poll-based updates' 
+                    : 'Connecting...'}
+              </span>
+            </div>
+            {!isWebSocketConnected && (
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  setFallbackActive(false);
+                  websocketClient.disconnect();
+                  websocketClient.connect();
+                }}
+              >
+                <RefreshCw className="w-3 h-3 mr-1" />
+                Retry Connection
+              </Button>
+            )}
           </div>
           <Button>
             <Plus className="w-4 h-4 mr-2" /> New Review Request

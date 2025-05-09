@@ -6,8 +6,11 @@ type ConnectionStateChangeHandler = (connected: boolean) => void;
 class WebSocketClient {
   private socket: WebSocket | null = null;
   private reconnectAttempts = 0;
-  private maxReconnectAttempts = 10;
+  private maxReconnectAttempts = 50; // Allow more reconnect attempts
   private reconnectTimeout: NodeJS.Timeout | null = null;
+  private backoffFactor = 1.3; // Slower backoff to allow more recovery time
+  private minReconnectDelay = 1000; // 1 second minimum delay
+  private maxReconnectDelay = 60000; // 1 minute maximum delay
   private messageHandlers: Map<string, Set<MessageHandler>> = new Map();
   private connectionStateHandlers: Set<ConnectionStateChangeHandler> = new Set();
   private isConnected = false;
@@ -24,9 +27,23 @@ class WebSocketClient {
       // Determine the correct protocol (ws: or wss:) based on the current page
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
       const wsUrl = `${protocol}//${window.location.host}/ws`;
+      const wsAltUrl = `${protocol}//${window.location.host}/ws-alt`;
       
       console.log(`[WebSocketClient] Connecting to ${wsUrl}`);
-      this.socket = new WebSocket(wsUrl);
+      
+      try {
+        this.socket = new WebSocket(wsUrl);
+      } catch (error) {
+        console.warn(`[WebSocketClient] Failed to connect to primary WebSocket endpoint, trying alternative...`);
+        try {
+          // Try the alternative WebSocket endpoint
+          console.log(`[WebSocketClient] Connecting to alternative endpoint ${wsAltUrl}`);
+          this.socket = new WebSocket(wsAltUrl);
+        } catch (altError) {
+          console.error(`[WebSocketClient] Failed to connect to alternative WebSocket endpoint: ${altError}`);
+          throw error; // Rethrow the original error to trigger reconnect logic
+        }
+      }
 
       this.socket.onopen = this.handleOpen.bind(this);
       this.socket.onmessage = this.handleMessage.bind(this);
@@ -87,17 +104,31 @@ class WebSocketClient {
     console.error("[WebSocketClient] WebSocket error:", event);
     this.isConnected = false;
     this.notifyConnectionStateChange(false);
+    
+    // Automatically attempt to reconnect after an error
+    this.attemptReconnect();
   }
 
   // Attempt to reconnect after connection failure
   private attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log("[WebSocketClient] Maximum reconnection attempts reached");
+      
+      // Notify the UI that we're falling back to long-polling
+      this.notifyConnectionStateChange(false);
+      
+      // We could implement a long-polling fallback here if needed
+      console.log("[WebSocketClient] Switching to long-polling fallback");
       return;
     }
 
-    const delay = Math.min(1000 * Math.pow(1.5, this.reconnectAttempts), 30000);
-    console.log(`[WebSocketClient] Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1})`);
+    // Calculate delay with exponential backoff and jitter
+    const baseDelay = this.minReconnectDelay * Math.pow(this.backoffFactor, this.reconnectAttempts);
+    // Add jitter (±20%) to prevent all clients reconnecting at once
+    const jitter = 0.8 + (Math.random() * 0.4);
+    const delay = Math.min(baseDelay * jitter, this.maxReconnectDelay);
+    
+    console.log(`[WebSocketClient] Attempting to reconnect in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts + 1} of ${this.maxReconnectAttempts})`);
     
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
