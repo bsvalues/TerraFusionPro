@@ -36,7 +36,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { FileDown, Pencil, Plus, Trash2, Download, Settings } from "lucide-react";
-import config from '../../../shared/config';
+import config from '@shared/config';
 
 interface Adjustment {
   id: string;

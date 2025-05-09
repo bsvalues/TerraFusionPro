@@ -10,7 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { jsPDF } from 'jspdf';
 import * as JSZip from 'jszip';
-import config from '../../../shared/config.js';
+import config from '@shared/config';
 
 // Types for export
 interface ExportOptions {
