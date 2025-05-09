@@ -30,6 +30,16 @@ app.use('/valuation-narrative', createProxyMiddleware({
   changeOrigin: true,
 }));
 
+// Add our new AI valuation endpoint proxy
+app.use('/ai', createProxyMiddleware({
+  target: 'http://localhost:8000',
+  changeOrigin: true,
+  pathRewrite: {
+    '^/ai': '/ai'  // keep the /ai prefix when forwarding
+  },
+  logLevel: 'debug'  // This will help with debugging
+}));
+
 // All other requests go to the frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'frontend', 'index.html'));
