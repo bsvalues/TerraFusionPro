@@ -249,12 +249,12 @@ export function setupWebSocketServer(server: http.Server) {
     socket.setNoDelay(true);
   });
   
-  console.log('[WebSocket] Setting up WebSocket server on path /ws');
+  console.log('[WebSocket] Setting up WebSocket server on path /api/ws');
 
   // Create WebSocket server with verifyClient to handle CORS
   const wss = new WebSocketServer({ 
     server,
-    path: '/ws',
+    path: '/api/ws',
     verifyClient: (info, cb) => {
       // Allow all origins in development
       const origin = info.origin || info.req.headers.origin;
@@ -274,10 +274,10 @@ export function setupWebSocketServer(server: http.Server) {
   console.log('[WebSocket] HTTP Server timeouts configured: keepAliveTimeout=120000ms, headersTimeout=121000ms');
 
   // Create alternative WebSocket server as a backup option with extended options
-  console.log('[WebSocket] Setting up alternative WebSocket server on path /ws-alt');
+  console.log('[WebSocket] Setting up alternative WebSocket server on path /api/ws-alt');
   const wssAlt = new WebSocketServer({ 
     server, 
-    path: '/ws-alt',
+    path: '/api/ws-alt',
     // Add client tracking with pings every 30 seconds
     clientTracking: true,
     perMessageDeflate: {
@@ -310,11 +310,11 @@ export function setupWebSocketServer(server: http.Server) {
 
   // Detect server closing and handle it gracefully
   wss.on('close', () => {
-    console.log('[WebSocket] WebSocket server (/ws) closed');
+    console.log('[WebSocket] WebSocket server (/api/ws) closed');
   });
 
   wssAlt.on('close', () => {
-    console.log('[WebSocket] Alternative WebSocket server (/ws-alt) closed');
+    console.log('[WebSocket] Alternative WebSocket server (/api/ws-alt) closed');
   });
 
   // Handle server errors

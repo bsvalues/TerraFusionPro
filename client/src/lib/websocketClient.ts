@@ -26,8 +26,9 @@ class WebSocketClient {
     try {
       // Determine the correct protocol (ws: or wss:) based on the current page
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      const wsAltUrl = `${protocol}//${window.location.host}/ws-alt`;
+      // Use /api prefix to ensure Express routes handle WebSocket connections
+      const wsUrl = `${protocol}//${window.location.host}/api/ws`;
+      const wsAltUrl = `${protocol}//${window.location.host}/api/ws-alt`;
       
       console.log(`[WebSocketClient] Connecting to ${wsUrl}`);
       
