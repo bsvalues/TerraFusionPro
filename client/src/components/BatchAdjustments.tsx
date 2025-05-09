@@ -192,8 +192,8 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
       
       // Call the export API based on format selection
       const endpoint = exportFormat === "pdf" 
-        ? `/api/exports/comparable/${selectedIds[0]}/pdf` 
-        : `/api/exports/comparables/zip`;
+        ? `/api/comparables/${selectedIds[0]}/export-pdf` 
+        : `/api/appraisals/${appraisalId}/export-zip`;
       
       const options = {
         method: "POST",
@@ -262,7 +262,19 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
       });
 
       // In a real implementation, we would make a fetch call to the backend
+      // const endpoint = `/api/comparables/${comparable.id}/export-pdf`;
+      // const response = await fetch(endpoint, {
+      //   method: "POST",
+      //   headers: {
+      //     "Content-Type": "application/json",
+      //   },
+      //   body: JSON.stringify({
+      //     options: exportOptions,
+      //   }),
+      // });
+      
       // For demo purposes, simulate the export process
+      showDemoWarning();
       
       // Simulate processing time
       setTimeout(() => {
