@@ -220,6 +220,13 @@ export function AppShell({ children }: AppShellProps) {
       description: "Create and edit property floor plans"
     },
     { 
+      href: "/batch-adjustment", 
+      label: "Batch Adjustments", 
+      icon: <FileBarChart2 className="h-4 w-4" />,
+      badge: { text: "New", variant: "secondary" },
+      description: "Batch adjust and export comparables"
+    },
+    { 
       href: "/reports", 
       label: "Report Generator", 
       icon: <FileCheck className="h-4 w-4" />,
