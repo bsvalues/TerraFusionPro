@@ -307,6 +307,99 @@ export interface IStorage {
   createRealEstateTerm(term: InsertRealEstateTerm): Promise<RealEstateTerm>;
   updateRealEstateTerm(id: number, term: Partial<InsertRealEstateTerm>): Promise<RealEstateTerm | undefined>;
   deleteRealEstateTerm(id: number): Promise<boolean>;
+  
+  // Reviewer UX operations - Review Requests
+  getReviewRequest(id: number): Promise<ReviewRequest | undefined>;
+  getReviewRequestsByObject(objectType: string, objectId: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByRequester(requesterId: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByReviewer(reviewerId: number): Promise<ReviewRequest[]>;
+  getPendingReviewRequests(): Promise<ReviewRequest[]>;
+  getReviewRequestsByStatus(status: string): Promise<ReviewRequest[]>;
+  createReviewRequest(request: InsertReviewRequest): Promise<ReviewRequest>;
+  updateReviewRequest(id: number, updateData: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined>;
+  completeReviewRequest(id: number, approved: boolean): Promise<ReviewRequest | undefined>;
+  deleteReviewRequest(id: number): Promise<boolean>;
+  
+  // Reviewer UX operations - Comments
+  getComment(id: number): Promise<Comment | undefined>;
+  getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]>;
+  getCommentsByUser(userId: number): Promise<Comment[]>;
+  getCommentsByThread(threadId: number): Promise<Comment[]>;
+  createComment(comment: InsertComment): Promise<Comment>;
+  updateComment(id: number, comment: Partial<InsertComment>): Promise<Comment | undefined>;
+  deleteComment(id: number): Promise<boolean>;
+  
+  // Reviewer UX operations - Annotations
+  getAnnotation(id: number): Promise<Annotation | undefined>;
+  getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]>;
+  getAnnotationsByUser(userId: number): Promise<Annotation[]>;
+  getAnnotationsByType(annotationType: string): Promise<Annotation[]>;
+  createAnnotation(annotation: InsertAnnotation): Promise<Annotation>;
+  updateAnnotation(id: number, annotation: Partial<InsertAnnotation>): Promise<Annotation | undefined>;
+  deleteAnnotation(id: number): Promise<boolean>;
+  
+  // Reviewer UX operations - Revision History
+  getRevisionHistory(id: number): Promise<RevisionHistory | undefined>;
+  getRevisionHistoryByObject(objectType: string, objectId: number): Promise<RevisionHistory[]>;
+  getRevisionHistoryByUser(userId: number): Promise<RevisionHistory[]>;
+  createRevisionHistory(revision: InsertRevisionHistory): Promise<RevisionHistory>;
+  
+  // Gamification operations - Achievement Definitions
+  getAchievementDefinition(id: number): Promise<AchievementDefinition | undefined>;
+  getAllAchievementDefinitions(): Promise<AchievementDefinition[]>;
+  getAchievementDefinitionsByType(type: string): Promise<AchievementDefinition[]>;
+  createAchievementDefinition(insertDef: InsertAchievementDefinition): Promise<AchievementDefinition>;
+  updateAchievementDefinition(id: number, updateData: Partial<InsertAchievementDefinition>): Promise<AchievementDefinition | undefined>;
+  deleteAchievementDefinition(id: number): Promise<boolean>;
+  
+  // Gamification operations - User Achievements
+  getUserAchievement(id: number): Promise<UserAchievement | undefined>;
+  getUserAchievementsByUser(userId: number): Promise<UserAchievement[]>;
+  getUserAchievementByUserAndDefinition(userId: number, definitionId: number): Promise<UserAchievement | undefined>;
+  createUserAchievement(insertAchievement: InsertUserAchievement): Promise<UserAchievement>;
+  updateUserAchievement(id: number, updateData: Partial<InsertUserAchievement>): Promise<UserAchievement | undefined>;
+  completeUserAchievement(id: number): Promise<UserAchievement | undefined>;
+  deleteUserAchievement(id: number): Promise<boolean>;
+  
+  // Gamification operations - Levels
+  getLevel(id: number): Promise<Level | undefined>;
+  getLevelByNumber(levelNumber: number): Promise<Level | undefined>;
+  getAllLevels(): Promise<Level[]>;
+  createLevel(insertLevel: InsertLevel): Promise<Level>;
+  updateLevel(id: number, updateData: Partial<InsertLevel>): Promise<Level | undefined>;
+  deleteLevel(id: number): Promise<boolean>;
+  
+  // Gamification operations - User Progress
+  getUserProgress(id: number): Promise<UserProgress | undefined>;
+  getUserProgressByUser(userId: number): Promise<UserProgress | undefined>;
+  createUserProgress(insertProgress: InsertUserProgress): Promise<UserProgress>;
+  updateUserProgress(id: number, updateData: Partial<InsertUserProgress>): Promise<UserProgress | undefined>;
+  incrementPropertyEvaluations(userId: number): Promise<UserProgress | undefined>;
+  incrementUserStreak(userId: number): Promise<UserProgress | undefined>;
+  resetUserStreak(userId: number): Promise<UserProgress | undefined>;
+  levelUpUser(userId: number): Promise<UserProgress | undefined>;
+  deleteUserProgress(id: number): Promise<boolean>;
+  
+  // Gamification operations - User Challenges
+  getUserChallenge(id: number): Promise<UserChallenge | undefined>;
+  getUserChallengesByUser(userId: number): Promise<UserChallenge[]>;
+  getActiveUserChallengesByUser(userId: number): Promise<UserChallenge[]>;
+  createUserChallenge(insertChallenge: InsertUserChallenge): Promise<UserChallenge>;
+  updateUserChallenge(id: number, updateData: Partial<InsertUserChallenge>): Promise<UserChallenge | undefined>;
+  completeUserChallenge(id: number): Promise<UserChallenge | undefined>;
+  deleteUserChallenge(id: number): Promise<boolean>;
+  
+  // Enhanced Notification operations
+  getUserNotification(id: number): Promise<UserNotification | undefined>;
+  getUserNotificationsByUser(userId: number): Promise<UserNotification[]>;
+  getUnreadUserNotificationsByUser(userId: number): Promise<UserNotification[]>;
+  getUserNotificationsByType(type: string): Promise<UserNotification[]>;
+  getUserNotificationsByObject(objectType: string, objectId: number): Promise<UserNotification[]>;
+  createUserNotification(notification: InsertUserNotification): Promise<UserNotification>;
+  markUserNotificationAsRead(id: number): Promise<UserNotification | undefined>;
+  markAllUserNotificationsAsRead(userId: number): Promise<number>;
+  deleteUserNotification(id: number): Promise<boolean>;
+  deleteAllUserNotifications(userId: number): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
