@@ -34,6 +34,7 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Progress } from "@/components/ui/progress";
+import { ProfileMiniCard } from '@/components/gamification/ProfileMiniCard';
 
 // Interface for active appraisal reports
 interface AppraisalReport {
@@ -373,123 +374,133 @@ export default function EnhancedHome() {
         </Card>
 
         {/* Active and Recent Reports */}
-        <Tabs defaultValue="active" className="w-full">
-          <TabsList className="mb-4">
-            <TabsTrigger value="active" className="relative">
-              Active Appraisals
-              {activeReports.length > 0 && (
-                <Badge className="ml-2 text-xs">{activeReports.length}</Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="recent">Recent Appraisals</TabsTrigger>
-            <TabsTrigger value="notifications">
-              Notifications
-              {notifications.filter(n => !n.read).length > 0 && (
-                <Badge variant="destructive" className="ml-2 text-xs">
-                  {notifications.filter(n => !n.read).length}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
+          {/* Left column - tabs containing reports */}
+          <div className="md:col-span-3">
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList className="mb-4">
+                <TabsTrigger value="active" className="relative">
+                  Active Appraisals
+                  {activeReports.length > 0 && (
+                    <Badge className="ml-2 text-xs">{activeReports.length}</Badge>
+                  )}
+                </TabsTrigger>
+                <TabsTrigger value="recent">Recent Appraisals</TabsTrigger>
+                <TabsTrigger value="notifications">
+                  Notifications
+                  {notifications.filter(n => !n.read).length > 0 && (
+                    <Badge variant="destructive" className="ml-2 text-xs">
+                      {notifications.filter(n => !n.read).length}
+                    </Badge>
+                  )}
+                </TabsTrigger>
+              </TabsList>
           
-          <TabsContent value="active" className="space-y-4">
-            {activeReports.length === 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Active Appraisals</CardTitle>
-                  <CardDescription>
-                    You don't have any active appraisal reports. Create a new one to get started.
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex gap-4">
-                    <Button
-                      onClick={() => {
-                        console.log("Start Guided Workflow clicked");
-                        setLocation('/workflow');
-                      }}
-                    >
-                      <Layers className="mr-2 h-4 w-4" />
-                      Start Guided Workflow
-                    </Button>
-                    <Button 
-                      variant="outline" 
-                      onClick={() => {
-                        console.log("Create New Report clicked");
-                        setLocation('/property-entry');
-                      }}
-                    >
-                      <Plus className="mr-2 h-4 w-4" />
-                      Create New Report
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeReports.map(report => renderAppraisalCard(report))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="recent" className="space-y-4">
-            {recentReports.length === 0 ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>No Recent Appraisals</CardTitle>
-                  <CardDescription>
-                    You haven't completed any appraisals recently.
-                  </CardDescription>
-                </CardHeader>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {recentReports.map(report => renderAppraisalCard(report))}
-              </div>
-            )}
-          </TabsContent>
-          
-          <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notifications</CardTitle>
-                <CardDescription>
-                  Stay updated on your appraisal activities
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {notifications.length === 0 ? (
-                  <p className="text-sm text-muted-foreground">No notifications</p>
-                ) : (
-                  <div className="space-y-2">
-                    {notifications.map(notification => (
-                      <div 
-                        key={notification.id}
-                        className={`p-3 border rounded-lg flex items-start ${!notification.read ? 'bg-muted/20' : ''}`}
-                      >
-                        <div className="mr-3 mt-0.5">
-                          {notification.type === 'alert' ? (
-                            <AlertCircle className="h-5 w-5 text-destructive" />
-                          ) : notification.type === 'reminder' ? (
-                            <Clock className="h-5 w-5 text-yellow-500" />
-                          ) : (
-                            <CheckCircle2 className="h-5 w-5 text-green-500" />
-                          )}
-                        </div>
-                        <div className="flex-1">
-                          <p className="text-sm font-medium">{notification.message}</p>
-                          <p className="text-xs text-muted-foreground mt-1">
-                            {new Date(notification.date).toLocaleDateString()}
-                          </p>
-                        </div>
+              <TabsContent value="active" className="space-y-4">
+                {activeReports.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>No Active Appraisals</CardTitle>
+                      <CardDescription>
+                        You don't have any active appraisal reports. Create a new one to get started.
+                      </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex gap-4">
+                        <Button
+                          onClick={() => {
+                            console.log("Start Guided Workflow clicked");
+                            setLocation('/workflow');
+                          }}
+                        >
+                          <Layers className="mr-2 h-4 w-4" />
+                          Start Guided Workflow
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          onClick={() => {
+                            console.log("Create New Report clicked");
+                            setLocation('/property-entry');
+                          }}
+                        >
+                          <Plus className="mr-2 h-4 w-4" />
+                          Create New Report
+                        </Button>
                       </div>
-                    ))}
+                    </CardContent>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {activeReports.map(report => renderAppraisalCard(report))}
                   </div>
                 )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+              </TabsContent>
+              
+              <TabsContent value="recent" className="space-y-4">
+                {recentReports.length === 0 ? (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>No Recent Appraisals</CardTitle>
+                      <CardDescription>
+                        You haven't completed any appraisals recently.
+                      </CardDescription>
+                    </CardHeader>
+                  </Card>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {recentReports.map(report => renderAppraisalCard(report))}
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="notifications">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Notifications</CardTitle>
+                    <CardDescription>
+                      Stay updated on your appraisal activities
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    {notifications.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">No notifications</p>
+                    ) : (
+                      <div className="space-y-2">
+                        {notifications.map(notification => (
+                          <div 
+                            key={notification.id}
+                            className={`p-3 border rounded-lg flex items-start ${!notification.read ? 'bg-muted/20' : ''}`}
+                          >
+                            <div className="mr-3 mt-0.5">
+                              {notification.type === 'alert' ? (
+                                <AlertCircle className="h-5 w-5 text-destructive" />
+                              ) : notification.type === 'reminder' ? (
+                                <Clock className="h-5 w-5 text-yellow-500" />
+                              ) : (
+                                <CheckCircle2 className="h-5 w-5 text-green-500" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className="text-sm font-medium">{notification.message}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                {new Date(notification.date).toLocaleDateString()}
+                              </p>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+          
+          {/* Right column - user progress card */}
+          <div className="md:col-span-1">
+            <ProfileMiniCard />
+          </div>
+        </div>
         
         {/* Tools and Resources */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

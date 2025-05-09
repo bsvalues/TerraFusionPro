@@ -40,6 +40,7 @@ import WebSocketTestPage from './pages/WebSocketTestPage';
 import SnapshotViewerPage from './pages/SnapshotViewerPage';
 import ShapViewerPage from './pages/ShapViewerPage';
 import BatchAdjustmentPage from './pages/BatchAdjustmentPage';
+import AchievementsPage from './pages/AchievementsPage';
 
 // Import the enhanced versions of pages
 import EnhancedHome from './pages/Home.enhanced';
@@ -154,6 +155,10 @@ export default function EnhancedApp2() {
               <Route path="/workflow" component={WorkflowPage} />
               <Route path="/workflow/:reportId" component={WorkflowPage} />
               <Route path="/reports/:reportId" component={ReportGenerationPage} />
+              
+              {/* User & Gamification Routes */}
+              <Route path="/achievements" component={AchievementsPage} />
+              <Route path="/progress" component={AchievementsPage} />
               
               {/* Utility Routes */}
               <Route path="/ws-test" component={WebSocketTestPage} />
