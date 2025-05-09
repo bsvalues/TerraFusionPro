@@ -139,48 +139,77 @@ export default function AIValuationPage() {
       setIsLoading(true);
       
       const subjectData = subjectForm.getValues();
-      const subjectProperty = {
-        ...subjectData,
-        features: subjectData.features ? subjectData.features.split(',').map(f => f.trim()) : [],
+      const propertyDetails = {
+        address: {
+          street: subjectData.address,
+          city: subjectData.city,
+          state: subjectData.state,
+          zipCode: subjectData.zipCode
+        },
+        propertyType: subjectData.propertyType,
+        bedrooms: subjectData.bedrooms,
+        bathrooms: subjectData.bathrooms,
+        squareFeet: subjectData.grossLivingArea,
+        yearBuilt: subjectData.yearBuilt,
+        lotSize: subjectData.lotSize / 43560, // Convert sq ft to acres
+        features: subjectData.features ? subjectData.features.split(',').map(f => ({ name: f.trim() })) : [],
+        condition: subjectData.condition
       };
       
-      const comparableProperties = comparables.map(comp => ({
-        ...comp,
-        features: comp.features ? comp.features.split(',').map(f => f.trim()) : [],
-      }));
-      
-      // First attempt to use the new AI valuation endpoint if a property ID is provided
-      // This demonstrates the new Flask API endpoint we just created
-      const propertyId = 1; // For testing, we'll use property ID 1
-      
+      // Try to use our new API endpoints
       let response;
       try {
-        console.log('Attempting to use new AI value endpoint by property ID...');
-        response = await fetch(`/ai/value/${propertyId}`, {
-          method: 'GET',
-          headers: {
-            'Content-Type': 'application/json',
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error(`Failed to get valuation from new endpoint: ${response.status}`);
-        }
-      } catch (error) {
-        console.warn('New AI valuation endpoint failed, falling back to existing endpoint:', error);
-        
-        // Fall back to the existing endpoint if the new one fails
-        response = await fetch('/api/ai/automated-valuation', {
+        console.log('Using new AI Valuation API endpoint...');
+        // POST endpoint with property details
+        response = await fetch('/api/ai/value', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            subjectProperty,
-            comparableProperties,
-            useRealAI: true,
-          }),
+          body: JSON.stringify(propertyDetails)
         });
+        
+        if (!response.ok) {
+          throw new Error(`Failed to get valuation: ${response.status}`);
+        }
+      } catch (error) {
+        console.warn('Primary API endpoint failed, trying secondary endpoint:', error);
+        
+        // For demo purposes, try the property ID endpoint as fallback
+        try {
+          const propertyId = 1; // Demo property ID
+          response = await fetch(`/api/ai/value/${propertyId}`, {
+            method: 'GET',
+            headers: {
+              'Content-Type': 'application/json',
+            }
+          });
+          
+          if (!response.ok) {
+            throw new Error(`Failed to get valuation by ID: ${response.status}`);
+          }
+        } catch (secondError) {
+          console.error('Both API endpoints failed:', secondError);
+          
+          // Final fallback to the original endpoint
+          response = await fetch('/api/ai/automated-valuation', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              subjectProperty: {
+                ...subjectData,
+                features: subjectData.features ? subjectData.features.split(',').map(f => f.trim()) : [],
+              },
+              comparableProperties: comparables.map(comp => ({
+                ...comp,
+                features: comp.features ? comp.features.split(',').map(f => f.trim()) : [],
+              })),
+              useRealAI: true,
+            }),
+          });
+        }
       }
       
       if (!response.ok) {
@@ -189,6 +218,7 @@ export default function AIValuationPage() {
       }
       
       const result = await response.json();
+      console.log('Valuation result:', result);
       setValuationResult(result);
       setActiveTab("results");
     } catch (error) {
