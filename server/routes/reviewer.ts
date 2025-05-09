@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { z } from "zod";
-import { storage } from "../server";
+import { storage } from "../storage";
 import { insertReviewRequestSchema, insertCommentSchema, insertAnnotationSchema, insertRevisionHistorySchema } from "@shared/schema";
 
 export const reviewerRouter = Router();
