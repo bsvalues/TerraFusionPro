@@ -20,6 +20,7 @@ import {
 import { photoSyncRouter } from './routes/photo-sync-routes';
 import fieldNotesRouter from './routes/field-notes-routes';
 import mlsRouter from './routes/mls-routes';
+import aiValuationRouter from './routes/ai-valuation-routes';
 import { 
   insertUserSchema, 
   insertPropertySchema,
@@ -98,6 +99,8 @@ import {
 // } from "./lib/ai-agent.mock";
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Register AI Valuation Router
+  app.use('/api/ai', aiValuationRouter);
   // User routes
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
