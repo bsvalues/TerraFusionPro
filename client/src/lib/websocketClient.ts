@@ -34,8 +34,9 @@ class WebSocketClient {
       const serverPort = "5000";
       
       // Direct WebSocket URLs using the server port rather than the Vite port
-      const wsUrl = `${protocol}//${baseHost}:${serverPort}/api/ws`;
-      const wsAltUrl = `${protocol}//${baseHost}:${serverPort}/api/ws-alt`;
+      // Server is trying to handle /ws and /ws-alt (without the /api prefix) 
+      const wsUrl = `${protocol}//${baseHost}:${serverPort}/ws`;
+      const wsAltUrl = `${protocol}//${baseHost}:${serverPort}/ws-alt`;
       
       console.log(`[WebSocketClient] Connecting to ${wsUrl} (direct server port)`);
       

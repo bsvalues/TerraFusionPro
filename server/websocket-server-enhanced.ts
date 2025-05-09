@@ -249,7 +249,7 @@ export function setupWebSocketServer(server: http.Server) {
     socket.setNoDelay(true);
   });
   
-  console.log('[WebSocket] Setting up WebSocket server on path /api/ws');
+  console.log('[WebSocket] Setting up WebSocket server on path /ws');
 
   // Create WebSocket server with verifyClient to handle CORS
   const wss = new WebSocketServer({ 
@@ -257,9 +257,11 @@ export function setupWebSocketServer(server: http.Server) {
     verifyClient: (info, cb) => {
       // Allow all origins in development
       const origin = info.origin || info.req.headers.origin;
+      console.log(`[WebSocket] verifyClient called with origin: ${origin}`);
       cb(true, 200, 'Connection accepted');
     },
     handleProtocols: (protocols) => {
+      console.log(`[WebSocket] handleProtocols called with: ${protocols}`);
       if (protocols && Array.isArray(protocols) && protocols.length > 0) {
         return protocols[0]; // Accept first protocol
       }
@@ -273,7 +275,7 @@ export function setupWebSocketServer(server: http.Server) {
   console.log('[WebSocket] HTTP Server timeouts configured: keepAliveTimeout=120000ms, headersTimeout=121000ms');
 
   // Create alternative WebSocket server as a backup option with extended options
-  console.log('[WebSocket] Setting up alternative WebSocket server on path /api/ws-alt');
+  console.log('[WebSocket] Setting up alternative WebSocket server on path /ws-alt');
   const wssAlt = new WebSocketServer({ 
     noServer: true,
     // Add client tracking with pings every 30 seconds
@@ -309,14 +311,14 @@ export function setupWebSocketServer(server: http.Server) {
       console.log(`[WebSocket] Upgrade request pathname: ${pathname}`);
       
       // Route to the appropriate WebSocket server based on path
-      if (pathname === '/api/ws') {
+      if (pathname === '/ws') {
         console.log('[WebSocket] Routing to primary WebSocket server');
         wss.handleUpgrade(request, socket, head, (ws) => {
           console.log('[WebSocket] New connection on primary endpoint');
           wss.emit('connection', ws, request);
         });
       } 
-      else if (pathname === '/api/ws-alt') {
+      else if (pathname === '/ws-alt') {
         console.log('[WebSocket] Routing to alternative WebSocket server');
         wssAlt.handleUpgrade(request, socket, head, (ws) => {
           console.log('[WebSocket] New connection on alternative endpoint');
@@ -345,11 +347,11 @@ export function setupWebSocketServer(server: http.Server) {
 
   // Detect server closing and handle it gracefully
   wss.on('close', () => {
-    console.log('[WebSocket] WebSocket server (/api/ws) closed');
+    console.log('[WebSocket] WebSocket server (/ws) closed');
   });
 
   wssAlt.on('close', () => {
-    console.log('[WebSocket] Alternative WebSocket server (/api/ws-alt) closed');
+    console.log('[WebSocket] Alternative WebSocket server (/ws-alt) closed');
   });
 
   // Handle server errors
