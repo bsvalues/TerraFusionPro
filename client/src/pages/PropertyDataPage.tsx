@@ -3,6 +3,7 @@ import { useToast } from '@/hooks/use-toast';
 import { usePropertyData } from '@/hooks/usePropertyData';
 import { PropertyDataRetrieval } from '@/components/property/PropertyDataRetrieval';
 import { PropertyInfoCard } from '@/components/property/PropertyInfoCard';
+import { PropertyValuationSection } from '@/components/property/PropertyValuationSection';
 
 import { Button } from '@/components/ui/button';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from '@/components/ui/card';
@@ -198,7 +199,10 @@ export default function PropertyDataPage() {
               </CardContent>
             </Card>
           ) : propertyId && property ? (
-            <PropertyInfoCard property={property} />
+            <div className="space-y-6">
+              <PropertyInfoCard property={property} />
+              <PropertyValuationSection propertyId={propertyId} />
+            </div>
           ) : (
             <Card>
               <CardContent className="flex flex-col justify-center items-center py-12 text-center">
