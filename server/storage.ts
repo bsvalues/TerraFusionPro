@@ -16,6 +16,7 @@ import {
   adjustmentHistory, AdjustmentHistory, InsertAdjustmentHistory,
   collaborationComments, CollaborationComment, InsertCollaborationComment,
   marketData, MarketData, InsertMarketData,
+  // (Gamification entities are imported below)
   // Order entities
   orders, Order, InsertOrder,
   // Terminology entities
@@ -293,6 +294,12 @@ export class MemStorage implements IStorage {
   private currentComplianceCheckId: number;
   private currentRealEstateTermId: number;
   private currentOrderId: number;
+  private currentAchievementDefinitionId: number;
+  private currentUserAchievementId: number;
+  private currentLevelId: number;
+  private currentUserProgressId: number;
+  private currentUserChallengeId: number;
+  private currentUserNotificationId: number;
 
   constructor() {
     this.users = new Map();
@@ -324,6 +331,14 @@ export class MemStorage implements IStorage {
     this.currentComplianceCheckId = 1;
     this.currentRealEstateTermId = 1;
     this.currentOrderId = 1;
+    
+    // Initialize gamification ID counters
+    this.currentAchievementDefinitionId = 1;
+    this.currentUserAchievementId = 1;
+    this.currentLevelId = 1;
+    this.currentUserProgressId = 1;
+    this.currentUserChallengeId = 1;
+    this.currentUserNotificationId = 1;
     
     // Add demo user
     this.users.set(1, {
@@ -702,6 +717,394 @@ export class MemStorage implements IStorage {
   
   async deleteRealEstateTerm(id: number): Promise<boolean> {
     return this.realEstateTerms.delete(id);
+  }
+
+  // Achievement Definition methods
+  async getAchievementDefinition(id: number): Promise<AchievementDefinition | undefined> {
+    return this.achievementDefinitions.get(id);
+  }
+
+  async getAllAchievementDefinitions(): Promise<AchievementDefinition[]> {
+    return Array.from(this.achievementDefinitions.values());
+  }
+
+  async getAchievementDefinitionsByType(type: string): Promise<AchievementDefinition[]> {
+    return Array.from(this.achievementDefinitions.values()).filter(
+      (def) => def.type === type
+    );
+  }
+
+  async createAchievementDefinition(insertDef: InsertAchievementDefinition): Promise<AchievementDefinition> {
+    const id = this.currentAchievementDefinitionId++;
+    const now = new Date();
+    const definition: AchievementDefinition = {
+      ...insertDef,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.achievementDefinitions.set(id, definition);
+    return definition;
+  }
+
+  async updateAchievementDefinition(id: number, updateData: Partial<InsertAchievementDefinition>): Promise<AchievementDefinition | undefined> {
+    const definition = this.achievementDefinitions.get(id);
+    if (!definition) return undefined;
+    
+    const updatedDefinition: AchievementDefinition = {
+      ...definition,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.achievementDefinitions.set(id, updatedDefinition);
+    return updatedDefinition;
+  }
+
+  async deleteAchievementDefinition(id: number): Promise<boolean> {
+    return this.achievementDefinitions.delete(id);
+  }
+
+  // User Achievement methods
+  async getUserAchievement(id: number): Promise<UserAchievement | undefined> {
+    return this.userAchievements.get(id);
+  }
+
+  async getUserAchievementsByUser(userId: number): Promise<UserAchievement[]> {
+    return Array.from(this.userAchievements.values()).filter(
+      (achievement) => achievement.userId === userId
+    );
+  }
+
+  async getUserAchievementByUserAndDefinition(userId: number, definitionId: number): Promise<UserAchievement | undefined> {
+    return Array.from(this.userAchievements.values()).find(
+      (achievement) => achievement.userId === userId && achievement.achievementDefinitionId === definitionId
+    );
+  }
+
+  async createUserAchievement(insertAchievement: InsertUserAchievement): Promise<UserAchievement> {
+    const id = this.currentUserAchievementId++;
+    const now = new Date();
+    const achievement: UserAchievement = {
+      ...insertAchievement,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      completedAt: null
+    };
+    this.userAchievements.set(id, achievement);
+    return achievement;
+  }
+
+  async updateUserAchievement(id: number, updateData: Partial<InsertUserAchievement>): Promise<UserAchievement | undefined> {
+    const achievement = this.userAchievements.get(id);
+    if (!achievement) return undefined;
+    
+    const updatedAchievement: UserAchievement = {
+      ...achievement,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.userAchievements.set(id, updatedAchievement);
+    return updatedAchievement;
+  }
+
+  async completeUserAchievement(id: number): Promise<UserAchievement | undefined> {
+    const achievement = this.userAchievements.get(id);
+    if (!achievement) return undefined;
+    
+    const completedAchievement: UserAchievement = {
+      ...achievement,
+      completed: true,
+      completedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.userAchievements.set(id, completedAchievement);
+    return completedAchievement;
+  }
+
+  async deleteUserAchievement(id: number): Promise<boolean> {
+    return this.userAchievements.delete(id);
+  }
+
+  // Level methods
+  async getLevel(id: number): Promise<Level | undefined> {
+    return this.levels.get(id);
+  }
+
+  async getLevelByNumber(levelNumber: number): Promise<Level | undefined> {
+    return Array.from(this.levels.values()).find(
+      (level) => level.level === levelNumber
+    );
+  }
+
+  async getAllLevels(): Promise<Level[]> {
+    return Array.from(this.levels.values()).sort((a, b) => a.level - b.level);
+  }
+
+  async createLevel(insertLevel: InsertLevel): Promise<Level> {
+    const id = this.currentLevelId++;
+    const now = new Date();
+    const level: Level = {
+      ...insertLevel,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.levels.set(id, level);
+    return level;
+  }
+
+  async updateLevel(id: number, updateData: Partial<InsertLevel>): Promise<Level | undefined> {
+    const level = this.levels.get(id);
+    if (!level) return undefined;
+    
+    const updatedLevel: Level = {
+      ...level,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.levels.set(id, updatedLevel);
+    return updatedLevel;
+  }
+
+  async deleteLevel(id: number): Promise<boolean> {
+    return this.levels.delete(id);
+  }
+
+  // User Progress methods
+  async getUserProgress(id: number): Promise<UserProgress | undefined> {
+    return this.userProgress.get(id);
+  }
+
+  async getUserProgressByUser(userId: number): Promise<UserProgress | undefined> {
+    return Array.from(this.userProgress.values()).find(
+      (progress) => progress.userId === userId
+    );
+  }
+
+  async createUserProgress(insertProgress: InsertUserProgress): Promise<UserProgress> {
+    const id = this.currentUserProgressId++;
+    const now = new Date();
+    const progress: UserProgress = {
+      ...insertProgress,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      lastActive: now
+    };
+    this.userProgress.set(id, progress);
+    return progress;
+  }
+
+  async updateUserProgress(id: number, updateData: Partial<InsertUserProgress>): Promise<UserProgress | undefined> {
+    const progress = this.userProgress.get(id);
+    if (!progress) return undefined;
+    
+    const updatedProgress: UserProgress = {
+      ...progress,
+      ...updateData,
+      updatedAt: new Date(),
+      lastActive: new Date()
+    };
+    
+    this.userProgress.set(id, updatedProgress);
+    return updatedProgress;
+  }
+
+  async incrementPropertyEvaluations(userId: number): Promise<UserProgress | undefined> {
+    const progress = Array.from(this.userProgress.values()).find(
+      (p) => p.userId === userId
+    );
+    
+    if (!progress) return undefined;
+    
+    const updatedProgress: UserProgress = {
+      ...progress,
+      propertyEvaluations: progress.propertyEvaluations + 1,
+      updatedAt: new Date(),
+      lastActive: new Date()
+    };
+    
+    this.userProgress.set(progress.id, updatedProgress);
+    return updatedProgress;
+  }
+
+  async incrementUserStreak(userId: number): Promise<UserProgress | undefined> {
+    const progress = Array.from(this.userProgress.values()).find(
+      (p) => p.userId === userId
+    );
+    
+    if (!progress) return undefined;
+    
+    const newCurrentStreak = progress.currentStreak + 1;
+    const newLongestStreak = Math.max(progress.longestStreak, newCurrentStreak);
+    
+    const updatedProgress: UserProgress = {
+      ...progress,
+      currentStreak: newCurrentStreak,
+      longestStreak: newLongestStreak,
+      updatedAt: new Date(),
+      lastActive: new Date()
+    };
+    
+    this.userProgress.set(progress.id, updatedProgress);
+    return updatedProgress;
+  }
+
+  async resetUserStreak(userId: number): Promise<UserProgress | undefined> {
+    const progress = Array.from(this.userProgress.values()).find(
+      (p) => p.userId === userId
+    );
+    
+    if (!progress) return undefined;
+    
+    const updatedProgress: UserProgress = {
+      ...progress,
+      currentStreak: 0,
+      updatedAt: new Date(),
+      lastActive: new Date()
+    };
+    
+    this.userProgress.set(progress.id, updatedProgress);
+    return updatedProgress;
+  }
+
+  async levelUpUser(userId: number): Promise<UserProgress | undefined> {
+    const progress = Array.from(this.userProgress.values()).find(
+      (p) => p.userId === userId
+    );
+    
+    if (!progress) return undefined;
+    
+    const updatedProgress: UserProgress = {
+      ...progress,
+      level: progress.level + 1,
+      updatedAt: new Date(),
+      lastActive: new Date()
+    };
+    
+    this.userProgress.set(progress.id, updatedProgress);
+    return updatedProgress;
+  }
+
+  async deleteUserProgress(id: number): Promise<boolean> {
+    return this.userProgress.delete(id);
+  }
+
+  // User Challenge methods
+  async getUserChallenge(id: number): Promise<UserChallenge | undefined> {
+    return this.userChallenges.get(id);
+  }
+
+  async getUserChallengesByUser(userId: number): Promise<UserChallenge[]> {
+    return Array.from(this.userChallenges.values()).filter(
+      (challenge) => challenge.userId === userId
+    );
+  }
+
+  async getActiveUserChallengesByUser(userId: number): Promise<UserChallenge[]> {
+    return Array.from(this.userChallenges.values()).filter(
+      (challenge) => challenge.userId === userId && !challenge.completed
+    );
+  }
+
+  async createUserChallenge(insertChallenge: InsertUserChallenge): Promise<UserChallenge> {
+    const id = this.currentUserChallengeId++;
+    const now = new Date();
+    const challenge: UserChallenge = {
+      ...insertChallenge,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      completed: false,
+      completedAt: null
+    };
+    this.userChallenges.set(id, challenge);
+    return challenge;
+  }
+
+  async updateUserChallenge(id: number, updateData: Partial<InsertUserChallenge>): Promise<UserChallenge | undefined> {
+    const challenge = this.userChallenges.get(id);
+    if (!challenge) return undefined;
+    
+    const updatedChallenge: UserChallenge = {
+      ...challenge,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.userChallenges.set(id, updatedChallenge);
+    return updatedChallenge;
+  }
+
+  async completeUserChallenge(id: number): Promise<UserChallenge | undefined> {
+    const challenge = this.userChallenges.get(id);
+    if (!challenge) return undefined;
+    
+    const completedChallenge: UserChallenge = {
+      ...challenge,
+      completed: true,
+      completedAt: new Date(),
+      updatedAt: new Date()
+    };
+    
+    this.userChallenges.set(id, completedChallenge);
+    return completedChallenge;
+  }
+
+  async deleteUserChallenge(id: number): Promise<boolean> {
+    return this.userChallenges.delete(id);
+  }
+
+  // User Notification methods
+  async getUserNotification(id: number): Promise<UserNotification | undefined> {
+    return this.userNotifications.get(id);
+  }
+
+  async getUserNotificationsByUser(userId: number): Promise<UserNotification[]> {
+    return Array.from(this.userNotifications.values()).filter(
+      (notification) => notification.userId === userId
+    );
+  }
+
+  async getUnreadUserNotificationsByUser(userId: number): Promise<UserNotification[]> {
+    return Array.from(this.userNotifications.values()).filter(
+      (notification) => notification.userId === userId && !notification.readAt
+    );
+  }
+
+  async createUserNotification(insertNotification: InsertUserNotification): Promise<UserNotification> {
+    const id = this.currentUserNotificationId++;
+    const now = new Date();
+    const notification: UserNotification = {
+      ...insertNotification,
+      id,
+      createdAt: now,
+      readAt: null
+    };
+    this.userNotifications.set(id, notification);
+    return notification;
+  }
+
+  async markUserNotificationAsRead(id: number): Promise<UserNotification | undefined> {
+    const notification = this.userNotifications.get(id);
+    if (!notification) return undefined;
+    
+    const readNotification: UserNotification = {
+      ...notification,
+      readAt: new Date()
+    };
+    
+    this.userNotifications.set(id, readNotification);
+    return readNotification;
+  }
+
+  async deleteUserNotification(id: number): Promise<boolean> {
+    return this.userNotifications.delete(id);
   }
   
   // Order operations
