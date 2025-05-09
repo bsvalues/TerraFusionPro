@@ -1724,6 +1724,226 @@ export class MemStorage implements IStorage {
   async deleteOrder(id: number): Promise<boolean> {
     return this.orders.delete(id);
   }
+
+  // Reviewer UX implementation - Review Requests
+  async getReviewRequest(id: number): Promise<ReviewRequest | undefined> {
+    return this.reviewRequests.get(id);
+  }
+
+  async getReviewRequestsByObject(objectType: string, objectId: number): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(req => 
+      req.objectType === objectType && req.objectId === objectId
+    );
+  }
+
+  async getReviewRequestsByRequester(requesterId: number): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(req => 
+      req.requesterId === requesterId
+    );
+  }
+
+  async getReviewRequestsByReviewer(reviewerId: number): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(req => 
+      req.reviewerId === reviewerId
+    );
+  }
+
+  async getPendingReviewRequests(): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(req => 
+      req.status === 'pending'
+    );
+  }
+
+  async getReviewRequestsByStatus(status: string): Promise<ReviewRequest[]> {
+    return Array.from(this.reviewRequests.values()).filter(req => 
+      req.status === status
+    );
+  }
+
+  async createReviewRequest(request: InsertReviewRequest): Promise<ReviewRequest> {
+    const id = this.currentReviewRequestId++;
+    const now = new Date();
+    const newRequest: ReviewRequest = {
+      ...request,
+      id,
+      createdAt: now,
+      updatedAt: now,
+      status: request.status || 'pending',
+    };
+    this.reviewRequests.set(id, newRequest);
+    return newRequest;
+  }
+
+  async updateReviewRequest(id: number, updateData: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined> {
+    const request = this.reviewRequests.get(id);
+    if (!request) return undefined;
+    
+    const updatedRequest: ReviewRequest = {
+      ...request,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.reviewRequests.set(id, updatedRequest);
+    return updatedRequest;
+  }
+
+  async completeReviewRequest(id: number, approved: boolean): Promise<ReviewRequest | undefined> {
+    const request = this.reviewRequests.get(id);
+    if (!request) return undefined;
+    
+    const updatedRequest: ReviewRequest = {
+      ...request,
+      status: approved ? 'approved' : 'rejected',
+      updatedAt: new Date(),
+      completedAt: new Date()
+    };
+    
+    this.reviewRequests.set(id, updatedRequest);
+    return updatedRequest;
+  }
+
+  async deleteReviewRequest(id: number): Promise<boolean> {
+    return this.reviewRequests.delete(id);
+  }
+
+  // Reviewer UX implementation - Comments
+  async getComment(id: number): Promise<Comment | undefined> {
+    return this.comments.get(id);
+  }
+
+  async getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]> {
+    return Array.from(this.comments.values()).filter(comment => 
+      comment.objectType === objectType && comment.objectId === objectId
+    );
+  }
+
+  async getCommentsByUser(userId: number): Promise<Comment[]> {
+    return Array.from(this.comments.values()).filter(comment => 
+      comment.userId === userId
+    );
+  }
+
+  async getCommentsByThread(threadId: number): Promise<Comment[]> {
+    return Array.from(this.comments.values()).filter(comment => 
+      comment.threadId === threadId
+    );
+  }
+
+  async createComment(comment: InsertComment): Promise<Comment> {
+    const id = this.currentCommentId++;
+    const now = new Date();
+    const newComment: Comment = {
+      ...comment,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.comments.set(id, newComment);
+    return newComment;
+  }
+
+  async updateComment(id: number, updateData: Partial<InsertComment>): Promise<Comment | undefined> {
+    const comment = this.comments.get(id);
+    if (!comment) return undefined;
+    
+    const updatedComment: Comment = {
+      ...comment,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.comments.set(id, updatedComment);
+    return updatedComment;
+  }
+
+  async deleteComment(id: number): Promise<boolean> {
+    return this.comments.delete(id);
+  }
+
+  // Reviewer UX implementation - Annotations
+  async getAnnotation(id: number): Promise<Annotation | undefined> {
+    return this.annotations.get(id);
+  }
+
+  async getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]> {
+    return Array.from(this.annotations.values()).filter(annotation => 
+      annotation.objectType === objectType && annotation.objectId === objectId
+    );
+  }
+
+  async getAnnotationsByUser(userId: number): Promise<Annotation[]> {
+    return Array.from(this.annotations.values()).filter(annotation => 
+      annotation.userId === userId
+    );
+  }
+
+  async getAnnotationsByType(annotationType: string): Promise<Annotation[]> {
+    return Array.from(this.annotations.values()).filter(annotation => 
+      annotation.type === annotationType
+    );
+  }
+
+  async createAnnotation(annotation: InsertAnnotation): Promise<Annotation> {
+    const id = this.currentAnnotationId++;
+    const now = new Date();
+    const newAnnotation: Annotation = {
+      ...annotation,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.annotations.set(id, newAnnotation);
+    return newAnnotation;
+  }
+
+  async updateAnnotation(id: number, updateData: Partial<InsertAnnotation>): Promise<Annotation | undefined> {
+    const annotation = this.annotations.get(id);
+    if (!annotation) return undefined;
+    
+    const updatedAnnotation: Annotation = {
+      ...annotation,
+      ...updateData,
+      updatedAt: new Date()
+    };
+    
+    this.annotations.set(id, updatedAnnotation);
+    return updatedAnnotation;
+  }
+
+  async deleteAnnotation(id: number): Promise<boolean> {
+    return this.annotations.delete(id);
+  }
+
+  // Reviewer UX implementation - Revision History
+  async getRevisionHistory(id: number): Promise<RevisionHistory | undefined> {
+    return this.revisionHistory.get(id);
+  }
+
+  async getRevisionHistoryByObject(objectType: string, objectId: number): Promise<RevisionHistory[]> {
+    return Array.from(this.revisionHistory.values()).filter(revision => 
+      revision.objectType === objectType && revision.objectId === objectId
+    );
+  }
+
+  async getRevisionHistoryByUser(userId: number): Promise<RevisionHistory[]> {
+    return Array.from(this.revisionHistory.values()).filter(revision => 
+      revision.userId === userId
+    );
+  }
+
+  async createRevisionHistory(revision: InsertRevisionHistory): Promise<RevisionHistory> {
+    const id = this.currentRevisionHistoryId++;
+    const now = new Date();
+    const newRevision: RevisionHistory = {
+      ...revision,
+      id,
+      createdAt: now,
+      updatedAt: now
+    };
+    this.revisionHistory.set(id, newRevision);
+    return newRevision;
+  }
 }
 
 import { DatabaseStorage } from "./database-storage";
