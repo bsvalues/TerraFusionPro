@@ -26,11 +26,18 @@ class WebSocketClient {
     try {
       // Determine the correct protocol (ws: or wss:) based on the current page
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      // Use /api prefix to ensure Express routes handle WebSocket connections
-      const wsUrl = `${protocol}//${window.location.host}/api/ws`;
-      const wsAltUrl = `${protocol}//${window.location.host}/api/ws-alt`;
       
-      console.log(`[WebSocketClient] Connecting to ${wsUrl}`);
+      // Extract server port - we'll connect directly to avoid Vite interference
+      const hostParts = window.location.host.split(':');
+      const baseHost = hostParts[0];
+      // Default to port 5000 which is our Express server port
+      const serverPort = "5000";
+      
+      // Direct WebSocket URLs using the server port rather than the Vite port
+      const wsUrl = `${protocol}//${baseHost}:${serverPort}/api/ws`;
+      const wsAltUrl = `${protocol}//${baseHost}:${serverPort}/api/ws-alt`;
+      
+      console.log(`[WebSocketClient] Connecting to ${wsUrl} (direct server port)`);
       
       try {
         this.socket = new WebSocket(wsUrl);
