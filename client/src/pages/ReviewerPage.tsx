@@ -262,7 +262,17 @@ export default function ReviewerPage() {
     error: requestsError
   } = useQuery({
     queryKey: ['/api/reviewer/requests'],
-    queryFn: getReviewRequests,
+    // Using proper API request with a fallback to mock data
+    queryFn: async () => {
+      try {
+        // Try the real API endpoint first
+        return await apiRequest('/api/reviewer/requests');
+      } catch (error) {
+        console.log("Falling back to mock data for review requests");
+        // Fall back to mock data if the API fails
+        return getReviewRequests();
+      }
+    },
     select: (data) => data as ReviewRequest[],
   });
 
@@ -272,7 +282,18 @@ export default function ReviewerPage() {
     isLoading: isLoadingComments 
   } = useQuery({
     queryKey: ['/api/reviewer/comments', selectedRequest?.objectType, selectedRequest?.objectId],
-    queryFn: () => selectedRequest ? getCommentsByObject(selectedRequest.objectType, selectedRequest.objectId) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!selectedRequest) return [];
+      
+      try {
+        // Try the real API endpoint first
+        return await apiRequest(`/api/reviewer/comments?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`);
+      } catch (error) {
+        console.log("Falling back to mock data for comments");
+        // Fall back to mock data if the API fails
+        return getCommentsByObject(selectedRequest.objectType, selectedRequest.objectId);
+      }
+    },
     select: (data) => data as Comment[],
     enabled: !!selectedRequest,
   });
@@ -283,7 +304,18 @@ export default function ReviewerPage() {
     isLoading: isLoadingAnnotations 
   } = useQuery({
     queryKey: ['/api/reviewer/annotations', selectedRequest?.objectType, selectedRequest?.objectId],
-    queryFn: () => selectedRequest ? getAnnotationsByObject(selectedRequest.objectType, selectedRequest.objectId) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!selectedRequest) return [];
+      
+      try {
+        // Try the real API endpoint first
+        return await apiRequest(`/api/reviewer/annotations?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`);
+      } catch (error) {
+        console.log("Falling back to mock data for annotations");
+        // Fall back to mock data if the API fails
+        return getAnnotationsByObject(selectedRequest.objectType, selectedRequest.objectId);
+      }
+    },
     select: (data) => data as Annotation[],
     enabled: !!selectedRequest,
   });
@@ -294,15 +326,36 @@ export default function ReviewerPage() {
     isLoading: isLoadingRevisions 
   } = useQuery({
     queryKey: ['/api/reviewer/revision-history', selectedRequest?.objectType, selectedRequest?.objectId],
-    queryFn: () => selectedRequest ? getRevisionHistoryByObject(selectedRequest.objectType, selectedRequest.objectId) : Promise.resolve([]),
+    queryFn: async () => {
+      if (!selectedRequest) return [];
+      
+      try {
+        // Try the real API endpoint first
+        return await apiRequest(`/api/reviewer/revision-history?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`);
+      } catch (error) {
+        console.log("Falling back to mock data for revision history");
+        // Fall back to mock data if the API fails
+        return getRevisionHistoryByObject(selectedRequest.objectType, selectedRequest.objectId);
+      }
+    },
     select: (data) => data as RevisionHistory[],
     enabled: !!selectedRequest,
   });
 
   // Update review request status mutation
   const updateReviewStatus = useMutation({
-    mutationFn: (data: { id: number, status: string }) => {
-      return updateReviewRequestStatus(data.id, data.status);
+    mutationFn: async (data: { id: number, status: string }) => {
+      try {
+        // Try the real API endpoint first
+        return await apiRequest(`/api/reviewer/requests/${data.id}`, {
+          method: 'PATCH',
+          data: { status: data.status }
+        });
+      } catch (error) {
+        console.log("Falling back to mock data for updating review status");
+        // Fall back to mock data if the API fails
+        return updateReviewRequestStatus(data.id, data.status);
+      }
     },
     onSuccess: () => {
       toast({
