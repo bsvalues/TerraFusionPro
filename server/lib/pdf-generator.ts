@@ -1,6 +1,26 @@
 import { jsPDF } from 'jspdf';
 import { AppraisalReport, Property, Comparable, Photo } from '@shared/schema';
 
+// Interface for AI valuation data
+interface AIValuation {
+  estimatedValue: number;
+  confidenceLevel: 'high' | 'medium' | 'low';
+  valueRange: {
+    min: number;
+    max: number;
+  };
+  adjustments?: Array<{
+    factor: string;
+    description: string;
+    amount: number;
+    reasoning: string;
+  }>;
+  marketAnalysis?: string;
+  valuationMethodology?: string;
+  modelVersion?: string;
+  timestamp?: string;
+}
+
 /**
  * Generate a PDF for an appraisal report
  */
@@ -8,7 +28,8 @@ export async function generatePDF(
   report: AppraisalReport,
   property: Property,
   comparables: Comparable[],
-  photos: Photo[]
+  photos: Photo[],
+  aiValuation?: AIValuation
 ): Promise<Buffer> {
   // Create a new PDF document
   const doc = new jsPDF({
@@ -171,6 +192,120 @@ export async function generatePDF(
   if (report.marketValue) {
     doc.setFontSize(10);
     doc.text(`Indicated Value by Sales Comparison Approach: $${formatCurrency(report.marketValue)}`, 0.5, 0.8);
+  }
+  
+  // Add AI Valuation section if available
+  if (aiValuation) {
+    doc.setFontSize(12);
+    doc.setFont("helvetica", "bold");
+    doc.text("AI-POWERED VALUATION ANALYSIS", 4.25, 10, { align: "center" });
+    doc.line(0.5, 10.1, 8, 10.1);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    
+    // Estimated value
+    doc.text("Estimated Value:", 0.5, 10.4);
+    doc.setFont("helvetica", "bold");
+    doc.text(`$${formatCurrency(aiValuation.estimatedValue)}`, 2.5, 10.4);
+    doc.setFont("helvetica", "normal");
+    
+    // Value range
+    doc.text("Value Range:", 0.5, 10.6);
+    doc.text(`$${formatCurrency(aiValuation.valueRange.min)} - $${formatCurrency(aiValuation.valueRange.max)}`, 2.5, 10.6);
+    
+    // Confidence level
+    doc.text("Confidence Level:", 0.5, 10.8);
+    const confidenceText = aiValuation.confidenceLevel.charAt(0).toUpperCase() + aiValuation.confidenceLevel.slice(1);
+    doc.text(confidenceText, 2.5, 10.8);
+    
+    // Add methodology if available
+    if (aiValuation.valuationMethodology) {
+      doc.text("Methodology:", 0.5, 11.0);
+      doc.text(aiValuation.valuationMethodology, 2.5, 11.0);
+    }
+    
+    // Add adjustments if available
+    if (aiValuation.adjustments && aiValuation.adjustments.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.text("Value Adjustments:", 0.5, 11.3);
+      doc.setFont("helvetica", "normal");
+      
+      let adjustmentsY = 11.5;
+      aiValuation.adjustments.forEach((adjustment, index) => {
+        if (adjustmentsY > 9.5 && index > 0 && index % 5 === 0) {
+          // Move to next page if running out of space
+          doc.addPage();
+          doc.setFontSize(12);
+          doc.setFont("helvetica", "bold");
+          doc.text("AI VALUATION ADJUSTMENTS (CONTINUED)", 4.25, 0.5, { align: "center" });
+          doc.setFontSize(10);
+          doc.setFont("helvetica", "normal");
+          adjustmentsY = 1.0;
+        }
+        
+        doc.text(`• ${adjustment.description}:`, 0.8, adjustmentsY);
+        const adjustmentText = adjustment.amount >= 0 
+          ? `+$${formatCurrency(adjustment.amount)}` 
+          : `-$${formatCurrency(Math.abs(adjustment.amount))}`;
+        doc.text(adjustmentText, 5, adjustmentsY);
+        adjustmentsY += 0.25;
+      });
+      
+      // Add a new line after adjustments
+      adjustmentsY += 0.25;
+      
+      // Add market analysis if available and we have space
+      if (aiValuation.marketAnalysis && adjustmentsY < 9) {
+        doc.setFont("helvetica", "bold");
+        doc.text("Market Analysis:", 0.5, adjustmentsY);
+        doc.setFont("helvetica", "normal");
+        
+        const marketLines = doc.splitTextToSize(aiValuation.marketAnalysis, 7.5);
+        doc.text(marketLines, 0.5, adjustmentsY + 0.3);
+      } else if (aiValuation.marketAnalysis) {
+        // Add market analysis on a new page if we don't have space
+        doc.addPage();
+        doc.setFontSize(12);
+        doc.setFont("helvetica", "bold");
+        doc.text("AI MARKET ANALYSIS", 4.25, 0.5, { align: "center" });
+        doc.setFontSize(10);
+        doc.setFont("helvetica", "normal");
+        
+        const marketLines = doc.splitTextToSize(aiValuation.marketAnalysis, 7.5);
+        doc.text(marketLines, 0.5, 1.0);
+      }
+    } else if (aiValuation.marketAnalysis) {
+      // If no adjustments but we have market analysis
+      doc.setFont("helvetica", "bold");
+      doc.text("Market Analysis:", 0.5, 11.3);
+      doc.setFont("helvetica", "normal");
+      
+      const marketLines = doc.splitTextToSize(aiValuation.marketAnalysis, 7.5);
+      doc.text(marketLines, 0.5, 11.6);
+    }
+    
+    // Add model version if available as a footer
+    if (aiValuation.modelVersion || aiValuation.timestamp) {
+      let footerText = "";
+      if (aiValuation.modelVersion) {
+        footerText += `AI Model: v${aiValuation.modelVersion}`;
+      }
+      if (aiValuation.timestamp) {
+        const valuationDate = new Date(aiValuation.timestamp);
+        footerText += footerText ? ` | ` : '';
+        footerText += `Generated: ${formatDate(valuationDate)}`;
+      }
+      
+      if (footerText) {
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(footerText, 4.25, pageHeight - 0.3, { align: "center" });
+        doc.setTextColor(0, 0, 0);
+        doc.setFontSize(10);
+      }
+    }
   }
   
   // Only proceed if there are comparables

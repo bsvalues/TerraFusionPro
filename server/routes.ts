@@ -835,8 +835,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const comparables = await storage.getComparablesByReport(reportId);
       const photos = await storage.getPhotosByReport(reportId);
       
+      // Fetch AI valuation data if available
+      let aiValuation = null;
+      try {
+        // Try to fetch AI valuation from the API
+        const valuationResponse = await fetch(`http://localhost:5000/api/ai/value/${property.id}`);
+        if (valuationResponse.ok) {
+          aiValuation = await valuationResponse.json();
+        }
+      } catch (valuationError) {
+        console.log('AI valuation not available for PDF. Continuing without it.', valuationError);
+        // Continue without AI valuation data if it's not available
+      }
+      
       // Generate the PDF
-      const pdfBuffer = await generatePDF(report, property, comparables, photos);
+      const pdfBuffer = await generatePDF(report, property, comparables, photos, aiValuation);
       
       // Set response headers
       res.setHeader('Content-Type', 'application/pdf');
