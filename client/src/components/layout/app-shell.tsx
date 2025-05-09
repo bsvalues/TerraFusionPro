@@ -238,6 +238,13 @@ export function AppShell({ children }: AppShellProps) {
       icon: <ShieldCheck className="h-4 w-4" />,
       description: "Verify appraisal compliance with standards"
     },
+    { 
+      href: "/reviewer", 
+      label: "Reviewer", 
+      icon: <ClipboardList className="h-4 w-4" />,
+      badge: { text: "New", variant: "secondary" },
+      description: "Review and collaborate on appraisal reports"
+    },
   ];
   
   // AI Assistant Tools - AI-powered features

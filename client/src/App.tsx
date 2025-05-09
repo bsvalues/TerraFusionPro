@@ -36,6 +36,7 @@ import MarketAnalysisPage from "./pages/MarketAnalysisPage";
 import SettingsPage from "./pages/SettingsPage";
 import HelpSupportPage from "./pages/HelpSupportPage";
 import BatchAdjustmentPage from "./pages/BatchAdjustmentPage";
+import ReviewerPage from "./pages/ReviewerPage";
 import { AppProvider } from "./contexts/AppContext";
 import { PerformanceProvider } from "./contexts/PerformanceContext";
 import { RealtimeProvider } from "./contexts/RealtimeContext";
@@ -119,6 +120,7 @@ function App() {
                 <Route path="/shap-viewer" component={ShapViewerPage} />
                 <Route path="/batch-adjustment" component={BatchAdjustmentPage} />
                 <Route path="/batch-adjustment/:appraisalId" component={BatchAdjustmentPage} />
+                <Route path="/reviewer" component={ReviewerPage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <UrarPage />}
