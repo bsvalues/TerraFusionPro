@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { PageLayout } from '@/components/layout/page-layout';
 import { AIFeatureIntro } from '@/components/home/AIFeatureIntro';
+import { NotificationPanel } from '@/components/notifications/NotificationPanel';
 import { 
   Plus, 
   FileText, 
@@ -22,7 +23,9 @@ import {
   BookOpen,
   Layers,
   ShieldCheck,
-  Home as HomeIcon
+  Home as HomeIcon,
+  LayoutDashboard,
+  BarChart
 } from 'lucide-react';
 import { useApp } from '@/contexts/AppContext';
 import { useEffect, useState } from 'react';
@@ -275,6 +278,75 @@ export default function EnhancedHome() {
       <div className="space-y-6">
         {/* AI Features Panel */}
         <AIFeatureIntro />
+        
+        {/* Notification Panel - displays AI model updates from WebSocket */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="md:col-span-2">
+            <Card className="border-l-4 border-l-blue-500">
+              <CardHeader className="pb-3">
+                <CardTitle>Enhanced AI Features</CardTitle>
+                <CardDescription>New capabilities powered by the latest AI models</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="bg-blue-50 border border-blue-100 rounded-md p-4">
+                  <div className="flex gap-3">
+                    <div className="bg-blue-100 rounded-full p-2 h-fit">
+                      <Brain className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <h3 className="font-medium text-blue-900 mb-1">Real-Time AI Monitoring</h3>
+                      <p className="text-sm text-blue-700 leading-relaxed">
+                        The system now provides real-time notifications about AI model status and updates. 
+                        You'll be informed when new AI features are available or when model performance changes.
+                      </p>
+                      <div className="mt-3">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          className="bg-white hover:bg-blue-50"
+                          onClick={() => setLocation('/system-monitor')}
+                        >
+                          <LayoutDashboard className="mr-1 h-4 w-4" />
+                          Explore AI Dashboard
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="border rounded-md p-4 hover:shadow-sm transition-shadow">
+                    <div className="flex items-center mb-2">
+                      <div className="bg-green-100 p-1.5 rounded-md mr-2">
+                        <BarChart className="h-4 w-4 text-green-600" />
+                      </div>
+                      <h3 className="font-medium">Enhanced Valuations</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      AI-powered comparable selection with natural language explanations for adjustments
+                    </p>
+                  </div>
+                  
+                  <div className="border rounded-md p-4 hover:shadow-sm transition-shadow">
+                    <div className="flex items-center mb-2">
+                      <div className="bg-amber-100 p-1.5 rounded-md mr-2">
+                        <Image className="h-4 w-4 text-amber-600" />
+                      </div>
+                      <h3 className="font-medium">Improved Image Analysis</h3>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      More accurate property condition scoring with deferred maintenance detection
+                    </p>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+          
+          <div className="md:col-span-1">
+            <NotificationPanel />
+          </div>
+        </div>
         
         {/* Workflow Overview Panel */}
         <Card className="border-l-4 border-l-primary">

@@ -59,7 +59,7 @@ interface SystemHealth {
 
 export default function SystemMonitorPage() {
   const [activeTab, setActiveTab] = useState('overview');
-  const { connectionStatus, isConnected } = useWebSocket();
+  const { connected, connectionMode } = useWebSocket();
   const [refreshInterval, setRefreshInterval] = useState(10000); // 10 seconds
 
   // Fetch the system health data
@@ -538,9 +538,9 @@ export default function SystemMonitorPage() {
                             <span>Current Client Status:</span>
                             <div className="font-medium flex items-center gap-1">
                               <div 
-                                className={`h-2 w-2 rounded-full ${isConnected ? 'bg-green-500' : 'bg-red-500'}`}
+                                className={`h-2 w-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
                               ></div>
-                              {connectionStatus}
+                              {connectionMode}
                             </div>
                           </div>
                           {data.components.webSocketServer.error && (
