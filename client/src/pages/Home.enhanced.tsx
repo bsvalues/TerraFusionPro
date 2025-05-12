@@ -325,7 +325,7 @@ export default function EnhancedHome() {
           <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
             <div className="md:col-span-5 flex flex-col justify-center">
               <h1 className="text-4xl font-medium tracking-tight mb-6 text-black">
-                Appraisal Reports, <br/>Simplified
+                ***APPRAISER UI TEST*** <br/>PLEASE CONFIRM YOU SEE THIS
               </h1>
               
               <p className="text-lg text-neutral-600 mb-8">
