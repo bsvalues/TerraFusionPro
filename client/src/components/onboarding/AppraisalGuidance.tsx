@@ -34,12 +34,26 @@ import { Badge } from '@/components/ui/badge';
  * TerraFusion platform in their daily workflow, with practical recommendations
  * and guidance for common appraisal tasks.
  */
+type UserExperience = 'beginner' | 'intermediate' | 'expert';
+
+interface GuidedTask {
+  title: string;
+  description: string;
+  path: string;
+  icon: React.ReactNode;
+  duration: string;
+}
+
+type GuidedTasks = {
+  [key in UserExperience]: GuidedTask[];
+};
+
 export function AppraisalGuidance() {
   const [location, setLocation] = useLocation();
-  const [userExperience, setUserExperience] = useState('beginner'); // 'beginner', 'intermediate', 'expert'
+  const [userExperience, setUserExperience] = useState<UserExperience>('beginner');
   
   // Sample tasks for guidance based on user experience level
-  const guidedTasks = {
+  const guidedTasks: GuidedTasks = {
     beginner: [
       {
         title: 'Create your first property report',
@@ -150,7 +164,7 @@ export function AppraisalGuidance() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {guidedTasks[userExperience].map((task, index) => (
+          {guidedTasks[userExperience].map((task: GuidedTask, index: number) => (
             <div 
               key={index}
               className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
