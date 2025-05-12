@@ -28,6 +28,7 @@ import PhotoEnhancementPage from "./pages/PhotoEnhancementPage";
 import PhotoSyncTestPage from "./pages/PhotoSyncTestPage";
 import NotificationTestPage from "./pages/NotificationTestPage";
 import WebSocketTestPage from "./pages/WebSocketTestPage";
+import BasicWebSocketTestPage from "./pages/BasicWebSocketTestPage";
 import ShapViewerPage from "./pages/ShapViewerPage";
 // Import the new URAR page
 import UrarPage from "./pages/UrarPage";
@@ -43,6 +44,7 @@ import { AppProvider } from "./contexts/AppContext";
 import { PerformanceProvider } from "./contexts/PerformanceContext";
 import { RealtimeProvider } from "./contexts/RealtimeContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
+import { BasicWebSocketProvider } from "./contexts/BasicWebSocketContext";
 import { AppShell } from "./components/layout/app-shell";
 import WebSocketManager from "./components/WebSocketManager";
 import { useState, useEffect } from "react";
@@ -79,10 +81,11 @@ function App() {
     <PerformanceProvider>
       <RealtimeProvider>
         <WebSocketProvider>
-          <AppProvider>
-            <TooltipProvider>
-              <AppShell>
-                <WebSocketManager />
+          <BasicWebSocketProvider>
+            <AppProvider>
+              <TooltipProvider>
+                <AppShell>
+                  <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first */}
                 <Route path="/" component={AppraiserHome} />
@@ -112,6 +115,7 @@ function App() {
                 <Route path="/notification-test" component={NotificationTestPage} />
                 <Route path="/ws-test" component={WebSocketTestPage} />
                 <Route path="/websocket-test" component={WebSocketTestPage} />
+                <Route path="/basic-ws-test" component={BasicWebSocketTestPage} />
                 <Route path="/shared/:token" component={SharedPropertyPage} />
                 <Route path="/workflow" component={WorkflowPage} />
                 <Route path="/workflow/:reportId" component={WorkflowPage} />
@@ -156,9 +160,10 @@ function App() {
                 <Route path="/:rest*" component={NotFound} />
               </Switch>
             </AppShell>
-          </TooltipProvider>
-        </AppProvider>
-      </WebSocketProvider>
+              </TooltipProvider>
+            </AppProvider>
+          </BasicWebSocketProvider>
+        </WebSocketProvider>
       </RealtimeProvider>
     </PerformanceProvider>
   );
