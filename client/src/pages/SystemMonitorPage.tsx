@@ -6,7 +6,8 @@ import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
 import { ConnectionStatus } from '@/components/ui/connection-status';
-import { AlertCircle, CheckCircle2, Database, RefreshCw, Server, Zap } from 'lucide-react';
+import { AlertCircle, CheckCircle2, Database, RefreshCw, Server, Zap, Brain } from 'lucide-react';
+import { AppraisalModelInsights } from '@/components/monitoring/AppraisalModelInsights';
 import { useWebSocket } from '@/contexts/WebSocketContext';
 
 interface SystemHealth {
@@ -175,11 +176,17 @@ export default function SystemMonitorPage() {
 
         {data && (
           <Tabs defaultValue="overview" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid grid-cols-4 mb-4">
+            <TabsList className="grid grid-cols-5 mb-4">
               <TabsTrigger value="overview">Overview</TabsTrigger>
               <TabsTrigger value="memory">Memory</TabsTrigger>
               <TabsTrigger value="system">System</TabsTrigger>
               <TabsTrigger value="connections">Connections</TabsTrigger>
+              <TabsTrigger value="ai-models">
+                <div className="flex items-center gap-1">
+                  <Brain className="h-4 w-4" />
+                  <span>AI Models</span>
+                </div>
+              </TabsTrigger>
             </TabsList>
 
             <TabsContent value="overview" className="space-y-4">
@@ -205,6 +212,17 @@ export default function SystemMonitorPage() {
                       <div className="flex justify-between items-center">
                         <span>Last Checked:</span>
                         <span className="font-medium">{formatDate(data.timestamp)}</span>
+                      </div>
+                      <div className="mt-2 pt-2 border-t">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-xs p-0 h-auto" 
+                          onClick={() => setActiveTab('ai-models')}
+                        >
+                          <Brain className="h-3.5 w-3.5 mr-1 text-primary" />
+                          View AI Model Status
+                        </Button>
                       </div>
                     </div>
                   </CardContent>
@@ -460,6 +478,10 @@ export default function SystemMonitorPage() {
                   </div>
                 </CardContent>
               </Card>
+            </TabsContent>
+
+            <TabsContent value="ai-models" className="space-y-4">
+              <AppraisalModelInsights />
             </TabsContent>
 
             <TabsContent value="connections" className="space-y-4">
