@@ -319,61 +319,63 @@ export default function EnhancedHome() {
         </div>
       }
     >
-      <div className="space-y-6">
-        {/* Hero Section - Stark, minimal, inspired by Apple */}
-        <div className="px-0 py-8 md:py-12 flex flex-col items-center text-center space-y-4 mb-10">
-          <h1 className="text-4xl font-semibold tracking-tight">
-            Property Appraisal
+      <div className="space-y-10">
+        {/* Hero Section - Ultra minimalist Apple/Tesla style */}
+        <div className="py-20 flex flex-col items-center text-center">
+          <h1 className="text-5xl font-medium mb-10 tracking-tight">
+            TerraFusion
           </h1>
-          <p className="text-muted-foreground max-w-[600px] mb-3">
-            Complete your property valuations with confidence and precision
+          <p className="text-neutral-500 max-w-[500px] text-lg mb-16">
+            Intelligent property valuation
           </p>
           
-          <div className="flex flex-wrap gap-4 justify-center mt-6">
+          <div className="flex gap-6 justify-center">
             <Button 
               size="lg" 
-              className="bg-black text-white hover:bg-black/90 h-12 px-6"
+              className="bg-black text-white hover:bg-black/90 h-14 px-8 rounded-full"
               onClick={() => setLocation('/appraisal/new')}
             >
-              <Plus className="mr-2 h-4 w-4" />
               New Appraisal
             </Button>
             
             <Button 
               variant="outline" 
               size="lg"
-              className="h-12 px-6 border-2"
+              className="h-14 px-8 rounded-full border-2"
               onClick={() => setLocation('/email-order')}
             >
-              <MailPlus className="mr-2 h-4 w-4" />
               Import Order
             </Button>
           </div>
         </div>
         
-        {/* Quick Actions - Clean and minimal, with clear single-purpose buttons */}
+        {/* Active Reports - Tesla-inspired simplicity */}
         {activeReports.length > 0 && (
-          <div className="mb-10">
-            <h2 className="text-xl font-medium mb-4">Continue Your Work</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {activeReports.slice(0, 3).map(report => (
-                <Button 
+          <div className="mb-16">
+            <h2 className="text-2xl font-medium mb-8">Recent Work</h2>
+            <div className="space-y-5">
+              {activeReports.map(report => (
+                <div 
                   key={report.id}
-                  variant="outline" 
-                  className="h-auto py-4 px-4 flex items-start justify-between border bg-card hover:bg-accent/20 hover:border-primary/50"
+                  className="group py-5 border-t border-neutral-200 flex flex-col md:flex-row md:items-center md:justify-between cursor-pointer"
                   onClick={() => setLocation(`/report/${report.id}`)}
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-muted rounded">
-                      <ClipboardList className="h-5 w-5" />
-                    </div>
-                    <div className="text-left">
-                      <div className="font-medium">{report.address}</div>
-                      <div className="text-xs text-muted-foreground mt-1">Last updated {report.lastUpdated}</div>
+                  <div className="flex-1 mb-3 md:mb-0">
+                    <h3 className="font-medium text-lg mb-1">{report.address}</h3>
+                    <div className="text-sm text-neutral-500">
+                      {report.orderNumber} • Due {report.dueDate}
                     </div>
                   </div>
-                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
-                </Button>
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center">
+                      <span className="text-sm mr-2">{report.progress}%</span>
+                      <Progress value={report.progress} className="w-24 h-1.5" />
+                    </div>
+                    <Button variant="ghost" size="icon">
+                      <ArrowRight className="h-4 w-4 group-hover:translate-x-1 transition-transform" />
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -618,106 +620,7 @@ export default function EnhancedHome() {
           </div>
         </div>
         
-        {/* Workflow Overview Panel */}
-        <Card className="border-l-4 border-l-primary">
-          <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Appraisal Workflow</CardTitle>
-              <CardDescription>
-                The TerraFusion Platform guides you through every step of the appraisal process
-              </CardDescription>
-            </div>
-            <Button 
-              variant="default" 
-              className="hidden md:flex"
-              onClick={() => setLocation('/workflow')}
-            >
-              <Layers className="mr-2 h-4 w-4" />
-              Open Guided Workflow
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div 
-                className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20 cursor-pointer hover:bg-muted/30 transition-colors"
-                onClick={() => setLocation('/workflow')}
-              >
-                <div className="bg-primary/10 p-3 rounded-full mb-2">
-                  <Layers className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-medium mb-1">Guided Workflow</h3>
-                <p className="text-xs text-muted-foreground">Follow our step-by-step process for complete appraisals</p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setLocation('/workflow');
-                  }}
-                >
-                  Start workflow
-                </Button>
-              </div>
-              
-              <div className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20">
-                <div className="bg-primary/10 p-3 rounded-full mb-2">
-                  <MailPlus className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-medium mb-1">Import Order</h3>
-                <p className="text-xs text-muted-foreground">Parse emails or documents to auto-create appraisal orders</p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => setLocation('/email-order')}
-                >
-                  Start here
-                </Button>
-              </div>
-              
-              <div className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20">
-                <div className="bg-primary/10 p-3 rounded-full mb-2">
-                  <Building2 className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-medium mb-1">Property Data</h3>
-                <p className="text-xs text-muted-foreground">Collect property details and sync with mobile inspection data</p>
-                <div className="flex gap-2 mt-2 justify-center">
-                  <Button 
-                    variant="link" 
-                    size="sm"
-                    onClick={() => setLocation('/property-data')}
-                  >
-                    Classic Entry
-                  </Button>
-                  <Button 
-                    variant="link" 
-                    size="sm"
-                    onClick={() => setLocation('/property-entry')}
-                  >
-                    Enhanced Entry
-                  </Button>
-                </div>
-              </div>
-              
-              <div className="flex flex-col items-center text-center p-3 border rounded-lg bg-muted/20">
-                <div className="bg-primary/10 p-3 rounded-full mb-2">
-                  <FileText className="h-6 w-6 text-primary" />
-                </div>
-                <h3 className="font-medium mb-1">Report Generation</h3>
-                <p className="text-xs text-muted-foreground">Generate compliant PDF and XML reports with a single click</p>
-                <Button 
-                  variant="link" 
-                  size="sm" 
-                  className="mt-2"
-                  onClick={() => setLocation('/reports')}
-                >
-                  Create reports
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+
 
         {/* Active and Recent Reports */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
