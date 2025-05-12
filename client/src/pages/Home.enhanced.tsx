@@ -376,70 +376,272 @@ export default function EnhancedHome() {
           </Card>
         </div>
         
-        {/* Notification Panel - displays AI model updates from WebSocket */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2">
-            <Card className="border-l-4 border-l-blue-500">
-              <CardHeader className="pb-3">
-                <CardTitle>Enhanced AI Features</CardTitle>
-                <CardDescription>New capabilities powered by the latest AI models</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="bg-blue-50 border border-blue-100 rounded-md p-4">
-                  <div className="flex gap-3">
-                    <div className="bg-blue-100 rounded-full p-2 h-fit">
-                      <Brain className="h-5 w-5 text-blue-600" />
+        {/* Appraisal Workflow Guide */}
+        <Card>
+          <CardHeader className="pb-2">
+            <CardTitle>Appraisal Workflow</CardTitle>
+            <CardDescription>
+              Follow these steps to complete your appraisal report efficiently
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              <div className="space-y-6">
+                {/* Step 1 */}
+                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
+                  <div className="absolute left-[-10px] top-0 bg-background p-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
+                      1
                     </div>
-                    <div>
-                      <h3 className="font-medium text-blue-900 mb-1">Real-Time AI Monitoring</h3>
-                      <p className="text-sm text-blue-700 leading-relaxed">
-                        The system now provides real-time notifications about AI model status and updates. 
-                        You'll be informed when new AI features are available or when model performance changes.
-                      </p>
-                      <div className="mt-3">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          className="bg-white hover:bg-blue-50"
-                          onClick={() => setLocation('/system-monitor')}
-                        >
-                          <LayoutDashboard className="mr-1 h-4 w-4" />
-                          Explore AI Dashboard
-                        </Button>
-                      </div>
-                    </div>
+                  </div>
+                  <h3 className="text-base font-semibold">Receive Order</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Create a new report from scratch or import from email
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/appraisal/new')}>
+                      <Plus className="h-3 w-3 mr-1" /> New
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/email-order')}>
+                      <MailPlus className="h-3 w-3 mr-1" /> Import
+                    </Button>
                   </div>
                 </div>
                 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="border rounded-md p-4 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center mb-2">
-                      <div className="bg-green-100 p-1.5 rounded-md mr-2">
-                        <BarChart className="h-4 w-4 text-green-600" />
-                      </div>
-                      <h3 className="font-medium">Enhanced Valuations</h3>
+                {/* Step 2 */}
+                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
+                  <div className="absolute left-[-10px] top-0 bg-background p-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
+                      2
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      AI-powered comparable selection with natural language explanations for adjustments
-                    </p>
                   </div>
-                  
-                  <div className="border rounded-md p-4 hover:shadow-sm transition-shadow">
-                    <div className="flex items-center mb-2">
-                      <div className="bg-amber-100 p-1.5 rounded-md mr-2">
-                        <Image className="h-4 w-4 text-amber-600" />
-                      </div>
-                      <h3 className="font-medium">Improved Image Analysis</h3>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      More accurate property condition scoring with deferred maintenance detection
-                    </p>
+                  <h3 className="text-base font-semibold">Property Research</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Enter property details and analyze market trends
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/property-entry')}>
+                      <Building2 className="h-3 w-3 mr-1" /> Enter Details
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/market-analysis')}>
+                      <BarChart className="h-3 w-3 mr-1" /> Market Data
+                    </Button>
                   </div>
                 </div>
-              </CardContent>
-            </Card>
+                
+                {/* Step 3 */}
+                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
+                  <div className="absolute left-[-10px] top-0 bg-background p-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
+                      3
+                    </div>
+                  </div>
+                  <h3 className="text-base font-semibold">Comparable Selection</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Select and adjust comparable properties
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/comparables')}>
+                      <ArrowUpDown className="h-3 w-3 mr-1" /> Select Comps
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/adjustments')}>
+                      <PencilRuler className="h-3 w-3 mr-1" /> Adjustments
+                    </Button>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-6">
+                {/* Step 4 */}
+                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
+                  <div className="absolute left-[-10px] top-0 bg-background p-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
+                      4
+                    </div>
+                  </div>
+                  <h3 className="text-base font-semibold">Site Inspection</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Document property condition with photos
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/photo-manager')}>
+                      <Image className="h-3 w-3 mr-1" /> Upload Photos
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/condition')}>
+                      <HomeIcon className="h-3 w-3 mr-1" /> Property Condition
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Step 5 */}
+                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
+                  <div className="absolute left-[-10px] top-0 bg-background p-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
+                      5
+                    </div>
+                  </div>
+                  <h3 className="text-base font-semibold">Report Creation</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Generate a complete appraisal report
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/report-editor')}>
+                      <FileBarChart2 className="h-3 w-3 mr-1" /> Edit Report
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/preview')}>
+                      <BookOpen className="h-3 w-3 mr-1" /> Preview
+                    </Button>
+                  </div>
+                </div>
+                
+                {/* Step 6 */}
+                <div className="relative pl-10 pb-0 border-l-2 border-green-500">
+                  <div className="absolute left-[-10px] top-0 bg-background p-1">
+                    <div className="flex items-center justify-center w-6 h-6 bg-green-500 text-white rounded-full">
+                      6
+                    </div>
+                  </div>
+                  <h3 className="text-base font-semibold">Quality Control & Submission</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Review, validate and submit your final report
+                  </p>
+                  <div className="mt-3 flex gap-2">
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/quality-check')}>
+                      <ShieldCheck className="h-3 w-3 mr-1" /> QC Check
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => setLocation('/submit')}>
+                      <CheckCircle2 className="h-3 w-3 mr-1" /> Submit
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+        
+        {/* Bottom Grid: Reports + Notifications */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {/* Active/Recent Reports */}
+          <div className="md:col-span-2">
+            <Tabs defaultValue="active" className="w-full">
+              <TabsList className="w-full grid grid-cols-2">
+                <TabsTrigger value="active">Active Reports ({activeReports.length})</TabsTrigger>
+                <TabsTrigger value="recent">Recent Reports ({recentReports.length})</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="active" className="mt-4 space-y-4">
+                {activeReports.length > 0 ? (
+                  <div className="space-y-3">
+                    {activeReports.map((report) => (
+                      <div 
+                        key={report.id} 
+                        className="flex items-center justify-between p-3 rounded-md border border-muted hover:border-primary hover:bg-muted/30 cursor-pointer transition-all"
+                        onClick={() => setLocation(`/report/${report.id}`)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${report.status === 'draft' ? 'bg-orange-100' : 'bg-blue-100'}`}>
+                            <FileText className={`h-4 w-4 ${report.status === 'draft' ? 'text-orange-600' : 'text-blue-600'}`} />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-sm">
+                              {report.address}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>#{report.orderNumber}</span>
+                              <span>•</span>
+                              <span>{report.lastUpdated}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={report.status} />
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="text-center pt-2">
+                      <Button variant="link" onClick={() => setLocation('/reports')}>
+                        View All Reports
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center border rounded-md bg-muted/30">
+                    <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <h3 className="font-medium mb-1">No active reports</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      Start a new appraisal or import an order
+                    </p>
+                    <div className="flex gap-2 justify-center">
+                      <Button onClick={() => setLocation('/appraisal/new')}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Appraisal
+                      </Button>
+                    </div>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="recent" className="mt-4 space-y-4">
+                {recentReports.length > 0 ? (
+                  <div className="space-y-3">
+                    {recentReports.map((report) => (
+                      <div 
+                        key={report.id} 
+                        className="flex items-center justify-between p-3 rounded-md border border-muted hover:border-primary hover:bg-muted/30 cursor-pointer transition-all"
+                        onClick={() => setLocation(`/report/${report.id}`)}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 rounded-full bg-green-100">
+                            <CheckCircle2 className="h-4 w-4 text-green-600" />
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-sm">
+                              {report.address}
+                            </h4>
+                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                              <span>#{report.orderNumber}</span>
+                              <span>•</span>
+                              <span>{report.lastUpdated}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <StatusBadge status={report.status} />
+                          <Button variant="ghost" size="icon" className="h-8 w-8">
+                            <ArrowRight className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    <div className="text-center pt-2">
+                      <Button variant="link" onClick={() => setLocation('/reports')}>
+                        View All Reports
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="p-6 text-center border rounded-md bg-muted/30">
+                    <CheckCircle2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
+                    <h3 className="font-medium mb-1">No recent reports</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      You haven't submitted any reports recently
+                    </p>
+                    <Button variant="outline" onClick={() => setLocation('/reports')}>
+                      <FileText className="h-4 w-4 mr-2" />
+                      View All Reports
+                    </Button>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
           
+          {/* Notifications */}
           <div className="md:col-span-1">
             <NotificationPanel 
               notifications={notifications}
