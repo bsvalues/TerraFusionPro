@@ -348,23 +348,29 @@ export function AppShell({ children }: AppShellProps) {
 
   return (
     <div className="flex min-h-screen flex-col">
-      <header className="sticky top-0 z-40 border-b bg-background shadow-sm">
+      <header className="sticky top-0 z-40 border-b bg-background shadow-md">
+        <div className="h-1.5 w-full bg-gradient-to-r from-primary/80 via-blue-600/60 to-primary/80 animate-pulse"></div>
         <div className="container flex h-16 items-center">
-          <div className="flex items-center gap-2 md:gap-4">
-            <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
-              <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="md:hidden">
-                  <Menu className="h-5 w-5" />
-                  <span className="sr-only">Toggle menu</span>
-                </Button>
-              </SheetTrigger>
-              <SheetContent side="left" className="flex flex-col">
+            <div className="flex items-center gap-2 md:gap-4">
+              <Sheet open={isMobileMenuOpen} onOpenChange={setIsMobileMenuOpen}>
+                <SheetTrigger asChild>
+                  <Button variant="ghost" size="icon" className="md:hidden">
+                    <Menu className="h-5 w-5" />
+                    <span className="sr-only">Toggle menu</span>
+                  </Button>
+                </SheetTrigger>
+                <SheetContent side="left" className="flex flex-col">
                   <div className="flex items-center gap-2 border-b pb-4">
                     <a href="/" className="flex items-center gap-2 font-semibold">
-                      <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3" />
-                      </svg>
-                      <span>TerraFusion</span>
+                      <div className="relative">
+                        <Brain className="h-6 w-6 text-primary" />
+                        <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500 animate-pulse"></div>
+                      </div>
+                      <span className="flex items-center gap-1">
+                        <span className="font-bold">Terra</span>
+                        <span className="text-primary font-bold">Fusion</span>
+                        <Badge variant="outline" className="h-5 text-[10px] font-semibold bg-primary/10 text-primary border-primary/30">AI</Badge>
+                      </span>
                     </a>
                     <Button 
                       variant="ghost" 
@@ -380,7 +386,8 @@ export function AppShell({ children }: AppShellProps) {
                       <div key={index} className="space-y-1">
                         <div className="relative py-2">
                           <div className="relative flex text-xs uppercase">
-                            <span className="bg-background text-muted-foreground font-medium">
+                            <span className="bg-background text-muted-foreground font-medium flex items-center gap-1">
+                              {section.title.includes("AI") && <Zap className="h-3 w-3 text-primary" />}
                               {section.title}
                             </span>
                           </div>
@@ -394,114 +401,155 @@ export function AppShell({ children }: AppShellProps) {
                 </SheetContent>
               </Sheet>
             
-            <a href="/" className="flex items-center gap-2 font-semibold">
-              <svg className="h-6 w-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3" />
-              </svg>
-              <span className="hidden md:inline-block">TerraFusion Platform</span>
-            </a>
+              <a href="/" className="flex items-center gap-2">
+                <div className="relative flex items-center justify-center h-8 w-8 rounded-full bg-primary/10">
+                  <Brain className="h-5 w-5 text-primary" />
+                  <div className="absolute -top-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-background"></div>
+                </div>
+                <div className="flex flex-col leading-none">
+                  <span className="font-bold text-base flex items-center">
+                    TerraFusion<span className="text-primary">AI</span>
+                  </span>
+                  <span className="text-[10px] text-muted-foreground">Intelligent Appraisal Platform</span>
+                </div>
+              </a>
             
-            {/* Quick action buttons */}
-            <div className="ml-4 hidden md:flex items-center space-x-2">
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-xs"
-                      onClick={() => window.location.href = '/email-order'}
-                    >
-                      <MailPlus className="h-3.5 w-3.5 mr-1" />
-                      New Order
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>Create a new appraisal order</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
-              
-              <TooltipProvider>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
-                      className="text-xs"
-                      onClick={() => window.location.href = '/reports'}
-                    >
-                      <FileCheck className="h-3.5 w-3.5 mr-1" />
-                      Reports
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>
-                    <p>View and manage reports</p>
-                  </TooltipContent>
-                </Tooltip>
-              </TooltipProvider>
+              {/* AI Quick Actions */}
+              <div className="ml-4 hidden md:flex items-center space-x-2">
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs border-primary/30 bg-primary/5 hover:bg-primary/10 text-primary"
+                        onClick={() => window.location.href = '/email-order'}
+                      >
+                        <Zap className="h-3.5 w-3.5 mr-1 animate-pulse" />
+                        AI Order Processing
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Process new orders with AI assistance</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+                
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="text-xs"
+                        onClick={() => window.location.href = '/ai-valuation'}
+                      >
+                        <Brain className="h-3.5 w-3.5 mr-1 text-primary" />
+                        Smart Valuation
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Get AI-powered property valuations</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
             </div>
-          </div>
           
-          <div className="flex flex-1 items-center justify-end gap-4">
-            {/* SyncStatus with default values */}
-            <SyncStatus 
-              state="synced" 
-              lastSynced={new Date()} 
-            />
+            <div className="flex flex-1 items-center justify-end gap-3">
+              {/* AI Model Status Indicator */}
+              <div className="hidden md:flex items-center bg-green-50 text-green-700 px-2 py-1 rounded-md border border-green-200">
+                <div className="flex items-center">
+                  <div className="h-2 w-2 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                  <span className="text-xs font-medium">AI Models: Optimal</span>
+                </div>
+              </div>
             
-            {/* Help button */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button variant="ghost" size="icon" className="hidden md:flex">
-                    <HelpCircle className="h-5 w-5" />
-                    <span className="sr-only">Help</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Get help and resources</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              {/* SyncStatus with default values */}
+              <SyncStatus 
+                state="synced" 
+                lastSynced={new Date()} 
+              />
             
-            {/* Mobile shortcuts indicator */}
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="hidden md:flex items-center"
-                  >
-                    <Smartphone className="h-4 w-4 mr-2" />
-                    <span>TerraField Connected</span>
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>Your mobile app is connected and syncing</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
+              {/* Help button with AI badge */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" className="hidden md:flex relative">
+                      <HelpCircle className="h-5 w-5" />
+                      <div className="absolute -top-1.5 -right-1.5 bg-primary text-[10px] text-white px-1 rounded-full">
+                        AI
+                      </div>
+                      <span className="sr-only">AI Help</span>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Get AI-powered assistance</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             
-            {/* User dropdown */}
+              {/* TerraField Mobile Integration */}
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="hidden md:flex items-center"
+                    >
+                      <Smartphone className="h-4 w-4 mr-2 text-primary" />
+                      <span>TerraField</span>
+                      <Badge className="ml-1.5 h-4 px-1 text-[10px]">Connected</Badge>
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Mobile app is connected and syncing with AI</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            
+            {/* User dropdown with AI assistant */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="icon" className="rounded-full">
-                  <User className="h-5 w-5" />
-                  <span className="sr-only">User menu</span>
+                <Button variant="outline" size="sm" className="rounded-full border-primary/30 flex items-center gap-2">
+                  <div className="relative">
+                    <User className="h-4 w-4" />
+                    <div className="absolute -top-1 -right-1 h-2 w-2 rounded-full bg-green-500"></div>
+                  </div>
+                  <span className="text-sm hidden md:inline-block">John Appraiser</span>
+                  <Badge variant="outline" className="hidden md:flex h-5 text-[10px] font-semibold bg-primary/10 text-primary border-primary/30">
+                    <Zap className="h-3 w-3 mr-0.5" />AI Assistant
+                  </Badge>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuLabel>John Appraiser</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-56">
+                <div className="flex items-center justify-between px-2 py-1.5">
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      <p className="text-sm font-medium leading-none">John Appraiser</p>
+                      <p className="text-xs leading-none text-muted-foreground">john@appraisal.com</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <Badge variant="outline" className="h-5 text-[10px] font-semibold bg-primary/10 text-primary border-primary/30">Pro</Badge>
+                </div>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
                   <User className="mr-2 h-4 w-4" />
                   <span>Profile</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
+                  <Brain className="mr-2 h-4 w-4 text-primary" />
+                  <span>My AI Preferences</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem>
                   <Settings className="mr-2 h-4 w-4" />
                   <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem className="bg-primary/5">
+                  <Zap className="mr-2 h-4 w-4 text-primary" />
+                  <span>AI Command Center</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>
@@ -515,9 +563,38 @@ export function AppShell({ children }: AppShellProps) {
       </header>
       
       <div className="flex flex-1">
-        {/* Sidebar navigation */}
-        <aside className="hidden md:flex w-64 flex-col border-r bg-background shadow-inner">
-          <nav className="flex-1 overflow-auto py-6 px-4">
+        {/* Sidebar navigation with AI indicators */}
+        <aside className="hidden md:flex w-64 flex-col border-r bg-background shadow-inner relative">
+          {/* AI Activity Indicator */}
+          <div className="absolute top-0 bottom-0 left-0 w-0.5 bg-gradient-to-b from-primary/50 via-primary/20 to-primary/50"></div>
+          
+          {/* AI Status Summary */}
+          <div className="px-4 py-3 border-b flex items-center">
+            <div className="bg-primary/5 border border-primary/20 rounded-md py-2 px-3 w-full">
+              <div className="flex items-center justify-between mb-1.5">
+                <span className="text-xs font-medium flex items-center">
+                  <Brain className="h-3.5 w-3.5 text-primary mr-1.5" />
+                  AI Assistant Status
+                </span>
+                <Badge className="h-4 text-[10px]">Active</Badge>
+              </div>
+              <div className="flex justify-between items-center text-xs text-muted-foreground">
+                <div className="flex gap-2">
+                  <div className="flex items-center">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></div>
+                    <span>Valuation</span>
+                  </div>
+                  <div className="flex items-center">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-1"></div>
+                    <span>Condition</span>
+                  </div>
+                </div>
+                <button className="text-primary text-[10px] hover:underline">Details</button>
+              </div>
+            </div>
+          </div>
+          
+          <nav className="flex-1 overflow-auto py-4 px-4">
             {navSections.map((section, index) => (
               <NavSection key={index} section={section} />
             ))}
@@ -530,19 +607,38 @@ export function AppShell({ children }: AppShellProps) {
         </main>
       </div>
       
-      {/* Footer */}
-      <footer className="border-t py-4 bg-muted/30">
-        <div className="container flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-          <p className="text-xs text-muted-foreground">
-            &copy; 2025 TerraFusion Platform - Real Estate Appraisal Software
-          </p>
-          <div className="flex items-center space-x-4">
-            <p className="text-xs text-muted-foreground">
-              Version 3.2.1
-            </p>
+      {/* Enhanced AI-powered Footer */}
+      <footer className="border-t py-4 bg-background relative">
+        {/* Subtle AI activity indicator */}
+        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
+        
+        <div className="container flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-col gap-1">
             <div className="flex items-center">
-              <div className="h-2 w-2 rounded-full bg-green-500 mr-2"></div>
-              <span className="text-xs text-muted-foreground">System Online</span>
+              <Brain className="h-3 w-3 text-primary mr-1.5" />
+              <p className="text-xs font-medium">
+                TerraFusion<span className="text-primary">AI</span> Platform
+              </p>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              &copy; 2025 Intelligent Real Estate Appraisal Technology
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <div className="flex items-center gap-2 divide-x divide-muted">
+              <div className="flex items-center px-2">
+                <div className="h-1.5 w-1.5 rounded-full bg-green-500 mr-2 animate-pulse"></div>
+                <span className="text-xs text-muted-foreground">AI Models Online</span>
+              </div>
+              <div className="flex items-center px-2">
+                <Badge variant="outline" className="h-4 text-[10px] font-medium bg-primary/5 text-primary border-primary/20">
+                  v3.2.1
+                </Badge>
+              </div>
+              <div className="hidden md:flex items-center px-2 text-xs text-muted-foreground">
+                <span>Last Model Update: May 11, 2025</span>
+              </div>
             </div>
           </div>
         </div>
