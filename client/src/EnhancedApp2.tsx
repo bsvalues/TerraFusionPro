@@ -5,6 +5,7 @@ import { Toaster } from './components/ui/toaster';
 import { AppShell } from './components/layout/app-shell';
 import { ErrorBoundary } from './components/error-boundary';
 import { WebSocketProvider } from './contexts/WebSocketContext';
+import { BasicWebSocketProvider } from './contexts/BasicWebSocketContext';
 
 // Import pages
 import Home from './pages/Home';
@@ -65,11 +66,12 @@ const UADFormPageComponent = EnhancedUADFormPage;
 export default function EnhancedApp2() {
   return (
     <AppProvider>
-      <WebSocketProvider>
-        <TooltipProvider>
-          <ErrorBoundary>
-            <AppShell>
-              <Route path="/" component={HomeComponent} />
+      <BasicWebSocketProvider>
+        <WebSocketProvider>
+          <TooltipProvider>
+            <ErrorBoundary>
+              <AppShell>
+                <Route path="/" component={HomeComponent} />
               <Route path="/form" component={FormPage} />
               <Route path="/form/:id" component={FormPage} />
               <Route path="/comps" component={CompsPage} />
@@ -164,6 +166,7 @@ export default function EnhancedApp2() {
               {/* Utility Routes */}
               <Route path="/ws-test" component={WebSocketTestPage} />
               <Route path="/websocket-test" component={WebSocketTestPage} />
+              <Route path="/basic-ws-test" component={BasicWebSocketTestPage} />
               <Route path="/snapshots" component={SnapshotViewerPage} />
               <Route path="/snapshots/:propertyId" component={SnapshotViewerPage} />
               <Route path="/shap-viewer" component={ShapViewerPage} />
@@ -177,6 +180,7 @@ export default function EnhancedApp2() {
           </ErrorBoundary>
         </TooltipProvider>
       </WebSocketProvider>
+      </BasicWebSocketProvider>
     </AppProvider>
   );
 }
