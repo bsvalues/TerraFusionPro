@@ -54,6 +54,7 @@ interface AppraisalReport {
   status: 'draft' | 'in-progress' | 'review' | 'completed';
   progress: number;
   lastUpdated: string;
+  orderNumber: string; // Added field for order reference
 }
 
 // Using the Notification type from our NotificationPanel component
@@ -127,7 +128,8 @@ export default function EnhancedHome() {
           dueDate: "2025-05-15",
           status: 'in-progress',
           progress: 65,
-          lastUpdated: "2025-04-25"
+          lastUpdated: "2025-04-25",
+          orderNumber: "ORD-4581"
         },
         {
           id: "apr-998",
@@ -137,7 +139,8 @@ export default function EnhancedHome() {
           dueDate: "2025-05-02",
           status: 'review',
           progress: 92,
-          lastUpdated: "2025-04-26"
+          lastUpdated: "2025-04-26",
+          orderNumber: "ORD-4492"
         }
       ]);
       
@@ -150,7 +153,8 @@ export default function EnhancedHome() {
           dueDate: "2025-04-20",
           status: 'completed',
           progress: 100,
-          lastUpdated: "2025-04-19"
+          lastUpdated: "2025-04-19",
+          orderNumber: "ORD-4389"
         },
         {
           id: "apr-995",
@@ -160,7 +164,8 @@ export default function EnhancedHome() {
           dueDate: "2025-04-15",
           status: 'completed',
           progress: 100,
-          lastUpdated: "2025-04-14"
+          lastUpdated: "2025-04-14",
+          orderNumber: "ORD-4350"
         }
       ]);
       
@@ -392,7 +397,7 @@ export default function EnhancedHome() {
                   >
                     <div className="flex gap-3 items-center">
                       <div className="bg-neutral-100 p-2 rounded-full">
-                        <Clipboard className="h-4 w-4" />
+                        <ClipboardList className="h-4 w-4" />
                       </div>
                       <div className="text-left">
                         <div className="font-medium">Order Entry</div>
@@ -433,7 +438,7 @@ export default function EnhancedHome() {
                   >
                     <div className="flex gap-3 items-center">
                       <div className="bg-neutral-100 p-2 rounded-full">
-                        <LineChart className="h-4 w-4" />
+                        <BarChart className="h-4 w-4" />
                       </div>
                       <div className="text-left">
                         <div className="font-medium">Market Analysis</div>
@@ -522,7 +527,7 @@ export default function EnhancedHome() {
                   >
                     <div className="flex gap-3 items-center">
                       <div className="bg-neutral-100 p-2 rounded-full">
-                        <Send className="h-4 w-4" />
+                        <ArrowRight className="h-4 w-4" />
                       </div>
                       <div className="text-left">
                         <div className="font-medium">Submit Report</div>
@@ -536,136 +541,80 @@ export default function EnhancedHome() {
           </div>
         </div>
         
-        {/* Bottom Grid: Reports + Notifications */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Active/Recent Reports */}
-          <div className="md:col-span-2">
-            <Tabs defaultValue="active" className="w-full">
-              <TabsList className="w-full grid grid-cols-2">
-                <TabsTrigger value="active">Active Reports ({activeReports.length})</TabsTrigger>
-                <TabsTrigger value="recent">Recent Reports ({recentReports.length})</TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="active" className="mt-4 space-y-4">
-                {activeReports.length > 0 ? (
-                  <div className="space-y-3">
-                    {activeReports.map((report) => (
-                      <div 
-                        key={report.id} 
-                        className="flex items-center justify-between p-3 rounded-md border border-muted hover:border-primary hover:bg-muted/30 cursor-pointer transition-all"
-                        onClick={() => setLocation(`/report/${report.id}`)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className={`p-2 rounded-full ${report.status === 'draft' ? 'bg-orange-100' : 'bg-blue-100'}`}>
-                            <FileText className={`h-4 w-4 ${report.status === 'draft' ? 'text-orange-600' : 'text-blue-600'}`} />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-sm">
-                              {report.address}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>#{report.orderNumber}</span>
-                              <span>•</span>
-                              <span>{report.lastUpdated}</span>
-                            </div>
-                          </div>
+        {/* My Reports - Apple/Tesla inspired minimal design */}
+        <div className="mt-4 border-t border-neutral-200 pt-10">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-xl font-medium">My Reports</h2>
+            <Button variant="outline" onClick={() => setLocation('/reports')} className="rounded-full px-4">
+              View All
+            </Button>
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            {/* Active Reports */}
+            <div className="col-span-2">
+              <div className="border border-neutral-200 bg-white rounded-xl overflow-hidden">
+                <div className="bg-neutral-50 border-b border-neutral-200 px-6 py-3 flex justify-between items-center">
+                  <h3 className="font-medium">Active Reports</h3>
+                  <span className="text-sm text-muted-foreground">{activeReports.length} reports</span>
+                </div>
+                
+                <div className="divide-y divide-neutral-200">
+                  {activeReports.map((report) => (
+                    <div 
+                      key={report.id}
+                      className="px-6 py-4 hover:bg-neutral-50 cursor-pointer transition-colors"
+                      onClick={() => setLocation(`/report/${report.id}`)}
+                    >
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="font-medium">{report.address}</div>
+                        <StatusBadge status={report.status} />
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <div className="text-sm text-muted-foreground">
+                          {report.orderNumber} • Due {report.dueDate}
                         </div>
                         <div className="flex items-center gap-2">
-                          <StatusBadge status={report.status} />
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
+                          <div className="text-xs text-muted-foreground">
+                            {report.progress}% complete
+                          </div>
+                          <Progress value={report.progress} className="w-16 h-1.5" />
                         </div>
                       </div>
-                    ))}
-                    
-                    <div className="text-center pt-2">
-                      <Button variant="link" onClick={() => setLocation('/reports')}>
-                        View All Reports
-                      </Button>
                     </div>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center border rounded-md bg-muted/30">
-                    <FileText className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <h3 className="font-medium mb-1">No active reports</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      Start a new appraisal or import an order
-                    </p>
-                    <div className="flex gap-2 justify-center">
-                      <Button onClick={() => setLocation('/appraisal/new')}>
-                        <Plus className="h-4 w-4 mr-2" />
+                  ))}
+                  
+                  {activeReports.length === 0 && (
+                    <div className="p-8 text-center">
+                      <FileText className="h-8 w-8 text-muted-foreground mx-auto mb-3 opacity-50" />
+                      <h3 className="text-sm font-medium mb-1">No active reports</h3>
+                      <p className="text-xs text-muted-foreground mb-4">
+                        Start a new appraisal to see it here
+                      </p>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={() => setLocation('/appraisal/new')}
+                        className="rounded-full"
+                      >
+                        <Plus className="h-3 w-3 mr-1" />
                         New Appraisal
                       </Button>
                     </div>
-                  </div>
-                )}
-              </TabsContent>
-              
-              <TabsContent value="recent" className="mt-4 space-y-4">
-                {recentReports.length > 0 ? (
-                  <div className="space-y-3">
-                    {recentReports.map((report) => (
-                      <div 
-                        key={report.id} 
-                        className="flex items-center justify-between p-3 rounded-md border border-muted hover:border-primary hover:bg-muted/30 cursor-pointer transition-all"
-                        onClick={() => setLocation(`/report/${report.id}`)}
-                      >
-                        <div className="flex items-center gap-3">
-                          <div className="p-2 rounded-full bg-green-100">
-                            <CheckCircle2 className="h-4 w-4 text-green-600" />
-                          </div>
-                          <div>
-                            <h4 className="font-medium text-sm">
-                              {report.address}
-                            </h4>
-                            <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                              <span>#{report.orderNumber}</span>
-                              <span>•</span>
-                              <span>{report.lastUpdated}</span>
-                            </div>
-                          </div>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <StatusBadge status={report.status} />
-                          <Button variant="ghost" size="icon" className="h-8 w-8">
-                            <ArrowRight className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="text-center pt-2">
-                      <Button variant="link" onClick={() => setLocation('/reports')}>
-                        View All Reports
-                      </Button>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="p-6 text-center border rounded-md bg-muted/30">
-                    <CheckCircle2 className="h-10 w-10 text-muted-foreground mx-auto mb-3" />
-                    <h3 className="font-medium mb-1">No recent reports</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      You haven't submitted any reports recently
-                    </p>
-                    <Button variant="outline" onClick={() => setLocation('/reports')}>
-                      <FileText className="h-4 w-4 mr-2" />
-                      View All Reports
-                    </Button>
-                  </div>
-                )}
-              </TabsContent>
-            </Tabs>
-          </div>
-          
-          {/* Notifications */}
-          <div className="md:col-span-1">
-            <NotificationPanel 
-              notifications={notifications}
-              onMarkAsRead={handleMarkAsRead}
-              onMarkAllAsRead={handleMarkAllAsRead}
-              onDismiss={handleDismissNotification}
-            />
+                  )}
+                </div>
+              </div>
+            </div>
+            
+            {/* Notifications Panel */}
+            <div className="col-span-1">
+              <NotificationPanel 
+                notifications={notifications}
+                onMarkAsRead={handleMarkAsRead}
+                onMarkAllAsRead={handleMarkAllAsRead}
+                onDismiss={handleDismissNotification}
+              />
+            </div>
           </div>
         </div>
         
