@@ -291,12 +291,12 @@ export default function EnhancedHome() {
             variant="outline" 
             onClick={() => {
               console.log("Create New Report clicked");
-              setLocation('/property-entry');
+              setLocation('/appraisal/new');
             }}
             className="hidden sm:flex"
           >
             <Plus className="mr-2 h-4 w-4" />
-            New Report
+            New Appraisal
           </Button>
           <Button 
             onClick={() => {
@@ -311,8 +311,70 @@ export default function EnhancedHome() {
       }
     >
       <div className="space-y-6">
-        {/* AI Features Panel */}
-        <AIFeatureIntro />
+        {/* Active Appraisal Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation('/appraisal/new')}>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="bg-green-100 p-3 rounded-full border border-green-200">
+                  <Plus className="h-6 w-6 text-green-700" />
+                </div>
+                <h3 className="font-semibold text-green-800">Create New Appraisal</h3>
+                <p className="text-sm text-green-700">
+                  Start a new property appraisal from scratch
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation('/email-order')}>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="bg-blue-100 p-3 rounded-full border border-blue-200">
+                  <MailPlus className="h-6 w-6 text-blue-700" />
+                </div>
+                <h3 className="font-semibold text-blue-800">Import Order</h3>
+                <p className="text-sm text-blue-700">
+                  Import an appraisal order from email
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {activeReports.length > 0 && (
+            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => setLocation(`/report/${activeReports[0].id}`)}>
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center text-center gap-3">
+                  <div className="bg-amber-100 p-3 rounded-full border border-amber-200">
+                    <ClipboardList className="h-6 w-6 text-amber-700" />
+                  </div>
+                  <h3 className="font-semibold text-amber-800">Continue Active Report</h3>
+                  <p className="text-sm text-amber-700 line-clamp-1">
+                    {activeReports[0].address || "Resume your most recent work"}
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-md transition-shadow cursor-pointer"
+            onClick={() => setLocation('/reports')}>
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center text-center gap-3">
+                <div className="bg-purple-100 p-3 rounded-full border border-purple-200">
+                  <FileText className="h-6 w-6 text-purple-700" />
+                </div>
+                <h3 className="font-semibold text-purple-800">View All Reports</h3>
+                <p className="text-sm text-purple-700">
+                  Access your complete report history
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
         
         {/* Notification Panel - displays AI model updates from WebSocket */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
