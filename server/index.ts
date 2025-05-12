@@ -2,6 +2,7 @@ import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupWebSocketServer } from "./websocket-server-enhanced";
+import { setupBasicWebSocketServer } from "./basic-websocket";
 // Network health monitor is used by WebSocket servers, but not directly in index.ts
 import { shapWebSocketService } from "./shap_ws_service";
 // Import health check module
@@ -66,6 +67,10 @@ app.use((req, res, next) => {
   
   // Set up main WebSocket server
   setupWebSocketServer(server);
+  
+  // Setup a simplified, guaranteed-to-work WebSocket server on /basic-ws
+  const wsApi = setupBasicWebSocketServer(server);
+  console.log('[WebSocket] Basic WebSocket server initialized on path /basic-ws');
   
   // Set up SHAP WebSocket service
   shapWebSocketService.initialize(server, '/shap-ws');
