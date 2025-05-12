@@ -13,10 +13,31 @@ function logWithTime(message: string) {
 export function setupBasicWebSocketServer(server: http.Server) {
   logWithTime('Setting up basic WebSocket server');
   
-  // Create WebSocket server with path /basic-ws
+  // Create WebSocket server with noServer option so we can handle upgrade ourselves
   const wss = new WebSocketServer({ 
-    server,
-    path: '/basic-ws'
+    noServer: true
+  });
+  
+  // Set up specific handler for basic-ws path
+  server.on('upgrade', (request, socket, head) => {
+    // Parse URL
+    let pathname;
+    try {
+      const url = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`);
+      pathname = url.pathname;
+    } catch {
+      // Fallback: extract pathname directly
+      pathname = (request.url || '').split('?')[0];
+    }
+    
+    // Only handle /basic-ws path
+    if (pathname === '/basic-ws') {
+      logWithTime(`Handling upgrade request for ${pathname}`);
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        logWithTime('Upgraded connection to WebSocket');
+        wss.emit('connection', ws, request);
+      });
+    }
   });
 
   // Handle connections

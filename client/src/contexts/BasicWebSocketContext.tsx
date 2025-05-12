@@ -66,12 +66,15 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
       // Using /basic-ws path to match the server's WSS configuration
       const wsUrl = `${protocol}//${window.location.host}/basic-ws`;
       
-      console.log(`[BasicWebSocket] Connecting to ${wsUrl}...`);
+      // Add a timestamp to potentially avoid caching issues
+      const timestampedUrl = `${wsUrl}?t=${Date.now()}`;
+      
+      console.log(`[BasicWebSocket] Connecting to ${timestampedUrl}...`);
       console.log(`[BasicWebSocket] Current location: ${window.location.href}`);
       console.log(`[BasicWebSocket] WebSocket path: /basic-ws`);
       
-      // Create WebSocket connection
-      socketRef.current = new WebSocket(wsUrl);
+      // Create WebSocket connection with timestamp to avoid caching
+      socketRef.current = new WebSocket(timestampedUrl);
       
       // Set up event handlers
       socketRef.current.onopen = () => {

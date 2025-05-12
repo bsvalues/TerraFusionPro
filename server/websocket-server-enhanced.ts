@@ -390,6 +390,13 @@ export function setupWebSocketServer(server: http.Server) {
           wssAlt.emit('connection', ws, request);
         });
       }
+      // Don't handle basic-ws here as it's handled in basic-websocket.ts
+      // This ensures that we don't route basic WebSocket traffic through here
+      else if (pathname === '/basic-ws') {
+        // We will bypass routing this, as it should be handled by its own upgrade handler
+        console.log('[WebSocket] Bypassing basic-ws endpoint handling (handled separately)');
+        return; // Allow the separate handler in basic-websocket.ts to process this request
+      }
       else {
         console.log(`[WebSocket] No handler for path: ${pathname}`);
         try {
