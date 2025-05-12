@@ -94,30 +94,27 @@ const EXAMPLE_REPORTS = [
 ];
 
 // Example notifications data
-const EXAMPLE_NOTIFICATIONS = [
+const EXAMPLE_NOTIFICATIONS: Notification[] = [
   {
-    id: 1,
-    title: "New Order Assigned",
+    id: "1",
     message: "You have been assigned a new appraisal order for 789 Pine Lane.",
-    timestamp: "2 hours ago",
+    date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     read: false,
-    type: "assignment"
+    type: "alert" // Using allowed types from Notification interface
   },
   {
-    id: 2,
-    title: "Revision Request",
+    id: "2",
     message: "Client requested revisions for order #APO-2025-0031 (345 Maple Road).",
-    timestamp: "Yesterday",
+    date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
     read: false,
-    type: "revision"
+    type: "reminder"
   },
   {
-    id: 3,
-    title: "Submission Confirmation",
+    id: "3",
     message: "Order #APO-2025-0029 was successfully submitted to the client.",
-    timestamp: "2 days ago",
+    date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
     read: true,
-    type: "success"
+    type: "update"
   }
 ];
 
@@ -130,7 +127,7 @@ export default function AppraiserHome() {
   const [notifications, setNotifications] = useState(EXAMPLE_NOTIFICATIONS);
   
   // Handler for marking notification as read
-  const handleMarkAsRead = (id: number) => {
+  const handleMarkAsRead = (id: string) => {
     setNotifications(prevNotifications => 
       prevNotifications.map(notification => 
         notification.id === id ? { ...notification, read: true } : notification
@@ -146,7 +143,7 @@ export default function AppraiserHome() {
   };
   
   // Handler for dismissing a notification
-  const handleDismissNotification = (id: number) => {
+  const handleDismissNotification = (id: string) => {
     setNotifications(prevNotifications => 
       prevNotifications.filter(notification => notification.id !== id)
     );
@@ -161,8 +158,7 @@ export default function AppraiserHome() {
     <PageLayout
       title="TerraFusion Pro"
       subtitle="Professional Appraisal Suite"
-      sidebarActiveItem="dashboard"
-      headerActions={
+      actions={
         <div className="flex gap-2">
           <Button 
             variant="outline"

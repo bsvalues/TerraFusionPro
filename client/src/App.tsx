@@ -85,7 +85,7 @@ function App() {
                 <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first */}
-                <Route path="/" component={EnhancedHome} />
+                <Route path="/" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />
                 <Route path="/comps-search">
