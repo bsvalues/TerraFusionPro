@@ -11,7 +11,9 @@ import {
   Clock, 
   AlertCircle, 
   CheckCircle2, 
+  ChevronRight,
   CircleDashed,
+  Clipboard,
   FileBarChart2,
   Building2,
   ClipboardList,
@@ -22,6 +24,8 @@ import {
   Brain,
   BookOpen,
   Layers,
+  LineChart,
+  Send,
   ShieldCheck,
   Home as HomeIcon,
   LayoutDashboard,
@@ -311,213 +315,226 @@ export default function EnhancedHome() {
       }
     >
       <div className="space-y-6">
-        {/* Active Appraisal Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => setLocation('/appraisal/new')}>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className="bg-green-100 p-3 rounded-full border border-green-200">
-                  <Plus className="h-6 w-6 text-green-700" />
-                </div>
-                <h3 className="font-semibold text-green-800">Create New Appraisal</h3>
-                <p className="text-sm text-green-700">
-                  Start a new property appraisal from scratch
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Hero Section - Stark, minimal, inspired by Apple */}
+        <div className="px-0 py-8 md:py-12 flex flex-col items-center text-center space-y-4 mb-10">
+          <h1 className="text-4xl font-semibold tracking-tight">
+            Property Appraisal
+          </h1>
+          <p className="text-muted-foreground max-w-[600px] mb-3">
+            Complete your property valuations with confidence and precision
+          </p>
           
-          <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => setLocation('/email-order')}>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className="bg-blue-100 p-3 rounded-full border border-blue-200">
-                  <MailPlus className="h-6 w-6 text-blue-700" />
-                </div>
-                <h3 className="font-semibold text-blue-800">Import Order</h3>
-                <p className="text-sm text-blue-700">
-                  Import an appraisal order from email
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-          
-          {activeReports.length > 0 && (
-            <Card className="bg-gradient-to-br from-amber-50 to-amber-100 border-amber-200 hover:shadow-md transition-shadow cursor-pointer"
-              onClick={() => setLocation(`/report/${activeReports[0].id}`)}>
-              <CardContent className="p-6">
-                <div className="flex flex-col items-center text-center gap-3">
-                  <div className="bg-amber-100 p-3 rounded-full border border-amber-200">
-                    <ClipboardList className="h-6 w-6 text-amber-700" />
-                  </div>
-                  <h3 className="font-semibold text-amber-800">Continue Active Report</h3>
-                  <p className="text-sm text-amber-700 line-clamp-1">
-                    {activeReports[0].address || "Resume your most recent work"}
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-          )}
-          
-          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200 hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => setLocation('/reports')}>
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center text-center gap-3">
-                <div className="bg-purple-100 p-3 rounded-full border border-purple-200">
-                  <FileText className="h-6 w-6 text-purple-700" />
-                </div>
-                <h3 className="font-semibold text-purple-800">View All Reports</h3>
-                <p className="text-sm text-purple-700">
-                  Access your complete report history
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex flex-wrap gap-4 justify-center mt-6">
+            <Button 
+              size="lg" 
+              className="bg-black text-white hover:bg-black/90 h-12 px-6"
+              onClick={() => setLocation('/appraisal/new')}
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              New Appraisal
+            </Button>
+            
+            <Button 
+              variant="outline" 
+              size="lg"
+              className="h-12 px-6 border-2"
+              onClick={() => setLocation('/email-order')}
+            >
+              <MailPlus className="mr-2 h-4 w-4" />
+              Import Order
+            </Button>
+          </div>
         </div>
         
-        {/* Appraisal Workflow Guide */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle>Appraisal Workflow</CardTitle>
-            <CardDescription>
-              Follow these steps to complete your appraisal report efficiently
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
-              <div className="space-y-6">
-                {/* Step 1 */}
-                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
-                  <div className="absolute left-[-10px] top-0 bg-background p-1">
-                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
-                      1
+        {/* Quick Actions - Clean and minimal, with clear single-purpose buttons */}
+        {activeReports.length > 0 && (
+          <div className="mb-10">
+            <h2 className="text-xl font-medium mb-4">Continue Your Work</h2>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {activeReports.slice(0, 3).map(report => (
+                <Button 
+                  key={report.id}
+                  variant="outline" 
+                  className="h-auto py-4 px-4 flex items-start justify-between border bg-card hover:bg-accent/20 hover:border-primary/50"
+                  onClick={() => setLocation(`/report/${report.id}`)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-muted rounded">
+                      <ClipboardList className="h-5 w-5" />
+                    </div>
+                    <div className="text-left">
+                      <div className="font-medium">{report.address}</div>
+                      <div className="text-xs text-muted-foreground mt-1">Last updated {report.lastUpdated}</div>
                     </div>
                   </div>
-                  <h3 className="text-base font-semibold">Receive Order</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Create a new report from scratch or import from email
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/appraisal/new')}>
-                      <Plus className="h-3 w-3 mr-1" /> New
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/email-order')}>
-                      <MailPlus className="h-3 w-3 mr-1" /> Import
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Step 2 */}
-                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
-                  <div className="absolute left-[-10px] top-0 bg-background p-1">
-                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
-                      2
-                    </div>
-                  </div>
-                  <h3 className="text-base font-semibold">Property Research</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Enter property details and analyze market trends
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/property-entry')}>
-                      <Building2 className="h-3 w-3 mr-1" /> Enter Details
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/market-analysis')}>
-                      <BarChart className="h-3 w-3 mr-1" /> Market Data
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Step 3 */}
-                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
-                  <div className="absolute left-[-10px] top-0 bg-background p-1">
-                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
-                      3
-                    </div>
-                  </div>
-                  <h3 className="text-base font-semibold">Comparable Selection</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Select and adjust comparable properties
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/comparables')}>
-                      <ArrowUpDown className="h-3 w-3 mr-1" /> Select Comps
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/adjustments')}>
-                      <PencilRuler className="h-3 w-3 mr-1" /> Adjustments
-                    </Button>
-                  </div>
-                </div>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+        
+        {/* Appraisal Workflow - Tesla/Apple inspired */}
+        <div className="pb-6">
+          <h2 className="text-xl font-medium mb-6">Appraisal Workflow</h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="flex flex-col">
+              <div className="bg-neutral-100 rounded-t-lg px-6 py-4 border-b border-neutral-200">
+                <h3 className="font-medium">1. Preparation</h3>
               </div>
-              
-              <div className="space-y-6">
-                {/* Step 4 */}
-                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
-                  <div className="absolute left-[-10px] top-0 bg-background p-1">
-                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
-                      4
+              <div className="bg-white rounded-b-lg px-6 py-6 space-y-5 border border-t-0 border-neutral-200 flex-1">
+                <div>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/order-entry')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <Clipboard className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Order Entry</div>
+                        <div className="text-xs text-muted-foreground mt-1">Create or import appraisal order</div>
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="text-base font-semibold">Site Inspection</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Document property condition with photos
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/photo-manager')}>
-                      <Image className="h-3 w-3 mr-1" /> Upload Photos
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/condition')}>
-                      <HomeIcon className="h-3 w-3 mr-1" /> Property Condition
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Step 5 */}
-                <div className="relative pl-10 pb-8 border-l-2 border-primary border-dashed">
-                  <div className="absolute left-[-10px] top-0 bg-background p-1">
-                    <div className="flex items-center justify-center w-6 h-6 bg-primary text-white rounded-full">
-                      5
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/property-entry')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <Building2 className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Property Details</div>
+                        <div className="text-xs text-muted-foreground mt-1">Enter property specifications</div>
+                      </div>
                     </div>
-                  </div>
-                  <h3 className="text-base font-semibold">Report Creation</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Generate a complete appraisal report
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/report-editor')}>
-                      <FileBarChart2 className="h-3 w-3 mr-1" /> Edit Report
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/preview')}>
-                      <BookOpen className="h-3 w-3 mr-1" /> Preview
-                    </Button>
-                  </div>
-                </div>
-                
-                {/* Step 6 */}
-                <div className="relative pl-10 pb-0 border-l-2 border-green-500">
-                  <div className="absolute left-[-10px] top-0 bg-background p-1">
-                    <div className="flex items-center justify-center w-6 h-6 bg-green-500 text-white rounded-full">
-                      6
-                    </div>
-                  </div>
-                  <h3 className="text-base font-semibold">Quality Control & Submission</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Review, validate and submit your final report
-                  </p>
-                  <div className="mt-3 flex gap-2">
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/quality-check')}>
-                      <ShieldCheck className="h-3 w-3 mr-1" /> QC Check
-                    </Button>
-                    <Button size="sm" variant="outline" onClick={() => setLocation('/submit')}>
-                      <CheckCircle2 className="h-3 w-3 mr-1" /> Submit
-                    </Button>
-                  </div>
+                  </Button>
                 </div>
               </div>
             </div>
-          </CardContent>
-        </Card>
+            
+            <div className="flex flex-col">
+              <div className="bg-neutral-100 rounded-t-lg px-6 py-4 border-b border-neutral-200">
+                <h3 className="font-medium">2. Analysis</h3>
+              </div>
+              <div className="bg-white rounded-b-lg px-6 py-6 space-y-5 border border-t-0 border-neutral-200 flex-1">
+                <div>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/market-analysis')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <LineChart className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Market Analysis</div>
+                        <div className="text-xs text-muted-foreground mt-1">Review local market trends</div>
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/comparables')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <ArrowUpDown className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Comparables</div>
+                        <div className="text-xs text-muted-foreground mt-1">Select and adjust property comps</div>
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/photo-manager')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <Image className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Property Photos</div>
+                        <div className="text-xs text-muted-foreground mt-1">Upload and manage property images</div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+            </div>
+            
+            <div className="flex flex-col">
+              <div className="bg-neutral-100 rounded-t-lg px-6 py-4 border-b border-neutral-200">
+                <h3 className="font-medium">3. Completion</h3>
+              </div>
+              <div className="bg-white rounded-b-lg px-6 py-6 space-y-5 border border-t-0 border-neutral-200 flex-1">
+                <div>
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/report-editor')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <FileBarChart2 className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Report Generation</div>
+                        <div className="text-xs text-muted-foreground mt-1">Create and edit complete report</div>
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/quality-check')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <ShieldCheck className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Quality Control</div>
+                        <div className="text-xs text-muted-foreground mt-1">Verify report completeness</div>
+                      </div>
+                    </div>
+                  </Button>
+                  
+                  <Button 
+                    variant="ghost" 
+                    className="w-full justify-start pl-3 py-6 h-auto"
+                    onClick={() => setLocation('/submit')}
+                  >
+                    <div className="flex gap-3 items-center">
+                      <div className="bg-neutral-100 p-2 rounded-full">
+                        <Send className="h-4 w-4" />
+                      </div>
+                      <div className="text-left">
+                        <div className="font-medium">Submit Report</div>
+                        <div className="text-xs text-muted-foreground mt-1">Finalize and deliver appraisal</div>
+                      </div>
+                    </div>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
         
         {/* Bottom Grid: Reports + Notifications */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
