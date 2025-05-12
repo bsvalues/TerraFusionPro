@@ -52,6 +52,7 @@ interface NotificationPanelProps {
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: () => void;
   onDismiss: (id: string) => void;
+  className?: string;
 }
 
 /**
@@ -61,7 +62,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   notifications,
   onMarkAsRead,
   onMarkAllAsRead,
-  onDismiss
+  onDismiss,
+  className
 }) => {
   const [expanded, setExpanded] = useState(false);
   
@@ -110,7 +112,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   };
   
   return (
-    <Card className={`w-full transition-all duration-300 ease-in-out border-primary/20 ${expanded ? 'shadow-md' : ''}`}>
+    <Card className={`w-full transition-all duration-300 ease-in-out border-primary/20 ${expanded ? 'shadow-md' : ''} ${className || ''}`}>
       <CardHeader className="px-4 py-3 flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
           <div className="relative">
