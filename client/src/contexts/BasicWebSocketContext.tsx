@@ -61,10 +61,12 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
     
     try {
       // Determine WebSocket URL
+      // For Replit, we need to make sure we're connecting to the right endpoint
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       const wsUrl = `${protocol}//${window.location.host}/basic-ws`;
       
       console.log(`[BasicWebSocket] Connecting to ${wsUrl}...`);
+      console.log(`[BasicWebSocket] Current location: ${window.location.href}`);
       
       // Create WebSocket connection
       socketRef.current = new WebSocket(wsUrl);
