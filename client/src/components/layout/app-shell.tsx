@@ -323,6 +323,13 @@ export function AppShell({ children }: AppShellProps) {
       icon: <Activity className="h-4 w-4" />,
       description: "Monitor system health and performance"
     },
+    {
+      href: "/basic-ws-test",
+      label: "WebSocket Test",
+      icon: <RefreshCw className="h-4 w-4" />,
+      description: "Test WebSocket connectivity",
+      badge: { text: "New", variant: "secondary" }
+    },
     { 
       href: "/settings", 
       label: "Settings", 
@@ -466,10 +473,20 @@ export function AppShell({ children }: AppShellProps) {
               </div>
             
               {/* SyncStatus with default values */}
-              <SyncStatus 
-                state="synced" 
-                lastSynced={new Date()} 
-              />
+              <div className="flex items-center gap-2">
+                <SyncStatus 
+                  state="synced" 
+                  lastSynced={new Date()} 
+                />
+                
+                {/* Add link to WebSocket Test */}
+                <Link href="/basic-ws-test">
+                  <Button size="sm" variant="outline" className="h-8 px-2 text-xs flex items-center gap-1">
+                    <RefreshCw className="h-3 w-3" />
+                    WS Test
+                  </Button>
+                </Link>
+              </div>
             
               {/* Help button with AI badge */}
               <TooltipProvider>
