@@ -41,6 +41,7 @@ import OnboardingPage from "./pages/OnboardingPage";
 import { AppProvider } from "./contexts/AppContext";
 import { PerformanceProvider } from "./contexts/PerformanceContext";
 import { RealtimeProvider } from "./contexts/RealtimeContext";
+import { WebSocketProvider } from "./contexts/WebSocketContext";
 import { AppShell } from "./components/layout/app-shell";
 import WebSocketManager from "./components/WebSocketManager";
 import { useState, useEffect } from "react";
@@ -76,11 +77,11 @@ function App() {
   return (
     <PerformanceProvider>
       <RealtimeProvider>
-        <AppProvider>
-          <TooltipProvider>
-            <AppShell>
-              <WebSocketManager />
-              <Switch>
+        <WebSocketProvider>
+          <AppProvider>
+            <TooltipProvider>
+              <AppShell>
+                <Switch>
                 {/* Explicit routes first */}
                 <Route path="/" component={EnhancedHome} />
                 <Route path="/form" component={FormPage} />
@@ -155,6 +156,7 @@ function App() {
             </AppShell>
           </TooltipProvider>
         </AppProvider>
+      </WebSocketProvider>
       </RealtimeProvider>
     </PerformanceProvider>
   );
