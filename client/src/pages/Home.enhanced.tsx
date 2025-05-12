@@ -2,6 +2,7 @@ import { useLocation } from 'wouter';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { PageLayout } from '@/components/layout/page-layout';
+import { AIFeatureIntro } from '@/components/home/AIFeatureIntro';
 import { 
   Plus, 
   FileText, 
@@ -272,6 +273,9 @@ export default function EnhancedHome() {
       }
     >
       <div className="space-y-6">
+        {/* AI Features Panel */}
+        <AIFeatureIntro />
+        
         {/* Workflow Overview Panel */}
         <Card className="border-l-4 border-l-primary">
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
