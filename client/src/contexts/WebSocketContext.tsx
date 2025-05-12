@@ -156,14 +156,24 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       socketRef.current.close();
     }
 
-    // Determine the WebSocket URL (using the same protocol and hostname as the current page)
-    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${protocol}//${window.location.host}/ws`;
-    
     try {
+      // Clear any previous polling fallback
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
+      }
+
+      // Support both secure and non-secure protocols
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      
+      // On first attempt use the primary WebSocket endpoint
+      // For Replit environment: Don't include any WebSocket protocols
+      // This is crucial as protocol negotiation often fails in Replit
+      const wsUrl = `${protocol}//${window.location.host}/ws`;
+      
       console.log(`[WebSocketManager] Connecting to ${wsUrl}...`);
       
-      // Create new WebSocket connection
+      // Create new WebSocket connection without specifying protocols
       socketRef.current = new WebSocket(wsUrl);
       console.log('[WebSocketManager] Default connection handler: websocket connecting');
 
@@ -178,7 +188,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
           socketRef.current.send(JSON.stringify({ 
             type: 'handshake', 
-            clientId: clientIdRef.current 
+            clientId: clientIdRef.current,
+            timestamp: Date.now(),
+            userAgent: navigator.userAgent
           }));
         }
       };

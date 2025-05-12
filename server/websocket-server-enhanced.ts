@@ -1,5 +1,6 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
+import net from 'net';
 import { v4 as uuidv4 } from 'uuid';
 import { networkHealth } from './utils/network-health';
 
@@ -260,12 +261,14 @@ export function setupWebSocketServer(server: http.Server) {
       console.log(`[WebSocket] verifyClient called with origin: ${origin}`);
       cb(true, 200, 'Connection accepted');
     },
+    // Replit environment needs more permissive protocol handling
     handleProtocols: (protocols) => {
       console.log(`[WebSocket] handleProtocols called with: ${protocols}`);
-      if (protocols && Array.isArray(protocols) && protocols.length > 0) {
-        return protocols[0]; // Accept first protocol
+      // Accept connection even without protocols for better compatibility
+      if (!protocols || !Array.isArray(protocols) || protocols.length === 0) {
+        return '';
       }
-      return false;
+      return protocols[0]; // Accept first protocol
     }
   });
   
@@ -280,34 +283,67 @@ export function setupWebSocketServer(server: http.Server) {
     noServer: true,
     // Add client tracking with pings every 30 seconds
     clientTracking: true,
+    // Use more basic compression settings for Replit compatibility
     perMessageDeflate: {
       zlibDeflateOptions: {
         chunkSize: 1024,
         memLevel: 7,
-        level: 3
+        level: 1 // Lower compression level for better performance
       },
       zlibInflateOptions: {
         chunkSize: 10 * 1024
       },
-      // Below options are specific to Replit environment
+      // Simplified options for Replit environment
       serverNoContextTakeover: true,
       clientNoContextTakeover: true,
-      serverMaxWindowBits: 10,
-      concurrencyLimit: 10,
-      threshold: 1024
+      serverMaxWindowBits: 8, // Reduced window size for compatibility
+      threshold: 128 // Smaller message threshold for compression
+    },
+    // Same permissive protocol handling as main server
+    handleProtocols: (protocols) => {
+      // Accept connection even without protocols
+      if (!protocols || !Array.isArray(protocols) || protocols.length === 0) {
+        return '';
+      }
+      return protocols[0];
     }
   });
   
   // Set up a single upgrade handler for all WebSocket paths
   // This prevents conflicts between multiple upgrade listeners
-  server.on('upgrade', (request, socket, head) => {
+  server.on('upgrade', (request, socket: net.Socket, head) => {
+    // Add error handling for sockets with proper typing
+    try {
+      // Configure socket for WebSocket connection
+      socket.setTimeout(10000);
+      
+      // Add error handler to the socket
+      socket.on('error', (err: Error) => {
+        console.error(`[WebSocket] Socket error during upgrade: ${err.message}`);
+        try {
+          socket.end();
+        } catch (e: unknown) {
+          const errorMessage = e instanceof Error ? e.message : 'Unknown error';
+          console.error(`[WebSocket] Error ending socket: ${errorMessage}`);
+        }
+      });
+    } catch (setupError) {
+      console.error('[WebSocket] Error setting up socket handlers:', setupError);
+    }
+    
     console.log(`[WebSocket] Upgrade request for: ${request.url}`);
-    console.log(`[WebSocket] Headers: ${JSON.stringify(request.headers)}`);
     
     try {
-      // Parse the URL to get the pathname
-      const url = new URL(request.url || '', `http://${request.headers.host}`);
-      const pathname = url.pathname;
+      // Parse the URL to get the pathname - with fallback options for Replit environment
+      let pathname;
+      try {
+        const url = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`);
+        pathname = url.pathname;
+      } catch (urlError) {
+        // Fallback: extract pathname directly
+        pathname = (request.url || '').split('?')[0];
+        console.log(`[WebSocket] URL parsing failed, using direct pathname: ${pathname}`);
+      }
       
       console.log(`[WebSocket] Upgrade request pathname: ${pathname}`);
       
@@ -356,11 +392,19 @@ export function setupWebSocketServer(server: http.Server) {
       }
       else {
         console.log(`[WebSocket] No handler for path: ${pathname}`);
-        socket.destroy();
+        try {
+          socket.end('HTTP/1.1 404 Not Found\r\n\r\n');
+        } catch (e) {
+          socket.destroy();
+        }
       }
     } catch (err) {
       console.error('[WebSocket] Error processing upgrade request:', err);
-      socket.destroy();
+      try {
+        socket.end('HTTP/1.1 500 Internal Server Error\r\n\r\n');
+      } catch (e) {
+        socket.destroy();
+      }
     }
   });
 
