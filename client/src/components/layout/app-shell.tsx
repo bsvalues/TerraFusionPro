@@ -163,56 +163,90 @@ interface AppShellProps {
 export function AppShell({ children }: AppShellProps) {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   
-  // Core Workflow Navigation - Primary functions in a logical workflow order
-  const coreWorkflowItems: NavItem[] = [
+  // Appraisal Workflow - Redesigned to emphasize the AI-enhanced appraisal process
+  const appraisalWorkflowItems: NavItem[] = [
     { 
       href: "/", 
-      label: "Dashboard", 
+      label: "AI Command Center", 
       icon: <LayoutDashboard className="h-4 w-4" />,
-      description: "Overview of your active appraisals and key metrics"
+      description: "AI-powered overview of your appraisals, insights, and recommendations"
     },
     { 
       href: "/email-order", 
-      label: "New Order", 
+      label: "Order Intake", 
       icon: <Inbox className="h-4 w-4" />,
-      description: "Import a new order from email or document"
+      description: "AI-assisted order processing and property identification"
     },
     { 
       href: "/property-data", 
-      label: "Property Data", 
+      label: "Property Intelligence", 
       icon: <Building2 className="h-4 w-4" />,
-      description: "View and manage property information"
-    },
-    { 
-      href: "/uad-form", 
-      label: "UAD Form", 
-      icon: <ClipboardList className="h-4 w-4" />,
-      badge: { text: "Active", variant: "secondary" },
-      description: "Complete the Uniform Appraisal Dataset form"
-    },
-    { 
-      href: "/comps", 
-      label: "Comparables", 
-      icon: <FileLineChart className="h-4 w-4" />,
-      description: "Manage comparable properties for your appraisal"
+      badge: { text: "AI", variant: "secondary" },
+      description: "Smart property data with AI-enriched information"
     },
     { 
       href: "/comps-search", 
-      label: "Comps Search", 
+      label: "Smart Comparables", 
       icon: <Search className="h-4 w-4" />,
-      badge: { text: "New", variant: "secondary" },
-      description: "Search and analyze comparable properties"
+      badge: { text: "AI", variant: "secondary" },
+      description: "AI-driven comparable selection and analysis"
+    },
+    { 
+      href: "/photos", 
+      label: "Visual Analysis", 
+      icon: <Images className="h-4 w-4" />,
+      badge: { text: "AI", variant: "secondary" },
+      description: "Computer vision for property condition assessment"
+    },
+    { 
+      href: "/urar", 
+      label: "AI Form Assistant", 
+      icon: <FileCheck className="h-4 w-4" />,
+      badge: { text: "AI", variant: "secondary" },
+      description: "Intelligent form completion and validation"
     },
   ];
   
-  // Report Tools - Tools for report generation and compliance
-  const reportToolsItems: NavItem[] = [
+  // AI Analysis Tools - Enhanced AI-specific features prominently displayed
+  const aiAnalysisItems: NavItem[] = [
     { 
-      href: "/photos", 
-      label: "Photo Management", 
-      icon: <Images className="h-4 w-4" />,
-      description: "Organize and enhance property photos"
+      href: "/ai-valuation", 
+      label: "AI Valuations", 
+      icon: <Brain className="h-4 w-4" />,
+      badge: { text: "Core", variant: "default" },
+      description: "Machine learning-powered property valuation engine"
     },
+    { 
+      href: "/market-analysis", 
+      label: "Market Intelligence", 
+      icon: <Lightbulb className="h-4 w-4" />,
+      badge: { text: "AI", variant: "secondary" },
+      description: "Predictive analytics for market trends and forecasting"
+    },
+    { 
+      href: "/condition-assessment", 
+      label: "Condition Analysis", 
+      icon: <Activity className="h-4 w-4" />,
+      badge: { text: "AI", variant: "secondary" },
+      description: "AI assessment of property condition from photos"
+    },
+    { 
+      href: "/batch-adjustment", 
+      label: "Smart Adjustments", 
+      icon: <FileBarChart2 className="h-4 w-4" />,
+      badge: { text: "AI", variant: "secondary" },
+      description: "AI-recommended adjustments for comparable properties"
+    },
+    { 
+      href: "/system-monitor", 
+      label: "AI Model Health", 
+      icon: <Activity className="h-4 w-4" />,
+      description: "Monitor AI model performance and accuracy metrics"
+    },
+  ];
+  
+  // Report Generation - Tools for finalizing and delivering reports
+  const reportToolsItems: NavItem[] = [
     { 
       href: "/sketches", 
       label: "Property Sketches", 
@@ -220,54 +254,24 @@ export function AppShell({ children }: AppShellProps) {
       description: "Create and edit property floor plans"
     },
     { 
-      href: "/batch-adjustment", 
-      label: "Batch Adjustments", 
-      icon: <FileBarChart2 className="h-4 w-4" />,
-      badge: { text: "New", variant: "secondary" },
-      description: "Batch adjust and export comparables"
-    },
-    { 
       href: "/reports", 
-      label: "Report Generator", 
+      label: "Report Builder", 
       icon: <FileCheck className="h-4 w-4" />,
-      description: "Generate and export appraisal reports"
+      description: "Generate and export professional appraisal reports"
     },
     { 
       href: "/compliance", 
-      label: "Compliance Check", 
+      label: "AI Compliance Check", 
       icon: <ShieldCheck className="h-4 w-4" />,
-      description: "Verify appraisal compliance with standards"
+      badge: { text: "AI", variant: "secondary" },
+      description: "Intelligent verification of report compliance"
     },
     { 
       href: "/reviewer", 
-      label: "Reviewer", 
+      label: "Review Dashboard", 
       icon: <ClipboardList className="h-4 w-4" />,
-      badge: { text: "New", variant: "secondary" },
-      description: "Review and collaborate on appraisal reports"
-    },
-  ];
-  
-  // AI Assistant Tools - AI-powered features
-  const aiToolsItems: NavItem[] = [
-    { 
-      href: "/ai-valuation", 
-      label: "AI Valuation", 
-      icon: <Brain className="h-4 w-4" />,
-      description: "Get AI-powered property valuations"
-    },
-    { 
-      href: "/market-analysis", 
-      label: "Market Analysis", 
-      icon: <Lightbulb className="h-4 w-4" />,
-      badge: { text: "New", variant: "secondary" },
-      description: "AI-generated market trend analysis"
-    },
-    { 
-      href: "/urar", 
-      label: "URAR + AI Assistant", 
-      icon: <FileCheck className="h-4 w-4" />,
-      badge: { text: "New", variant: "secondary" },
-      description: "Legal URAR form with AI condition insights"
+      badge: { text: "AI", variant: "secondary" },
+      description: "Collaborative review with AI quality analysis"
     },
   ];
   
@@ -333,11 +337,11 @@ export function AppShell({ children }: AppShellProps) {
     },
   ];
 
-  // Navigation sections for sidebar
+  // Navigation sections for sidebar - reorganized to highlight AI capabilities
   const navSections: NavSection[] = [
-    { title: "Core Workflow", items: coreWorkflowItems },
-    { title: "Report Tools", items: reportToolsItems },
-    { title: "AI Assistant", items: aiToolsItems },
+    { title: "AI-Powered Workflow", items: appraisalWorkflowItems },
+    { title: "Smart Analysis", items: aiAnalysisItems },
+    { title: "Report Generation", items: reportToolsItems },
     { title: "TerraField Mobile", items: terraFieldItems },
     { title: "Utilities", items: utilityItems },
   ];
