@@ -480,12 +480,12 @@ export function AppShell({ children }: AppShellProps) {
                 />
                 
                 {/* Add link to WebSocket Test */}
-                <Link href="/basic-ws-test">
+                <a href="/basic-ws-test">
                   <Button size="sm" variant="outline" className="h-8 px-2 text-xs flex items-center gap-1">
                     <RefreshCw className="h-3 w-3" />
                     WS Test
                   </Button>
-                </Link>
+                </a>
               </div>
             
               {/* Help button with AI badge */}

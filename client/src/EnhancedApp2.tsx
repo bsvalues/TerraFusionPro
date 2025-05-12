@@ -37,6 +37,7 @@ import SystemMonitorPage from './pages/SystemMonitorPage';
 import { WorkflowPage } from './pages/WorkflowPage';
 import { ReportGenerationPage } from './pages/ReportGenerationPage';
 import WebSocketTestPage from './pages/WebSocketTestPage';
+import BasicWebSocketTestPage from './pages/BasicWebSocketTestPage';
 import SnapshotViewerPage from './pages/SnapshotViewerPage';
 import ShapViewerPage from './pages/ShapViewerPage';
 import BatchAdjustmentPage from './pages/BatchAdjustmentPage';
