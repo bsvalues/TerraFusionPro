@@ -81,6 +81,7 @@ function App() {
           <AppProvider>
             <TooltipProvider>
               <AppShell>
+                <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first */}
                 <Route path="/" component={EnhancedHome} />
