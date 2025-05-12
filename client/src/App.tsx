@@ -1,6 +1,7 @@
 import { Switch, Route } from "wouter";
 import Home from "./pages/Home";
 import EnhancedHome from "./pages/Home.enhanced";
+import AppraiserHome from "./pages/AppraiserHome";
 import FormPage from "./pages/FormPage";
 import CompsPage from "./pages/CompsPage";
 import CompsSearchPage from "./pages/CompsSearchPage";
