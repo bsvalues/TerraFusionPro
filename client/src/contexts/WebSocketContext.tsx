@@ -1,279 +1,348 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
-import { websocketManager } from '@/lib/websocket-manager';
-import { startLongPolling, stopLongPolling, sendViaHttp } from '@/lib/polling-fallback';
-import { useToast } from '@/hooks/use-toast';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 
-type ConnectionStatus = 'connecting' | 'connected' | 'disconnected' | 'error';
+// Define the types of notifications our WebSocket might receive
+export type NotificationType = 'system' | 'update' | 'alert' | 'info';
 
-interface WebSocketContextType {
-  connectionStatus: ConnectionStatus;
-  isConnected: boolean;
-  connectionError: string | null;
-  reconnectAttempts: number;
-  connectionType: 'websocket' | 'long-polling' | 'none';
-  usingFallback: boolean;
-  connect: () => void;
-  disconnect: () => void;
-  send: (data: any) => boolean;
-  lastPing: number | null;
+// Define the shape of a notification
+export interface Notification {
+  id: string;
+  type: NotificationType;
+  message: string;
+  timestamp: number;
+  read: boolean;
+  data?: any; // Optional additional data
 }
 
+// Define the context shape
+interface WebSocketContextType {
+  connected: boolean;
+  notifications: Notification[];
+  markAsRead: (id: string) => void;
+  markAllAsRead: () => void;
+  sendMessage: (message: any) => void;
+  connectionMode: 'websocket' | 'polling' | 'disconnected';
+}
+
+// Create the context with default values
 const WebSocketContext = createContext<WebSocketContextType>({
-  connectionStatus: 'disconnected',
-  isConnected: false,
-  connectionError: null,
-  reconnectAttempts: 0,
-  connectionType: 'none',
-  usingFallback: false,
-  connect: () => {},
-  disconnect: () => {},
-  send: () => false,
-  lastPing: null,
+  connected: false,
+  notifications: [],
+  markAsRead: () => {},
+  markAllAsRead: () => {},
+  sendMessage: () => {},
+  connectionMode: 'disconnected',
 });
 
-export function WebSocketProvider({ children }: { children: React.ReactNode }) {
-  const [connectionStatus, setConnectionStatus] = useState<ConnectionStatus>('disconnected');
-  const [connectionError, setConnectionError] = useState<string | null>(null);
-  const [reconnectAttempts, setReconnectAttempts] = useState(0);
-  const [lastPing, setLastPing] = useState<number | null>(null);
-  const [connectionType, setConnectionType] = useState<'websocket' | 'long-polling' | 'none'>('none');
-  const [usingFallback, setUsingFallback] = useState(false);
-  const { toast } = useToast();
-  
-  // Derived state
-  const isConnected = connectionStatus === 'connected';
-  
-  useEffect(() => {
-    // Handle connection state changes
-    const handleConnection = (data: { 
-      status: string; 
-      message?: string; 
-      code?: number; 
-      protocol?: string; 
-      isFallback?: boolean 
-    }) => {
-      setConnectionStatus(data.status as ConnectionStatus);
-      
-      // Update connection type if provided
-      if (data.protocol) {
-        const connType = data.protocol === 'websocket' ? 'websocket' : 
-                        (data.protocol === 'long-polling' ? 'long-polling' : 'none');
-        setConnectionType(connType);
+// Define a list of example notifications to show on first load
+const initialNotifications: Notification[] = [
+  {
+    id: 'notification-1',
+    type: 'system',
+    message: 'System check complete - AI model health: Excellent',
+    timestamp: Date.now() - 1000 * 60 * 5, // 5 minutes ago
+    read: false,
+  },
+  {
+    id: 'notification-2',
+    type: 'update',
+    message: 'New TerraFusion update available with enhanced AI features',
+    timestamp: Date.now() - 1000 * 60 * 30, // 30 minutes ago
+    read: true,
+  },
+  {
+    id: 'notification-3',
+    type: 'alert',
+    message: 'Property condition analysis complete for 123 Main St',
+    timestamp: Date.now() - 1000 * 60 * 60, // 1 hour ago
+    read: true,
+  },
+];
+
+// The provider component
+export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  // State to track connection status and notifications
+  const [connected, setConnected] = useState(false);
+  const [connectionMode, setConnectionMode] = useState<'websocket' | 'polling' | 'disconnected'>('disconnected');
+  const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+
+  // Reference to the WebSocket instance
+  const socketRef = useRef<WebSocket | null>(null);
+  const reconnectTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const reconnectAttemptsRef = useRef(0);
+  const maxReconnectAttempts = 3;
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const clientIdRef = useRef<string>(`client_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`);
+
+  // Function to handle messages from the WebSocket
+  const handleSocketMessage = useCallback((event: MessageEvent) => {
+    try {
+      const data = JSON.parse(event.data);
+      console.log('[WebSocketContext] Received message:', data);
+
+      // If it's a notification, add it
+      if (data.type === 'notification') {
+        const newNotification: Notification = {
+          id: `notification-${Date.now()}`,
+          type: data.notificationType || 'info',
+          message: data.message,
+          timestamp: Date.now(),
+          read: false,
+          data: data.data,
+        };
         
-        // Update fallback state
-        setUsingFallback(!!data.isFallback);
+        setNotifications((prev) => [newNotification, ...prev]);
       }
-      
-      if (data.status === 'connecting') {
-        setConnectionError(null);
-      } else if (data.status === 'connected') {
-        // Reset error state and reconnect attempts on successful connection
-        setConnectionError(null);
-        setReconnectAttempts(0);
-        setLastPing(Date.now());
-        
-        // Update connection type based on protocol
-        if (!data.protocol) {
-          setConnectionType('websocket'); // Default if not specified
-          setUsingFallback(false);
+    } catch (error) {
+      console.error('[WebSocketContext] Error parsing WebSocket message:', error);
+    }
+  }, []);
+
+  // Function to setup long polling as a fallback
+  const setupLongPolling = useCallback(() => {
+    console.log('[WebSocketContext] Starting long polling fallback with client ID:', clientIdRef.current);
+    
+    setConnectionMode('polling');
+    setConnected(true);
+
+    // Clear any existing interval
+    if (pollingIntervalRef.current) {
+      clearInterval(pollingIntervalRef.current);
+    }
+
+    // Setup polling
+    const poll = async () => {
+      try {
+        const response = await fetch(`/api/poll?clientId=${clientIdRef.current}`);
+        if (response.ok) {
+          const data = await response.json();
+          
+          // If we received notifications, process them
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages.forEach((msg: any) => {
+              if (msg.type === 'notification') {
+                const newNotification: Notification = {
+                  id: `notification-${Date.now()}-${Math.random()}`,
+                  type: msg.notificationType || 'info',
+                  message: msg.message,
+                  timestamp: msg.timestamp || Date.now(),
+                  read: false,
+                  data: msg.data,
+                };
+                setNotifications((prev) => [newNotification, ...prev]);
+              }
+            });
+          }
         }
-        
-        // Toast notification only if reconnecting (not on initial connection)
-        if (reconnectAttempts > 0) {
-          const connMethod = data.isFallback ? 'Long-polling fallback' : 'WebSocket';
-          toast({
-            title: "Connection Restored",
-            description: `${connMethod} connection has been established`,
-            variant: "default",
-          });
-        }
-      } else if (data.status === 'error') {
-        setConnectionError(data.message || 'Unknown connection error');
-        
-        toast({
-          title: "Connection Error",
-          description: data.message || 'Connection error occurred',
-          variant: "destructive",
-        });
-      } else if (data.status === 'disconnected') {
-        if (data.code && data.code !== 1000) { // Not a normal closure
-          toast({
-            title: "Connection Lost",
-            description: "Connection to server was lost. Attempting to reconnect...",
-            variant: "destructive",
-          });
-        }
+      } catch (error) {
+        console.error('[WebSocketContext] Polling error:', error);
       }
     };
-    
-    // Handle error events
-    const handleError = (error: any) => {
-      if (error.type === 'connection_error') {
-        setConnectionError(`Connection error: ${error.message || 'Unknown error'}`);
-      } else if (error.type === 'send_error') {
-        setConnectionError(`Failed to send message: ${error.message || 'Unknown error'}`);
-      }
-    };
-    
-    // Register event listeners
-    websocketManager.on('connection', handleConnection);
-    websocketManager.on('error', handleError);
-    
-    // Set up ping mechanism to detect connection health
-    const pingInterval = window.setInterval(() => {
-      if (connectionStatus === 'connected') {
-        websocketManager.send({ type: 'ping', timestamp: Date.now() });
-        setLastPing(Date.now());
-      }
-    }, 30000);
-    
-    // Listen for pong responses
-    const handlePong = (data: any) => {
-      if (data.type === 'pong') {
-        setLastPing(Date.now());
-      }
-    };
-    websocketManager.on('pong', handlePong);
-    
-    // Listen for heartbeat responses
-    const handleHeartbeat = (data: any) => {
-      if (data.type === 'heartbeat' && data.action === 'pong') {
-        setLastPing(Date.now());
-      }
-    };
-    websocketManager.on('heartbeat', handleHeartbeat);
-    
-    // Connect on mount
-    websocketManager.connect();
-    
-    // Cleanup function
+
+    // Poll immediately then set interval
+    poll();
+    pollingIntervalRef.current = setInterval(poll, 2000);
+
     return () => {
-      websocketManager.off('connection', handleConnection);
-      websocketManager.off('error', handleError);
-      websocketManager.off('pong', handlePong);
-      websocketManager.off('heartbeat', handleHeartbeat);
-      clearInterval(pingInterval);
-      
-      // Don't disconnect here as other components might still need the connection
-      // The websocketManager will handle cleanup on page unload
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
     };
-  }, [toast, reconnectAttempts]);
-  
-  // Update reconnect attempts when websocketManager's reconnect attempts change
-  useEffect(() => {
-    const handleReconnectAttempt = () => {
-      setReconnectAttempts(prev => prev + 1);
-    };
+  }, []);
+
+  // Function to establish WebSocket connection
+  const connectWebSocket = useCallback(() => {
+    // Clean up any existing socket
+    if (socketRef.current) {
+      socketRef.current.close();
+    }
+
+    // Determine the WebSocket URL (using the same protocol and hostname as the current page)
+    const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+    const wsUrl = `${protocol}//${window.location.host}/ws`;
     
-    // Handle WebSocket connection failure by switching to polling
-    const handleConnectionFailed = (data: any) => {
-      console.log('[WebSocketContext] WebSocket connection failed, switching to polling fallback');
+    try {
+      console.log(`[WebSocketManager] Connecting to ${wsUrl}...`);
       
-      // Update connection type and fallback status
-      setConnectionType('long-polling');
-      setUsingFallback(true);
-      
-      toast({
-        title: "Switching Connection Method",
-        description: "WebSocket connection failed. Using HTTP long-polling fallback to stay connected.",
-        variant: "default",
-      });
-      
-      // Start long polling as a fallback
-      const { clientId } = websocketManager.getConfig();
-      
-      // Create handlers for the polling system
-      const handlePollingMessage = (message: any) => {
-        // Process the message based on its type
-        if (message.type === 'pong' || message.type === 'heartbeat') {
-          setLastPing(Date.now());
-        }
-        // Route the message through the WebSocket manager's event system
-        websocketManager.handleMessage(message);
-      };
-      
-      const handlePollingConnection = (state: 'connected' | 'disconnected' | 'error', reason?: string) => {
-        // Update connection status based on polling state
-        setConnectionStatus(state);
-        if (state === 'connected') {
-          setConnectionError(null);
-        } else if (state === 'error') {
-          setConnectionError(reason || 'Polling connection error');
+      // Create new WebSocket connection
+      socketRef.current = new WebSocket(wsUrl);
+      console.log('[WebSocketManager] Default connection handler: websocket connecting');
+
+      // Set up event handlers
+      socketRef.current.onopen = () => {
+        console.log('[WebSocketManager] WebSocket connected');
+        setConnected(true);
+        setConnectionMode('websocket');
+        reconnectAttemptsRef.current = 0;
+        
+        // Send a handshake message
+        if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+          socketRef.current.send(JSON.stringify({ 
+            type: 'handshake', 
+            clientId: clientIdRef.current 
+          }));
         }
       };
-      
-      // Start the long polling with the appropriate client ID
-      const generatedClientId = clientId || `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-      console.log(`[WebSocketContext] Starting long polling fallback with client ID: ${generatedClientId}`);
-      
-      startLongPolling(
-        `/api/poll`, 
-        generatedClientId,
-        handlePollingMessage,
-        handlePollingConnection
-      );
-    };
-    
-    websocketManager.on('reconnect_attempt', handleReconnectAttempt);
-    websocketManager.on('connection_failed', handleConnectionFailed);
-    
-    return () => {
-      websocketManager.off('reconnect_attempt', handleReconnectAttempt);
-      websocketManager.off('connection_failed', handleConnectionFailed);
-    };
-  }, [toast]);
-  
-  return (
-    <WebSocketContext.Provider 
-      value={{
-        connectionStatus,
-        isConnected,
-        connectionError,
-        reconnectAttempts,
-        connectionType,
-        usingFallback,
-        connect: () => {
-          toast({
-            title: "Connecting",
-            description: "Attempting to establish connection...",
-          });
-          websocketManager.connect();
-        },
-        disconnect: () => {
-          websocketManager.disconnect();
-          stopLongPolling(); // Also stop polling fallback
+
+      socketRef.current.onmessage = handleSocketMessage;
+
+      socketRef.current.onclose = (event) => {
+        console.log(`[WebSocketManager] WebSocket closed: ${event.code} - ${event.reason || 'No reason provided'}`);
+        console.log('[WebSocketManager] Default connection handler: websocket disconnected');
+        setConnected(false);
+        setConnectionMode('disconnected');
+
+        // If we still have reconnect attempts left, try reconnecting with exponential backoff
+        if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+          const delay = Math.pow(2, reconnectAttemptsRef.current) * 1000;
+          console.log(`[WebSocketManager] Scheduling reconnect in ${delay}ms (attempt ${reconnectAttemptsRef.current + 1}/${maxReconnectAttempts})`);
           
-          // Reset connection type and fallback state
-          setConnectionType('none');
-          setUsingFallback(false);
-          
-          toast({
-            title: "Disconnected",
-            description: "WebSocket connection closed",
-          });
-        },
-        send: (data) => {
-          // Try WebSocket first, fall back to HTTP if not available
-          const sentViaWebSocket = websocketManager.send(data);
-          
-          // If WebSocket send fails, try HTTP
-          if (!sentViaWebSocket) {
-            console.log('[WebSocketContext] Sending via HTTP fallback');
-            const success = sendViaHttp(data);
-            if (!success) {
-              console.error('[WebSocketContext] Failed to send via HTTP fallback');
-            }
+          if (reconnectTimeoutRef.current) {
+            clearTimeout(reconnectTimeoutRef.current);
           }
           
-          // Return if initial send was successful
-          return sentViaWebSocket;
+          reconnectTimeoutRef.current = setTimeout(() => {
+            reconnectAttemptsRef.current++;
+            
+            // Try alternative WebSocket path for subsequent attempts
+            if (reconnectAttemptsRef.current > 1) {
+              console.log('[WebSocketManager] Switching to alternate WebSocket endpoint: /ws-alt');
+              const wsAltUrl = `${protocol}//${window.location.host}/ws-alt`;
+              if (socketRef.current) {
+                socketRef.current.close();
+              }
+              socketRef.current = new WebSocket(wsAltUrl);
+              // Set up the same event handlers for the new socket
+              if (socketRef.current) {
+                socketRef.current.onopen = () => {
+                  console.log('[WebSocketManager] WebSocket connected (alternate endpoint)');
+                  setConnected(true);
+                  setConnectionMode('websocket');
+                  reconnectAttemptsRef.current = 0;
+                  
+                  // Send a handshake message on the new connection
+                  if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+                    socketRef.current.send(JSON.stringify({ 
+                      type: 'handshake', 
+                      clientId: clientIdRef.current 
+                    }));
+                  }
+                };
+                socketRef.current.onmessage = handleSocketMessage;
+                socketRef.current.onclose = (event) => {
+                  console.log(`[WebSocketManager] WebSocket closed: ${event.code} - ${event.reason || 'No reason provided'}`);
+                  console.log('[WebSocketManager] Default connection handler: websocket disconnected');
+                  setConnected(false);
+                  setConnectionMode('disconnected');
+                  
+                  // Only continue reconnect attempts if we haven't maxed out
+                  if (reconnectAttemptsRef.current < maxReconnectAttempts) {
+                    connectWebSocket();
+                  } else {
+                    console.log('[WebSocketManager] Max reconnect attempts reached, giving up');
+                    // Switch to long polling as fallback
+                    console.log('[WebSocketContext] WebSocket connection failed, switching to polling fallback');
+                    setupLongPolling();
+                  }
+                };
+                socketRef.current.onerror = (error) => {
+                  console.error('[WebSocketManager] WebSocket error:', error);
+                };
+              }
+            } else {
+              connectWebSocket();
+            }
+          }, delay);
+        } else {
+          // We've exceeded our max retry count, switch to long polling
+          console.log('[WebSocketManager] Max reconnect attempts reached, giving up');
+          console.log('[WebSocketContext] WebSocket connection failed, switching to polling fallback');
+          setupLongPolling();
+        }
+      };
+
+      socketRef.current.onerror = (error) => {
+        console.error('[WebSocketManager] WebSocket error:', error);
+      };
+    } catch (error) {
+      console.error('[WebSocketContext] Error creating WebSocket:', error);
+      // If WebSocket fails immediately, try polling
+      setupLongPolling();
+    }
+  }, [handleSocketMessage, setupLongPolling]);
+
+  // Connect on component mount
+  useEffect(() => {
+    connectWebSocket();
+
+    // Cleanup on unmount
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.close();
+      }
+      if (reconnectTimeoutRef.current) {
+        clearTimeout(reconnectTimeoutRef.current);
+      }
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+      }
+    };
+  }, [connectWebSocket, setupLongPolling]);
+
+  // Function to mark a notification as read
+  const markAsRead = useCallback((id: string) => {
+    setNotifications((prev) =>
+      prev.map((notification) =>
+        notification.id === id ? { ...notification, read: true } : notification
+      )
+    );
+  }, []);
+
+  // Function to mark all notifications as read
+  const markAllAsRead = useCallback(() => {
+    setNotifications((prev) =>
+      prev.map((notification) => ({ ...notification, read: true }))
+    );
+  }, []);
+
+  // Function to send a message through the WebSocket
+  const sendMessage = useCallback((message: any) => {
+    if (connectionMode === 'websocket' && socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
+      socketRef.current.send(JSON.stringify(message));
+    } else if (connectionMode === 'polling') {
+      // For polling mode, we can use fetch to send messages
+      fetch('/api/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
         },
-        lastPing,
+        body: JSON.stringify({
+          clientId: clientIdRef.current,
+          ...message,
+        }),
+      }).catch(error => {
+        console.error('[WebSocketContext] Error sending message via HTTP:', error);
+      });
+    } else {
+      console.warn('[WebSocketManager] Cannot send message, socket not open');
+    }
+  }, [connectionMode]);
+
+  // Provide the WebSocket context to children
+  return (
+    <WebSocketContext.Provider
+      value={{
+        connected,
+        notifications,
+        markAsRead,
+        markAllAsRead,
+        sendMessage,
+        connectionMode,
       }}
     >
       {children}
     </WebSocketContext.Provider>
   );
-}
+};
 
+// Hook for easy access to WebSocket context
 export const useWebSocket = () => useContext(WebSocketContext);
