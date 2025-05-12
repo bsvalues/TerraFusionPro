@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import websocketClient from '@/lib/websocketClient';
-import { AlertCircle, Wifi, WifiOff } from 'lucide-react';
+import { AlertCircle, Brain, Wifi, WifiOff, Activity, Zap, RefreshCw } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 
-// WebSocket connection states
+// WebSocket connection states for AI real-time communication
 enum ConnectionState {
   CONNECTING = 'connecting',
   CONNECTED = 'connected', 
@@ -80,44 +82,92 @@ const WebSocketManager: React.FC = () => {
   
   return (
     <div className="fixed bottom-4 right-4 z-50 max-w-md">
-      <Alert variant={connectionState === ConnectionState.FALLBACK ? "destructive" : "default"}>
+      <Alert 
+        variant={
+          connectionState === ConnectionState.FALLBACK 
+            ? "destructive" 
+            : "default"
+        }
+        className={
+          connectionState === ConnectionState.FALLBACK 
+            ? "border-red-200 bg-red-50" 
+            : connectionState === ConnectionState.DISCONNECTED
+              ? "border-orange-200 bg-orange-50"
+              : connectionState === ConnectionState.CONNECTING
+                ? "border-primary/20 bg-primary/5"
+                : "border-primary/20 bg-primary/5"
+        }
+      >
         <div className="flex items-center gap-2">
           {connectionState === ConnectionState.CONNECTING && (
-            <Wifi className="h-4 w-4 animate-pulse" />
+            <div className="relative">
+              <Brain className="h-5 w-5 text-primary" />
+              <Activity className="h-3 w-3 text-primary/80 absolute -top-1 -right-1 animate-pulse" />
+            </div>
           )}
           {connectionState === ConnectionState.DISCONNECTED && (
-            <WifiOff className="h-4 w-4" />
+            <div className="relative">
+              <Brain className="h-5 w-5 text-orange-500" />
+              <WifiOff className="h-3 w-3 text-orange-600 absolute -top-1 -right-1" />
+            </div>
           )}
           {connectionState === ConnectionState.FALLBACK && (
-            <AlertCircle className="h-4 w-4" />
+            <div className="relative">
+              <Brain className="h-5 w-5 text-red-500" />
+              <AlertCircle className="h-3 w-3 text-red-600 absolute -top-1 -right-1" />
+            </div>
           )}
           
-          <AlertTitle>
-            {connectionState === ConnectionState.CONNECTING && "Connecting..."}
-            {connectionState === ConnectionState.DISCONNECTED && "Connection Lost"}
-            {connectionState === ConnectionState.FALLBACK && "Using Fallback Mode"}
+          <AlertTitle className="font-medium flex items-center gap-1.5">
+            {connectionState === ConnectionState.CONNECTING && (
+              <>
+                <span className="text-primary">AI Network</span>
+                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/30 text-[10px]">Connecting</Badge>
+              </>
+            )}
+            {connectionState === ConnectionState.DISCONNECTED && (
+              <>
+                <span className="text-orange-600">AI Network</span>
+                <Badge variant="outline" className="bg-orange-100 text-orange-600 border-orange-200 text-[10px]">Reconnecting</Badge>
+              </>
+            )}
+            {connectionState === ConnectionState.FALLBACK && (
+              <>
+                <span className="text-red-600">AI Network</span>
+                <Badge variant="outline" className="bg-red-100 text-red-600 border-red-200 text-[10px]">Limited</Badge>
+              </>
+            )}
           </AlertTitle>
         </div>
         
         <AlertDescription>
           {connectionState === ConnectionState.CONNECTING && (
-            <p>Establishing real-time connection...</p>
+            <div className="mt-2">
+              <p className="text-sm text-muted-foreground mb-2">Establishing AI neural network connection...</p>
+              <Progress value={attempts ? (attempts/maxAttempts * 100) : 33} className="h-1 bg-primary/10" />
+            </div>
           )}
           
           {connectionState === ConnectionState.DISCONNECTED && (
-            <p>Attempting to reconnect ({attempts}/{maxAttempts})...</p>
+            <div className="mt-2">
+              <p className="text-sm text-muted-foreground mb-2">
+                Attempting to restore AI network connection ({attempts}/{maxAttempts})
+              </p>
+              <Progress value={(attempts/maxAttempts * 100)} className="h-1 bg-orange-100" />
+            </div>
           )}
           
           {connectionState === ConnectionState.FALLBACK && (
             <div className="mt-2">
-              <p>Using polling fallback mode. Real-time features may be delayed.</p>
+              <p className="text-sm text-muted-foreground mb-2">AI features operating in limited mode. Real-time property analytics may be delayed.</p>
               <Button 
                 variant="outline" 
                 size="sm" 
-                className="mt-2"
+                className="mt-2 border-primary/30 bg-primary/5 text-primary"
                 onClick={handleReconnect}
               >
-                Try to reconnect
+                <RefreshCw className="h-3 w-3 mr-2" />
+                Reconnect AI Network
               </Button>
             </div>
           )}

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
 import { PageLayout } from '@/components/layout/page-layout';
 import { AIFeatureIntro } from '@/components/home/AIFeatureIntro';
-import { NotificationPanel } from '@/components/notifications/NotificationPanel';
+import NotificationPanel, { Notification } from '@/components/notifications/NotificationPanel';
 import { 
   Plus, 
   FileText, 
@@ -52,14 +52,7 @@ interface AppraisalReport {
   lastUpdated: string;
 }
 
-// Interface for notification items
-interface NotificationItem {
-  id: string;
-  type: 'alert' | 'update' | 'reminder';
-  message: string;
-  date: string;
-  read: boolean;
-}
+// Using the Notification type from our NotificationPanel component
 
 // Component for displaying status badge
 function StatusBadge({ status }: { status: AppraisalReport['status'] }) {
@@ -87,7 +80,28 @@ export default function EnhancedHome() {
   const { startLoading, stopLoading, setError, clearError, startSync, syncSuccess, state } = useApp();
   const [activeReports, setActiveReports] = useState<AppraisalReport[]>([]);
   const [recentReports, setRecentReports] = useState<AppraisalReport[]>([]);
-  const [notifications, setNotifications] = useState<NotificationItem[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  
+  // Notification handlers
+  const handleMarkAsRead = (id: string) => {
+    setNotifications(prev => 
+      prev.map(notification => 
+        notification.id === id ? { ...notification, read: true } : notification
+      )
+    );
+  };
+  
+  const handleMarkAllAsRead = () => {
+    setNotifications(prev => 
+      prev.map(notification => ({ ...notification, read: true }))
+    );
+  };
+  
+  const handleDismissNotification = (id: string) => {
+    setNotifications(prev => 
+      prev.filter(notification => notification.id !== id)
+    );
+  };
   
   console.log("Home component rendering");
 
@@ -149,17 +163,20 @@ export default function EnhancedHome() {
       setNotifications([
         {
           id: "notif-1",
-          type: "alert",
+          type: "compliance",
           message: "Appraisal #apr-998 requires compliance review before submission",
           date: "2025-04-26",
-          read: false
+          read: false,
+          importance: "high",
+          aiGenerated: true
         },
         {
           id: "notif-2",
           type: "reminder",
           message: "Appraisal #apr-1001 due in 18 days",
           date: "2025-04-27",
-          read: true
+          read: true,
+          importance: "medium"
         },
         {
           id: "notif-3",
@@ -167,6 +184,24 @@ export default function EnhancedHome() {
           message: "TerraField mobile app synced 15 new photos for 123 Main St",
           date: "2025-04-25",
           read: true
+        },
+        {
+          id: "notif-4",
+          type: "insight",
+          message: "AI analysis detected a 3.2% valuation variance in comparable selection",
+          date: "2025-04-26",
+          read: false,
+          importance: "high",
+          aiGenerated: true
+        },
+        {
+          id: "notif-5",
+          type: "market",
+          message: "Market trend analysis shows price stability in the subject property zone",
+          date: "2025-04-25",
+          read: false,
+          importance: "medium",
+          aiGenerated: true
         }
       ]);
       
@@ -344,7 +379,12 @@ export default function EnhancedHome() {
           </div>
           
           <div className="md:col-span-1">
-            <NotificationPanel />
+            <NotificationPanel 
+              notifications={notifications}
+              onMarkAsRead={handleMarkAsRead}
+              onMarkAllAsRead={handleMarkAllAsRead}
+              onDismiss={handleDismissNotification}
+            />
           </div>
         </div>
         
