@@ -7,58 +7,62 @@ const clients = new Map<string, WebSocket>();
 
 // Log with timestamp
 function logWithTime(message: string) {
-  console.log(`[${new Date().toISOString()}] [WebSocket] ${message}`);
+  console.log(`[${new Date().toISOString()}] [BasicWS] ${message}`);
 }
 
 export function setupBasicWebSocketServer(server: http.Server) {
   logWithTime('Setting up basic WebSocket server');
   
-  // Create WebSocket server with noServer option so we can handle upgrade ourselves
+  // Create an extremely simple WebSocket server directly attached to the HTTP server
+  // This is the most reliable way to handle WebSockets in Replit
   const wss = new WebSocketServer({ 
-    noServer: true
+    server, 
+    path: '/basic-ws',
+    // Accept connections from any origin
+    verifyClient: () => true,
+    // Special handling for protocol negotiation to improve compatibility
+    handleProtocols: (protocols) => {
+      if (!protocols || protocols.length === 0) {
+        return '';
+      }
+      return protocols[0]; // Accept first protocol
+    },
+    // Increase the timeout for better reliability 
+    clientTracking: true
   });
   
-  // Set up specific handler for basic-ws path
-  server.on('upgrade', (request, socket, head) => {
-    // Parse URL
-    let pathname;
-    try {
-      const url = new URL(request.url || '', `http://${request.headers.host || 'localhost'}`);
-      pathname = url.pathname;
-    } catch {
-      // Fallback: extract pathname directly
-      pathname = (request.url || '').split('?')[0];
-    }
-    
-    // Only handle /basic-ws path
-    if (pathname === '/basic-ws') {
-      logWithTime(`Handling upgrade request for ${pathname}`);
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        logWithTime('Upgraded connection to WebSocket');
-        wss.emit('connection', ws, request);
-      });
-    }
-  });
-
-  // Handle connections
-  wss.on('connection', (ws) => {
+  logWithTime('Basic WebSocket server created');
+  
+  // Handle new connections
+  wss.on('connection', (ws, request) => {
+    // Generate a unique ID for this connection
     const clientId = uuidv4();
     clients.set(clientId, ws);
     
-    logWithTime(`Client connected: ${clientId} (total: ${clients.size})`);
+    logWithTime(`New client connected: ${clientId} (total: ${clients.size})`);
     
-    // Send welcome message
-    ws.send(JSON.stringify({
-      type: 'connection_established',
-      clientId,
-      message: 'Basic WebSocket connection established',
-      timestamp: Date.now()
-    }));
+    // Send immediate welcome message
+    try {
+      ws.send(JSON.stringify({
+        type: 'connection_established',
+        clientId,
+        message: 'Successfully connected to basic WebSocket',
+        timestamp: Date.now()
+      }));
+      logWithTime(`Welcome message sent to client ${clientId}`);
+    } catch (err) {
+      logWithTime(`Error sending welcome message: ${err}`);
+    }
     
-    // Heartbeat mechanism
-    const pingInterval = setInterval(() => {
+    // Set up heartbeat (ping) every 30 seconds to keep connection alive
+    const heartbeatInterval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
-        ws.ping();
+        logWithTime(`Sending ping to client ${clientId}`);
+        try {
+          ws.ping();
+        } catch (err) {
+          logWithTime(`Error sending ping: ${err}`);
+        }
       }
     }, 30000);
     
@@ -68,32 +72,47 @@ export function setupBasicWebSocketServer(server: http.Server) {
         const data = JSON.parse(message.toString());
         logWithTime(`Message from ${clientId}: ${JSON.stringify(data)}`);
         
-        // Echo back as confirmation
-        ws.send(JSON.stringify({
-          type: 'echo',
-          originalMessage: data,
-          timestamp: Date.now()
-        }));
+        // Echo back the message
+        if (ws.readyState === WebSocket.OPEN) {
+          try {
+            ws.send(JSON.stringify({
+              type: 'echo',
+              originalMessage: data,
+              timestamp: Date.now()
+            }));
+          } catch (e) {
+            logWithTime(`Error echoing message: ${e}`);
+          }
+        }
       } catch (err) {
         logWithTime(`Error parsing message: ${err}`);
       }
     });
     
-    // Handle close
-    ws.on('close', () => {
+    // Handle connection close
+    ws.on('close', (code, reason) => {
       clients.delete(clientId);
-      clearInterval(pingInterval);
-      logWithTime(`Client disconnected: ${clientId} (remaining: ${clients.size})`);
+      clearInterval(heartbeatInterval);
+      logWithTime(`Client ${clientId} disconnected (code: ${code}, reason: ${reason || 'none'}) (remaining: ${clients.size})`);
     });
     
     // Handle errors
     ws.on('error', (err) => {
       logWithTime(`Error for client ${clientId}: ${err.message}`);
+      
+      // Try to close the connection gracefully
       try {
-        ws.close();
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.close(1011, 'Internal server error');
+        }
       } catch (e) {
-        // Ignore close errors
+        logWithTime(`Error closing connection: ${e}`);
       }
+    });
+    
+    // Handle pong responses (client is alive)
+    ws.on('pong', () => {
+      logWithTime(`Received pong from client ${clientId}`);
     });
   });
   
@@ -102,41 +121,57 @@ export function setupBasicWebSocketServer(server: http.Server) {
     logWithTime(`Server error: ${err.message}`);
   });
   
-  // Send a broadcast to all clients
+  // Send a broadcast message to all connected clients every 30 seconds
   setInterval(() => {
     const activeClients = clients.size;
-    logWithTime(`Sending heartbeat to ${activeClients} clients`);
     
     if (activeClients > 0) {
-      broadcast({
+      logWithTime(`Broadcasting heartbeat to ${activeClients} clients`);
+      
+      const message = JSON.stringify({
         type: 'heartbeat',
         message: `Server heartbeat - ${activeClients} clients connected`,
         timestamp: Date.now()
       });
+      
+      let successCount = 0;
+      
+      clients.forEach((client, id) => {
+        if (client.readyState === WebSocket.OPEN) {
+          try {
+            client.send(message);
+            successCount++;
+          } catch (e) {
+            logWithTime(`Error sending to client ${id}: ${e}`);
+          }
+        }
+      });
+      
+      logWithTime(`Heartbeat sent to ${successCount}/${activeClients} clients`);
     }
   }, 30000);
+  
+  // Define broadcast function for external use
+  function broadcast(data: any) {
+    const message = JSON.stringify(data);
+    let successCount = 0;
+    
+    clients.forEach((client, id) => {
+      if (client.readyState === WebSocket.OPEN) {
+        try {
+          client.send(message);
+          successCount++;
+        } catch (e) {
+          logWithTime(`Error sending to client ${id}: ${e}`);
+        }
+      }
+    });
+    
+    return successCount;
+  }
   
   return {
     broadcast,
     getConnectedClientsCount: () => clients.size
   };
-}
-
-// Broadcast message to all connected clients
-function broadcast(data: any) {
-  const message = JSON.stringify(data);
-  let successCount = 0;
-  
-  clients.forEach((client, id) => {
-    if (client.readyState === WebSocket.OPEN) {
-      try {
-        client.send(message);
-        successCount++;
-      } catch (e) {
-        logWithTime(`Error sending to client ${id}: ${e}`);
-      }
-    }
-  });
-  
-  return successCount;
 }
