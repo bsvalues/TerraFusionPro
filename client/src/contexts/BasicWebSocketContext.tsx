@@ -18,6 +18,7 @@ interface BasicWebSocketContextType {
   messages: WebSocketMessage[];
   sendMessage: (data: any) => void;
   lastMessage: WebSocketMessage | null;
+  usingFallback: boolean;
 }
 
 // Create the context with default values
@@ -25,7 +26,8 @@ const BasicWebSocketContext = createContext<BasicWebSocketContextType>({
   connected: false,
   messages: [],
   sendMessage: () => {},
-  lastMessage: null
+  lastMessage: null,
+  usingFallback: false
 });
 
 // Provider component
@@ -33,26 +35,58 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
   const [connected, setConnected] = useState(false);
   const [messages, setMessages] = useState<WebSocketMessage[]>([]);
   const [lastMessage, setLastMessage] = useState<WebSocketMessage | null>(null);
+  const [usingFallback, setUsingFallback] = useState(false);
   
-  // WebSocket reference
+  // References
   const socketRef = useRef<WebSocket | null>(null);
   const reconnectCountRef = useRef(0);
+  const clientIdRef = useRef<string>(`client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`);
+  const pollIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const maxReconnectAttempts = 3;
   
-  // Function to handle messages
-  const handleMessage = useCallback((event: MessageEvent) => {
-    try {
-      const data = JSON.parse(event.data) as WebSocketMessage;
-      console.log('[BasicWebSocket] Received:', data);
-      
-      // Add the message to our history
-      setMessages(prev => [data, ...prev].slice(0, 50)); // Keep last 50 messages
-      setLastMessage(data);
-    } catch (err) {
-      console.error('[BasicWebSocket] Error parsing message:', err);
-    }
+  // Function to handle incoming messages (from WebSocket or polling)
+  const handleMessage = useCallback((data: WebSocketMessage) => {
+    console.log('[BasicWebSocket] Received:', data);
+    
+    // Add the message to our history
+    setMessages(prev => [data, ...prev].slice(0, 50)); // Keep last 50 messages
+    setLastMessage(data);
   }, []);
   
-  // Function to establish connection
+  // Start long-polling as fallback
+  const startPolling = useCallback(() => {
+    console.log('[BasicWebSocket] Starting long-polling fallback');
+    setUsingFallback(true);
+    
+    // Clear any existing interval
+    if (pollIntervalRef.current) {
+      clearInterval(pollIntervalRef.current);
+    }
+    
+    // Start polling
+    pollIntervalRef.current = setInterval(() => {
+      fetch(`/api/poll?clientId=${clientIdRef.current}`)
+        .then(response => response.json())
+        .then(data => {
+          if (!connected) setConnected(true);
+          
+          if (data.messages && Array.isArray(data.messages)) {
+            data.messages.forEach((msg: WebSocketMessage) => {
+              handleMessage(msg);
+            });
+          }
+        })
+        .catch(err => {
+          console.error('[BasicWebSocket] Polling error:', err);
+          // Don't set disconnected on individual poll failures
+        });
+    }, 2000);
+    
+    // Mark as connected since polling is working
+    setConnected(true);
+  }, [connected, handleMessage]);
+  
+  // Function to establish WebSocket connection
   const connect = useCallback(() => {
     // Close existing connection
     if (socketRef.current) {
@@ -61,20 +95,15 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
     
     try {
       // Determine WebSocket URL
-      // For Replit, we need to make sure we're connecting to the right endpoint
-      // Use direct hostname with explicit port if needed
       let host = window.location.host;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       
       // Special handling for Replit environments
       if (host.includes('replit')) {
-        // Keep the full host without modifications for Replit
         console.log(`[BasicWebSocket] Replit environment detected: ${host}`);
       } else if (window.location.port) {
-        // For local development with explicit port
         host = window.location.hostname + ':' + window.location.port;
       } else {
-        // Fallback to just hostname
         host = window.location.hostname;
       }
       
@@ -83,69 +112,119 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
       
       // Add a timestamp and random token to avoid caching issues
       const token = Math.random().toString(36).substring(2, 15);
-      const timestampedUrl = `${wsUrl}?t=${Date.now()}&token=${token}`;
+      const timestampedUrl = `${wsUrl}?t=${Date.now()}&token=${token}&clientId=${clientIdRef.current}`;
       
-      console.log(`[BasicWebSocket] Connecting to ${timestampedUrl}...`);
-      console.log(`[BasicWebSocket] Current location: ${window.location.href}`);
-      console.log(`[BasicWebSocket] WebSocket path: /basic-ws with token: ${token}`);
+      console.log(`[BasicWebSocket] Connecting to ${timestampedUrl}`);
       
-      // Create WebSocket connection with timestamp to avoid caching
+      // Create WebSocket connection
       socketRef.current = new WebSocket(timestampedUrl);
       
       // Set up event handlers
       socketRef.current.onopen = () => {
-        console.log('[BasicWebSocket] Connected!');
+        console.log('[BasicWebSocket] WebSocket connected!');
         setConnected(true);
+        setUsingFallback(false);
         reconnectCountRef.current = 0;
+        
+        // Stop polling if it was active
+        if (pollIntervalRef.current) {
+          clearInterval(pollIntervalRef.current);
+          pollIntervalRef.current = null;
+        }
       };
       
-      socketRef.current.onmessage = handleMessage;
+      socketRef.current.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data) as WebSocketMessage;
+          handleMessage(data);
+        } catch (err) {
+          console.error('[BasicWebSocket] Error parsing message:', err);
+        }
+      };
       
       socketRef.current.onclose = () => {
-        console.log('[BasicWebSocket] Connection closed');
+        console.log('[BasicWebSocket] WebSocket closed');
         setConnected(false);
         
-        // Attempt to reconnect if not intentionally closed
-        if (reconnectCountRef.current < 5) {
-          const delay = Math.min(1000 * Math.pow(2, reconnectCountRef.current), 30000);
-          console.log(`[BasicWebSocket] Reconnecting in ${delay}ms...`);
+        // Attempt to reconnect or fall back to polling
+        reconnectCountRef.current++;
+        
+        if (reconnectCountRef.current < maxReconnectAttempts) {
+          const delay = Math.min(1000 * Math.pow(2, reconnectCountRef.current - 1), 30000);
+          console.log(`[BasicWebSocket] Reconnecting in ${delay}ms... (Attempt ${reconnectCountRef.current}/${maxReconnectAttempts})`);
           
           setTimeout(() => {
-            reconnectCountRef.current++;
             connect();
           }, delay);
+        } else {
+          console.log('[BasicWebSocket] Max reconnect attempts reached, switching to polling fallback');
+          startPolling();
         }
       };
       
       socketRef.current.onerror = (error) => {
-        console.error('[BasicWebSocket] Error:', error);
+        console.error('[BasicWebSocket] WebSocket error:', error);
+        // The onclose handler will be called after this
       };
     } catch (err) {
-      console.error('[BasicWebSocket] Connection error:', err);
+      console.error('[BasicWebSocket] Connection setup error:', err);
+      startPolling();
     }
-  }, [handleMessage]);
+  }, [handleMessage, startPolling]);
   
   // Function to send a message
   const sendMessage = useCallback((data: any) => {
+    // Prepare message with client ID
+    const message = {
+      ...data,
+      clientId: clientIdRef.current,
+      timestamp: Date.now()
+    };
+    
+    // Try WebSocket first if available
     if (socketRef.current && socketRef.current.readyState === WebSocket.OPEN) {
       try {
-        socketRef.current.send(JSON.stringify(data));
+        socketRef.current.send(JSON.stringify(message));
+        return; // Success, we're done
       } catch (err) {
-        console.error('[BasicWebSocket] Error sending message:', err);
+        console.error('[BasicWebSocket] Error sending WebSocket message:', err);
+        // Fall through to HTTP fallback
       }
+    }
+    
+    // HTTP fallback if WebSocket is not available or failed
+    if (usingFallback) {
+      fetch('/api/message', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(message)
+      })
+        .then(response => response.json())
+        .then(data => {
+          console.log('[BasicWebSocket] Message sent via HTTP:', data);
+        })
+        .catch(err => {
+          console.error('[BasicWebSocket] Error sending message via HTTP:', err);
+        });
     } else {
       console.warn('[BasicWebSocket] Cannot send message, not connected');
     }
-  }, []);
+  }, [usingFallback]);
   
   // Connect on mount
   useEffect(() => {
+    // Try WebSocket first
     connect();
     
     // Cleanup on unmount
     return () => {
       if (socketRef.current) {
         socketRef.current.close();
+      }
+      if (pollIntervalRef.current) {
+        clearInterval(pollIntervalRef.current);
       }
     };
   }, [connect]);
@@ -157,7 +236,8 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
         connected,
         messages,
         sendMessage,
-        lastMessage
+        lastMessage,
+        usingFallback
       }}
     >
       {children}

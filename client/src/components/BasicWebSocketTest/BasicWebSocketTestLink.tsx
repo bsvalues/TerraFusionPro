@@ -5,14 +5,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { useBasicWebSocket } from '../../contexts/BasicWebSocketContext';
 
 const BasicWebSocketTestLink: React.FC = () => {
-  const { connected } = useBasicWebSocket();
+  const { connected, usingFallback } = useBasicWebSocket();
   const [statusText, setStatusText] = useState('Disconnected');
   const [reconnectCount, setReconnectCount] = useState(0);
 
   // Update status text based on connection state
   useEffect(() => {
     if (connected) {
-      setStatusText('Connected');
+      setStatusText(usingFallback ? 'Connected (Fallback)' : 'Connected');
       setReconnectCount(0);
     } else {
       setReconnectCount(prev => {
@@ -25,10 +25,24 @@ const BasicWebSocketTestLink: React.FC = () => {
         return newCount;
       });
     }
-  }, [connected]);
+  }, [connected, usingFallback]);
 
-  // Pulsing animation for connecting status
-  const isPulsing = !connected && reconnectCount > 0;
+  // Determine button color state
+  const getStateColors = () => {
+    if (connected) {
+      return usingFallback 
+        ? { border: 'border-blue-500', bg: 'bg-blue-500' }
+        : { border: 'border-green-500', bg: 'bg-green-500' };
+    }
+    
+    if (reconnectCount > 0) {
+      return { border: 'border-yellow-500', bg: 'bg-yellow-500 animate-pulse' };
+    }
+    
+    return { border: 'border-red-500', bg: 'bg-red-500' };
+  };
+  
+  const colors = getStateColors();
   
   return (
     <TooltipProvider>
@@ -38,24 +52,23 @@ const BasicWebSocketTestLink: React.FC = () => {
             <Button 
               variant="outline" 
               size="sm" 
-              className={`flex items-center gap-2 ${
-                connected ? 'border-green-500' : 
-                isPulsing ? 'border-yellow-500' : 'border-red-500'
-              }`}
+              className={`flex items-center gap-2 ${colors.border}`}
             >
-              <span className={`w-2 h-2 rounded-full ${
-                connected ? 'bg-green-500' : 
-                isPulsing ? 'bg-yellow-500 animate-pulse' : 'bg-red-500'
-              }`}></span>
+              <span className={`w-2 h-2 rounded-full ${colors.bg}`}></span>
               WS Test
             </Button>
           </Link>
         </TooltipTrigger>
         <TooltipContent>
-          <p>WebSocket Status: {statusText}</p>
+          <p className="font-semibold">WebSocket Status: {statusText}</p>
+          {connected && usingFallback && (
+            <p className="text-xs text-blue-500">
+              Using HTTP polling fallback (WebSocket unavailable)
+            </p>
+          )}
           {!connected && (
             <p className="text-xs text-gray-500">
-              Using fallback polling connection
+              Attempting to connect...
             </p>
           )}
         </TooltipContent>
