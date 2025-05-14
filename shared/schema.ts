@@ -1,917 +1,338 @@
-import { relations, sql } from "drizzle-orm";
-import {
-  integer,
-  pgEnum,
-  pgTable,
-  serial,
-  text,
-  timestamp,
+import { relations } from "drizzle-orm";
+import { 
+  pgTable, 
+  serial, 
+  text, 
+  timestamp, 
+  integer, 
   boolean,
   json,
   real,
   uuid,
-  jsonb,
-  numeric,
-  varchar
+  primaryKey,
+  uniqueIndex
 } from "drizzle-orm/pg-core";
-import { createInsertSchema, createSelectSchema } from "drizzle-zod";
+import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
-export type Json = unknown;
-
-// User and Authentication
-export const userRoleEnum = pgEnum("user_role", [
-  "admin",
-  "assessor",
-  "collector",
-  "manager",
-  "citizen",
-  "readonly"
-]);
+// ======= USERS & AUTH ========
 
 export const users = pgTable("users", {
   id: serial("id").primaryKey(),
   username: text("username").notNull().unique(),
   email: text("email").notNull().unique(),
-  password: text("password").notNull(),
-  firstName: text("first_name").notNull(),
-  lastName: text("last_name").notNull(),
-  role: userRoleEnum("role").notNull().default("readonly"),
-  department: text("department"),
-  isActive: boolean("is_active").notNull().default(true),
-  lastLogin: timestamp("last_login", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  passwordHash: text("password_hash").notNull(),
+  firstName: text("first_name"),
+  lastName: text("last_name"),
+  role: text("role").default("appraiser").notNull(),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Property Domain
-export const propertyTypeEnum = pgEnum("property_type", [
-  "residential",
-  "commercial",
-  "industrial",
-  "agricultural",
-  "vacant",
-  "exempt"
-]);
+export const usersRelations = relations(users, ({ one, many }) => ({
+  organization: one(organizations, {
+    fields: [users.organizationId],
+    references: [organizations.id],
+  }),
+  orders: many(orders),
+  properties: many(properties),
+  valuations: many(valuations),
+}));
+
+export const organizations = pgTable("organizations", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  address: text("address"),
+  city: text("city"),
+  state: text("state"),
+  zip: text("zip"),
+  phone: text("phone"),
+  email: text("email"),
+  logo: text("logo"),
+  settings: json("settings"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const organizationsRelations = relations(organizations, ({ many }) => ({
+  users: many(users),
+}));
+
+// ======= PROPERTY DATA ========
 
 export const properties = pgTable("properties", {
   id: serial("id").primaryKey(),
-  // Make parcelId optional to support flexible identification
-  parcelId: text("parcel_id").unique(),
-  // Add tax_parcel_id for compatibility with existing database
-  taxParcelId: text("tax_parcel_id"),
-  // Additional flexible identifier that can be used for various ID types
-  propertyIdentifier: text("property_identifier"),
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
-  zipCode: text("zip_code").notNull(),
-  county: text("county"),
-  legalDescription: text("legal_description"),
-  propertyType: propertyTypeEnum("property_type").notNull(),
-  acreage: real("acreage"),
-  yearBuilt: integer("year_built"),
-  squareFeet: integer("square_feet"),
+  zip: text("zip").notNull(),
+  propertyType: text("property_type").notNull(), // residential, commercial, etc.
   bedrooms: integer("bedrooms"),
   bathrooms: real("bathrooms"),
-  lastSaleDate: timestamp("last_sale_date", { mode: "date" }),
-  lastSaleAmount: real("last_sale_amount"),
+  squareFeet: integer("square_feet"),
+  lotSize: real("lot_size"),
+  yearBuilt: integer("year_built"),
   latitude: real("latitude"),
   longitude: real("longitude"),
-  // Add a flexible metadata field for additional property data
-  metadata: jsonb("metadata"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  metadata: json("metadata"), // Additional property details
 });
 
-// Valuation Domain
-export const valuationMethodEnum = pgEnum("valuation_method", [
-  "market_approach",
-  "cost_approach",
-  "income_approach",
-  "mass_appraisal"
-]);
+export const propertiesRelations = relations(properties, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [properties.createdById],
+    references: [users.id],
+  }),
+  orders: many(orders),
+  valuations: many(valuations),
+  images: many(propertyImages),
+  comparables: many(comparableProperties, { relationName: "property" }),
+  asComparable: many(comparableProperties, { relationName: "comparable" }),
+}));
+
+export const propertyImages = pgTable("property_images", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  imageUrl: text("image_url").notNull(),
+  caption: text("caption"),
+  roomType: text("room_type"), // kitchen, bathroom, exterior, etc.
+  isPrimary: boolean("is_primary").default(false), // Main property image
+  conditionScore: real("condition_score"), // AI-generated score (1-5)
+  conditionScoreConfidence: real("condition_score_confidence"), // AI confidence level
+  modelVersion: text("model_version"), // AI model version used
+  metadata: json("metadata"), // Additional image data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const propertyImagesRelations = relations(propertyImages, ({ one }) => ({
+  property: one(properties, {
+    fields: [propertyImages.propertyId],
+    references: [properties.id],
+  }),
+}));
+
+// ======= VALUATION & ASSESSMENT ========
 
 export const valuations = pgTable("valuations", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").references(() => properties.id).notNull(),
-  assessmentYear: integer("assessment_year").notNull(),
-  landValue: real("land_value").notNull(),
-  improvementValue: real("improvement_value").notNull(),
-  totalValue: real("total_value").notNull(),
-  valuationMethod: valuationMethodEnum("valuation_method").notNull(),
-  effectiveDate: timestamp("effective_date", { mode: "date" }).notNull(),
-  appraiserNotes: text("appraiser_notes"),
-  prevYearValue: real("prev_year_value"),
-  changePercentage: real("change_percentage"),
-  approverId: integer("approver_id").references(() => users.id),
-  approvedAt: timestamp("approved_at", { mode: "date" }),
-  createdBy: integer("created_by").references(() => users.id).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Tax Domain
-export const taxStatusEnum = pgEnum("tax_status", [
-  "pending",
-  "billed",
-  "paid",
-  "delinquent",
-  "appealed",
-  "exempt"
-]);
-
-export const taxBills = pgTable("tax_bills", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  valuationId: integer("valuation_id").references(() => valuations.id).notNull(),
-  taxYear: integer("tax_year").notNull(),
-  millageRate: real("millage_rate").notNull(),
-  grossTaxAmount: real("gross_tax_amount").notNull(),
-  exemptionAmount: real("exemption_amount").default(0).notNull(),
-  netTaxAmount: real("net_tax_amount").notNull(),
-  dueDate: timestamp("due_date", { mode: "date" }).notNull(),
-  status: taxStatusEnum("status").notNull().default("pending"),
-  billDate: timestamp("bill_date", { mode: "date" }).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Exemption types
-export const exemptions = pgTable("exemptions", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  exemptionType: text("exemption_type").notNull(),
-  exemptionAmount: real("exemption_amount").notNull(),
-  effectiveDate: timestamp("effective_date", { mode: "date" }).notNull(),
-  expirationDate: timestamp("expiration_date", { mode: "date" }),
-  documentReference: text("document_reference"),
-  isActive: boolean("is_active").notNull().default(true),
-  approvedBy: integer("approved_by").references(() => users.id),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Appeals
-export const appealStatusEnum = pgEnum("appeal_status", [
-  "submitted",
-  "under_review",
-  "hearing_scheduled",
-  "approved",
-  "denied",
-  "withdrawn"
-]);
-
-export const appeals = pgTable("appeals", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  valuationId: integer("valuation_id").references(() => valuations.id).notNull(),
-  appellantName: text("appellant_name").notNull(),
-  appellantEmail: text("appellant_email"),
-  appellantPhone: text("appellant_phone"),
-  appealReason: text("appeal_reason").notNull(),
-  appealDate: timestamp("appeal_date", { mode: "date" }).defaultNow().notNull(),
-  status: appealStatusEnum("appeal_status").notNull().default("submitted"),
-  hearingDate: timestamp("hearing_date", { mode: "date" }),
-  decisionDate: timestamp("decision_date", { mode: "date" }),
-  decisionNotes: text("decision_notes"),
-  assignedTo: integer("assigned_to").references(() => users.id),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Comparable sales for valuation
-export const comparableSales = pgTable("comparable_sales", {
-  id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id),
-  address: text("address").notNull(),
-  city: text("city").notNull(),
-  state: text("state").notNull(),
-  zipCode: text("zip_code").notNull(),
-  county: text("county").notNull(),
-  saleDate: timestamp("sale_date", { mode: "date" }).notNull(),
-  saleAmount: real("sale_amount").notNull(),
-  propertyType: propertyTypeEnum("property_type").notNull(),
-  yearBuilt: integer("year_built"),
-  squareFeet: integer("square_feet"),
-  acreage: real("acreage"),
-  bedrooms: integer("bedrooms"),
-  bathrooms: real("bathrooms"),
-  distanceToSubject: real("distance_to_subject"),
-  adjustedSaleAmount: real("adjusted_sale_amount"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Plugin registration and management
-export const pluginStatusEnum = pgEnum("plugin_status", [
-  "active",
-  "inactive",
-  "pending",
-  "error"
-]);
-
-export const plugins = pgTable("plugins", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  version: text("version").notNull(),
-  description: text("description"),
-  entrypoint: text("entrypoint").notNull(),
-  status: pluginStatusEnum("status").notNull().default("inactive"),
-  config: json("config"),
-  dependencies: json("dependencies"),
-  installDate: timestamp("install_date", { mode: "date" }).defaultNow().notNull(),
-  lastUpdated: timestamp("last_updated", { mode: "date" }).defaultNow().notNull(),
-  createdBy: integer("created_by").references(() => users.id),
-  updatedBy: integer("updated_by").references(() => users.id),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// AI Agent configurations
-export const aiAgentStatusEnum = pgEnum("ai_agent_status", [
-  "active",
-  "inactive",
-  "training",
-  "error"
-]);
-
-export const aiAgents = pgTable("ai_agents", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  description: text("description"),
-  agentType: text("agent_type").notNull(),
-  provider: text("provider").notNull(), // openai, anthropic, etc.
-  model: text("model").notNull(), // gpt-4o, claude-3-7-sonnet, etc.
-  config: json("config"),
-  status: aiAgentStatusEnum("status").notNull().default("inactive"),
-  lastTrainingDate: timestamp("last_training_date", { mode: "date" }),
-  createdBy: integer("created_by").references(() => users.id),
-  updatedBy: integer("updated_by").references(() => users.id),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Photo types enum
-export const photoTypeEnum = pgEnum("photo_type", [
-  "subject_front",
-  "subject_rear",
-  "subject_interior",
-  "comparable",
-  "neighborhood",
-  "other"
-]);
-
-// Photos table definition
-export const photos = pgTable("photos", {
-  id: serial("id").primaryKey(),
-  reportId: integer("report_id").notNull(),
-  photoType: photoTypeEnum("photo_type").default("subject_front"),
-  url: text("url").notNull(),
-  caption: text("caption"),
-  dateTaken: timestamp("date_taken", { mode: "date" }),
-  latitude: numeric("latitude"),
-  longitude: numeric("longitude"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  metadata: jsonb("metadata")
-});
-
-// Sketch types enum
-export const sketchTypeEnum = pgEnum("sketch_type", [
-  "floor_plan",
-  "site_plan",
-  "elevation",
-  "detail"
-]);
-
-// Sketches table definition
-export const sketches = pgTable("sketches", {
-  id: serial("id").primaryKey(),
-  reportId: integer("report_id").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  sketchUrl: text("sketch_url"),
-  sketchData: text("sketch_data"),
-  sketchType: sketchTypeEnum("sketch_type").default("floor_plan"),
-  squareFootage: integer("square_footage"),
-  scale: text("scale"),
+  orderId: integer("order_id").references(() => orders.id),
+  appraiserId: integer("appraiser_id").references(() => users.id),
+  valuationAmount: integer("valuation_amount").notNull(),
+  confidenceScore: real("confidence_score"), // AI confidence (0-1)
+  valuationMethod: text("valuation_method").notNull(), // ai, manual, hybrid
+  valuationDate: timestamp("valuation_date").defaultNow().notNull(),
+  status: text("status").default("draft").notNull(), // draft, complete, reviewed
+  aiFactors: json("ai_factors"), // Factors influencing AI valuation
   notes: text("notes"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
-
-// Compliance check result enum
-export const checkResultEnum = pgEnum("check_result", [
-  "pass",
-  "fail",
-  "warning",
-  "info"
-]);
-
-// Compliance check severity enum
-export const severityEnum = pgEnum("severity", [
-  "high",
-  "medium",
-  "low"
-]);
-
-// Compliance checks table definition
-export const complianceChecks = pgTable("compliance_checks", {
-  id: serial("id").primaryKey(),
-  reportId: integer("report_id").notNull(),
-  checkType: text("check_type").notNull(),
-  checkResult: checkResultEnum("check_result").default("info"),
-  severity: severityEnum("severity").default("low"),
-  description: text("description").notNull(),
-  details: text("details"),
-  rule: text("rule"),
-  recommendation: text("recommendation"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// API Keys for external access
-export const apiKeys = pgTable("api_keys", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  name: text("name").notNull(),
-  key: text("key").notNull().unique(),
-  scopes: json("scopes").notNull(),
-  expiresAt: timestamp("expires_at", { mode: "date" }),
-  lastUsed: timestamp("last_used", { mode: "date" }),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Order Management
-export const orderTypeEnum = pgEnum("order_type", [
-  "appraisal",
-  "assessment",
-  "tax",
-  "other"
-]);
-
-export const orderStatusEnum = pgEnum("order_status", [
-  "pending",
-  "in_progress", 
-  "completed",
-  "cancelled"
-]);
-
-export const orderPriorityEnum = pgEnum("order_priority", [
-  "low",
-  "medium",
-  "high"
-]);
-
-export const orders = pgTable("orders", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  orderType: orderTypeEnum("order_type").notNull(),
-  status: orderStatusEnum("status").notNull().default("pending"),
-  priority: orderPriorityEnum("priority").notNull().default("medium"),
-  dueDate: timestamp("due_date", { mode: "date" }),
-  notes: text("notes"),
-  attachmentPath: text("attachment_path"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Audit logs
-export const auditLogs = pgTable("audit_logs", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
-  action: text("action").notNull(),
-  entityType: text("entity_type").notNull(),
-  entityId: text("entity_id").notNull(),
-  oldValues: json("old_values"),
-  newValues: json("new_values"),
-  ipAddress: text("ip_address"),
-  userAgent: text("user_agent"),
-  timestamp: timestamp("timestamp", { mode: "date" }).defaultNow().notNull()
-});
-
-// Gamification Types
-export const achievementTypeEnum = pgEnum("achievement_type", [
-  "property_evaluations", 
-  "valuations_completed",
-  "accurate_prediction",
-  "team_collaboration",
-  "training_completed",
-  "early_adopter",
-  "streak"
-]);
-
-export const achievementTierEnum = pgEnum("achievement_tier", [
-  "bronze",
-  "silver", 
-  "gold",
-  "platinum",
-  "diamond"
-]);
-
-// Achievement definitions
-export const achievementDefinitions = pgTable("achievement_definitions", {
-  id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
-  description: text("description").notNull(),
-  type: achievementTypeEnum("type").notNull(),
-  tier: achievementTierEnum("tier").notNull(),
-  pointsAwarded: integer("points_awarded").notNull(),
-  threshold: integer("threshold").notNull(),
-  iconUrl: text("icon_url"),
-  isActive: boolean("is_active").notNull().default(true),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// User achievements
-export const userAchievements = pgTable("user_achievements", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  achievementId: integer("achievement_id").references(() => achievementDefinitions.id).notNull(),
-  progress: integer("progress").notNull().default(0),
-  completed: boolean("completed").notNull().default(false),
-  completedAt: timestamp("completed_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// User progress tracking
-export const userProgress = pgTable("user_progress", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  totalPoints: integer("total_points").notNull().default(0),
-  level: integer("level").notNull().default(1),
-  propertyEvaluations: integer("property_evaluations").notNull().default(0),
-  accuracyScore: real("accuracy_score"),
-  currentStreak: integer("current_streak").notNull().default(0),
-  longestStreak: integer("longest_streak").notNull().default(0),
-  lastActive: timestamp("last_active", { mode: "date" }).defaultNow().notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Levels definition
-export const levels = pgTable("levels", {
-  id: serial("id").primaryKey(),
-  level: integer("level").notNull().unique(),
-  name: text("name").notNull(),
-  pointsRequired: integer("points_required").notNull(),
-  badgeUrl: text("badge_url"),
-  benefits: json("benefits"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Challenges for users to complete
-export const userChallenges = pgTable("user_challenges", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  title: text("title").notNull(),
-  description: text("description").notNull(),
-  pointsAwarded: integer("points_awarded").notNull(),
-  startDate: timestamp("start_date", { mode: "date" }).notNull(),
-  endDate: timestamp("end_date", { mode: "date" }),
-  completed: boolean("completed").notNull().default(false),
-  completedAt: timestamp("completed_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Review status enum
-export const reviewStatusEnum = pgEnum("review_status", [
-  "pending",
-  "in_review",
-  "approved",
-  "rejected",
-  "changes_requested"
-]);
-
-// Review priority enum
-export const reviewPriorityEnum = pgEnum("review_priority", [
-  "low",
-  "medium",
-  "high",
-  "urgent"
-]);
-
-// Review workflow table
-export const reviewRequests = pgTable("review_requests", {
-  id: serial("id").primaryKey(),
-  objectType: text("object_type").notNull(), // "appraisal", "property", "valuation"
-  objectId: integer("object_id").notNull(),
-  requestedBy: integer("requested_by").references(() => users.id).notNull(),
-  assignedTo: integer("assigned_to").references(() => users.id),
-  status: reviewStatusEnum("status").notNull().default("pending"),
-  priority: reviewPriorityEnum("priority").notNull().default("medium"),
-  dueDate: timestamp("due_date", { mode: "date" }),
-  description: text("description"),
-  completedAt: timestamp("completed_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Comment type enum
-export const commentTypeEnum = pgEnum("comment_type", [
-  "general",
-  "issue",
-  "suggestion",
-  "approval",
-  "rejection"
-]);
-
-// Comments table
-export const comments = pgTable("comments", {
-  id: serial("id").primaryKey(),
-  objectType: text("object_type").notNull(), // "property", "valuation", "review", etc.
-  objectId: integer("object_id").notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  parentId: integer("parent_id").references(() => comments.id), // For threaded comments
-  content: text("content").notNull(),
-  commentType: commentTypeEnum("comment_type").default("general"),
-  resolved: boolean("resolved").default(false),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Annotation type enum
-export const annotationTypeEnum = pgEnum("annotation_type", [
-  "highlight",
-  "note",
-  "correction",
-  "question",
-  "drawing"
-]);
-
-// Annotations table (for documents, images, etc.)
-export const annotations = pgTable("annotations", {
-  id: serial("id").primaryKey(),
-  objectType: text("object_type").notNull(), // "photo", "sketch", "document", etc.
-  objectId: integer("object_id").notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  annotationType: annotationTypeEnum("annotation_type").default("note"),
-  content: text("content"),
-  coordinates: json("coordinates"), // JSON data for position/area on the document
-  metadata: json("metadata"), // Additional info: color, size, style, etc.
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Revision history table
-export const revisionHistory = pgTable("revision_history", {
-  id: serial("id").primaryKey(),
-  objectType: text("object_type").notNull(), // "property", "valuation", etc.
-  objectId: integer("object_id").notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  revisionType: text("revision_type").notNull(), // "create", "update", "delete"
-  previousVersion: json("previous_version"),
-  currentVersion: json("current_version"),
-  changes: json("changes"), // Detailed changes made
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Enhanced notification types enum
-export const notificationTypeEnum = pgEnum("notification_type", [
-  "review_request",
-  "comment",
-  "achievement",
-  "level_up",
-  "approval",
-  "changes_requested",
-  "mention",
-  "system"
-]);
-
-// User notifications (Enhanced)
-export const userNotifications = pgTable("user_notifications", {
-  id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
-  type: notificationTypeEnum("type").notNull(),
-  title: text("title").notNull(),
-  message: text("message").notNull(),
-  objectType: text("object_type"), // Optional reference to object type
-  objectId: integer("object_id"), // Optional reference to object ID
-  sourceUserId: integer("source_user_id").references(() => users.id), // Who triggered the notification
-  read: boolean("read").notNull().default(false),
-  readAt: timestamp("read_at", { mode: "date" }),
-  actionUrl: text("action_url"), // Link to take action on the notification
-  importance: text("importance").default("normal"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull()
-});
-
-// Relations
-export const usersRelations = relations(users, ({ many, one }) => ({
-  valuations: many(valuations, { relationName: "createdValuations" }),
-  approvedValuations: many(valuations, { relationName: "approvedValuations" }),
-  appeals: many(appeals, { relationName: "assignedAppeals" }),
-  plugins: many(plugins, { relationName: "createdPlugins" }),
-  updatedPlugins: many(plugins, { relationName: "updatedPlugins" }),
-  aiAgents: many(aiAgents, { relationName: "createdAgents" }),
-  updatedAiAgents: many(aiAgents, { relationName: "updatedAgents" }),
-  apiKeys: many(apiKeys),
-  auditLogs: many(auditLogs),
-  orders: many(orders),
-  // Add gamification relations
-  userAchievements: many(userAchievements),
-  userProgress: one(userProgress, {
-    fields: [users.id],
-    references: [userProgress.userId]
-  }),
-  userChallenges: many(userChallenges),
-  userNotifications: many(userNotifications)
-}));
-
-export const propertiesRelations = relations(properties, ({ many }) => ({
-  valuations: many(valuations),
-  taxBills: many(taxBills),
-  exemptions: many(exemptions),
-  appeals: many(appeals),
-  comparableSales: many(comparableSales, { relationName: "comparableProperties" }),
-  orders: many(orders)
-}));
-
-export const ordersRelations = relations(orders, ({ one }) => ({
-  user: one(users, {
-    fields: [orders.userId],
-    references: [users.id]
-  }),
-  property: one(properties, {
-    fields: [orders.propertyId],
-    references: [properties.id]
-  })
-}));
 
 export const valuationsRelations = relations(valuations, ({ one, many }) => ({
   property: one(properties, {
     fields: [valuations.propertyId],
-    references: [properties.id]
-  }),
-  creator: one(users, {
-    fields: [valuations.createdBy],
-    references: [users.id],
-    relationName: "createdValuations"
-  }),
-  approver: one(users, {
-    fields: [valuations.approverId],
-    references: [users.id],
-    relationName: "approvedValuations"
-  }),
-  taxBills: many(taxBills),
-  appeals: many(appeals)
-}));
-
-export const taxBillsRelations = relations(taxBills, ({ one }) => ({
-  property: one(properties, {
-    fields: [taxBills.propertyId],
-    references: [properties.id]
-  }),
-  valuation: one(valuations, {
-    fields: [taxBills.valuationId],
-    references: [valuations.id]
-  })
-}));
-
-export const exemptionsRelations = relations(exemptions, ({ one }) => ({
-  property: one(properties, {
-    fields: [exemptions.propertyId],
-    references: [properties.id]
-  }),
-  approver: one(users, {
-    fields: [exemptions.approvedBy],
-    references: [users.id]
-  })
-}));
-
-export const appealsRelations = relations(appeals, ({ one }) => ({
-  property: one(properties, {
-    fields: [appeals.propertyId],
-    references: [properties.id]
-  }),
-  valuation: one(valuations, {
-    fields: [appeals.valuationId],
-    references: [valuations.id]
-  }),
-  assignee: one(users, {
-    fields: [appeals.assignedTo],
-    references: [users.id],
-    relationName: "assignedAppeals"
-  })
-}));
-
-export const comparableSalesRelations = relations(comparableSales, ({ one }) => ({
-  property: one(properties, {
-    fields: [comparableSales.propertyId],
     references: [properties.id],
-    relationName: "comparableProperties"
-  })
-}));
-
-export const pluginsRelations = relations(plugins, ({ one }) => ({
-  creator: one(users, {
-    fields: [plugins.createdBy],
-    references: [users.id],
-    relationName: "createdPlugins"
   }),
-  updater: one(users, {
-    fields: [plugins.updatedBy],
-    references: [users.id],
-    relationName: "updatedPlugins"
-  })
-}));
-
-export const aiAgentsRelations = relations(aiAgents, ({ one }) => ({
-  creator: one(users, {
-    fields: [aiAgents.createdBy],
-    references: [users.id],
-    relationName: "createdAgents"
+  order: one(orders, {
+    fields: [valuations.orderId],
+    references: [orders.id],
   }),
-  updater: one(users, {
-    fields: [aiAgents.updatedBy],
+  appraiser: one(users, {
+    fields: [valuations.appraiserId],
     references: [users.id],
-    relationName: "updatedAgents"
-  })
+  }),
+  comparables: many(comparableProperties),
 }));
 
-export const apiKeysRelations = relations(apiKeys, ({ one }) => ({
-  user: one(users, {
-    fields: [apiKeys.userId],
-    references: [users.id]
-  })
-}));
+export const comparableProperties = pgTable("comparable_properties", {
+  id: serial("id").primaryKey(),
+  valuationId: integer("valuation_id").references(() => valuations.id),
+  propertyId: integer("property_id").references(() => properties.id),
+  comparablePropertyId: integer("comparable_property_id").references(() => properties.id),
+  adjustedValue: integer("adjusted_value"),
+  similarity: real("similarity"), // Similarity score (0-1)
+  adjustments: json("adjustments"), // Adjustment details
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (table) => {
+  return {
+    propertyComparableIdx: uniqueIndex("property_comparable_idx").on(
+      table.valuationId, 
+      table.propertyId, 
+      table.comparablePropertyId
+    ),
+  };
+});
 
-export const auditLogsRelations = relations(auditLogs, ({ one }) => ({
-  user: one(users, {
-    fields: [auditLogs.userId],
-    references: [users.id]
-  })
-}));
-
-// Relations for sketches
-export const sketchesRelations = relations(sketches, ({ one }) => ({
-  report: one(valuations, {
-    fields: [sketches.reportId],
+export const comparablePropertiesRelations = relations(comparableProperties, ({ one }) => ({
+  valuation: one(valuations, {
+    fields: [comparableProperties.valuationId],
     references: [valuations.id],
-    relationName: "reportSketches"
-  })
+  }),
+  property: one(properties, {
+    fields: [comparableProperties.propertyId],
+    references: [properties.id],
+    relationName: "property",
+  }),
+  comparable: one(properties, {
+    fields: [comparableProperties.comparablePropertyId],
+    references: [properties.id],
+    relationName: "comparable",
+  }),
 }));
 
-// Relations for compliance checks
-export const complianceChecksRelations = relations(complianceChecks, ({ one }) => ({
-  report: one(valuations, {
-    fields: [complianceChecks.reportId],
+// ======= ORDERS & WORKFLOW ========
+
+export const orders = pgTable("orders", {
+  id: serial("id").primaryKey(),
+  orderNumber: text("order_number").notNull().unique(),
+  clientName: text("client_name").notNull(),
+  clientEmail: text("client_email"),
+  clientPhone: text("client_phone"),
+  propertyId: integer("property_id").references(() => properties.id),
+  assignedToId: integer("assigned_to_id").references(() => users.id),
+  orderType: text("order_type").notNull(), // full appraisal, desktop, etc.
+  status: text("status").default("new").notNull(), // new, assigned, in_progress, etc.
+  dueDate: timestamp("due_date"),
+  priorityLevel: text("priority_level").default("normal"), // low, normal, high, rush
+  notes: text("notes"),
+  fee: integer("fee"), // in cents
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const ordersRelations = relations(orders, ({ one, many }) => ({
+  property: one(properties, {
+    fields: [orders.propertyId],
+    references: [properties.id],
+  }),
+  assignedTo: one(users, {
+    fields: [orders.assignedToId],
+    references: [users.id],
+  }),
+  createdBy: one(users, {
+    fields: [orders.createdById],
+    references: [users.id],
+  }),
+  statusUpdates: many(orderStatusUpdates),
+  valuations: many(valuations),
+  reports: many(reports),
+}));
+
+export const orderStatusUpdates = pgTable("order_status_updates", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  status: text("status").notNull(),
+  notes: text("notes"),
+  updatedById: integer("updated_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const orderStatusUpdatesRelations = relations(orderStatusUpdates, ({ one }) => ({
+  order: one(orders, {
+    fields: [orderStatusUpdates.orderId],
+    references: [orders.id],
+  }),
+  updatedBy: one(users, {
+    fields: [orderStatusUpdates.updatedById],
+    references: [users.id],
+  }),
+}));
+
+// ======= REPORTS ========
+
+export const reports = pgTable("reports", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  valuationId: integer("valuation_id").references(() => valuations.id),
+  title: text("title").notNull(),
+  reportType: text("report_type").notNull(), // full, summary, etc.
+  status: text("status").default("draft").notNull(), // draft, final
+  pdfUrl: text("pdf_url"), // URL to stored PDF
+  generatedById: integer("generated_by_id").references(() => users.id),
+  generatedAt: timestamp("generated_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  templateId: text("template_id"), // Reference to report template
+});
+
+export const reportsRelations = relations(reports, ({ one }) => ({
+  order: one(orders, {
+    fields: [reports.orderId],
+    references: [orders.id],
+  }),
+  valuation: one(valuations, {
+    fields: [reports.valuationId],
     references: [valuations.id],
-    relationName: "reportComplianceChecks"
-  })
-}));
-
-// Relations for gamification tables
-export const achievementDefinitionsRelations = relations(achievementDefinitions, ({ many }) => ({
-  userAchievements: many(userAchievements)
-}));
-
-export const userAchievementsRelations = relations(userAchievements, ({ one }) => ({
-  user: one(users, {
-    fields: [userAchievements.userId],
-    references: [users.id]
   }),
-  achievement: one(achievementDefinitions, {
-    fields: [userAchievements.achievementId],
-    references: [achievementDefinitions.id]
-  })
-}));
-
-export const userProgressRelations = relations(userProgress, ({ one }) => ({
-  user: one(users, {
-    fields: [userProgress.userId],
-    references: [users.id]
-  })
-}));
-
-export const levelsRelations = relations(levels, ({ many }) => ({
-  userProgress: many(userProgress)
-}));
-
-export const userChallengesRelations = relations(userChallenges, ({ one }) => ({
-  user: one(users, {
-    fields: [userChallenges.userId],
-    references: [users.id]
-  })
-}));
-
-export const userNotificationsRelations = relations(userNotifications, ({ one }) => ({
-  user: one(users, {
-    fields: [userNotifications.userId],
-    references: [users.id]
+  generatedBy: one(users, {
+    fields: [reports.generatedById],
+    references: [users.id],
   }),
-  sourceUser: one(users, {
-    fields: [userNotifications.sourceUserId],
-    references: [users.id],
-    relationName: "sentNotifications"
-  })
 }));
 
-// Reviewer UX relation definitions
-export const reviewRequestsRelations = relations(reviewRequests, ({ one, many }) => ({
-  requestor: one(users, {
-    fields: [reviewRequests.requestedBy],
-    references: [users.id],
-    relationName: "requestedReviews"
-  }),
-  reviewer: one(users, {
-    fields: [reviewRequests.assignedTo],
-    references: [users.id],
-    relationName: "assignedReviews"
-  }),
-  comments: many(comments, { relationName: "reviewComments" })
-}));
+// ======= MODEL TRACKING ========
 
-export const commentsRelations = relations(comments, ({ one, many }) => ({
-  user: one(users, {
-    fields: [comments.userId],
-    references: [users.id],
-    relationName: "userComments"
-  }),
-  parentComment: one(comments, {
-    fields: [comments.parentId],
-    references: [comments.id],
-    relationName: "childComments"
-  }),
-  childComments: many(comments, { relationName: "childComments" })
-}));
+export const modelInferences = pgTable("model_inferences", {
+  id: serial("id").primaryKey(),
+  modelName: text("model_name").notNull(), // "valuation", "condition", etc.
+  modelVersion: text("model_version").notNull(),
+  entityType: text("entity_type").notNull(), // "property", "image", etc.
+  entityId: integer("entity_id").notNull(), // ID of related entity
+  inputs: json("inputs"), // Data sent to model
+  outputs: json("outputs"), // Response from model
+  executionTimeMs: integer("execution_time_ms"),
+  succeeded: boolean("succeeded").default(true),
+  errorMessage: text("error_message"),
+  userId: integer("user_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
 
-export const annotationsRelations = relations(annotations, ({ one }) => ({
-  user: one(users, {
-    fields: [annotations.userId],
-    references: [users.id],
-    relationName: "userAnnotations"
-  })
-}));
+// ======= TOOLTIP & TERMINOLOGY ========
 
-export const revisionHistoryRelations = relations(revisionHistory, ({ one }) => ({
-  user: one(users, {
-    fields: [revisionHistory.userId],
-    references: [users.id],
-    relationName: "userRevisions"
-  })
-}));
+export const realEstateTerms = pgTable("real_estate_terms", {
+  id: serial("id").primaryKey(),
+  term: text("term").notNull().unique(),
+  definition: text("definition").notNull(),
+  category: text("category").notNull(), // financing, appraisal, legal, etc.
+  contextualExplanation: text("contextual_explanation"),
+  examples: text("examples").array(),
+  relatedTerms: text("related_terms").array(),
+  createdById: integer("created_by_id").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
 
-// Update user relations with new reviewer UX relations
-export const usersRelationsExtended = relations(users, ({ many }) => ({
-  requestedReviews: many(reviewRequests, { relationName: "requestedReviews" }),
-  assignedReviews: many(reviewRequests, { relationName: "assignedReviews" }),
-  comments: many(comments, { relationName: "userComments" }),
-  annotations: many(annotations, { relationName: "userAnnotations" }),
-  revisions: many(revisionHistory, { relationName: "userRevisions" }),
-  sentNotifications: many(userNotifications, { relationName: "sentNotifications" })
-}));
+// ======= FIELD NOTES ========
 
-// MLS Integration tables
-export const mlsSystemTypeEnum = pgEnum("mls_system_type", [
-  "rets",
-  "web_api",
-  "idx",
-  "custom"
-]);
+export const fieldNotes = pgTable("field_notes", {
+  id: text("id").primaryKey(), // UUID string
+  parcelId: text("parcel_id").notNull(), // References property by external ID
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  createdBy: text("created_by"), // User name or identifier
+  userId: integer("user_id").references(() => users.id),
+});
+
+// ======= MLS INTEGRATION ========
 
 export const mlsSystems = pgTable("mls_systems", {
   id: serial("id").primaryKey(),
   name: text("name").notNull(),
-  systemType: mlsSystemTypeEnum("system_type").notNull(),
-  baseUrl: text("base_url").notNull(),
-  loginUrl: text("login_url"),
-  metadataUrl: text("metadata_url"),
-  searchUrl: text("search_url"),
+  systemType: text("system_type").notNull(), // rets, web_api, idx, custom
+  url: text("url"),
   username: text("username"),
   password: text("password"),
-  userAgent: text("user_agent"),
   apiKey: text("api_key"),
-  apiVersion: text("api_version"),
   clientId: text("client_id"),
   clientSecret: text("client_secret"),
-  tokenUrl: text("token_url"),
-  refreshToken: text("refresh_token"),
-  accessTokenExpiresAt: timestamp("access_token_expires_at", { mode: "date" }),
-  region: text("region"),
-  status: text("status").notNull().default("inactive"),
-  active: boolean("active").notNull().default(true),
-  config: json("config"),
-  lastSyncedAt: timestamp("last_synced_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-export const mlsPropertyMappings = pgTable("mls_property_mappings", {
-  id: serial("id").primaryKey(),
-  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
-  mlsNumber: varchar("mls_number", { length: 50 }).notNull(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  mlsStatus: text("mls_status"),
-  rawData: json("raw_data"),
-  lastSynced: timestamp("last_synced", { mode: "date" }).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  metadata: json("metadata"),
+  active: boolean("active").default(true).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const mlsFieldMappings = pgTable("mls_field_mappings", {
@@ -919,327 +340,323 @@ export const mlsFieldMappings = pgTable("mls_field_mappings", {
   mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
   mlsFieldName: text("mls_field_name").notNull(),
   appFieldName: text("app_field_name").notNull(),
-  dataType: text("data_type").notNull(),
-  transformationRule: text("transformation_rule"),
-  isRequired: boolean("is_required").default(false),
-  defaultValue: text("default_value"),
-  notes: text("notes"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  dataType: text("data_type").notNull(), // string, number, date, boolean, etc.
+  transformationRule: text("transformation_rule"), // Optional rule for transforming the data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const publicRecordSources = pgTable("public_record_sources", {
+export const mlsPropertyMappings = pgTable("mls_property_mappings", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull(),
-  sourceType: text("source_type").notNull(),  // api, ftp, web_scrape, csv_import
-  baseUrl: text("base_url"),
-  apiKey: text("api_key"),
-  username: text("username"),
-  password: text("password"),
-  countyId: text("county_id"),
-  state: text("state"),
-  config: json("config"),
-  status: text("status").notNull().default("inactive"),
-  refreshSchedule: text("refresh_schedule"),  // cron format
-  lastSuccessfulSync: timestamp("last_successful_sync", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
-});
-
-export const publicRecordMappings = pgTable("public_record_mappings", {
-  id: serial("id").primaryKey(),
-  sourceId: integer("source_id").references(() => publicRecordSources.id).notNull(),
-  parcelId: text("parcel_id").notNull(),
+  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
   propertyId: integer("property_id").references(() => properties.id).notNull(),
+  mlsNumber: text("mls_number").notNull(),
+  mlsStatus: text("mls_status"),
   rawData: json("raw_data"),
-  lastSynced: timestamp("last_synced", { mode: "date" }).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  lastSynced: timestamp("last_synced").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const comparableSales = pgTable("comparable_sales", {
+  id: serial("id").primaryKey(),
+  propertyId: integer("property_id").references(() => properties.id), // Subject property (optional)
+  address: text("address").notNull(),
+  city: text("city").notNull(),
+  state: text("state").notNull(),
+  zipCode: text("zip_code").notNull(),
+  county: text("county"),
+  propertyType: text("property_type").notNull(),
+  bedrooms: integer("bedrooms"),
+  bathrooms: real("bathrooms"),
+  squareFeet: integer("square_feet"),
+  lotSize: real("lot_size"),
+  yearBuilt: integer("year_built"),
+  saleDate: timestamp("sale_date").notNull(),
+  saleAmount: integer("sale_amount").notNull(), // in cents
+  sourceType: text("source_type").default("mls"), // mls, public_records, manual, etc.
+  sourceId: text("source_id"), // Reference ID from the source
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
 export const mlsComparableMappings = pgTable("mls_comparable_mappings", {
   id: serial("id").primaryKey(),
   mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
-  mlsNumber: varchar("mls_number", { length: 50 }).notNull(),
   comparableId: integer("comparable_id").references(() => comparableSales.id).notNull(),
-  mlsStatus: text("mls_status"),
+  mlsNumber: text("mls_number").notNull(),
   rawData: json("raw_data"),
-  lastSynced: timestamp("last_synced", { mode: "date" }).notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  lastSynced: timestamp("last_synced").defaultNow().notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Real Estate Term Glossary
-export const propertyShareLinks = pgTable("property_share_links", {
+// ======= REVIEW SYSTEM ========
+
+export const reviewRequests = pgTable("review_requests", {
+  id: serial("id").primaryKey(),
+  objectType: text("object_type").notNull(), // The type of object being reviewed (e.g. "property", "valuation", "report")
+  objectId: integer("object_id").notNull(), // The ID of the object being reviewed
+  requesterId: integer("requester_id").references(() => users.id).notNull(),
+  reviewerId: integer("reviewer_id").references(() => users.id), // May be null until assigned
+  status: text("status").default("pending").notNull(), // pending, in_review, completed, rejected
+  priority: text("priority").default("normal").notNull(), // low, normal, high, urgent
+  dueDate: timestamp("due_date"),
+  title: text("title").notNull(),
+  description: text("description"),
+  approved: boolean("approved"), // null until review is completed
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const comments = pgTable("comments", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  objectType: text("object_type").notNull(), // The type of object being commented on
+  objectId: integer("object_id").notNull(), // The ID of the object being commented on
+  threadId: integer("thread_id"), // ID of parent comment if this is a reply
+  text: text("text").notNull(),
+  status: text("status").default("active").notNull(), // active, resolved, hidden
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const annotations = pgTable("annotations", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  objectType: text("object_type").notNull(), // The type of object being annotated
+  objectId: integer("object_id").notNull(), // The ID of the object being annotated
+  type: text("type").notNull(), // highlight, note, drawing, etc.
+  content: text("content"),
+  metadata: json("metadata"), // For position, size, color, etc.
+  page: integer("page"), // For document annotations
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const revisionHistory = pgTable("revision_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  objectType: text("object_type").notNull(), // The type of object being revised
+  objectId: integer("object_id").notNull(), // The ID of the object being revised
+  changeType: text("change_type").notNull(), // created, updated, deleted
+  fieldName: text("field_name"), // The field that was changed
+  oldValue: text("old_value"), // The previous value
+  newValue: text("new_value"), // The new value
+  description: text("description"), // Human-readable description of the change
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// ======= APPRAISAL REPORTS ========
+
+export const appraisalReports = pgTable("appraisal_reports", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(), // The appraiser who created the report
+  title: text("title").notNull(),
+  reportType: text("report_type").notNull(), // URAR, 1004D, 2055, etc.
+  status: text("status").default("draft").notNull(), // draft, in_review, completed, submitted
+  effectiveDate: timestamp("effective_date").notNull(),
+  signatureDate: timestamp("signature_date"),
+  submissionDate: timestamp("submission_date"),
+  fileUrl: text("file_url"), // URL to the PDF or final report
+  xmlData: json("xml_data"), // MISMO XML data
+  formData: json("form_data"), // Form field data
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// ======= PHOTOS AND SKETCHES ========
+
+export const photos = pgTable("photos", {
   id: serial("id").primaryKey(),
   propertyId: integer("property_id").references(() => properties.id).notNull(),
   userId: integer("user_id").references(() => users.id).notNull(),
-  token: text("token").notNull().unique(),
-  isActive: boolean("is_active").notNull().default(true),
-  viewCount: integer("view_count").notNull().default(0),
-  viewsLimit: integer("views_limit"),
-  expiresAt: timestamp("expires_at", { mode: "date" }),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  title: text("title").notNull(),
+  description: text("description"),
+  category: text("category").notNull(), // front, rear, street, kitchen, etc.
+  fileUrl: text("file_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  width: integer("width"),
+  height: integer("height"),
+  takenAt: timestamp("taken_at"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-export const realEstateTerms = pgTable("real_estate_terms", {
+export const sketches = pgTable("sketches", {
   id: serial("id").primaryKey(),
-  term: text("term").notNull().unique(),
-  definition: text("definition").notNull(),
-  category: text("category").notNull(),
-  contextualExplanation: text("contextual_explanation"),
-  examples: json("examples").$type<string[]>().default([]),
-  relatedTerms: json("related_terms").$type<string[]>().default([]),
-  isCommon: boolean("is_common").default(false).notNull(),
-  source: text("source"),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  updatedAt: timestamp("updated_at", { mode: "date" }).defaultNow().notNull()
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  sketchType: text("sketch_type").notNull(), // floor_plan, site_plan, etc.
+  fileUrl: text("file_url").notNull(),
+  thumbnailUrl: text("thumbnail_url"),
+  svgData: text("svg_data"), // SVG data for the sketch
+  dimensions: json("dimensions"), // Dimensions data
+  area: real("area"), // Calculated area in sq ft
+  metadata: json("metadata"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Field Notes for Property Inspections
-export const fieldNotes = pgTable("field_notes", {
-  id: text("id").primaryKey(), // UUID stored as text
-  parcelId: text("parcel_id").notNull(),
-  text: text("text").notNull(),
-  createdAt: timestamp("created_at", { mode: "date" }).defaultNow().notNull(),
-  createdBy: text("created_by").notNull(),
-  userId: integer("user_id").notNull()
+// ======= COMPLIANCE ========
+
+export const complianceChecks = pgTable("compliance_checks", {
+  id: serial("id").primaryKey(),
+  reportId: integer("report_id").references(() => appraisalReports.id).notNull(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  checkType: text("check_type").notNull(), // uad, fnma, fhlmc, etc.
+  status: text("status").default("pending").notNull(), // pending, passed, failed
+  results: json("results"), // Detailed check results
+  errors: integer("errors").default(0).notNull(),
+  warnings: integer("warnings").default(0).notNull(),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
-// Zod Schemas for data validation
-export const insertUserSchema = createInsertSchema(users).omit({ id: true, createdAt: true, updatedAt: true, lastLogin: true });
-export const selectUserSchema = createSelectSchema(users);
-export type User = z.infer<typeof selectUserSchema>;
+// ======= SCHEMA TYPES & VALIDATION ========
+
+// User types
+export type User = typeof users.$inferSelect;
+export const insertUserSchema = createInsertSchema(users).omit({ id: true });
 export type InsertUser = z.infer<typeof insertUserSchema>;
 
-export const insertPropertySchema = createInsertSchema(properties).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectPropertySchema = createSelectSchema(properties);
-export type Property = z.infer<typeof selectPropertySchema>;
+// Organization types
+export type Organization = typeof organizations.$inferSelect;
+export const insertOrganizationSchema = createInsertSchema(organizations).omit({ id: true });
+export type InsertOrganization = z.infer<typeof insertOrganizationSchema>;
+
+// Property types
+export type Property = typeof properties.$inferSelect;
+export const insertPropertySchema = createInsertSchema(properties).omit({ id: true });
 export type InsertProperty = z.infer<typeof insertPropertySchema>;
 
-export const insertValuationSchema = createInsertSchema(valuations).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectValuationSchema = createSelectSchema(valuations);
-export type Valuation = z.infer<typeof selectValuationSchema>;
+// Property Image types
+export type PropertyImage = typeof propertyImages.$inferSelect;
+export const insertPropertyImageSchema = createInsertSchema(propertyImages).omit({ id: true });
+export type InsertPropertyImage = z.infer<typeof insertPropertyImageSchema>;
+
+// Valuation types
+export type Valuation = typeof valuations.$inferSelect;
+export const insertValuationSchema = createInsertSchema(valuations).omit({ id: true });
 export type InsertValuation = z.infer<typeof insertValuationSchema>;
 
-// Alias for appraisal reports (valuations are used as appraisal reports in the system)
-export const insertAppraisalReportSchema = insertValuationSchema;
-export const selectAppraisalReportSchema = selectValuationSchema;
-export type AppraisalReport = Valuation;
-export type InsertAppraisalReport = InsertValuation;
+// Comparable Property types
+export type ComparableProperty = typeof comparableProperties.$inferSelect;
+export const insertComparablePropertySchema = createInsertSchema(comparableProperties).omit({ id: true });
+export type InsertComparableProperty = z.infer<typeof insertComparablePropertySchema>;
 
-export const insertTaxBillSchema = createInsertSchema(taxBills).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectTaxBillSchema = createSelectSchema(taxBills);
-export type TaxBill = z.infer<typeof selectTaxBillSchema>;
-export type InsertTaxBill = z.infer<typeof insertTaxBillSchema>;
-
-export const insertExemptionSchema = createInsertSchema(exemptions).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectExemptionSchema = createSelectSchema(exemptions);
-export type Exemption = z.infer<typeof selectExemptionSchema>;
-export type InsertExemption = z.infer<typeof insertExemptionSchema>;
-
-export const insertAppealSchema = createInsertSchema(appeals).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectAppealSchema = createSelectSchema(appeals);
-export type Appeal = z.infer<typeof selectAppealSchema>;
-export type InsertAppeal = z.infer<typeof insertAppealSchema>;
-
-export const insertComparableSaleSchema = createInsertSchema(comparableSales).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectComparableSaleSchema = createSelectSchema(comparableSales);
-export type ComparableSale = z.infer<typeof selectComparableSaleSchema>;
-export type InsertComparableSale = z.infer<typeof insertComparableSaleSchema>;
-
-export const insertPluginSchema = createInsertSchema(plugins).omit({ id: true, createdAt: true, updatedAt: true, installDate: true, lastUpdated: true });
-export const selectPluginSchema = createSelectSchema(plugins);
-export type Plugin = z.infer<typeof selectPluginSchema>;
-export type InsertPlugin = z.infer<typeof insertPluginSchema>;
-
-export const insertAiAgentSchema = createInsertSchema(aiAgents).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectAiAgentSchema = createSelectSchema(aiAgents);
-export type AiAgent = z.infer<typeof selectAiAgentSchema>;
-export type InsertAiAgent = z.infer<typeof insertAiAgentSchema>;
-
-export const insertApiKeySchema = createInsertSchema(apiKeys).omit({ id: true, createdAt: true, updatedAt: true, lastUsed: true });
-export const selectApiKeySchema = createSelectSchema(apiKeys);
-export type ApiKey = z.infer<typeof selectApiKeySchema>;
-export type InsertApiKey = z.infer<typeof insertApiKeySchema>;
-
-export const insertOrderSchema = createInsertSchema(orders).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectOrderSchema = createSelectSchema(orders);
-export type Order = z.infer<typeof selectOrderSchema>;
+// Order types
+export type Order = typeof orders.$inferSelect;
+export const insertOrderSchema = createInsertSchema(orders).omit({ id: true });
 export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
-export const insertAuditLogSchema = createInsertSchema(auditLogs).omit({ id: true, timestamp: true });
-export const selectAuditLogSchema = createSelectSchema(auditLogs);
-export type AuditLog = z.infer<typeof selectAuditLogSchema>;
-export type InsertAuditLog = z.infer<typeof insertAuditLogSchema>;
+// Order Status Update types
+export type OrderStatusUpdate = typeof orderStatusUpdates.$inferSelect;
+export const insertOrderStatusUpdateSchema = createInsertSchema(orderStatusUpdates).omit({ id: true });
+export type InsertOrderStatusUpdate = z.infer<typeof insertOrderStatusUpdateSchema>;
 
-export const insertRealEstateTermSchema = createInsertSchema(realEstateTerms).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectRealEstateTermSchema = createSelectSchema(realEstateTerms);
-export type RealEstateTerm = z.infer<typeof selectRealEstateTermSchema>;
+// Report types
+export type Report = typeof reports.$inferSelect;
+export const insertReportSchema = createInsertSchema(reports).omit({ id: true });
+export type InsertReport = z.infer<typeof insertReportSchema>;
+
+// Model Inference types
+export type ModelInference = typeof modelInferences.$inferSelect;
+export const insertModelInferenceSchema = createInsertSchema(modelInferences).omit({ id: true });
+export type InsertModelInference = z.infer<typeof insertModelInferenceSchema>;
+
+// Real Estate Term types
+export type RealEstateTerm = typeof realEstateTerms.$inferSelect;
+export const insertRealEstateTermSchema = createInsertSchema(realEstateTerms).omit({ id: true });
 export type InsertRealEstateTerm = z.infer<typeof insertRealEstateTermSchema>;
 
-// Gamification schemas
-export const insertAchievementDefinitionSchema = createInsertSchema(achievementDefinitions).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectAchievementDefinitionSchema = createSelectSchema(achievementDefinitions);
-export type AchievementDefinition = z.infer<typeof selectAchievementDefinitionSchema>;
-export type InsertAchievementDefinition = z.infer<typeof insertAchievementDefinitionSchema>;
-
-export const insertUserAchievementSchema = createInsertSchema(userAchievements).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
-export const selectUserAchievementSchema = createSelectSchema(userAchievements);
-export type UserAchievement = z.infer<typeof selectUserAchievementSchema>;
-export type InsertUserAchievement = z.infer<typeof insertUserAchievementSchema>;
-
-export const insertUserProgressSchema = createInsertSchema(userProgress).omit({ id: true, createdAt: true, updatedAt: true, lastActive: true });
-export const selectUserProgressSchema = createSelectSchema(userProgress);
-export type UserProgress = z.infer<typeof selectUserProgressSchema>;
-export type InsertUserProgress = z.infer<typeof insertUserProgressSchema>;
-
-export const insertLevelSchema = createInsertSchema(levels).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectLevelSchema = createSelectSchema(levels);
-export type Level = z.infer<typeof selectLevelSchema>;
-export type InsertLevel = z.infer<typeof insertLevelSchema>;
-
-export const insertUserChallengeSchema = createInsertSchema(userChallenges).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
-export const selectUserChallengeSchema = createSelectSchema(userChallenges);
-export type UserChallenge = z.infer<typeof selectUserChallengeSchema>;
-export type InsertUserChallenge = z.infer<typeof insertUserChallengeSchema>;
-
-// Reviewer UX schemas
-export const insertReviewRequestSchema = createInsertSchema(reviewRequests).omit({ id: true, createdAt: true, updatedAt: true, completedAt: true });
-export const selectReviewRequestSchema = createSelectSchema(reviewRequests);
-export type ReviewRequest = z.infer<typeof selectReviewRequestSchema>;
-export type InsertReviewRequest = z.infer<typeof insertReviewRequestSchema>;
-
-export const insertCommentSchema = createInsertSchema(comments).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectCommentSchema = createSelectSchema(comments);
-export type Comment = z.infer<typeof selectCommentSchema>;
-export type InsertComment = z.infer<typeof insertCommentSchema>;
-
-export const insertAnnotationSchema = createInsertSchema(annotations).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectAnnotationSchema = createSelectSchema(annotations);
-export type Annotation = z.infer<typeof selectAnnotationSchema>;
-export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
-
-export const insertRevisionHistorySchema = createInsertSchema(revisionHistory).omit({ id: true, createdAt: true });
-export const selectRevisionHistorySchema = createSelectSchema(revisionHistory);
-export type RevisionHistory = z.infer<typeof selectRevisionHistorySchema>;
-export type InsertRevisionHistory = z.infer<typeof insertRevisionHistorySchema>;
-
-// Enhanced Notification Schema
-export const insertUserNotificationSchema = createInsertSchema(userNotifications).omit({ id: true, createdAt: true, readAt: true });
-export const selectUserNotificationSchema = createSelectSchema(userNotifications);
-export type UserNotification = z.infer<typeof selectUserNotificationSchema>;
-export type InsertUserNotification = z.infer<typeof insertUserNotificationSchema>;
-
-export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true, createdAt: true });
-export const selectPhotoSchema = createSelectSchema(photos);
-export type Photo = z.infer<typeof selectPhotoSchema>;
-export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
-
-export const insertSketchSchema = createInsertSchema(sketches).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectSketchSchema = createSelectSchema(sketches);
-export type Sketch = z.infer<typeof selectSketchSchema>;
-export type InsertSketch = z.infer<typeof insertSketchSchema>;
-
-export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).omit({ id: true, createdAt: true });
-export const selectComplianceCheckSchema = createSelectSchema(complianceChecks);
-export type ComplianceCheck = z.infer<typeof selectComplianceCheckSchema>;
-export type InsertComplianceCheck = z.infer<typeof insertComplianceCheckSchema>;
-
-export const insertFieldNoteSchema = createInsertSchema(fieldNotes).omit({ createdAt: true });
-export const selectFieldNoteSchema = createSelectSchema(fieldNotes);
-export type FieldNote = z.infer<typeof selectFieldNoteSchema>;
+// Field Note types
+export type FieldNote = typeof fieldNotes.$inferSelect;
+export const insertFieldNoteSchema = createInsertSchema(fieldNotes);
 export type InsertFieldNote = z.infer<typeof insertFieldNoteSchema>;
 
-// Zod validation schema for field notes validation
+// Field Note validation schema for client-side
 export const fieldNoteSchema = z.object({
   id: z.string().uuid().optional(),
   parcelId: z.string(),
   text: z.string(),
-  createdAt: z.string().or(z.date()).optional(),
-  createdBy: z.string(),
-  userId: z.number()
+  createdAt: z.string().or(z.date()),
+  createdBy: z.string().optional(),
+  userId: z.number().optional()
 });
 
-// MLS Integration Zod schemas
-export const insertMlsSystemSchema = createInsertSchema(mlsSystems).omit({ id: true, createdAt: true, updatedAt: true, lastSyncedAt: true });
-export const selectMlsSystemSchema = createSelectSchema(mlsSystems);
-export type MlsSystem = z.infer<typeof selectMlsSystemSchema>;
+// MLS System types
+export type MlsSystem = typeof mlsSystems.$inferSelect;
+export const insertMlsSystemSchema = createInsertSchema(mlsSystems).omit({ id: true });
 export type InsertMlsSystem = z.infer<typeof insertMlsSystemSchema>;
 
-export const insertMlsPropertyMappingSchema = createInsertSchema(mlsPropertyMappings).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectMlsPropertyMappingSchema = createSelectSchema(mlsPropertyMappings);
-export type MlsPropertyMapping = z.infer<typeof selectMlsPropertyMappingSchema>;
-export type InsertMlsPropertyMapping = z.infer<typeof insertMlsPropertyMappingSchema>;
-
-export const insertMlsFieldMappingSchema = createInsertSchema(mlsFieldMappings).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectMlsFieldMappingSchema = createSelectSchema(mlsFieldMappings);
-export type MlsFieldMapping = z.infer<typeof selectMlsFieldMappingSchema>;
+// MLS Field Mapping types
+export type MlsFieldMapping = typeof mlsFieldMappings.$inferSelect;
+export const insertMlsFieldMappingSchema = createInsertSchema(mlsFieldMappings).omit({ id: true });
 export type InsertMlsFieldMapping = z.infer<typeof insertMlsFieldMappingSchema>;
 
-export const insertPublicRecordSourceSchema = createInsertSchema(publicRecordSources).omit({ id: true, createdAt: true, updatedAt: true, lastSuccessfulSync: true });
-export const selectPublicRecordSourceSchema = createSelectSchema(publicRecordSources);
-export type PublicRecordSource = z.infer<typeof selectPublicRecordSourceSchema>;
-export type InsertPublicRecordSource = z.infer<typeof insertPublicRecordSourceSchema>;
+// MLS Property Mapping types
+export type MlsPropertyMapping = typeof mlsPropertyMappings.$inferSelect;
+export const insertMlsPropertyMappingSchema = createInsertSchema(mlsPropertyMappings).omit({ id: true });
+export type InsertMlsPropertyMapping = z.infer<typeof insertMlsPropertyMappingSchema>;
 
-export const insertPublicRecordMappingSchema = createInsertSchema(publicRecordMappings).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectPublicRecordMappingSchema = createSelectSchema(publicRecordMappings);
-export type PublicRecordMapping = z.infer<typeof selectPublicRecordMappingSchema>;
-export type InsertPublicRecordMapping = z.infer<typeof insertPublicRecordMappingSchema>;
+// Comparable Sale types
+export type ComparableSale = typeof comparableSales.$inferSelect;
+export const insertComparableSaleSchema = createInsertSchema(comparableSales).omit({ id: true });
+export type InsertComparableSale = z.infer<typeof insertComparableSaleSchema>;
 
-export const insertMlsComparableMappingSchema = createInsertSchema(mlsComparableMappings).omit({ id: true, createdAt: true, updatedAt: true });
-export const selectMlsComparableMappingSchema = createSelectSchema(mlsComparableMappings);
-export type MlsComparableMapping = z.infer<typeof selectMlsComparableMappingSchema>;
+// MLS Comparable Mapping types
+export type MlsComparableMapping = typeof mlsComparableMappings.$inferSelect;
+export const insertMlsComparableMappingSchema = createInsertSchema(mlsComparableMappings).omit({ id: true });
 export type InsertMlsComparableMapping = z.infer<typeof insertMlsComparableMappingSchema>;
 
-// MLS Integration Relations
-export const mlsSystemsRelations = relations(mlsSystems, ({ many }) => ({
-  propertyMappings: many(mlsPropertyMappings),
-  fieldMappings: many(mlsFieldMappings),
-  comparableMappings: many(mlsComparableMappings)
-}));
+// Review Request types
+export type ReviewRequest = typeof reviewRequests.$inferSelect;
+export const insertReviewRequestSchema = createInsertSchema(reviewRequests).omit({ id: true });
+export type InsertReviewRequest = z.infer<typeof insertReviewRequestSchema>;
 
-export const mlsPropertyMappingsRelations = relations(mlsPropertyMappings, ({ one }) => ({
-  mlsSystem: one(mlsSystems, {
-    fields: [mlsPropertyMappings.mlsSystemId],
-    references: [mlsSystems.id]
-  }),
-  property: one(properties, {
-    fields: [mlsPropertyMappings.propertyId],
-    references: [properties.id]
-  })
-}));
+// Comment types
+export type Comment = typeof comments.$inferSelect;
+export const insertCommentSchema = createInsertSchema(comments).omit({ id: true });
+export type InsertComment = z.infer<typeof insertCommentSchema>;
 
-export const mlsFieldMappingsRelations = relations(mlsFieldMappings, ({ one }) => ({
-  mlsSystem: one(mlsSystems, {
-    fields: [mlsFieldMappings.mlsSystemId],
-    references: [mlsSystems.id]
-  })
-}));
+// Annotation types
+export type Annotation = typeof annotations.$inferSelect;
+export const insertAnnotationSchema = createInsertSchema(annotations).omit({ id: true });
+export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
 
-export const publicRecordSourcesRelations = relations(publicRecordSources, ({ many }) => ({
-  recordMappings: many(publicRecordMappings)
-}));
+// Revision History types
+export type RevisionHistory = typeof revisionHistory.$inferSelect;
+export const insertRevisionHistorySchema = createInsertSchema(revisionHistory).omit({ id: true });
+export type InsertRevisionHistory = z.infer<typeof insertRevisionHistorySchema>;
 
-export const publicRecordMappingsRelations = relations(publicRecordMappings, ({ one }) => ({
-  source: one(publicRecordSources, {
-    fields: [publicRecordMappings.sourceId],
-    references: [publicRecordSources.id]
-  }),
-  property: one(properties, {
-    fields: [publicRecordMappings.propertyId],
-    references: [properties.id]
-  })
-}));
+// Appraisal Report types
+export type AppraisalReport = typeof appraisalReports.$inferSelect;
+export const insertAppraisalReportSchema = createInsertSchema(appraisalReports).omit({ id: true });
+export type InsertAppraisalReport = z.infer<typeof insertAppraisalReportSchema>;
 
-export const mlsComparableMappingsRelations = relations(mlsComparableMappings, ({ one }) => ({
-  mlsSystem: one(mlsSystems, {
-    fields: [mlsComparableMappings.mlsSystemId],
-    references: [mlsSystems.id]
-  }),
-  comparable: one(comparableSales, {
-    fields: [mlsComparableMappings.comparableId],
-    references: [comparableSales.id]
-  })
-}));
+// Photo types
+export type Photo = typeof photos.$inferSelect;
+export const insertPhotoSchema = createInsertSchema(photos).omit({ id: true });
+export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
+
+// Sketch types
+export type Sketch = typeof sketches.$inferSelect;
+export const insertSketchSchema = createInsertSchema(sketches).omit({ id: true });
+export type InsertSketch = z.infer<typeof insertSketchSchema>;
+
+// Compliance Check types
+export type ComplianceCheck = typeof complianceChecks.$inferSelect;
+export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).omit({ id: true });
+export type InsertComplianceCheck = z.infer<typeof insertComplianceCheckSchema>;

@@ -75,7 +75,7 @@ const BasicWebSocketTestPage: React.FC = () => {
         <CardContent>
           <div className="space-y-4">
             {usingFallback && (
-              <Alert variant="info" className="bg-blue-50 border-blue-200">
+              <Alert className="bg-blue-50 border-blue-200">
                 <Info className="h-4 w-4" />
                 <AlertTitle>Using fallback connection mode</AlertTitle>
                 <AlertDescription>
