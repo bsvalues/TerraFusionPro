@@ -10,6 +10,19 @@ import {
   Report, InsertReport, reports,
   ModelInference, InsertModelInference, modelInferences,
   RealEstateTerm, InsertRealEstateTerm, realEstateTerms,
+  ReviewRequest, InsertReviewRequest, reviewRequests,
+  Comment, InsertComment, comments,
+  Annotation, InsertAnnotation, annotations,
+  RevisionHistory, InsertRevisionHistory, revisionHistory,
+  Photo, InsertPhoto, photos,
+  Sketch, InsertSketch, sketches,
+  AppraisalReport, InsertAppraisalReport, appraisalReports,
+  ComplianceCheck, InsertComplianceCheck, complianceChecks,
+  ComparableSale, InsertComparableSale, comparableSales,
+  MlsSystem, InsertMlsSystem, mlsSystems,
+  MlsFieldMapping, InsertMlsFieldMapping, mlsFieldMappings,
+  MlsPropertyMapping, InsertMlsPropertyMapping, mlsPropertyMappings,
+  MlsComparableMapping, InsertMlsComparableMapping, mlsComparableMappings,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql, inArray, like } from "drizzle-orm";
@@ -96,6 +109,41 @@ export interface IStorage {
   deleteRealEstateTerm(id: number): Promise<boolean>;
   getRelatedTerms(id: number): Promise<RealEstateTerm[]>;
   getTermExplanation(term: string, context?: string): Promise<any | undefined>;
+  
+  // Review Request operations
+  getReviewRequest(id: number): Promise<ReviewRequest | undefined>;
+  getPendingReviewRequests(limit?: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByRequester(requesterId: number, limit?: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByReviewer(reviewerId: number, limit?: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByObject(objectType: string, objectId: number, limit?: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByStatus(status: string, limit?: number): Promise<ReviewRequest[]>;
+  createReviewRequest(insertRequest: InsertReviewRequest): Promise<ReviewRequest>;
+  updateReviewRequest(id: number, request: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined>;
+  completeReviewRequest(id: number, approved: boolean): Promise<ReviewRequest | undefined>;
+  deleteReviewRequest(id: number): Promise<boolean>;
+  
+  // Comment operations
+  getComment(id: number): Promise<Comment | undefined>;
+  getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]>;
+  getCommentsByUser(userId: number, limit?: number): Promise<Comment[]>;
+  getCommentsByThread(threadId: number): Promise<Comment[]>;
+  createComment(insertComment: InsertComment): Promise<Comment>;
+  updateComment(id: number, comment: Partial<InsertComment>): Promise<Comment | undefined>;
+  deleteComment(id: number): Promise<boolean>;
+  
+  // Annotation operations
+  getAnnotation(id: number): Promise<Annotation | undefined>;
+  getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]>;
+  getAnnotationsByUser(userId: number, limit?: number): Promise<Annotation[]>;
+  createAnnotation(insertAnnotation: InsertAnnotation): Promise<Annotation>;
+  updateAnnotation(id: number, annotation: Partial<InsertAnnotation>): Promise<Annotation | undefined>;
+  deleteAnnotation(id: number): Promise<boolean>;
+  
+  // Revision History operations
+  getRevisionHistory(id: number): Promise<RevisionHistory | undefined>;
+  getRevisionHistoryByObject(objectType: string, objectId: number, limit?: number): Promise<RevisionHistory[]>;
+  getRevisionHistoryByUser(userId: number, limit?: number): Promise<RevisionHistory[]>;
+  createRevisionHistory(insertHistory: InsertRevisionHistory): Promise<RevisionHistory>;
 }
 
 // Database Storage Implementation
