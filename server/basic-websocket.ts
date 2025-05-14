@@ -21,11 +21,19 @@ export function setupBasicWebSocketServer(server: http.Server) {
     // Accept connections from any origin
     verifyClient: () => true,
     // Special handling for protocol negotiation to improve compatibility
-    handleProtocols: (protocols) => {
-      if (!protocols || protocols.length === 0) {
-        return '';
-      }
-      return protocols[0]; // Accept first protocol
+    // Allow any protocol request
+    perMessageDeflate: {
+      zlibDeflateOptions: {
+        chunkSize: 1024,
+        memLevel: 7,
+        level: 3
+      },
+      zlibInflateOptions: {
+        chunkSize: 10 * 1024
+      },
+      // Below options specified as default values
+      concurrencyLimit: 10, // Limits zlib concurrency for performance
+      threshold: 1024 // Size below which messages should not be compressed
     },
     // Increase the timeout for better reliability 
     clientTracking: true

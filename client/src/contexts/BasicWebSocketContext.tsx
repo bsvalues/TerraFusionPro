@@ -62,16 +62,32 @@ export const BasicWebSocketProvider: React.FC<{ children: React.ReactNode }> = (
     try {
       // Determine WebSocket URL
       // For Replit, we need to make sure we're connecting to the right endpoint
+      // Use direct hostname with explicit port if needed
+      let host = window.location.host;
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      // Using /basic-ws path to match the server's WSS configuration
-      const wsUrl = `${protocol}//${window.location.host}/basic-ws`;
       
-      // Add a timestamp to potentially avoid caching issues
-      const timestampedUrl = `${wsUrl}?t=${Date.now()}`;
+      // Special handling for Replit environments
+      if (host.includes('replit')) {
+        // Keep the full host without modifications for Replit
+        console.log(`[BasicWebSocket] Replit environment detected: ${host}`);
+      } else if (window.location.port) {
+        // For local development with explicit port
+        host = window.location.hostname + ':' + window.location.port;
+      } else {
+        // Fallback to just hostname
+        host = window.location.hostname;
+      }
+      
+      // Construct URL with host
+      const wsUrl = `${protocol}//${host}/basic-ws`;
+      
+      // Add a timestamp and random token to avoid caching issues
+      const token = Math.random().toString(36).substring(2, 15);
+      const timestampedUrl = `${wsUrl}?t=${Date.now()}&token=${token}`;
       
       console.log(`[BasicWebSocket] Connecting to ${timestampedUrl}...`);
       console.log(`[BasicWebSocket] Current location: ${window.location.href}`);
-      console.log(`[BasicWebSocket] WebSocket path: /basic-ws`);
+      console.log(`[BasicWebSocket] WebSocket path: /basic-ws with token: ${token}`);
       
       // Create WebSocket connection with timestamp to avoid caching
       socketRef.current = new WebSocket(timestampedUrl);
