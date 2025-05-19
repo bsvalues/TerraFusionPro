@@ -11,6 +11,7 @@ import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
 import AIValuationPage from "./pages/AIValuationPage";
 import PropertyAnalysis from "./pages/PropertyAnalysis";
+import RedirectToProperty from "./pages/RedirectToProperty";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import PropertyAppraisalPage from "./pages/PropertyAppraisalPage";
@@ -99,7 +100,7 @@ function App() {
                 <Route path="/sketches" component={SketchesPage} />
                 <Route path="/reports" component={ReportsPage} />
                 <Route path="/compliance" component={CompliancePage} />
-                <Route path="/ai-valuation" component={AIValuationPage} />
+                <Route path="/ai-valuation" component={RedirectToProperty} />
                 <Route path="/property-analysis" component={PropertyAnalysis} />
                 <Route path="/email-order" component={EmailOrderPage} />
                 <Route path="/property-data" component={PropertyDataPage} />
