@@ -156,53 +156,69 @@ export default function AIValuationPage() {
   const analyzeWithWebSocket = async () => {
     return new Promise<void>((resolve, reject) => {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      // Connect to the correct WebSocket path that your server uses
       const wsUrl = `${protocol}//${window.location.host}/ws`;
       
+      console.log('Connecting to WebSocket:', wsUrl);
       const socket = new WebSocket(wsUrl);
       
-      // Set up a timeout
+      // Set up a timeout for connection and response
       const timeout = setTimeout(() => {
+        console.warn('WebSocket connection or response timed out');
         socket.close();
         reject(new Error('WebSocket connection timed out'));
-      }, 5000);
+      }, 8000);
       
       socket.onopen = () => {
-        clearTimeout(timeout);
+        console.log('WebSocket connection established');
         
         // Send the property data request
+        const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
         const requestId = `req_${Date.now()}`;
         const message = {
           type: 'property_analysis_request',
+          clientId,
           requestId,
           data: propertyData
         };
         
+        console.log('Sending property analysis request via WebSocket');
         socket.send(JSON.stringify(message));
       };
       
       socket.onmessage = (event) => {
         try {
+          console.log('Received WebSocket message:', event.data);
           const response = JSON.parse(event.data);
           
-          if (response.type === 'property_analysis_response') {
+          if (response.type === 'property_analysis_response' || 
+              response.type === 'analysis_result') {
+            console.log('Received property analysis response');
+            clearTimeout(timeout);
             setResult(response.data);
             socket.close();
             resolve();
+          } else if (response.type === 'connection_established') {
+            console.log('Received connection confirmation');
+          } else if (response.type === 'heartbeat') {
+            console.log('Received heartbeat');
           }
         } catch (error) {
           console.error('Error parsing WebSocket message:', error);
-          reject(error);
         }
       };
       
       socket.onerror = (error) => {
+        console.error('WebSocket error:', error);
         clearTimeout(timeout);
         reject(error);
       };
       
       socket.onclose = (event) => {
         clearTimeout(timeout);
-        if (!event.wasClean) {
+        console.log('WebSocket connection closed:', event.code, event.reason);
+        
+        if (!event.wasClean && !result) {
           reject(new Error(`WebSocket closed unexpectedly: ${event.code} ${event.reason}`));
         }
       };
