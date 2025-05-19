@@ -76,8 +76,8 @@ Generate a detailed valuation report with estimated value, confidence level, val
 
     console.log("Calling Anthropic API to analyze property...");
     
-    // Call Anthropic API
-    const response = await anthropic.messages.create({
+    // Add a timeout to prevent hanging indefinitely
+    const apiPromise = anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
       system: systemPrompt,
       max_tokens: 2000,
@@ -86,7 +86,17 @@ Generate a detailed valuation report with estimated value, confidence level, val
       ],
       temperature: 0.2 // Lower temperature for more consistent valuations
     });
-
+    
+    // Create a timeout promise
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("API request timed out after 8 seconds"));
+      }, 8000); // 8 second timeout
+    });
+    
+    // Race the API call against the timeout
+    const response = await Promise.race([apiPromise, timeoutPromise]);
+    
     console.log("Received response from Anthropic API");
     
     // Parse JSON from the API response
@@ -108,6 +118,13 @@ Generate a detailed valuation report with estimated value, confidence level, val
     }
   } catch (error) {
     console.error("Error during property analysis with Anthropic:", error);
+    console.log("Falling back to built-in property valuation algorithm");
+    
+    // Check if this is a timeout error or other API issue
+    if (error.message.includes("timed out") || error.message.includes("API")) {
+      console.log("API timeout or connection issue detected, using fallback valuation");
+    }
+    
     return calculateValuation(propertyData);
   }
 }

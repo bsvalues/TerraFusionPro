@@ -3,7 +3,7 @@
  * This script tests the HTTP endpoint directly
  */
 
-const axios = require('axios');
+import axios from 'axios';
 
 async function testPropertyAnalysisAPI() {
   console.log('Testing TerraFusion Property Analysis API');
@@ -85,4 +85,9 @@ async function testPropertyAnalysisAPI() {
 }
 
 // Run the test
-testPropertyAnalysisAPI();
+testPropertyAnalysisAPI().catch(error => {
+  console.error('Test failed:', error);
+});
+
+// Add ESM indicator
+export {};
