@@ -31,7 +31,13 @@ async function testPropertyAnalysis() {
   
   try {
     console.log('Calling API endpoint...');
-    const response = await fetch('http://localhost:5000/api/property-analysis', {
+    // Get the Replit URL dynamically
+    const REPLIT_URL = process.env.REPLIT_URL || 'https://' + process.env.REPL_SLUG + '.' + process.env.REPL_OWNER + '.repl.co';
+    const API_URL = `${REPLIT_URL}/api/property-analysis`;
+    
+    console.log(`Using API URL: ${API_URL}`);
+    
+    const response = await fetch(API_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

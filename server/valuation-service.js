@@ -1,213 +1,70 @@
 /**
- * TerraFusion AI Valuation Service - Node.js Implementation
- * This implements a Node.js version of the valuation endpoint that was 
- * previously implemented in Python. This allows us to avoid cross-server
- * communication issues.
+ * TerraFusion Core AI Valuator Service
+ * 
+ * This service handles property valuation and analysis using Anthropic's Claude API
  */
 
-// Mock database for properties (equivalent to the Python implementation)
-const PROPERTY_DB = {
-  1: {
-    address: {
-      street: "123 Main St",
-      city: "Anytown",
-      state: "CA",
-      zipCode: "90210"
-    },
-    propertyType: "single-family",
-    bedrooms: 3,
-    bathrooms: 2.5,
-    squareFeet: 2100,
-    yearBuilt: 1985,
-    lotSize: 0.25,
-    features: [
-      {name: "Hardwood Floors"},
-      {name: "Fireplace"}
-    ],
-    condition: "Good"
-  },
-  2: {
-    address: {
-      street: "456 Oak Ave",
-      city: "Somewhere",
-      state: "TX",
-      zipCode: "75001"
-    },
-    propertyType: "townhouse",
-    bedrooms: 2,
-    bathrooms: 1.5,
-    squareFeet: 1500,
-    yearBuilt: 2005,
-    lotSize: 0.1,
-    features: [
-      {name: "Updated Kitchen"}
-    ],
-    condition: "Excellent"
-  }
-};
+import Anthropic from '@anthropic-ai/sdk';
 
-// Property type adjustment factors
-const propertyTypeFactors = {
-  "single-family": 1.0,
-  "condo": 0.85,
-  "townhouse": 0.9,
-  "multi-family": 1.2,
-  "land": 0.7
-};
-
-// Condition factors
-const conditionFactors = {
-  "Excellent": 1.15,
-  "Good": 1.0,
-  "Average": 0.9,
-  "Fair": 0.75,
-  "Poor": 0.6
-};
-
-// Feature values
-const featureValues = {
-  "Hardwood Floors": 5000,
-  "Updated Kitchen": 15000,
-  "Fireplace": 3000,
-  "Deck": 5000,
-  "Swimming Pool": 20000,
-  "Garage": 10000,
-  "Central AC": 7000,
-  "New Roof": 8000
-};
+// Create Anthropic client with API key from environment variables
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+});
 
 /**
- * Predict the value of a property based on its characteristics
+ * Generate a detailed property valuation report using AI
+ * 
+ * @param {Object} propertyData - Data about the property to analyze
+ * @returns {Promise<Object>} - Property valuation report
  */
-function predictValue(propertyData) {
-  console.log(`Predicting value for property: ${propertyData.address?.street || 'Unknown'}`);
-  
-  // Base valuation using heuristics
-  let base = 100000;  // base heuristic
-  
-  // Get property type factor
-  const typeFactor = propertyTypeFactors[propertyData.propertyType] || 1.0;
-      
-  // Get condition factor
-  const conditionFactor = conditionFactors[propertyData.condition] || 1.0;
-      
-  // Get square feet factor
-  const sizeFactor = propertyData.squareFeet ? propertyData.squareFeet / 1000 : 1.0;
-  
-  // Calculate special feature adjustments
-  let featureBonus = 0;
-  if (Array.isArray(propertyData.features)) {
-    featureBonus = propertyData.features.reduce((sum, feature) => {
-      const featureName = typeof feature === 'string' ? feature : feature.name;
-      return sum + (featureValues[featureName] || 0);
-    }, 0);
-  }
-
-  // Calculate final estimated value
-  const estimated = base * typeFactor * conditionFactor * sizeFactor + featureBonus;
-  
-  return Math.round(estimated * 100) / 100;
-}
-
-/**
- * Generate a basic market analysis narrative
- */
-function generateMarketAnalysis(propertyData) {
-  const city = propertyData.address?.city || 'the area';
-  const state = propertyData.address?.state || '';
-  
-  return `The real estate market in ${city}, ${state} has been showing moderate growth. ` +
-         `Properties similar to this one have been in demand, with average days on market ` +
-         `of 35 days. Current interest rates and inventory levels suggest a balanced market ` +
-         `for this property type.`;
-}
-
-/**
- * Generate adjustment details for the valuation
- */
-function generateAdjustments(propertyData) {
-  const adjustments = [];
-  
-  // Property type adjustment
-  const propType = propertyData.propertyType;
-  if (propType && propertyTypeFactors[propType]) {
-    const factor = propertyTypeFactors[propType];
-    if (factor !== 1.0) {
-      adjustments.push({
-        factor: "Property Type",
-        description: `Property type: ${propType}`,
-        amount: Math.round((factor - 1.0) * 100000 * 100) / 100,
-        reasoning: `${propType.charAt(0).toUpperCase() + propType.slice(1)} properties have different base values`
-      });
-    }
-  }
-  
-  // Condition adjustment
-  const condition = propertyData.condition;
-  if (condition && conditionFactors[condition]) {
-    const factor = conditionFactors[condition];
-    if (factor !== 1.0) {
-      adjustments.push({
-        factor: "Condition",
-        description: `Property condition: ${condition}`,
-        amount: Math.round((factor - 1.0) * 100000 * 100) / 100,
-        reasoning: `Property in ${condition} condition affects base value`
-      });
-    }
-  }
-  
-  // Feature adjustments
-  const features = propertyData.features || [];
-  if (Array.isArray(features)) {
-    features.forEach(feature => {
-      // Handle both string features and object features with a name field
-      const featureName = typeof feature === 'string' ? feature : feature.name;
-      const value = featureValues[featureName] || 0;
-      
-      if (value > 0) {
-        adjustments.push({
-          factor: "Special Feature",
-          description: featureName,
-          amount: value,
-          reasoning: `${featureName} adds value to the property`
-        });
-      }
-    });
-  }
-  
-  return adjustments;
-}
-
-/**
- * Generate a comprehensive valuation report for a property using Anthropic API
- */
-async function generateValuationReport(propertyData) {
-  console.log("Generating AI-powered valuation report for property:", propertyData.address?.street);
+export async function generateValuationReport(propertyData) {
+  console.log("Generating valuation report for:", propertyData);
   
   try {
-    // Import Anthropic - only import if needed
-    const Anthropic = require('@anthropic-ai/sdk').default;
+    // Format the property address from the provided data
+    let propertyAddress;
+    if (propertyData.address) {
+      // Handle nested address object
+      if (typeof propertyData.address === 'object') {
+        propertyAddress = `${propertyData.address.street}, ${propertyData.address.city}, ${propertyData.address.state} ${propertyData.address.zipCode}`;
+      } else {
+        // Handle flat address string
+        propertyAddress = propertyData.address;
+      }
+    } else {
+      // Fallback for other property data formats
+      propertyAddress = `${propertyData.street || ""}, ${propertyData.city || ""}, ${propertyData.state || ""} ${propertyData.zipCode || propertyData.zip || ""}`;
+    }
     
-    // Initialize Anthropic client with API key from environment
-    const anthropic = new Anthropic({
-      apiKey: process.env.ANTHROPIC_API_KEY,
-    });
+    // Normalize the property data for the prompt
+    const normalizedData = {
+      address: propertyAddress,
+      propertyType: propertyData.propertyType || "Single Family",
+      bedrooms: propertyData.bedrooms || 0,
+      bathrooms: propertyData.bathrooms || 0,
+      squareFeet: propertyData.squareFeet || propertyData.grossLivingArea || 0,
+      yearBuilt: propertyData.yearBuilt || 0,
+      lotSize: propertyData.lotSize || 0,
+      features: Array.isArray(propertyData.features) 
+        ? propertyData.features.map(f => typeof f === 'object' ? f.name : f).join(", ") 
+        : (propertyData.features || ""),
+      condition: propertyData.condition || "Average"
+    };
     
-    // Format the property data for the prompt
-    const propertyAddress = `${propertyData.address?.street}, ${propertyData.address?.city}, ${propertyData.address?.state} ${propertyData.address?.zipCode}`;
-    
+    console.log("Normalized property data:", normalizedData);
+
     // Create a detailed prompt for the property valuation
     const prompt = `You are a professional real estate appraiser tasked with analyzing the following property:
 
-Address: ${propertyAddress}
-Property Type: ${propertyData.propertyType || 'Unknown'}
-Bedrooms: ${propertyData.bedrooms || 'Unknown'}
-Bathrooms: ${propertyData.bathrooms || 'Unknown'}
-Square Feet: ${propertyData.squareFeet || 'Unknown'}
-Year Built: ${propertyData.yearBuilt || 'Unknown'}
-Lot Size: ${propertyData.lotSize ? propertyData.lotSize + ' acres' : 'Unknown'}
-Features: ${Array.isArray(propertyData.features) ? propertyData.features.map(f => typeof f === 'string' ? f : f.name).join(', ') : 'None specified'}
-Condition: ${propertyData.condition || 'Unknown'}
+Address: ${normalizedData.address}
+Property Type: ${normalizedData.propertyType}
+Bedrooms: ${normalizedData.bedrooms}
+Bathrooms: ${normalizedData.bathrooms}
+Square Feet: ${normalizedData.squareFeet}
+Year Built: ${normalizedData.yearBuilt}
+Lot Size: ${normalizedData.lotSize} acres
+Features: ${normalizedData.features}
+Condition: ${normalizedData.condition}
 
 Please provide a comprehensive property valuation report including:
 1. Estimated value in USD (provide a specific number, not a range)
@@ -218,7 +75,7 @@ Please provide a comprehensive property valuation report including:
 6. Comparable property analysis
 7. Valuation methodology explanation
 
-Return your analysis as a valid JSON object with the following structure:
+Return your analysis as a valid JSON object only, with the following structure:
 {
   "estimatedValue": number,
   "confidenceLevel": "high"|"medium"|"low",
@@ -241,114 +98,133 @@ Return your analysis as a valid JSON object with the following structure:
 
     console.log("Sending request to Anthropic API...");
     
-    // Use fallback to default method if API call fails
+    // Call Anthropic API with the prompt
+    // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+    const response = await anthropic.messages.create({
+      model: "claude-3-7-sonnet-20250219",
+      max_tokens: 2000,
+      messages: [{ role: "user", content: prompt }],
+      system: "You are a real estate valuation expert with access to current market data. When providing property valuations, use real market data and trends. Format your response as a valid JSON object only, with no additional text."
+    });
+    
+    console.log("Received response from Anthropic API");
+    
+    // Parse the response content to extract the JSON
+    const content = response.content[0].text;
+    let jsonResponse;
+    
     try {
-      // Call Anthropic API with the prompt
-      // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
-      const response = await anthropic.messages.create({
-        model: "claude-3-7-sonnet-20250219",
-        max_tokens: 2000,
-        messages: [
-          { 
-            role: "user", 
-            content: prompt 
-          }
-        ],
-        system: "You are a real estate valuation expert with access to current market data. When providing property valuations, use real market data and trends. Format your response as a valid JSON object only, with no additional text."
-      });
-      
-      console.log("Received response from Anthropic API");
-      
-      // Parse the response content
-      const content = response.content[0].text;
-      let jsonResponse;
-      
-      try {
-        // Extract JSON if it's wrapped in code blocks
-        if (content.includes('```json')) {
-          const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
-          if (jsonMatch && jsonMatch[1]) {
-            jsonResponse = JSON.parse(jsonMatch[1]);
-          } else {
-            throw new Error("Could not extract JSON from response");
-          }
+      // Extract JSON if it's wrapped in code blocks
+      if (content.includes('```json')) {
+        const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+        if (jsonMatch && jsonMatch[1]) {
+          jsonResponse = JSON.parse(jsonMatch[1]);
         } else {
-          // Otherwise parse the whole response
-          jsonResponse = JSON.parse(content);
+          throw new Error("Could not extract JSON from response");
         }
-        
-        // Add timestamp and return the valuation
-        return {
-          ...jsonResponse,
-          timestamp: new Date().toISOString()
-        };
-      } catch (jsonError) {
-        console.error("Error parsing JSON response:", jsonError);
-        console.log("Raw response:", content);
-        throw new Error("Could not parse AI response");
+      } else {
+        // Otherwise parse the whole response
+        jsonResponse = JSON.parse(content);
       }
-    } catch (apiError) {
-      console.error("Anthropic API error:", apiError);
-      console.log("Falling back to local valuation method...");
-      return generateFallbackValuation(propertyData);
+      
+      console.log("Successfully parsed AI response");
+      return jsonResponse;
+      
+    } catch (jsonError) {
+      console.error("Error parsing JSON response:", jsonError);
+      console.log("Raw response:", content);
+      
+      // If we can't parse the JSON, create a fallback response
+      return generateFallbackResponse(normalizedData);
     }
+    
   } catch (error) {
-    console.error("Error in AI valuation:", error);
-    return generateFallbackValuation(propertyData);
+    console.error("Error in valuation service:", error);
+    
+    if (error.response) {
+      console.error("API Error:", error.response.status, error.response.data);
+    }
+    
+    // If the API call fails, return a fallback response
+    return generateFallbackResponse(propertyData);
   }
 }
 
 /**
- * Fallback valuation method when AI API is unavailable
+ * Generate a fallback response when AI analysis fails
+ * 
+ * @param {Object} propertyData - Data about the property
+ * @returns {Object} - Fallback property valuation report
  */
-function generateFallbackValuation(propertyData) {
-  console.log("Using fallback valuation method");
+function generateFallbackResponse(propertyData) {
+  console.log("Generating fallback property analysis for:", propertyData);
   
-  // Get the estimated value
-  const estimatedValue = predictValue(propertyData);
+  // Calculate a rough estimated value based on property attributes
+  const basePricePerSqFt = 275; // Base price per square foot for Washington state
+  const squareFeet = propertyData.squareFeet || propertyData.grossLivingArea || 1800;
+  const baseValue = squareFeet * basePricePerSqFt;
   
-  // Generate confidence level (simple implementation)
-  let confidenceLevel = "medium";
-  if (propertyData.condition && propertyData.squareFeet) {
-    confidenceLevel = "high";
-  } else if (!propertyData.condition || !propertyData.squareFeet) {
-    confidenceLevel = "low";
-  }
+  // Adjust for bedrooms and bathrooms
+  const bedroomValue = (propertyData.bedrooms || 3) * 15000;
+  const bathroomValue = (propertyData.bathrooms || 2) * 12500;
   
-  // Calculate value range based on confidence
-  let rangePercent = 0.10;  // default: medium confidence = ±10%
-  if (confidenceLevel === "high") {
-    rangePercent = 0.05;  // ±5%
-  } else if (confidenceLevel === "low") {
-    rangePercent = 0.15;  // ±15%
-  }
-      
-  const minValue = estimatedValue * (1 - rangePercent);
-  const maxValue = estimatedValue * (1 + rangePercent);
+  // Adjust for lot size
+  const lotSizeValue = (propertyData.lotSize || 0.15) * 50000;
   
-  // Generate adjustments
-  const adjustments = generateAdjustments(propertyData);
+  // Adjust for age
+  const yearBuilt = propertyData.yearBuilt || 1990;
+  const currentYear = new Date().getFullYear();
+  const age = currentYear - yearBuilt;
+  const ageAdjustment = age > 0 ? (age * -500) : 0;
   
-  // Generate market analysis
-  const marketAnalysis = generateMarketAnalysis(propertyData);
+  // Calculate estimated value
+  const estimatedValue = Math.round(baseValue + bedroomValue + bathroomValue + lotSizeValue + ageAdjustment);
   
-  // Generate the report
+  // Set a reasonable value range
+  const minValue = Math.round(estimatedValue * 0.9);
+  const maxValue = Math.round(estimatedValue * 1.1);
+  
   return {
-    estimatedValue,
-    confidenceLevel,
+    estimatedValue: estimatedValue,
+    confidenceLevel: "low",
     valueRange: {
-      min: Math.round(minValue * 100) / 100,
-      max: Math.round(maxValue * 100) / 100
+      min: minValue,
+      max: maxValue
     },
-    adjustments,
-    marketAnalysis,
-    comparableAnalysis: "No comparable analysis available in fallback mode.",
-    valuationMethodology: "ML-Enhanced Heuristic Model (Fallback)",
-    modelVersion: "1.0.0",
-    timestamp: new Date().toISOString()
+    adjustments: [
+      {
+        factor: "Living Area",
+        description: "Value based on square footage",
+        amount: baseValue,
+        reasoning: "Base valuation using local price per square foot"
+      },
+      {
+        factor: "Bedrooms",
+        description: `Value added for ${propertyData.bedrooms || 3} bedrooms`,
+        amount: bedroomValue,
+        reasoning: "Additional bedrooms increase property value"
+      },
+      {
+        factor: "Bathrooms",
+        description: `Value added for ${propertyData.bathrooms || 2} bathrooms`,
+        amount: bathroomValue,
+        reasoning: "Additional bathrooms increase property value"
+      },
+      {
+        factor: "Lot Size",
+        description: `Value added for ${propertyData.lotSize || 0.15} acre lot`,
+        amount: lotSizeValue,
+        reasoning: "Larger lots command higher prices"
+      },
+      {
+        factor: "Age",
+        description: `Adjustment for ${age} year old property`,
+        amount: ageAdjustment,
+        reasoning: "Older properties generally have lower values due to wear and maintenance needs"
+      }
+    ],
+    marketAnalysis: "Market data unavailable. This is a fallback valuation based on property attributes only.",
+    comparableAnalysis: "Comparable property data unavailable. This analysis uses standard valuation metrics for the area.",
+    valuationMethodology: "This is a fallback valuation using a simplified cost approach. It calculates basic values for major property features and may not reflect actual market conditions."
   };
 }
-
-// Export as ES modules
-export const getPropertyById = (id) => PROPERTY_DB[id];
-export { generateValuationReport, predictValue };
