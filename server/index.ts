@@ -73,6 +73,10 @@ app.use((req, res, next) => {
   const wsApi = setupBasicWebSocketServer(server);
   console.log('[WebSocket] Basic WebSocket server initialized on path /basic-ws');
   
+  // Initialize TerraFusion WebSocket server for property analysis
+  const terraFusionWs = createWebSocketServer(server);
+  console.log('[WebSocket] TerraFusion WebSocket server initialized on path /ws');
+  
   // Set up SHAP WebSocket service
   shapWebSocketService.initialize(server, '/shap-ws');
   console.log('[SHAP] SHAP WebSocket service initialized');

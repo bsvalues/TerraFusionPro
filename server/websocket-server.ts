@@ -256,7 +256,8 @@ export class TerraFusionWebSocketServer {
       return false;
     }
     
-    if (client.socket.readyState !== WebSocket.OPEN) {
+    // WebSocket.OPEN is constant value 1 for open connection
+    if (client.socket.readyState !== 1) { // 1 = OPEN
       console.warn(`[WebSocket] Client ${clientId} socket not open, current state: ${client.socket.readyState}`);
       return false;
     }
@@ -276,7 +277,7 @@ export class TerraFusionWebSocketServer {
     let failed = 0;
     
     this.clients.forEach((client) => {
-      if (client.socket.readyState === WebSocket.OPEN) {
+      if (client.socket.readyState === 1) { // 1 = OPEN
         try {
           client.socket.send(JSON.stringify(message));
           success++;
