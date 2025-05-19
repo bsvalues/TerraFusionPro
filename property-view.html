@@ -1,344 +1,240 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>406 Stardust Court Analysis</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            background-color: #f5f5f5;
-        }
-        .header {
-            background-color: #1a4f8f;
-            color: white;
-            padding: 15px 20px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-        }
-        .logo {
-            font-weight: bold;
-            font-size: 20px;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-        }
-        .user-avatar {
-            width: 30px;
-            height: 30px;
-            background-color: #e0e0e0;
-            border-radius: 50%;
-            margin-right: 10px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-        }
-        .main-container {
-            display: flex;
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 20px;
-        }
-        .sidebar {
-            width: 240px;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 15px;
-            margin-right: 20px;
-        }
-        .sidebar-menu {
-            list-style: none;
-            padding: 0;
-            margin: 0;
-        }
-        .sidebar-menu li {
-            padding: 10px;
-            margin-bottom: 5px;
-            border-radius: 4px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-        }
-        .sidebar-menu li.active {
-            background-color: #f0f7ff;
-            color: #1a4f8f;
-            font-weight: bold;
-        }
-        .menu-icon {
-            margin-right: 10px;
-            width: 20px;
-            height: 20px;
-            background-color: #e0e0e0;
-            border-radius: 4px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 12px;
-        }
-        .content {
-            flex: 1;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .card {
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-        }
-        .property-card {
-            width: calc(50% - 10px);
-        }
-        .value-card {
-            width: calc(50% - 10px);
-            background-color: #f0f7ff;
-        }
-        .card-header {
-            margin-bottom: 15px;
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-        }
-        .card-title {
-            font-size: 18px;
-            font-weight: bold;
-            margin: 0 0 5px 0;
-        }
-        .card-subtitle {
-            font-size: 14px;
-            color: #666;
-            margin: 0;
-        }
-        .property-details {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .property-features {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        .field-label {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 4px;
-        }
-        .field-value {
-            font-size: 16px;
-            font-weight: 500;
-        }
-        .value-amount {
-            font-size: 36px;
-            font-weight: bold;
-            color: #1a4f8f;
-            text-align: center;
-            margin: 20px 0 10px;
-        }
-        .value-range {
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        .adjustments {
-            margin-bottom: 20px;
-        }
-        .adjustment-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .adjustment-info {
-            display: flex;
-            flex-direction: column;
-        }
-        .adjustment-factor {
-            font-weight: 500;
-        }
-        .adjustment-description {
-            font-size: 12px;
-            color: #666;
-        }
-        .adjustment-amount {
-            font-weight: bold;
-        }
-        .adjustment-amount.positive {
-            color: #22c55e;
-        }
-        .adjustment-amount.negative {
-            color: #ef4444;
-        }
-        .market-analysis, .comparable-analysis {
-            margin-top: 20px;
-        }
-        .section-title {
-            font-size: 16px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #1a4f8f;
-        }
-        .ai-badge {
-            display: inline-block;
-            background-color: #f0f0f0;
-            color: #666;
-            font-size: 12px;
-            padding: 2px 6px;
-            border-radius: 4px;
-            margin-left: 6px;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>406 Stardust Ct Property Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f5f5f5;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 1000px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    .header {
+      background-color: #1a56db;
+      color: white;
+      padding: 20px;
+      border-radius: 8px 8px 0 0;
+    }
+    .property-card {
+      background-color: white;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .property-details {
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+    .property-address {
+      border-bottom: 1px solid #eee;
+      padding-bottom: 15px;
+      margin-bottom: 15px;
+    }
+    .property-stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+    .stat-item {
+      margin-bottom: 10px;
+    }
+    .stat-label {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: bold;
+    }
+    .valuation {
+      background-color: #f9f9f9;
+      padding: 20px;
+      border-radius: 8px;
+      text-align: center;
+      margin: 15px 0;
+    }
+    .valuation-amount {
+      font-size: 2rem;
+      color: #1a56db;
+      font-weight: bold;
+    }
+    .valuation-range {
+      font-size: 0.9rem;
+      color: #666;
+    }
+    .adjustments {
+      padding: 20px;
+    }
+    .adjustment-item {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px 0;
+      border-bottom: 1px solid #eee;
+    }
+    .adjustment-item:last-child {
+      border-bottom: none;
+    }
+    .adjustment-type {
+      font-weight: bold;
+    }
+    .adjustment-desc {
+      font-size: 0.85rem;
+      color: #666;
+    }
+    .adjustment-value.positive {
+      color: #10b981;
+      font-weight: bold;
+    }
+    .adjustment-value.negative {
+      color: #ef4444;
+      font-weight: bold;
+    }
+    .section {
+      padding: 20px;
+      background-color: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    .section-title {
+      color: #1a56db;
+      font-size: 1.3rem;
+      margin-bottom: 15px;
+    }
+    .features {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      margin-top: 15px;
+    }
+    .feature-tag {
+      background-color: #f3f4f6;
+      padding: 5px 10px;
+      border-radius: 20px;
+      font-size: 0.9rem;
+    }
+  </style>
 </head>
 <body>
+  <div class="container">
     <div class="header">
-        <div class="logo">TerraFusionAI</div>
-        <div class="user-info">
-            <div class="user-avatar">JA</div>
-            <span>John Appraiser</span>
-        </div>
+      <h1>TerraFusion Property Analysis</h1>
+      <p>Analysis Date: May 19, 2025</p>
     </div>
-
-    <div class="main-container">
-        <div class="sidebar">
-            <ul class="sidebar-menu">
-                <li class="active">
-                    <div class="menu-icon">P</div>
-                    Property Analysis
-                </li>
-                <li>
-                    <div class="menu-icon">C</div>
-                    Comparables
-                </li>
-                <li>
-                    <div class="menu-icon">M</div>
-                    Market Data
-                </li>
-                <li>
-                    <div class="menu-icon">V</div>
-                    Valuation
-                </li>
-                <li>
-                    <div class="menu-icon">R</div>
-                    Reports
-                </li>
-            </ul>
+    
+    <div class="property-card">
+      <div class="property-details">
+        <div class="property-address">
+          <h2>406 Stardust Ct</h2>
+          <p>Grandview, WA 98930</p>
         </div>
-
-        <div class="content">
-            <div class="card property-card">
-                <div class="card-header">
-                    <h2 class="card-title">406 Stardust Ct</h2>
-                    <p class="card-subtitle">Grandview, WA 98930</p>
-                </div>
-
-                <div class="property-details">
-                    <div>
-                        <div class="field-label">Property Type</div>
-                        <div class="field-value">Single Family</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Condition</div>
-                        <div class="field-value">Good</div>
-                    </div>
-                </div>
-
-                <div class="property-features">
-                    <div>
-                        <div class="field-label">Beds</div>
-                        <div class="field-value">4</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Baths</div>
-                        <div class="field-value">2.5</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Sq Ft</div>
-                        <div class="field-value">1,850</div>
-                    </div>
-                    <div>
-                        <div class="field-label">Year Built</div>
-                        <div class="field-value">1995</div>
-                    </div>
-                </div>
-
-                <div>
-                    <div class="field-label">Lot Size</div>
-                    <div class="field-value">0.17 acres</div>
-                </div>
-
-                <div style="margin-top: 20px;">
-                    <div class="field-label">Features</div>
-                    <div style="margin-top: 5px;">
-                        <span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px;">Garage</span>
-                        <span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px; margin-right: 5px;">Fireplace</span>
-                        <span style="background: #f0f0f0; padding: 4px 8px; border-radius: 4px; font-size: 12px;">Patio</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="card value-card">
-                <div class="card-header">
-                    <h2 class="card-title">Property Valuation <span class="ai-badge">AI</span></h2>
-                    <p class="card-subtitle">AI-powered valuation for 406 Stardust Ct</p>
-                </div>
-
-                <div class="value-amount">$345,000</div>
-                <div class="value-range">Range: $330,000 - $360,000</div>
-
-                <div class="adjustments">
-                    <div class="section-title">Value Adjustments</div>
-                    
-                    <div class="adjustment-item">
-                        <div class="adjustment-info">
-                            <div class="adjustment-factor">Location</div>
-                            <div class="adjustment-description">Grandview, WA location</div>
-                        </div>
-                        <div class="adjustment-amount positive">+$15,000</div>
-                    </div>
-                    
-                    <div class="adjustment-item">
-                        <div class="adjustment-info">
-                            <div class="adjustment-factor">Size</div>
-                            <div class="adjustment-description">1850 square feet</div>
-                        </div>
-                        <div class="adjustment-amount positive">+$10,000</div>
-                    </div>
-                    
-                    <div class="adjustment-item">
-                        <div class="adjustment-info">
-                            <div class="adjustment-factor">Year Built</div>
-                            <div class="adjustment-description">Built in 1995</div>
-                        </div>
-                        <div class="adjustment-amount negative">-$5,000</div>
-                    </div>
-                </div>
-
-                <div class="market-analysis">
-                    <div class="section-title">Market Analysis</div>
-                    <p>
-                        The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. 
-                        This property benefits from good schools nearby and a stable community atmosphere.
-                    </p>
-                </div>
-
-                <div class="comparable-analysis">
-                    <div class="section-title">Comparable Analysis</div>
-                    <p>
-                        Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. 
-                        Properties with updated features tend to sell at the higher end of this range.
-                    </p>
-                </div>
-            </div>
+        
+        <div class="property-stats">
+          <div class="stat-item">
+            <div class="stat-label">Property Type</div>
+            <div class="stat-value">Single Family</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Bedrooms</div>
+            <div class="stat-value">4</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Bathrooms</div>
+            <div class="stat-value">2.5</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Square Feet</div>
+            <div class="stat-value">1,850</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Year Built</div>
+            <div class="stat-value">1995</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-label">Lot Size</div>
+            <div class="stat-value">0.17 acres</div>
+          </div>
         </div>
+        
+        <div class="features">
+          <span class="feature-tag">Garage</span>
+          <span class="feature-tag">Fireplace</span>
+          <span class="feature-tag">Patio</span>
+          <span class="feature-tag">Fenced Yard</span>
+          <span class="feature-tag">Updated Kitchen</span>
+        </div>
+        
+        <div class="valuation">
+          <div class="valuation-amount">$345,000</div>
+          <div class="valuation-range">Range: $330,000 - $360,000</div>
+        </div>
+      </div>
+      
+      <div class="adjustments">
+        <h3>Valuation Adjustments</h3>
+        
+        <div class="adjustment-item">
+          <div>
+            <div class="adjustment-type">Location</div>
+            <div class="adjustment-desc">Grandview, WA location premium</div>
+          </div>
+          <div class="adjustment-value positive">+$15,000</div>
+        </div>
+        
+        <div class="adjustment-item">
+          <div>
+            <div class="adjustment-type">Size</div>
+            <div class="adjustment-desc">1,850 square feet</div>
+          </div>
+          <div class="adjustment-value positive">+$10,000</div>
+        </div>
+        
+        <div class="adjustment-item">
+          <div>
+            <div class="adjustment-type">Year Built</div>
+            <div class="adjustment-desc">Built in 1995</div>
+          </div>
+          <div class="adjustment-value negative">-$5,000</div>
+        </div>
+      </div>
     </div>
+    
+    <div class="section">
+      <h3 class="section-title">Market Analysis</h3>
+      <p>
+        The Grandview, WA real estate market has shown steady growth with average prices
+        increasing 4.7% year-over-year. This property's location benefits from proximity
+        to well-rated schools and local amenities.
+      </p>
+    </div>
+    
+    <div class="section">
+      <h3 class="section-title">Comparable Properties</h3>
+      <p>
+        Recent sales of similar properties in Grandview range between $330,000 and $360,000,
+        with an average sale price of $338,500 for comparable 4-bedroom homes. Properties with
+        updated features like this one tend to sell at the higher end of the range.
+      </p>
+    </div>
+    
+    <div class="section">
+      <h3 class="section-title">Property Insights</h3>
+      <p>
+        This home offers good value in the current market with its spacious layout and
+        desirable features. The property has been well-maintained and has several recent
+        upgrades that contribute to its above-average valuation for the neighborhood.
+      </p>
+    </div>
+  </div>
 </body>
 </html>
