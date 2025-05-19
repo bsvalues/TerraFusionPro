@@ -16,6 +16,7 @@ import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import PropertyAppraisalPage from "./pages/PropertyAppraisalPage";
 import PropertyAnalysis from "./pages/PropertyAnalysis";
+import SimplePropertyPage from "./pages/SimplePropertyPage";
 import UADFormPage from "./pages/UADFormPage";
 import EnhancedUADFormPage from "./pages/UADFormPage.enhanced";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
@@ -95,8 +96,9 @@ function App() {
                   <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first - Show 406 Stardust Ct on main page */}
-                <Route path="/" component={PropertyDashboard} />
+                <Route path="/" component={SimplePropertyPage} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
+                <Route path="/stardust" component={SimplePropertyPage} />
 <Route path="/appraiser" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />
