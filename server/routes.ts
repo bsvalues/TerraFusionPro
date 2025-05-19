@@ -21,6 +21,7 @@ import { photoSyncRouter } from './routes/photo-sync-routes';
 import fieldNotesRouter from './routes/field-notes-routes';
 import mlsRouter from './routes/mls-routes';
 import aiValuationRouter from './routes/ai-valuation-routes';
+import propertyAnalysisRouter from './routes/property-analysis-routes';
 import { 
   insertUserSchema, 
   insertPropertySchema,
@@ -2854,6 +2855,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.use('/api/orders', orderRoutes);
   app.use('/api/mls', mlsRoutes);
   app.use('/api', modelVersionRoutes);
+  
+  // Register property analysis routes for AI property valuation
+  app.use('/api/property-analysis', propertyAnalysisRouter);
   
   // Register reviewer UX routes for collaborative review functionality
   app.use('/api/reviewer', reviewerRouter);
