@@ -135,18 +135,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { clientId, requestId, data } = req.body;
       console.log(`Received property analysis request via polling: ${requestId}`);
       
-      // Import the valuation service functions
-      const { generatePropertyValuation } = await import('./valuation-service.mjs');
+      // Import the property analysis function
+      const { analyzeProperty } = await import('./property-analysis.mjs');
       
-      // Generate valuation with AI
-      const valuation = await generatePropertyValuation(data);
+      // Generate AI analysis of the property
+      const analysis = await analyzeProperty(data);
       
       // Add request metadata to response
       const response = {
         clientId,
         requestId,
         type: 'property_analysis_response',
-        data: valuation
+        data: analysis
       };
       
       res.status(200).json(response);
@@ -154,7 +154,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.error("Error in property analysis (polling):", error);
       res.status(500).json({ 
         error: "Failed to analyze property", 
-        message: error.message 
+        message: error instanceof Error ? error.message : "Unknown error"
       });
     }
   });
