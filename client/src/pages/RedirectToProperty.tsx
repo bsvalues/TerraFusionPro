@@ -1,20 +1,26 @@
 import { useEffect } from 'react';
 import { useLocation } from 'wouter';
 
-export default function RedirectToProperty() {
+/**
+ * Simple component that redirects to the property analysis page
+ * when AI valuation or other pages need to go to the property analysis.
+ */
+const RedirectToProperty = () => {
   const [, setLocation] = useLocation();
   
   useEffect(() => {
-    // Redirect immediately to our new property analysis page
+    // Redirect to the property analysis page
     setLocation('/property-analysis');
   }, [setLocation]);
   
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background">
-      <div className="flex flex-col items-center gap-4">
-        <div className="animate-spin rounded-full h-10 w-10 border-t-2 border-b-2 border-primary"></div>
-        <p className="text-lg font-medium">Redirecting to property analysis...</p>
+    <div className="flex h-screen items-center justify-center">
+      <div className="text-center">
+        <h2 className="text-xl font-semibold mb-2">Redirecting to property analysis...</h2>
+        <p className="text-muted-foreground">406 Stardust Ct, Grandview, WA</p>
       </div>
     </div>
   );
-}
+};
+
+export default RedirectToProperty;

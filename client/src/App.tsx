@@ -51,6 +51,8 @@ import { BasicWebSocketProvider } from "./contexts/BasicWebSocketContext";
 import { AppShell } from "./components/layout/app-shell";
 import WebSocketManager from "./components/WebSocketManager";
 import { useState, useEffect } from "react";
+// Add missing imports if any
+import RedirectToProperty from "./pages/RedirectToProperty";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
