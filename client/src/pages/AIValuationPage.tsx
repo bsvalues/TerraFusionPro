@@ -135,18 +135,9 @@ export default function AIValuationPage() {
     setResult(null);
     
     try {
-      // First try WebSockets for real-time valuation
-      if ('WebSocket' in window) {
-        try {
-          await analyzeWithWebSocket();
-        } catch (wsError) {
-          console.warn('WebSocket valuation failed, falling back to HTTP:', wsError);
-          await analyzeWithHttp();
-        }
-      } else {
-        // Fallback to HTTP if WebSockets not supported
-        await analyzeWithHttp();
-      }
+      // Just use HTTP directly instead of trying WebSockets first
+      console.log('Starting property analysis via HTTP');
+      await analyzeWithHttp();
     } catch (error) {
       console.error('Error analyzing property:', error);
       toast({
