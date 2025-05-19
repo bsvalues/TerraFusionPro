@@ -77,13 +77,19 @@ export default function AIValuationPage() {
     if (name.includes('.')) {
       // Handle nested properties (e.g., address.street)
       const [parent, child] = name.split('.');
-      setPropertyData(prev => ({
-        ...prev,
-        [parent]: {
-          ...prev[parent as keyof PropertyData],
-          [child]: value
+      setPropertyData(prev => {
+        const parentObj = prev[parent as keyof PropertyData];
+        if (parentObj && typeof parentObj === 'object') {
+          return {
+            ...prev,
+            [parent]: {
+              ...parentObj,
+              [child]: value
+            }
+          };
         }
-      }));
+        return prev;
+      });
     } else if (name === 'bedrooms' || name === 'bathrooms' || name === 'squareFeet' || name === 'yearBuilt' || name === 'lotSize') {
       // Handle numeric properties
       setPropertyData(prev => ({
@@ -226,20 +232,62 @@ export default function AIValuationPage() {
   };
 
   const analyzeWithHttp = async () => {
-    const response = await fetch('/api/property-analysis', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(propertyData)
-    });
+    console.log('Falling back to HTTP API for property analysis');
     
-    if (!response.ok) {
-      throw new Error(`HTTP error: ${response.status}`);
+    try {
+      const response = await fetch('/api/property-analysis', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(propertyData)
+      });
+      
+      if (!response.ok) {
+        console.error(`HTTP error: ${response.status}`);
+        throw new Error(`HTTP error: ${response.status}`);
+      }
+      
+      console.log('Received HTTP response');
+      const data = await response.json();
+      console.log('Parsed HTTP response data');
+      setResult(data);
+    } catch (error) {
+      console.error('Error in HTTP fallback:', error);
+      
+      // Try the WS fallback endpoint as a last resort
+      try {
+        console.log('Trying WebSocket fallback endpoint');
+        const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
+        const requestId = `req_${Date.now()}`;
+        
+        const fallbackResponse = await fetch('/api/property-analysis/ws-fallback', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            clientId,
+            requestId,
+            data: propertyData
+          })
+        });
+        
+        if (!fallbackResponse.ok) {
+          throw new Error(`WS fallback HTTP error: ${fallbackResponse.status}`);
+        }
+        
+        const fallbackData = await fallbackResponse.json();
+        if (fallbackData.data) {
+          setResult(fallbackData.data);
+        } else {
+          throw new Error('Invalid response data format');
+        }
+      } catch (fallbackError) {
+        console.error('WS fallback also failed:', fallbackError);
+        throw error; // Throw the original error for better debugging
+      }
     }
-    
-    const data = await response.json();
-    setResult(data);
   };
 
   const formatCurrency = (value: number) => {
@@ -250,12 +298,12 @@ export default function AIValuationPage() {
     }).format(value);
   };
 
-  const getConfidenceBadgeVariant = (confidence: string) => {
+  const getConfidenceBadgeVariant = (confidence: string): "default" | "destructive" | "outline" | "secondary" | "success" => {
     switch (confidence) {
       case 'high':
         return 'success';
       case 'medium':
-        return 'warning';
+        return 'secondary'; // Changed from 'warning' to 'secondary' for compatibility
       case 'low':
         return 'destructive';
       default:
