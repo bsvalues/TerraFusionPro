@@ -179,9 +179,131 @@ function generateAdjustments(propertyData) {
 }
 
 /**
- * Generate a comprehensive valuation report for a property
+ * Generate a comprehensive valuation report for a property using Anthropic API
  */
-function generateValuationReport(propertyData) {
+async function generateValuationReport(propertyData) {
+  console.log("Generating AI-powered valuation report for property:", propertyData.address?.street);
+  
+  try {
+    // Import Anthropic - only import if needed
+    const Anthropic = require('@anthropic-ai/sdk').default;
+    
+    // Initialize Anthropic client with API key from environment
+    const anthropic = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+    });
+    
+    // Format the property data for the prompt
+    const propertyAddress = `${propertyData.address?.street}, ${propertyData.address?.city}, ${propertyData.address?.state} ${propertyData.address?.zipCode}`;
+    
+    // Create a detailed prompt for the property valuation
+    const prompt = `You are a professional real estate appraiser tasked with analyzing the following property:
+
+Address: ${propertyAddress}
+Property Type: ${propertyData.propertyType || 'Unknown'}
+Bedrooms: ${propertyData.bedrooms || 'Unknown'}
+Bathrooms: ${propertyData.bathrooms || 'Unknown'}
+Square Feet: ${propertyData.squareFeet || 'Unknown'}
+Year Built: ${propertyData.yearBuilt || 'Unknown'}
+Lot Size: ${propertyData.lotSize ? propertyData.lotSize + ' acres' : 'Unknown'}
+Features: ${Array.isArray(propertyData.features) ? propertyData.features.map(f => typeof f === 'string' ? f : f.name).join(', ') : 'None specified'}
+Condition: ${propertyData.condition || 'Unknown'}
+
+Please provide a comprehensive property valuation report including:
+1. Estimated value in USD (provide a specific number, not a range)
+2. Confidence level (high, medium, or low)
+3. Value range (minimum and maximum estimated values)
+4. List of specific adjustments that impact the valuation (feature, description, dollar amount, and reasoning)
+5. Brief market analysis for the area
+6. Comparable property analysis
+7. Valuation methodology explanation
+
+Return your analysis as a valid JSON object with the following structure:
+{
+  "estimatedValue": number,
+  "confidenceLevel": "high"|"medium"|"low",
+  "valueRange": {
+    "min": number,
+    "max": number
+  },
+  "adjustments": [
+    {
+      "factor": string,
+      "description": string,
+      "amount": number,
+      "reasoning": string
+    }
+  ],
+  "marketAnalysis": string,
+  "comparableAnalysis": string,
+  "valuationMethodology": string
+}`;
+
+    console.log("Sending request to Anthropic API...");
+    
+    // Use fallback to default method if API call fails
+    try {
+      // Call Anthropic API with the prompt
+      // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
+      const response = await anthropic.messages.create({
+        model: "claude-3-7-sonnet-20250219",
+        max_tokens: 2000,
+        messages: [
+          { 
+            role: "user", 
+            content: prompt 
+          }
+        ],
+        system: "You are a real estate valuation expert with access to current market data. When providing property valuations, use real market data and trends. Format your response as a valid JSON object only, with no additional text."
+      });
+      
+      console.log("Received response from Anthropic API");
+      
+      // Parse the response content
+      const content = response.content[0].text;
+      let jsonResponse;
+      
+      try {
+        // Extract JSON if it's wrapped in code blocks
+        if (content.includes('```json')) {
+          const jsonMatch = content.match(/```json\n([\s\S]*?)\n```/);
+          if (jsonMatch && jsonMatch[1]) {
+            jsonResponse = JSON.parse(jsonMatch[1]);
+          } else {
+            throw new Error("Could not extract JSON from response");
+          }
+        } else {
+          // Otherwise parse the whole response
+          jsonResponse = JSON.parse(content);
+        }
+        
+        // Add timestamp and return the valuation
+        return {
+          ...jsonResponse,
+          timestamp: new Date().toISOString()
+        };
+      } catch (jsonError) {
+        console.error("Error parsing JSON response:", jsonError);
+        console.log("Raw response:", content);
+        throw new Error("Could not parse AI response");
+      }
+    } catch (apiError) {
+      console.error("Anthropic API error:", apiError);
+      console.log("Falling back to local valuation method...");
+      return generateFallbackValuation(propertyData);
+    }
+  } catch (error) {
+    console.error("Error in AI valuation:", error);
+    return generateFallbackValuation(propertyData);
+  }
+}
+
+/**
+ * Fallback valuation method when AI API is unavailable
+ */
+function generateFallbackValuation(propertyData) {
+  console.log("Using fallback valuation method");
+  
   // Get the estimated value
   const estimatedValue = predictValue(propertyData);
   
@@ -220,7 +342,8 @@ function generateValuationReport(propertyData) {
     },
     adjustments,
     marketAnalysis,
-    valuationMethodology: "ML-Enhanced Heuristic Model",
+    comparableAnalysis: "No comparable analysis available in fallback mode.",
+    valuationMethodology: "ML-Enhanced Heuristic Model (Fallback)",
     modelVersion: "1.0.0",
     timestamp: new Date().toISOString()
   };

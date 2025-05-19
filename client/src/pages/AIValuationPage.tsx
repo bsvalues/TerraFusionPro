@@ -78,23 +78,23 @@ export default function AIValuationPage() {
   const [valuationResult, setValuationResult] = useState<AIValuationResponse | null>(null);
   const [activeTab, setActiveTab] = useState<string>("subject");
 
-  // Subject property form
+  // Subject property form - Preset with 406 Stardust Ct, Grandview, WA
   const subjectForm = useForm<z.infer<typeof propertyFormSchema>>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
+      address: '406 Stardust Ct',
+      city: 'Grandview',
+      state: 'WA',
+      zipCode: '98930',
       propertyType: 'Single Family',
-      yearBuilt: 2000,
-      grossLivingArea: 2000,
-      lotSize: 5000,
-      bedrooms: 3,
-      bathrooms: 2,
-      features: '',
-      condition: 'Average',
-      quality: 'Average',
+      yearBuilt: 1995,
+      grossLivingArea: 1850,
+      lotSize: 7500,
+      bedrooms: 4,
+      bathrooms: 2.5,
+      features: 'Garage, Fireplace, Patio',
+      condition: 'Good',
+      quality: 'Above Average',
     },
   });
 
