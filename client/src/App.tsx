@@ -53,6 +53,7 @@ import WebSocketManager from "./components/WebSocketManager";
 import { useState, useEffect } from "react";
 // Add missing imports if any
 import RedirectToProperty from "./pages/RedirectToProperty";
+import NewHomePage from "./pages/NewHomePage";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -93,7 +94,7 @@ function App() {
                   <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first - Show 406 Stardust Ct on main page */}
-                <Route path="/" component={PropertyAnalysis} />
+                <Route path="/" component={NewHomePage} />
 <Route path="/appraiser" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />
