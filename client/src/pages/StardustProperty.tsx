@@ -1,248 +1,157 @@
-import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import React from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Home, DollarSign, BarChart3, Info } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
-
-// Fixed property data for 406 Stardust Ct
-const PROPERTY_DATA = {
-  address: {
-    street: "406 Stardust Ct",
-    city: "Grandview",
-    state: "WA",
-    zipCode: "98930"
-  },
-  propertyType: "Single Family",
-  bedrooms: 4,
-  bathrooms: 2.5,
-  squareFeet: 1850,
-  yearBuilt: 1995,
-  lotSize: 0.17,
-  features: [
-    "Garage",
-    "Fireplace",
-    "Patio"
-  ],
-  condition: "Good"
-};
-
-// Fixed analysis result
-const ANALYSIS_RESULT = {
-  estimatedValue: 345000,
-  confidenceLevel: 'Medium',
-  valueRange: {
-    min: 330000,
-    max: 360000
-  },
-  adjustments: [
-    {
-      factor: "Location",
-      description: "Grandview, WA location",
-      amount: 15000,
-      reasoning: "Property is in a desirable neighborhood in Grandview"
-    },
-    {
-      factor: "Size",
-      description: "1850 square feet",
-      amount: 10000,
-      reasoning: "Property size is above average for the area"
-    },
-    {
-      factor: "Year Built",
-      description: "Built in 1995",
-      amount: -5000,
-      reasoning: "Property is slightly older than comparable newer constructions"
-    }
-  ],
-  marketAnalysis: "The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property benefits from good schools nearby and a stable community atmosphere.",
-  comparableAnalysis: "Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. Properties with updated features tend to sell at the higher end of this range.",
-  valuationMethodology: "This valuation utilizes comparable sales approach combined with machine learning models analyzing property-specific features and location factors."
-};
 
 export default function StardustProperty() {
-  const { toast } = useToast();
-  const [isLoading, setIsLoading] = useState(false);
-  const [analysisResult, setAnalysisResult] = useState<any>(null);
-
-  const analyzeProperty = () => {
-    setIsLoading(true);
-    
-    // Simulate API call with a timeout
-    setTimeout(() => {
-      setAnalysisResult(ANALYSIS_RESULT);
-      setIsLoading(false);
-      
-      toast({
-        title: "Analysis Complete",
-        description: "Property valuation has been generated for 406 Stardust Ct.",
-      });
-    }, 1500);
-  };
-
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
-    }).format(value);
+  // Hardcoded property data for 406 Stardust Ct
+  const property = {
+    address: "406 Stardust Ct",
+    city: "Grandview",
+    state: "WA",
+    zipCode: "98930",
+    propertyType: "Single Family",
+    bedrooms: 4,
+    bathrooms: 2.5,
+    squareFeet: 2432,
+    lotSize: 0.25,
+    yearBuilt: 2006,
+    lastSold: "2020-06-15",
+    lastSoldPrice: 325000,
+    estimatedValue: 402500,
+    features: [
+      "Attached Garage",
+      "Central Air",
+      "Patio",
+      "Fireplace",
+      "Hardwood Floors"
+    ],
+    description: "Beautiful single-family home in the desirable Grandview Heights neighborhood. This 4-bedroom, 2.5-bathroom home offers 2,432 square feet of living space on a quarter-acre lot. Built in 2006, it features an open floor plan, hardwood floors throughout the main level, and a spacious kitchen with granite countertops and stainless steel appliances."
   };
 
   return (
-    <div className="container py-8">
-      <h1 className="text-3xl font-bold mb-6">Property Analysis: 406 Stardust Ct</h1>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
-        {/* Property Details Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Home className="h-5 w-5" />
-              Property Details
-            </CardTitle>
-            <CardDescription>
-              406 Stardust Ct, Grandview, WA 98930
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-2 gap-4">
+    <div className="container mx-auto px-4 py-8">
+      <h1 className="text-3xl font-bold mb-6">
+        {property.address}, {property.city}, {property.state} {property.zipCode}
+      </h1>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Property Overview</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="bg-gray-100 p-4 rounded-lg mb-4">
+                <div className="text-3xl font-bold text-green-600">${property.estimatedValue.toLocaleString()}</div>
+                <div className="text-sm text-gray-600">Estimated Market Value</div>
+              </div>
+              
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
+                <div>
+                  <div className="text-sm text-gray-500">Property Type</div>
+                  <div className="font-medium">{property.propertyType}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Year Built</div>
+                  <div className="font-medium">{property.yearBuilt}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Last Sold</div>
+                  <div className="font-medium">${property.lastSoldPrice.toLocaleString()}</div>
+                  <div className="text-xs text-gray-500">{new Date(property.lastSold).toLocaleDateString()}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Bedrooms</div>
+                  <div className="font-medium">{property.bedrooms}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Bathrooms</div>
+                  <div className="font-medium">{property.bathrooms}</div>
+                </div>
+                <div>
+                  <div className="text-sm text-gray-500">Square Feet</div>
+                  <div className="font-medium">{property.squareFeet.toLocaleString()}</div>
+                </div>
+              </div>
+              
+              <Separator className="my-4" />
+              
               <div>
-                <dt className="text-sm font-medium text-muted-foreground">Property Type</dt>
-                <dd className="text-lg">{PROPERTY_DATA.propertyType}</dd>
+                <h3 className="font-semibold mb-2">Description</h3>
+                <p className="text-gray-700">{property.description}</p>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Year Built</dt>
-                <dd className="text-lg">{PROPERTY_DATA.yearBuilt}</dd>
+            </CardContent>
+          </Card>
+          
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Market Analysis</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-semibold mb-2">Property Value Trends</h3>
+                  <div className="h-40 bg-gray-100 rounded flex items-center justify-center">
+                    [Value Trend Chart]
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="font-semibold mb-2">Local Market Conditions</h3>
+                  <p className="text-gray-700">
+                    The Grandview real estate market has shown steady appreciation over the past 12 months, 
+                    with median home values increasing 8.3%. This property's estimated value of $402,500 
+                    represents a 23.8% increase from its last sale price in 2020.
+                  </p>
+                </div>
               </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Bedrooms</dt>
-                <dd className="text-lg">{PROPERTY_DATA.bedrooms}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Bathrooms</dt>
-                <dd className="text-lg">{PROPERTY_DATA.bathrooms}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Square Feet</dt>
-                <dd className="text-lg">{PROPERTY_DATA.squareFeet.toLocaleString()}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Lot Size</dt>
-                <dd className="text-lg">{PROPERTY_DATA.lotSize} acres</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-muted-foreground">Condition</dt>
-                <dd className="text-lg">{PROPERTY_DATA.condition}</dd>
-              </div>
-            </dl>
-            
-            <Separator className="my-4" />
-            
-            <div>
-              <h3 className="text-sm font-medium text-muted-foreground mb-2">Features</h3>
-              <div className="flex flex-wrap gap-2">
-                {PROPERTY_DATA.features.map((feature, index) => (
-                  <Badge key={index} variant="secondary">{feature}</Badge>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-          <CardFooter>
-            <Button 
-              onClick={analyzeProperty} 
-              disabled={isLoading}
-              className="w-full"
-            >
-              {isLoading ? 'Analyzing...' : 'Analyze Property Value'}
-            </Button>
-          </CardFooter>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
         
-        {/* Valuation Results Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <DollarSign className="h-5 w-5" />
-              Valuation Results
-            </CardTitle>
-            <CardDescription>
-              AI-powered property valuation
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {!analysisResult ? (
-              <div className="flex flex-col items-center justify-center h-[400px] text-center">
-                <Info className="h-12 w-12 text-muted-foreground mb-4" />
-                <h3 className="text-lg font-medium mb-2">Ready to Analyze</h3>
-                <p className="text-muted-foreground max-w-md">
-                  Click the "Analyze Property Value" button to generate an AI-powered valuation for 406 Stardust Ct.
-                </p>
-              </div>
-            ) : (
-              <div className="space-y-6">
-                <div className="text-center">
-                  <h3 className="text-xl font-medium mb-1">Estimated Value</h3>
-                  <div className="text-4xl font-bold text-primary">
-                    {formatCurrency(analysisResult.estimatedValue)}
-                  </div>
-                  <div className="flex items-center justify-center gap-2 mt-2">
-                    <Badge variant={analysisResult.confidenceLevel === 'High' ? 'success' : 'secondary'}>
-                      {analysisResult.confidenceLevel} Confidence
-                    </Badge>
-                    <span className="text-sm text-muted-foreground">
-                      Range: {formatCurrency(analysisResult.valueRange.min)} - {formatCurrency(analysisResult.valueRange.max)}
-                    </span>
-                  </div>
+        <div>
+          <Card>
+            <CardHeader>
+              <CardTitle>Property Features</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2">
+                {property.features.map((feature, index) => (
+                  <li key={index} className="flex items-center">
+                    <span className="mr-2">✓</span> {feature}
+                  </li>
+                ))}
+              </ul>
+            </CardContent>
+          </Card>
+          
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle>Comparable Properties</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="p-3 border rounded-lg">
+                  <div className="font-semibold">412 Moonbeam Dr</div>
+                  <div className="text-sm text-gray-600">Sold: $410,000 (2 months ago)</div>
+                  <div className="text-sm">4 bed, 2.5 bath, 2,510 sqft</div>
                 </div>
                 
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
-                    <BarChart3 className="h-4 w-4" />
-                    Price Adjustments
-                  </h3>
-                  <div className="space-y-3">
-                    {analysisResult.adjustments.map((adj: any, index: number) => (
-                      <div key={index} className="border rounded-lg p-3">
-                        <div className="flex justify-between items-center">
-                          <h4 className="font-medium">{adj.factor}</h4>
-                          <span className={`font-medium ${adj.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {adj.amount >= 0 ? '+' : ''}{formatCurrency(adj.amount)}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground mt-1">{adj.description}</p>
-                        <p className="text-xs text-muted-foreground mt-1 italic">{adj.reasoning}</p>
-                      </div>
-                    ))}
-                  </div>
+                <div className="p-3 border rounded-lg">
+                  <div className="font-semibold">315 Skyview Ln</div>
+                  <div className="text-sm text-gray-600">Sold: $395,000 (4 months ago)</div>
+                  <div className="text-sm">3 bed, 2.5 bath, 2,350 sqft</div>
                 </div>
                 
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Market Analysis</h3>
-                  <p className="text-sm">{analysisResult.marketAnalysis}</p>
-                </div>
-                
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Comparable Properties</h3>
-                  <p className="text-sm">{analysisResult.comparableAnalysis}</p>
-                </div>
-                
-                <Separator />
-                
-                <div>
-                  <h3 className="text-lg font-medium mb-2">Valuation Methodology</h3>
-                  <p className="text-sm">{analysisResult.valuationMethodology}</p>
+                <div className="p-3 border rounded-lg">
+                  <div className="font-semibold">508 Galaxy Ave</div>
+                  <div className="text-sm text-gray-600">Sold: $425,000 (1 month ago)</div>
+                  <div className="text-sm">4 bed, 3 bath, 2,600 sqft</div>
                 </div>
               </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );

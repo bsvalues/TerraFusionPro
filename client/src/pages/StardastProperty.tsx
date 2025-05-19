@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
 
-export default function StardastProperty() {
+export default function StardustProperty() {
   // Hardcoded property data for 406 Stardust Ct
   const property = {
     address: "406 Stardust Ct",
