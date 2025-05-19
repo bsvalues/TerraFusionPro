@@ -15,6 +15,7 @@ import SimpleHome from "./pages/SimpleHome";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import PropertyAppraisalPage from "./pages/PropertyAppraisalPage";
+import PropertyAnalysis from "./pages/PropertyAnalysis";
 import UADFormPage from "./pages/UADFormPage";
 import EnhancedUADFormPage from "./pages/UADFormPage.enhanced";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
