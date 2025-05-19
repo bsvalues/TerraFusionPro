@@ -89,8 +89,8 @@ function App() {
                 <AppShell>
                   <WebSocketManager />
                 <Switch>
-                {/* Explicit routes first */}
-                <Route path="/" component={SimpleHome} />
+                {/* Explicit routes first - Show 406 Stardust Ct on main page */}
+                <Route path="/" component={PropertyAnalysis} />
 <Route path="/appraiser" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />
