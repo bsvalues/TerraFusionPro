@@ -1,6 +1,6 @@
 import express from "express";
 // Import the valuation service functions using ES modules
-import { generatePropertyValuation } from "../valuation-service.js";
+import { generatePropertyValuation } from "../valuation-service.mjs";
 
 const router = express.Router();
 

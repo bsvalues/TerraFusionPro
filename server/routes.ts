@@ -113,10 +113,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       console.log("Received property analysis request for:", propertyData);
       
       // Import the valuation service functions
-      const { generateValuationReport } = await import('./valuation-service.js');
+      const { generatePropertyValuation } = await import('./valuation-service.mjs');
       
       // Generate valuation with AI
-      const valuation = await generateValuationReport(propertyData);
+      const valuation = await generatePropertyValuation(propertyData);
       
       // Return the valuation report
       res.status(200).json(valuation);
