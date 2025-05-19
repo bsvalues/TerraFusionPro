@@ -626,6 +626,340 @@ export class DatabaseStorage implements IStorage {
       relatedTerms: realEstateTerm.relatedTerms || []
     };
   }
+
+  // ===== REVIEW REQUEST METHODS =====
+
+  async getReviewRequest(id: number): Promise<ReviewRequest | undefined> {
+    try {
+      const [request] = await db.select().from(reviewRequests).where(eq(reviewRequests.id, id));
+      return request;
+    } catch (error) {
+      console.error(`Error getting review request ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getPendingReviewRequests(limit = 50): Promise<ReviewRequest[]> {
+    try {
+      return await db.select().from(reviewRequests)
+        .where(eq(reviewRequests.status, 'pending'))
+        .limit(limit);
+    } catch (error) {
+      console.error('Error getting pending review requests:', error);
+      return [];
+    }
+  }
+
+  async getReviewRequestsByRequester(requesterId: number, limit = 50): Promise<ReviewRequest[]> {
+    try {
+      return await db.select().from(reviewRequests)
+        .where(eq(reviewRequests.requesterId, requesterId))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting review requests by requester ${requesterId}:`, error);
+      return [];
+    }
+  }
+
+  async getReviewRequestsByReviewer(reviewerId: number, limit = 50): Promise<ReviewRequest[]> {
+    try {
+      return await db.select().from(reviewRequests)
+        .where(eq(reviewRequests.reviewerId, reviewerId))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting review requests by reviewer ${reviewerId}:`, error);
+      return [];
+    }
+  }
+
+  async getReviewRequestsByObject(objectType: string, objectId: number, limit = 50): Promise<ReviewRequest[]> {
+    try {
+      return await db.select().from(reviewRequests)
+        .where(and(
+          eq(reviewRequests.objectType, objectType),
+          eq(reviewRequests.objectId, objectId)
+        ))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting review requests for ${objectType} ${objectId}:`, error);
+      return [];
+    }
+  }
+
+  async getReviewRequestsByStatus(status: string, limit = 50): Promise<ReviewRequest[]> {
+    try {
+      return await db.select().from(reviewRequests)
+        .where(eq(reviewRequests.status, status))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting review requests with status ${status}:`, error);
+      return [];
+    }
+  }
+
+  async createReviewRequest(insertRequest: InsertReviewRequest): Promise<ReviewRequest> {
+    try {
+      const [request] = await db.insert(reviewRequests).values(insertRequest).returning();
+      return request;
+    } catch (error) {
+      console.error('Error creating review request:', error);
+      throw new Error('Failed to create review request');
+    }
+  }
+
+  async updateReviewRequest(id: number, request: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined> {
+    try {
+      const [updatedRequest] = await db.update(reviewRequests)
+        .set({
+          ...request,
+          updatedAt: new Date()
+        })
+        .where(eq(reviewRequests.id, id))
+        .returning();
+      
+      return updatedRequest;
+    } catch (error) {
+      console.error(`Error updating review request ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async completeReviewRequest(id: number, approved: boolean): Promise<ReviewRequest | undefined> {
+    try {
+      const now = new Date();
+      const [completedRequest] = await db.update(reviewRequests)
+        .set({
+          status: 'completed',
+          approved,
+          completedAt: now,
+          updatedAt: now
+        })
+        .where(eq(reviewRequests.id, id))
+        .returning();
+      
+      return completedRequest;
+    } catch (error) {
+      console.error(`Error completing review request ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteReviewRequest(id: number): Promise<boolean> {
+    try {
+      await db.delete(reviewRequests)
+        .where(eq(reviewRequests.id, id));
+      
+      return true;
+    } catch (error) {
+      console.error(`Error deleting review request ${id}:`, error);
+      return false;
+    }
+  }
+
+  // ===== COMMENT METHODS =====
+
+  async getComment(id: number): Promise<Comment | undefined> {
+    try {
+      const [comment] = await db.select().from(comments).where(eq(comments.id, id));
+      return comment;
+    } catch (error) {
+      console.error(`Error getting comment ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]> {
+    try {
+      return await db.select().from(comments)
+        .where(and(
+          eq(comments.objectType, objectType),
+          eq(comments.objectId, objectId)
+        ));
+    } catch (error) {
+      console.error(`Error getting comments for ${objectType} ${objectId}:`, error);
+      return [];
+    }
+  }
+
+  async getCommentsByUser(userId: number, limit = 50): Promise<Comment[]> {
+    try {
+      return await db.select().from(comments)
+        .where(eq(comments.userId, userId))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting comments by user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getCommentsByThread(threadId: number): Promise<Comment[]> {
+    try {
+      return await db.select().from(comments)
+        .where(eq(comments.threadId, threadId));
+    } catch (error) {
+      console.error(`Error getting comments for thread ${threadId}:`, error);
+      return [];
+    }
+  }
+
+  async createComment(insertComment: InsertComment): Promise<Comment> {
+    try {
+      const [comment] = await db.insert(comments).values(insertComment).returning();
+      return comment;
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      throw new Error('Failed to create comment');
+    }
+  }
+
+  async updateComment(id: number, comment: Partial<InsertComment>): Promise<Comment | undefined> {
+    try {
+      const [updatedComment] = await db.update(comments)
+        .set({
+          ...comment,
+          updatedAt: new Date()
+        })
+        .where(eq(comments.id, id))
+        .returning();
+      
+      return updatedComment;
+    } catch (error) {
+      console.error(`Error updating comment ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteComment(id: number): Promise<boolean> {
+    try {
+      await db.delete(comments).where(eq(comments.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting comment ${id}:`, error);
+      return false;
+    }
+  }
+  
+  // ===== ANNOTATION METHODS =====
+  
+  async getAnnotation(id: number): Promise<Annotation | undefined> {
+    try {
+      const [annotation] = await db.select().from(annotations).where(eq(annotations.id, id));
+      return annotation;
+    } catch (error) {
+      console.error(`Error getting annotation ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]> {
+    try {
+      return await db.select().from(annotations)
+        .where(and(
+          eq(annotations.objectType, objectType),
+          eq(annotations.objectId, objectId)
+        ));
+    } catch (error) {
+      console.error(`Error getting annotations for ${objectType} ${objectId}:`, error);
+      return [];
+    }
+  }
+  
+  async getAnnotationsByUser(userId: number, limit = 50): Promise<Annotation[]> {
+    try {
+      return await db.select().from(annotations)
+        .where(eq(annotations.userId, userId))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting annotations by user ${userId}:`, error);
+      return [];
+    }
+  }
+  
+  async createAnnotation(insertAnnotation: InsertAnnotation): Promise<Annotation> {
+    try {
+      const [annotation] = await db.insert(annotations).values(insertAnnotation).returning();
+      return annotation;
+    } catch (error) {
+      console.error('Error creating annotation:', error);
+      throw new Error('Failed to create annotation');
+    }
+  }
+  
+  async updateAnnotation(id: number, annotation: Partial<InsertAnnotation>): Promise<Annotation | undefined> {
+    try {
+      const [updatedAnnotation] = await db.update(annotations)
+        .set({
+          ...annotation,
+          updatedAt: new Date()
+        })
+        .where(eq(annotations.id, id))
+        .returning();
+      
+      return updatedAnnotation;
+    } catch (error) {
+      console.error(`Error updating annotation ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async deleteAnnotation(id: number): Promise<boolean> {
+    try {
+      await db.delete(annotations).where(eq(annotations.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting annotation ${id}:`, error);
+      return false;
+    }
+  }
+  
+  // ===== REVISION HISTORY METHODS =====
+  
+  async getRevisionHistory(id: number): Promise<RevisionHistory | undefined> {
+    try {
+      const [history] = await db.select().from(revisionHistory).where(eq(revisionHistory.id, id));
+      return history;
+    } catch (error) {
+      console.error(`Error getting revision history ${id}:`, error);
+      return undefined;
+    }
+  }
+  
+  async getRevisionHistoryByObject(objectType: string, objectId: number, limit = 100): Promise<RevisionHistory[]> {
+    try {
+      return await db.select().from(revisionHistory)
+        .where(and(
+          eq(revisionHistory.objectType, objectType),
+          eq(revisionHistory.objectId, objectId)
+        ))
+        .orderBy(desc(revisionHistory.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting revision history for ${objectType} ${objectId}:`, error);
+      return [];
+    }
+  }
+  
+  async getRevisionHistoryByUser(userId: number, limit = 50): Promise<RevisionHistory[]> {
+    try {
+      return await db.select().from(revisionHistory)
+        .where(eq(revisionHistory.userId, userId))
+        .orderBy(desc(revisionHistory.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting revision history by user ${userId}:`, error);
+      return [];
+    }
+  }
+  
+  async createRevisionHistory(insertHistory: InsertRevisionHistory): Promise<RevisionHistory> {
+    try {
+      const [history] = await db.insert(revisionHistory).values(insertHistory).returning();
+      return history;
+    } catch (error) {
+      console.error('Error creating revision history:', error);
+      throw new Error('Failed to create revision history');
+    }
+  }
 }
 
 // Export an instance of the storage implementation
