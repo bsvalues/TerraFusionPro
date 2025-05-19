@@ -71,8 +71,8 @@ const PropertyAppraisalPage: React.FC = () => {
     defaultValues: {
       address: "406 Stardust Ct",
       city: "Grandview",
-      state: "MO",
-      zipCode: "64030",
+      state: "TX",
+      zipCode: "75050",
       propertyType: "residential",
     },
   });
