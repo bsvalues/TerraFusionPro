@@ -3,7 +3,7 @@
  * Provides AI-powered property valuation using Anthropic's Claude API
  */
 
-const Anthropic = require('@anthropic-ai/sdk');
+import Anthropic from '@anthropic-ai/sdk';
 
 // Initialize Anthropic client - the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
@@ -253,7 +253,7 @@ async function analyzePropertyByAddress(street, city, state, zipCode) {
 }
 
 // Export functions for use in routes
-module.exports = {
+export {
   generatePropertyValuation,
   analyzePropertyByAddress
 };

@@ -1,5 +1,6 @@
 import express from "express";
-import { generatePropertyValuation, analyzePropertyByAddress } from "../valuation-service";
+// Import the valuation service functions using ES modules
+import { generatePropertyValuation } from "../valuation-service.js";
 
 const router = express.Router();
 
@@ -39,13 +40,30 @@ router.post("/", async (req, res) => {
  */
 router.get("/specific/stardust", async (req, res) => {
   try {
-    // Use our pre-defined Stardust property data
-    const analysisResult = await analyzePropertyByAddress(
-      "406 Stardust Ct", 
-      "Grandview", 
-      "WA", 
-      "98930"
-    );
+    // Create a predefined property object for 406 Stardust Ct
+    const propertyData = {
+      address: {
+        street: "406 Stardust Ct",
+        city: "Grandview", 
+        state: "WA", 
+        zipCode: "98930"
+      },
+      propertyType: "Single Family",
+      bedrooms: 4,
+      bathrooms: 2.5,
+      squareFeet: 1850,
+      yearBuilt: 1995,
+      lotSize: 0.17,
+      features: [
+        { name: "Garage" },
+        { name: "Fireplace" },
+        { name: "Patio" }
+      ],
+      condition: "Good"
+    };
+    
+    // Generate valuation using the same method as POST endpoint
+    const analysisResult = await generatePropertyValuation(propertyData);
     
     return res.json(analysisResult);
   } catch (error) {
