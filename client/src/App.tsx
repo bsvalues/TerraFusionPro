@@ -10,6 +10,7 @@ import SketchesPage from "./pages/SketchesPage";
 import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
 import AIValuationPage from "./pages/AIValuationPage";
+import PropertyAnalysis from "./pages/PropertyAnalysis";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import PropertyAppraisalPage from "./pages/PropertyAppraisalPage";
@@ -99,6 +100,7 @@ function App() {
                 <Route path="/reports" component={ReportsPage} />
                 <Route path="/compliance" component={CompliancePage} />
                 <Route path="/ai-valuation" component={AIValuationPage} />
+                <Route path="/property-analysis" component={PropertyAnalysis} />
                 <Route path="/email-order" component={EmailOrderPage} />
                 <Route path="/property-data" component={PropertyDataPage} />
                 <Route path="/property/:id" component={PropertyDataPage} />
