@@ -104,6 +104,59 @@ import {
 export async function registerRoutes(app: Express): Promise<Server> {
   // Register AI Valuation Router
   app.use('/api/ai', aiValuationRouter);
+  
+  // Property Analysis API endpoint for 406 Stardust Ct, Grandview, WA
+  app.post("/api/property-analysis", async (req: Request, res: Response) => {
+    try {
+      const propertyData = req.body;
+      console.log("Received property analysis request for:", propertyData);
+      
+      // Import the valuation service functions
+      const { generateValuationReport } = await import('./valuation-service.js');
+      
+      // Generate valuation with AI
+      const valuation = await generateValuationReport(propertyData);
+      
+      // Return the valuation report
+      res.status(200).json(valuation);
+    } catch (error) {
+      console.error("Error in property analysis:", error);
+      res.status(500).json({ 
+        error: "Failed to analyze property", 
+        message: error.message 
+      });
+    }
+  });
+  
+  // WebSocket fallback endpoint for property analysis
+  app.post("/api/property-analysis/ws-fallback", async (req: Request, res: Response) => {
+    try {
+      const { clientId, requestId, data } = req.body;
+      console.log(`Received property analysis request via polling: ${requestId}`);
+      
+      // Import the valuation service functions
+      const { generateValuationReport } = await import('./valuation-service.js');
+      
+      // Generate valuation with AI
+      const valuation = await generateValuationReport(data);
+      
+      // Add request metadata to response
+      const response = {
+        clientId,
+        requestId,
+        type: 'property_analysis_response',
+        data: valuation
+      };
+      
+      res.status(200).json(response);
+    } catch (error) {
+      console.error("Error in property analysis (polling):", error);
+      res.status(500).json({ 
+        error: "Failed to analyze property", 
+        message: error.message 
+      });
+    }
+  });
   // User routes
   app.post("/api/auth/login", async (req: Request, res: Response) => {
     try {
