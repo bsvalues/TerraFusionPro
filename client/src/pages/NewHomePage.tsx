@@ -96,7 +96,7 @@ const NewHomePage = () => {
 
   return (
     <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">TerraFusion Property Analysis</h1>
+      <h1 className="text-3xl font-bold mb-6 text-center">TerraFusion Property Analysis System</h1>
       
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Property Data Card */}
