@@ -95,6 +95,7 @@ function App() {
                 <Switch>
                 {/* Explicit routes first - Show 406 Stardust Ct on main page */}
                 <Route path="/" component={NewHomePage} />
+                <Route path="/property-analysis-new" component={NewHomePage} />
 <Route path="/appraiser" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />

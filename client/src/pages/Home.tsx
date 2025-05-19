@@ -1,3 +1,4 @@
+import React from 'react';
 import { useLocation } from 'wouter';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "../components/ui/card";
@@ -7,7 +8,14 @@ import { RouteDebugger } from '@/components/dev/RouteDebugger';
 export default function Home() {
   const [_, setLocation] = useLocation();
   
+  // Immediately redirect to our property analysis page 
   console.log("Home component rendering");
+  
+  // Use useEffect to redirect after render
+  React.useEffect(() => {
+    console.log("Redirecting to property analysis");
+    setLocation('/property-analysis-new');
+  }, []);
 
   return (
     <div className="flex-1 p-8 overflow-auto">
