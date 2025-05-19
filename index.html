@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraFusionAI - Property Assessment Platform</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f9fafb;
+        }
+        .sidebar {
+            width: 240px;
+            background-color: #121212;
+            color: #e4e4e4;
+        }
+        .main-content {
+            width: calc(100% - 240px);
+        }
+        .active-tab {
+            border-bottom: 2px solid #10b981;
+            color: #10b981;
+        }
+        .tab {
+            padding-bottom: 0.5rem;
+        }
+        .badge {
+            background-color: #10b981;
+            color: white;
+            border-radius: 9999px;
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        .card {
+            border-radius: 0.5rem;
+            background-color: white;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .ai-badge {
+            background-color: #f3f4f6;
+            color: #4b5563;
+            border-radius: 0.25rem;
+            padding: 0.125rem 0.25rem;
+            font-size: 0.75rem;
+        }
+        .divider {
+            height: 1px;
+            background-color: #e5e7eb;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body class="h-screen flex flex-col">
+    <!-- Top navigation -->
+    <header class="bg-white border-b border-gray-200 flex items-center justify-between px-4 py-2">
+        <div class="flex items-center">
+            <img src="https://via.placeholder.com/40x40" alt="Logo" class="h-8 w-8 mr-2">
+            <span class="text-lg font-semibold text-gray-900">TerraFusionAI</span>
+        </div>
+
+        <div class="flex items-center space-x-4">
+            <button class="bg-indigo-600 text-white px-3 py-1 rounded text-sm">Remodel</button>
+            <div class="flex items-center space-x-3">
+                <button class="text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                    </svg>
+                </button>
+                <button class="text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                    </svg>
+                </button>
+                <button class="text-gray-600">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                    </svg>
+                </button>
+                <div class="h-8 w-8 rounded-full bg-blue-600 text-white flex items-center justify-center">
+                    <span class="text-sm font-medium">JA</span>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden">
+        <!-- Sidebar -->
+        <div class="sidebar p-4 flex flex-col overflow-y-auto">
+            <div class="mb-6">
+                <button class="text-gray-400 text-xs px-2 py-1 rounded hover:bg-gray-800 mb-2 flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                    History
+                </button>
+                <div class="card bg-gray-900 p-4 mb-2">
+                    <div class="text-sm font-medium mb-2">Brochure for the property assessment platform</div>
+                    <img src="https://via.placeholder.com/120x80" alt="Brochure" class="w-24 h-16 mb-2">
+                    <div class="text-xs text-gray-400 mb-1">♻️ Rollback here</div>
+                    <div class="text-xs text-gray-400">✓ Changes</div>
+                </div>
+                
+                <div class="bg-blue-900 p-3 rounded mt-4 text-xs">
+                    <p>Dude, I want my application to work, I just care what you do. I want to see it actually showing the property analysis data.</p>
+                    <div class="text-gray-400 text-xs mt-2">2 minutes ago</div>
+                </div>
+                
+                <div class="mt-4">
+                    <div class="text-xs text-gray-400">2 messages & 5 actions</div>
+                    <div class="text-xs">Let me run the server properly so you can see...</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main-content overflow-y-auto">
+            <div class="bg-amber-50 border-b border-amber-200 p-2 text-sm flex items-center justify-between">
+                <div class="flex items-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-amber-600 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    Open a new tab to test authentication and file uploads.
+                </div>
+                <div class="flex items-center">
+                    <button class="bg-amber-600 text-white px-2 py-1 text-xs rounded mr-2">Open New Tab</button>
+                    <button class="text-amber-600 text-xs">Learn more</button>
+                </div>
+            </div>
+            
+            <div class="p-6">
+                <div class="flex items-center mb-6">
+                    <span class="text-xl font-semibold mr-4">TerraFusionAI</span>
+                    <div class="flex space-x-4">
+                        <div class="flex items-center">
+                            <span class="mr-2 bg-gray-100 p-1 rounded text-xs">AI Order Processing</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="mr-2 bg-gray-100 p-1 rounded text-xs">Smart Valuation</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="mr-2 bg-gray-100 p-1 rounded text-xs active-tab">AI Models (Optional)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="mr-2 bg-gray-100 p-1 rounded text-xs">Synced (just now)</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="mr-2 bg-gray-100 p-1 rounded text-xs">WS Test</span>
+                        </div>
+                    </div>
+                    <div class="ml-auto flex items-center">
+                        <img src="https://via.placeholder.com/40x40" alt="Profile" class="h-8 w-8 rounded-full">
+                        <span class="ml-2 text-sm font-medium">TerraField</span>
+                        <span class="ml-2 bg-gray-800 text-white text-xs px-2 py-1 rounded">Connected</span>
+                        <span class="ml-2 text-sm font-medium">John Appraiser</span>
+                        <span class="ml-2 bg-gray-100 text-xs px-2 py-1 rounded">AI Assistant</span>
+                    </div>
+                </div>
+
+                <div class="mb-6">
+                    <div class="flex items-center mb-4">
+                        <div class="mr-4 flex items-center">
+                            <span class="text-sm ai-badge mr-1">AI</span>
+                            <span class="text-sm">Assistant Status</span>
+                        </div>
+                        <span class="bg-gray-800 text-white text-xs px-2 py-1 rounded">Online</span>
+                    </div>
+                    
+                    <div class="flex mb-4">
+                        <div class="mr-8 flex items-center">
+                            <span class="text-xs text-pink-600 mr-1">●</span>
+                            <span class="text-sm">Valuation</span>
+                        </div>
+                        <div class="flex items-center">
+                            <span class="text-xs text-blue-600 mr-1">●</span>
+                            <span class="text-sm">Condition</span>
+                        </div>
+                        <div class="ml-4 bg-gray-200 text-xs px-2 py-1 rounded">Demo</div>
+                    </div>
+                </div>
+
+                <div class="card p-6">
+                    <h2 class="text-xl font-semibold mb-4">Import Appraisal Order</h2>
+                    <p class="text-gray-600 mb-6">Upload an appraisal order from an email or file to automatically create a new report.</p>
+                    
+                    <div class="flex mb-6">
+                        <button class="flex-1 bg-white border border-gray-300 px-4 py-2 rounded-l flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                            </svg>
+                            From Email
+                        </button>
+                        <button class="flex-1 bg-white border border-gray-300 px-4 py-2 rounded-r flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                            </svg>
+                            From File
+                        </button>
+                    </div>
+                    
+                    <div>
+                        <h3 class="text-lg font-medium mb-4">Import from Email</h3>
+                        <p class="text-gray-600 mb-4">Paste an appraisal order email to automatically extract property information</p>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email Subject (Optional)</label>
+                            <input type="text" class="w-full border border-gray-300 rounded p-2" placeholder="Appraisal Order: 123 Main St">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Sender Email (Optional)</label>
+                            <input type="text" class="w-full border border-gray-300 rounded p-2" placeholder="orders@lender.com">
+                        </div>
+                        
+                        <div class="mb-4">
+                            <label class="block text-sm font-medium text-gray-700 mb-1">Email Content</label>
+                            <textarea class="w-full border border-gray-300 rounded p-2 h-32" placeholder="Paste the complete email content here"></textarea>
+                        </div>
+                        
+                        <button class="bg-gray-800 text-white px-4 py-2 rounded w-full flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                            </svg>
+                            Process Email Order
+                        </button>
+                    </div>
+                    
+                    <div class="mt-8">
+                        <h3 class="text-lg font-medium mb-4">How It Works</h3>
+                        <div class="flex items-center space-x-4">
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="bg-blue-100 text-blue-600 h-12 w-12 rounded-full flex items-center justify-center mb-2">1</div>
+                                <span class="text-sm text-center">Import email or upload file</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="bg-green-100 text-green-600 h-12 w-12 rounded-full flex items-center justify-center mb-2">2</div>
+                                <span class="text-sm text-center">AI extracts property data</span>
+                            </div>
+                            <div class="flex-1 flex flex-col items-center">
+                                <div class="bg-purple-100 text-purple-600 h-12 w-12 rounded-full flex items-center justify-center mb-2">3</div>
+                                <span class="text-sm text-center">Report is automatically created</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // Sample property data that would be fetched from the API
+        const propertyData = {
+            address: "406 Stardust Ct",
+            city: "Grandview",
+            state: "WA",
+            zipCode: "98930",
+            propertyType: "Single Family",
+            bedrooms: 4,
+            bathrooms: 2.5,
+            squareFeet: 1850,
+            yearBuilt: 1995,
+            lotSize: 0.17,
+            features: ["Garage", "Fireplace", "Patio"],
+            condition: "Good",
+            estimatedValue: 345000,
+            valueRange: {
+                min: 330000,
+                max: 360000
+            },
+            adjustments: [
+                {
+                    factor: "Location",
+                    description: "Grandview, WA location",
+                    amount: 15000,
+                    reasoning: "Property is in a desirable neighborhood in Grandview"
+                },
+                {
+                    factor: "Size",
+                    description: "1850 square feet",
+                    amount: 10000,
+                    reasoning: "Property size is above average for the area"
+                },
+                {
+                    factor: "Year Built",
+                    description: "Built in 1995",
+                    amount: -5000,
+                    reasoning: "Property is slightly older than comparable newer constructions"
+                }
+            ],
+            marketAnalysis: "The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property benefits from good schools nearby and a stable community atmosphere.",
+            comparableAnalysis: "Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. Properties with updated features tend to sell at the higher end of this range."
+        };
+        
+        // Function to handle the email submission
+        document.querySelector('button.bg-gray-800').addEventListener('click', function() {
+            // Here we would send the email content to the backend API for processing
+            // For now, let's simulate displaying the property analysis after a short loading period
+            
+            alert("Processing order for 406 Stardust Ct, Grandview, WA...\n\nProperty details extracted successfully.\nEstimated Value: $345,000\nAI confidence level: Medium");
+            
+            // In a real implementation, this would redirect to the property analysis page
+            setTimeout(() => {
+                window.location.href = 'property-analysis.html';
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
