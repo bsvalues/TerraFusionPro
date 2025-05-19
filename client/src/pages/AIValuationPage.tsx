@@ -223,15 +223,34 @@ export default function AIValuationPage() {
   };
 
   const analyzeWithHttp = async () => {
-    console.log('Falling back to HTTP API for property analysis');
+    console.log('Using HTTP API for property analysis');
     
     try {
-      const response = await fetch('/api/property-analysis', {
+      // Use the test-api endpoint directly which is already set up in the server
+      const requestData = {
+        address: `${propertyData.address.street}, ${propertyData.address.city}, ${propertyData.address.state} ${propertyData.address.zipCode}`,
+        propertyType: propertyData.propertyType,
+        bedrooms: propertyData.bedrooms,
+        bathrooms: propertyData.bathrooms,
+        squareFeet: propertyData.squareFeet,
+        yearBuilt: propertyData.yearBuilt,
+        lotSize: propertyData.lotSize,
+        features: propertyData.features.map(f => f.name).join(', '),
+        condition: propertyData.condition
+      };
+      
+      console.log('Sending data:', requestData);
+      
+      // Try the main API endpoint first
+      const response = await fetch('/api/valuation', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(propertyData)
+        body: JSON.stringify({
+          property: requestData,
+          useAI: true
+        })
       });
       
       if (!response.ok) {
@@ -241,41 +260,47 @@ export default function AIValuationPage() {
       
       console.log('Received HTTP response');
       const data = await response.json();
-      console.log('Parsed HTTP response data');
-      setResult(data);
-    } catch (error) {
-      console.error('Error in HTTP fallback:', error);
+      console.log('Parsed HTTP response data:', data);
       
-      // Try the WS fallback endpoint as a last resort
+      // Transform the API response to our expected ValuationResult format
+      const transformedResult: ValuationResult = {
+        estimatedValue: data.valuation?.estimatedValue || data.estimatedValue || 0,
+        confidenceLevel: data.confidenceLevel || 'medium',
+        valueRange: {
+          min: data.valuation?.valueRange?.min || data.valueRange?.min || (data.estimatedValue * 0.9) || 0,
+          max: data.valuation?.valueRange?.max || data.valueRange?.max || (data.estimatedValue * 1.1) || 0,
+        },
+        adjustments: data.adjustments || [],
+        marketAnalysis: data.marketAnalysis || data.analysis || "",
+        comparableAnalysis: data.comparableAnalysis || "",
+        valuationMethodology: data.methodology || "Comparable sales approach combined with machine learning model analysis"
+      };
+      
+      setResult(transformedResult);
+    } catch (error) {
+      console.error('Error in HTTP request:', error);
+      
+      // Try an alternative endpoint as fallback
       try {
-        console.log('Trying WebSocket fallback endpoint');
-        const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-        const requestId = `req_${Date.now()}`;
+        console.log('Trying alternative endpoint');
         
-        const fallbackResponse = await fetch('/api/property-analysis/ws-fallback', {
+        const fallbackResponse = await fetch('/api/property/analyze', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            clientId,
-            requestId,
-            data: propertyData
-          })
+          body: JSON.stringify(propertyData)
         });
         
         if (!fallbackResponse.ok) {
-          throw new Error(`WS fallback HTTP error: ${fallbackResponse.status}`);
+          throw new Error(`Fallback HTTP error: ${fallbackResponse.status}`);
         }
         
         const fallbackData = await fallbackResponse.json();
-        if (fallbackData.data) {
-          setResult(fallbackData.data);
-        } else {
-          throw new Error('Invalid response data format');
-        }
+        console.log('Fallback response:', fallbackData);
+        setResult(fallbackData);
       } catch (fallbackError) {
-        console.error('WS fallback also failed:', fallbackError);
+        console.error('Alternative endpoint also failed:', fallbackError);
         throw error; // Throw the original error for better debugging
       }
     }
