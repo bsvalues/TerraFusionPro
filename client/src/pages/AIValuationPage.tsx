@@ -234,159 +234,6 @@ export default function AIValuationPage() {
     }
   };
 
-  const analyzeWithWebSocket = async () => {
-    return new Promise<void>((resolve, reject) => {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      // Connect to the correct WebSocket path that your server uses
-      const wsUrl = `${protocol}//${window.location.host}/ws`;
-      
-      console.log('Connecting to WebSocket:', wsUrl);
-      const socket = new WebSocket(wsUrl);
-      
-      // Set up a timeout for connection and response
-      const timeout = setTimeout(() => {
-        console.warn('WebSocket connection or response timed out');
-        socket.close();
-        reject(new Error('WebSocket connection timed out'));
-      }, 8000);
-      
-      socket.onopen = () => {
-        console.log('WebSocket connection established');
-        
-        // Send the property data request
-        const clientId = `client_${Date.now()}_${Math.random().toString(36).substring(2, 10)}`;
-        const requestId = `req_${Date.now()}`;
-        const message = {
-          type: 'property_analysis_request',
-          clientId,
-          requestId,
-          data: propertyData
-        };
-        
-        console.log('Sending property analysis request via WebSocket');
-        socket.send(JSON.stringify(message));
-      };
-      
-      socket.onmessage = (event) => {
-        try {
-          console.log('Received WebSocket message:', event.data);
-          const response = JSON.parse(event.data);
-          
-          if (response.type === 'property_analysis_response' || 
-              response.type === 'analysis_result') {
-            console.log('Received property analysis response');
-            clearTimeout(timeout);
-            setResult(response.data);
-            socket.close();
-            resolve();
-          } else if (response.type === 'connection_established') {
-            console.log('Received connection confirmation');
-          } else if (response.type === 'heartbeat') {
-            console.log('Received heartbeat');
-          }
-        } catch (error) {
-          console.error('Error parsing WebSocket message:', error);
-        }
-      };
-      
-      socket.onerror = (error) => {
-        console.error('WebSocket error:', error);
-        clearTimeout(timeout);
-        reject(error);
-      };
-      
-      socket.onclose = (event) => {
-        clearTimeout(timeout);
-        console.log('WebSocket connection closed:', event.code, event.reason);
-        
-        if (!event.wasClean && !result) {
-          reject(new Error(`WebSocket closed unexpectedly: ${event.code} ${event.reason}`));
-        }
-      };
-    });
-  };
-
-  const analyzeWithHttp = async () => {
-    console.log('Using HTTP API for property analysis');
-    
-    try {
-      // Use the test-api endpoint directly which is already set up in the server
-      const requestData = {
-        address: `${propertyData.address.street}, ${propertyData.address.city}, ${propertyData.address.state} ${propertyData.address.zipCode}`,
-        propertyType: propertyData.propertyType,
-        bedrooms: propertyData.bedrooms,
-        bathrooms: propertyData.bathrooms,
-        squareFeet: propertyData.squareFeet,
-        yearBuilt: propertyData.yearBuilt,
-        lotSize: propertyData.lotSize,
-        features: propertyData.features.map(f => f.name).join(', '),
-        condition: propertyData.condition
-      };
-      
-      console.log('Sending data:', requestData);
-      
-      // Use the property-analysis endpoint that exists in the server
-      const response = await fetch('/api/property-analysis', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(propertyData)
-      });
-      
-      if (!response.ok) {
-        console.error(`HTTP error: ${response.status}`);
-        throw new Error(`HTTP error: ${response.status}`);
-      }
-      
-      console.log('Received HTTP response');
-      const data = await response.json();
-      console.log('Parsed HTTP response data:', data);
-      
-      // Transform the API response to our expected ValuationResult format
-      const transformedResult: ValuationResult = {
-        estimatedValue: data.valuation?.estimatedValue || data.estimatedValue || 0,
-        confidenceLevel: data.confidenceLevel || 'medium',
-        valueRange: {
-          min: data.valuation?.valueRange?.min || data.valueRange?.min || (data.estimatedValue * 0.9) || 0,
-          max: data.valuation?.valueRange?.max || data.valueRange?.max || (data.estimatedValue * 1.1) || 0,
-        },
-        adjustments: data.adjustments || [],
-        marketAnalysis: data.marketAnalysis || data.analysis || "",
-        comparableAnalysis: data.comparableAnalysis || "",
-        valuationMethodology: data.methodology || "Comparable sales approach combined with machine learning model analysis"
-      };
-      
-      setResult(transformedResult);
-    } catch (error) {
-      console.error('Error in HTTP request:', error);
-      
-      // Try an alternative endpoint as fallback
-      try {
-        console.log('Trying alternative endpoint');
-        
-        const fallbackResponse = await fetch('/api/property/analyze', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(propertyData)
-        });
-        
-        if (!fallbackResponse.ok) {
-          throw new Error(`Fallback HTTP error: ${fallbackResponse.status}`);
-        }
-        
-        const fallbackData = await fallbackResponse.json();
-        console.log('Fallback response:', fallbackData);
-        setResult(fallbackData);
-      } catch (fallbackError) {
-        console.error('Alternative endpoint also failed:', fallbackError);
-        throw error; // Throw the original error for better debugging
-      }
-    }
-  };
-
   const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
@@ -400,7 +247,7 @@ export default function AIValuationPage() {
       case 'high':
         return 'success';
       case 'medium':
-        return 'secondary'; // Changed from 'warning' to 'secondary' for compatibility
+        return 'secondary';
       case 'low':
         return 'destructive';
       default:
@@ -447,6 +294,8 @@ export default function AIValuationPage() {
                       onChange={handleInputChange}
                     />
                   </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="address.state">State</Label>
                     <Input
@@ -468,11 +317,9 @@ export default function AIValuationPage() {
                 </div>
               </div>
               
-              <Separator />
-              
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Property Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="propertyType">Property Type</Label>
                     <Input
@@ -482,6 +329,17 @@ export default function AIValuationPage() {
                       onChange={handleInputChange}
                     />
                   </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="condition">Condition</Label>
+                    <Input
+                      id="condition"
+                      name="condition"
+                      value={propertyData.condition}
+                      onChange={handleInputChange}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                   <div className="space-y-1">
                     <Label htmlFor="bedrooms">Bedrooms</Label>
                     <Input
@@ -504,7 +362,7 @@ export default function AIValuationPage() {
                     />
                   </div>
                   <div className="space-y-1">
-                    <Label htmlFor="squareFeet">Square Feet</Label>
+                    <Label htmlFor="squareFeet">Sq Ft</Label>
                     <Input
                       id="squareFeet"
                       name="squareFeet"
@@ -523,61 +381,51 @@ export default function AIValuationPage() {
                       onChange={handleInputChange}
                     />
                   </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="lotSize">Lot Size (acres)</Label>
-                    <Input
-                      id="lotSize"
-                      name="lotSize"
-                      type="number"
-                      step="0.01"
-                      value={propertyData.lotSize}
-                      onChange={handleInputChange}
-                    />
-                  </div>
-                  <div className="space-y-1">
-                    <Label htmlFor="condition">Condition</Label>
-                    <Input
-                      id="condition"
-                      name="condition"
-                      value={propertyData.condition}
-                      onChange={handleInputChange}
-                    />
-                  </div>
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="lotSize">Lot Size (acres)</Label>
+                  <Input
+                    id="lotSize"
+                    name="lotSize"
+                    type="number"
+                    step="0.01"
+                    value={propertyData.lotSize}
+                    onChange={handleInputChange}
+                  />
                 </div>
               </div>
               
-              <Separator />
-              
               <div className="space-y-2">
-                <div className="flex items-center justify-between">
+                <div className="flex justify-between items-center">
                   <Label>Features</Label>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    variant="outline"
                     size="sm"
                     onClick={handleAddFeature}
+                    type="button"
                   >
                     Add Feature
                   </Button>
                 </div>
-                
-                {propertyData.features.map((feature, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <Input
-                      value={feature.name}
-                      onChange={(e) => handleFeatureChange(index, e.target.value)}
-                      placeholder="Feature name"
-                    />
-                    <Button 
-                      type="button" 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleRemoveFeature(index)}
-                    >
-                      ✕
-                    </Button>
-                  </div>
-                ))}
+                <div className="space-y-2">
+                  {propertyData.features.map((feature, index) => (
+                    <div key={index} className="flex gap-2">
+                      <Input
+                        value={feature.name}
+                        onChange={(e) => handleFeatureChange(index, e.target.value)}
+                        placeholder="Feature name"
+                      />
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleRemoveFeature(index)}
+                        type="button"
+                      >
+                        ✕
+                      </Button>
+                    </div>
+                  ))}
+                </div>
               </div>
             </div>
           </CardContent>
