@@ -241,16 +241,13 @@ export default function AIValuationPage() {
       
       console.log('Sending data:', requestData);
       
-      // Try the main API endpoint first
-      const response = await fetch('/api/valuation', {
+      // Use the property-analysis endpoint that exists in the server
+      const response = await fetch('/api/property-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({
-          property: requestData,
-          useAI: true
-        })
+        body: JSON.stringify(propertyData)
       });
       
       if (!response.ok) {
