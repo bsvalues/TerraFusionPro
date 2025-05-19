@@ -10,7 +10,8 @@ import SketchesPage from "./pages/SketchesPage";
 import ReportsPage from "./pages/ReportsPage";
 import CompliancePage from "./pages/CompliancePage";
 import AIValuationPage from "./pages/AIValuationPage";
-import StardustProperty from "./pages/StardastProperty";
+import StardastProperty from "./pages/StardastProperty";
+import SimpleHome from "./pages/SimpleHome";
 import EmailOrderPage from "./pages/EmailOrderPage";
 import PropertyDataPage from "./pages/PropertyDataPage";
 import PropertyAppraisalPage from "./pages/PropertyAppraisalPage";
@@ -89,7 +90,8 @@ function App() {
                   <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first */}
-                <Route path="/" component={AppraiserHome} />
+                <Route path="/" component={SimpleHome} />
+<Route path="/appraiser" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />
                 <Route path="/comps-search">
@@ -118,7 +120,7 @@ function App() {
                 <Route path="/ws-test" component={WebSocketTestPage} />
                 <Route path="/websocket-test" component={WebSocketTestPage} />
                 <Route path="/basic-ws-test" component={BasicWebSocketTestPage} />
-                <Route path="/stardust-property" component={StardustProperty} />
+                <Route path="/stardust-property" component={StardastProperty} />
                 <Route path="/shared/:token" component={SharedPropertyPage} />
                 <Route path="/workflow" component={WorkflowPage} />
                 <Route path="/workflow/:reportId" component={WorkflowPage} />
