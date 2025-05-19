@@ -69,10 +69,10 @@ const PropertyAppraisalPage: React.FC = () => {
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      address: "4234 Old Milton Hwy",
-      city: "Walla Walla",
-      state: "WA",
-      zipCode: "99362",
+      address: "406 Stardust Ct",
+      city: "Grandview",
+      state: "MO",
+      zipCode: "64030",
       propertyType: "residential",
     },
   });
