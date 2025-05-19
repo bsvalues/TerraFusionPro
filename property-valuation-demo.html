@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TerraFusion Property Valuation Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            line-height: 1.6;
+            color: #333;
+        }
+        h1 {
+            color: #2563eb;
+            margin-bottom: 1rem;
+        }
+        .card {
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+        input, select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 16px;
+        }
+        button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 500;
+        }
+        button:hover {
+            background-color: #1d4ed8;
+        }
+        #results {
+            margin-top: 20px;
+            display: none;
+        }
+        .value-highlight {
+            font-size: 24px;
+            font-weight: bold;
+            color: #2563eb;
+        }
+        .confidence {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-weight: 500;
+            margin-left: 10px;
+        }
+        .confidence.high {
+            background-color: #dcfce7;
+            color: #166534;
+        }
+        .confidence.medium {
+            background-color: #fef9c3;
+            color: #854d0e;
+        }
+        .confidence.low {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        .adjustment-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 8px 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        .adjustment-amount {
+            font-weight: 500;
+        }
+        .adjustment-amount.positive {
+            color: #166534;
+        }
+        .adjustment-amount.negative {
+            color: #b91c1c;
+        }
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+        .error-message {
+            color: #b91c1c;
+            background-color: #fee2e2;
+            padding: 10px;
+            border-radius: 6px;
+            margin-top: 20px;
+            display: none;
+        }
+        .preset-properties {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .preset-button {
+            background-color: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+        .preset-button:hover {
+            background-color: #e5e7eb;
+        }
+    </style>
+</head>
+<body>
+    <h1>TerraFusion Property Valuation Demo</h1>
+    
+    <div class="card">
+        <h2>Property Valuation Tool</h2>
+        <p>Enter property details to get an AI-powered valuation estimate.</p>
+        
+        <div class="preset-properties">
+            <button class="preset-button" onclick="loadPresetProperty('stardust')">406 Stardust Ct</button>
+            <button class="preset-button" onclick="loadPresetProperty('main')">123 Main Street</button>
+        </div>
+        
+        <form id="valuationForm">
+            <div class="form-group">
+                <label for="street">Street Address</label>
+                <input type="text" id="street" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="city">City</label>
+                <input type="text" id="city" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="state">State</label>
+                <input type="text" id="state" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="zipCode">Zip Code</label>
+                <input type="text" id="zipCode" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="propertyType">Property Type</label>
+                <select id="propertyType" required>
+                    <option value="Single Family">Single Family</option>
+                    <option value="Condo">Condo</option>
+                    <option value="Townhouse">Townhouse</option>
+                    <option value="Multi-Family">Multi-Family</option>
+                </select>
+            </div>
+            
+            <div class="form-group">
+                <label for="bedrooms">Bedrooms</label>
+                <input type="number" id="bedrooms" min="1" max="10" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="bathrooms">Bathrooms</label>
+                <input type="number" id="bathrooms" min="1" max="10" step="0.5" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="squareFeet">Square Feet</label>
+                <input type="number" id="squareFeet" min="500" max="10000" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="yearBuilt">Year Built</label>
+                <input type="number" id="yearBuilt" min="1900" max="2025" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="lotSize">Lot Size (acres)</label>
+                <input type="number" id="lotSize" min="0.01" max="100" step="0.01" required>
+            </div>
+            
+            <div class="form-group">
+                <label for="condition">Condition</label>
+                <select id="condition" required>
+                    <option value="Excellent">Excellent</option>
+                    <option value="Good">Good</option>
+                    <option value="Average">Average</option>
+                    <option value="Fair">Fair</option>
+                    <option value="Poor">Poor</option>
+                </select>
+            </div>
+            
+            <button type="submit">Generate Valuation</button>
+        </form>
+        
+        <div class="loading" id="loadingIndicator">
+            <p>Analyzing property data...</p>
+        </div>
+        
+        <div class="error-message" id="errorMessage"></div>
+    </div>
+    
+    <div class="card" id="results">
+        <h2>Property Valuation Results</h2>
+        
+        <div>
+            <h3>Estimated Value</h3>
+            <p><span class="value-highlight" id="estimatedValue">$0</span> <span class="confidence" id="confidenceLevel">Medium</span></p>
+            <p>Value Range: <span id="valueRange">$0 - $0</span></p>
+        </div>
+        
+        <div>
+            <h3>Value Adjustments</h3>
+            <div id="adjustments">
+                <!-- Adjustments will be inserted here -->
+            </div>
+        </div>
+        
+        <div>
+            <h3>Market Analysis</h3>
+            <p id="marketAnalysis"></p>
+        </div>
+    </div>
+    
+    <script>
+        document.getElementById('valuationForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            getPropertyValuation();
+        });
+        
+        function loadPresetProperty(preset) {
+            if (preset === 'stardust') {
+                // 406 Stardust Ct, Grandview, WA
+                document.getElementById('street').value = '406 Stardust Ct';
+                document.getElementById('city').value = 'Grandview';
+                document.getElementById('state').value = 'WA';
+                document.getElementById('zipCode').value = '98930';
+                document.getElementById('propertyType').value = 'Single Family';
+                document.getElementById('bedrooms').value = '4';
+                document.getElementById('bathrooms').value = '2.5';
+                document.getElementById('squareFeet').value = '1850';
+                document.getElementById('yearBuilt').value = '1995';
+                document.getElementById('lotSize').value = '0.17';
+                document.getElementById('condition').value = 'Good';
+            } else if (preset === 'main') {
+                // 123 Main Street, Austin, TX
+                document.getElementById('street').value = '123 Main Street';
+                document.getElementById('city').value = 'Austin';
+                document.getElementById('state').value = 'TX';
+                document.getElementById('zipCode').value = '78701';
+                document.getElementById('propertyType').value = 'Single Family';
+                document.getElementById('bedrooms').value = '4';
+                document.getElementById('bathrooms').value = '2.5';
+                document.getElementById('squareFeet').value = '2200';
+                document.getElementById('yearBuilt').value = '2005';
+                document.getElementById('lotSize').value = '0.25';
+                document.getElementById('condition').value = 'Excellent';
+            }
+        }
+        
+        function getPropertyValuation() {
+            // Get form values
+            const propertyData = {
+                address: {
+                    street: document.getElementById('street').value,
+                    city: document.getElementById('city').value,
+                    state: document.getElementById('state').value,
+                    zipCode: document.getElementById('zipCode').value
+                },
+                propertyType: document.getElementById('propertyType').value,
+                bedrooms: parseInt(document.getElementById('bedrooms').value),
+                bathrooms: parseFloat(document.getElementById('bathrooms').value),
+                squareFeet: parseInt(document.getElementById('squareFeet').value),
+                yearBuilt: parseInt(document.getElementById('yearBuilt').value),
+                lotSize: parseFloat(document.getElementById('lotSize').value),
+                features: [
+                    { name: 'Standard Features' }
+                ],
+                condition: document.getElementById('condition').value
+            };
+            
+            // Show loading indicator
+            document.getElementById('loadingIndicator').style.display = 'block';
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('errorMessage').style.display = 'none';
+            
+            // API call to property analysis endpoint
+            fetch('/api/property-analysis', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(propertyData)
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`API responded with status ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(data => {
+                displayResults(data);
+            })
+            .catch(error => {
+                console.error('Error getting property valuation:', error);
+                document.getElementById('errorMessage').textContent = `Error: ${error.message}. Make sure the API server is running.`;
+                document.getElementById('errorMessage').style.display = 'block';
+            })
+            .finally(() => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+            });
+        }
+        
+        function displayResults(data) {
+            // Format and display results
+            document.getElementById('estimatedValue').textContent = `$${data.estimatedValue.toLocaleString()}`;
+            
+            // Set confidence level and class
+            const confidenceElement = document.getElementById('confidenceLevel');
+            confidenceElement.textContent = data.confidenceLevel;
+            confidenceElement.className = 'confidence';
+            if (data.confidenceLevel === 'High') {
+                confidenceElement.classList.add('high');
+            } else if (data.confidenceLevel === 'Medium') {
+                confidenceElement.classList.add('medium');
+            } else {
+                confidenceElement.classList.add('low');
+            }
+            
+            // Value range
+            document.getElementById('valueRange').textContent = `$${data.valueRange.min.toLocaleString()} - $${data.valueRange.max.toLocaleString()}`;
+            
+            // Adjustments
+            const adjustmentsContainer = document.getElementById('adjustments');
+            adjustmentsContainer.innerHTML = '';
+            
+            if (data.adjustments && data.adjustments.length > 0) {
+                data.adjustments.forEach(adjustment => {
+                    const adjustmentEl = document.createElement('div');
+                    adjustmentEl.className = 'adjustment-item';
+                    
+                    const descEl = document.createElement('div');
+                    descEl.textContent = adjustment.description;
+                    
+                    const amountEl = document.createElement('div');
+                    amountEl.className = 'adjustment-amount';
+                    if (adjustment.amount >= 0) {
+                        amountEl.classList.add('positive');
+                        amountEl.textContent = `+$${adjustment.amount.toLocaleString()}`;
+                    } else {
+                        amountEl.classList.add('negative');
+                        amountEl.textContent = `-$${Math.abs(adjustment.amount).toLocaleString()}`;
+                    }
+                    
+                    adjustmentEl.appendChild(descEl);
+                    adjustmentEl.appendChild(amountEl);
+                    adjustmentsContainer.appendChild(adjustmentEl);
+                });
+            } else {
+                adjustmentsContainer.innerHTML = '<p>No adjustments provided.</p>';
+            }
+            
+            // Market analysis
+            document.getElementById('marketAnalysis').textContent = data.marketAnalysis;
+            
+            // Show results
+            document.getElementById('results').style.display = 'block';
+            
+            // Scroll to results
+            document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>
