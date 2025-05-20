@@ -166,10 +166,10 @@ export function AppShell({ children }: AppShellProps) {
   // Appraisal Workflow - Redesigned to emphasize the AI-enhanced appraisal process
   const appraisalWorkflowItems: NavItem[] = [
     { 
-      href: "/", 
-      label: "AI Command Center", 
+      href: "/property-analysis-new", 
+      label: "Property Analysis", 
       icon: <LayoutDashboard className="h-4 w-4" />,
-      description: "AI-powered overview of your appraisals, insights, and recommendations"
+      description: "AI-powered property analysis for any property"
     },
     { 
       href: "/email-order", 
