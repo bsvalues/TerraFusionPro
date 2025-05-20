@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>TerraFusion Property Analyzer</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.19/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    .bg-primary { background-color: #3b82f6; }
+    .text-primary { color: #3b82f6; }
+    .border-primary { border-color: #3b82f6; }
+    .bg-primary-light { background-color: #dbeafe; }
+    .loading-spinner {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      border: 3px solid rgba(59, 130, 246, 0.2);
+      border-top-color: #3b82f6;
+      animation: spin 1s linear infinite;
+    }
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body class="bg-gray-50">
+  <div class="max-w-6xl mx-auto px-4 py-8">
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-center">TerraFusion Property Analyzer</h1>
+      <p class="text-center text-gray-600 mt-2">AI-powered property valuation and market analysis</p>
+    </header>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+      <!-- Property Input Form -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Property Details</h2>
+        <form id="property-form" class="space-y-4">
+          <div>
+            <label class="block text-sm font-medium mb-1">Street Address</label>
+            <input type="text" id="address" class="w-full p-2 border rounded-md" value="406 Stardust Ct">
+          </div>
+          
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">City</label>
+              <input type="text" id="city" class="w-full p-2 border rounded-md" value="Grandview">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">State</label>
+              <select id="state" class="w-full p-2 border rounded-md">
+                <option value="WA" selected>Washington</option>
+                <option value="OR">Oregon</option>
+                <option value="CA">California</option>
+                <option value="ID">Idaho</option>
+                <option value="MT">Montana</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Zip Code</label>
+              <input type="text" id="zipCode" class="w-full p-2 border rounded-md" value="99347">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">Bedrooms</label>
+              <input type="number" id="bedrooms" class="w-full p-2 border rounded-md" value="3">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Bathrooms</label>
+              <input type="number" id="bathrooms" class="w-full p-2 border rounded-md" value="2" step="0.5">
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label class="block text-sm font-medium mb-1">Square Feet</label>
+              <input type="number" id="squareFeet" class="w-full p-2 border rounded-md" value="1850">
+            </div>
+            <div>
+              <label class="block text-sm font-medium mb-1">Year Built</label>
+              <input type="number" id="yearBuilt" class="w-full p-2 border rounded-md" value="1997">
+            </div>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-1">Property Type</label>
+            <select id="propertyType" class="w-full p-2 border rounded-md">
+              <option selected>Single Family</option>
+              <option>Multi-Family</option>
+              <option>Condo</option>
+              <option>Townhouse</option>
+              <option>Land</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-1">Condition</label>
+            <select id="condition" class="w-full p-2 border rounded-md">
+              <option>Excellent</option>
+              <option selected>Good</option>
+              <option>Average</option>
+              <option>Fair</option>
+              <option>Poor</option>
+            </select>
+          </div>
+          
+          <div>
+            <label class="block text-sm font-medium mb-1">Property Features</label>
+            <div class="flex flex-wrap gap-2 mb-2" id="features-container">
+              <span class="px-3 py-1 bg-primary-light rounded-full text-sm flex items-center">
+                Garage <button class="ml-2 text-gray-500 hover:text-red-500" onclick="removeFeature(this)">×</button>
+              </span>
+              <span class="px-3 py-1 bg-primary-light rounded-full text-sm flex items-center">
+                Fireplace <button class="ml-2 text-gray-500 hover:text-red-500" onclick="removeFeature(this)">×</button>
+              </span>
+              <span class="px-3 py-1 bg-primary-light rounded-full text-sm flex items-center">
+                Fenced Yard <button class="ml-2 text-gray-500 hover:text-red-500" onclick="removeFeature(this)">×</button>
+              </span>
+            </div>
+            <div class="flex">
+              <input type="text" id="new-feature" class="flex-1 p-2 border rounded-l-md" placeholder="Add feature">
+              <button type="button" onclick="addFeature()" class="bg-primary text-white px-4 py-2 rounded-r-md">Add</button>
+            </div>
+          </div>
+          
+          <button type="submit" class="w-full bg-primary hover:bg-blue-600 text-white font-medium py-2 px-4 rounded-md transition duration-200">
+            Analyze Property
+          </button>
+        </form>
+      </div>
+      
+      <!-- Results Section -->
+      <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-semibold mb-4">Property Analysis Results</h2>
+        
+        <!-- Initial state - no results -->
+        <div id="no-results" class="text-center py-16">
+          <svg class="w-16 h-16 mx-auto text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+          </svg>
+          <p class="text-gray-500">Enter property details and click "Analyze Property" to see results.</p>
+        </div>
+        
+        <!-- Loading state -->
+        <div id="loading" class="hidden text-center py-16">
+          <div class="loading-spinner mx-auto mb-4"></div>
+          <p class="text-gray-500">Analyzing property data...</p>
+        </div>
+        
+        <!-- Results -->
+        <div id="results" class="hidden space-y-6">
+          <!-- Valuation section -->
+          <div class="border rounded-lg p-4">
+            <h3 class="text-lg font-medium mb-2">Estimated Valuation</h3>
+            <div class="grid grid-cols-2 gap-4">
+              <div>
+                <p class="text-sm text-gray-500">Estimated Value</p>
+                <p class="text-2xl font-bold text-primary" id="estimated-value">$315,000</p>
+              </div>
+              <div>
+                <p class="text-sm text-gray-500">Value Range</p>
+                <p class="text-lg" id="value-range">$305,000 - $325,000</p>
+              </div>
+            </div>
+            <div class="mt-3">
+              <p class="text-sm text-gray-500">Confidence Level</p>
+              <div class="flex items-center mt-1">
+                <div class="h-2.5 w-full bg-gray-200 rounded-full">
+                  <div class="h-2.5 bg-primary rounded-full" id="confidence-bar" style="width: 85%"></div>
+                </div>
+                <span class="ml-2 text-sm font-medium" id="confidence-text">85%</span>
+              </div>
+            </div>
+          </div>
+          
+          <!-- Market Analysis -->
+          <div>
+            <h3 class="text-lg font-medium mb-2">Market Analysis</h3>
+            <p id="market-analysis" class="text-gray-700">
+              The property at 406 Stardust Ct is located in a stable market with moderate growth potential. 
+              Recent comparable sales in Grandview show properties like this typically selling within 30 days 
+              of listing. Housing inventory in this area is currently low, creating favorable conditions for sellers.
+            </p>
+          </div>
+          
+          <!-- Comparable Properties -->
+          <div>
+            <h3 class="text-lg font-medium mb-2">Comparable Properties</h3>
+            <div class="space-y-3" id="comps-container">
+              <!-- Comparable cards will be added here -->
+            </div>
+          </div>
+        </div>
+        
+        <!-- Error state -->
+        <div id="error" class="hidden text-center py-16">
+          <svg class="w-16 h-16 mx-auto text-red-500 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+          </svg>
+          <p class="text-red-500 font-medium mb-1">Analysis Failed</p>
+          <p class="text-gray-500" id="error-message">Unable to analyze the property at this time. Please try again later.</p>
+        </div>
+        
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Mock data for demonstration purposes
+    const mockComparables = [
+      {
+        address: "412 Stardust Ct, Grandview, WA",
+        price: 308000,
+        bedrooms: 3,
+        bathrooms: 2,
+        squareFeet: 1800,
+        yearBuilt: 1995,
+        distanceInMiles: 0.1
+      },
+      {
+        address: "124 Vineyard Dr, Grandview, WA",
+        price: 328000,
+        bedrooms: 3,
+        bathrooms: 2.5,
+        squareFeet: 1950,
+        yearBuilt: 2000,
+        distanceInMiles: 0.8
+      },
+      {
+        address: "578 Highland Ave, Grandview, WA",
+        price: 295000,
+        bedrooms: 3,
+        bathrooms: 1.5,
+        squareFeet: 1750,
+        yearBuilt: 1992,
+        distanceInMiles: 1.2
+      }
+    ];
+
+    // Add property feature
+    function addFeature() {
+      const featureInput = document.getElementById('new-feature');
+      const feature = featureInput.value.trim();
+      
+      if (feature) {
+        const featuresContainer = document.getElementById('features-container');
+        const featureElement = document.createElement('span');
+        featureElement.className = 'px-3 py-1 bg-primary-light rounded-full text-sm flex items-center';
+        featureElement.innerHTML = `${feature} <button class="ml-2 text-gray-500 hover:text-red-500" onclick="removeFeature(this)">×</button>`;
+        featuresContainer.appendChild(featureElement);
+        featureInput.value = '';
+      }
+    }
+    
+    // Remove property feature
+    function removeFeature(button) {
+      const featureElement = button.parentElement;
+      featureElement.remove();
+    }
+    
+    // Format number as currency
+    function formatCurrency(value) {
+      return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(value);
+    }
+    
+    // Populate comparables
+    function populateComparables(comparables) {
+      const compsContainer = document.getElementById('comps-container');
+      compsContainer.innerHTML = '';
+      
+      comparables.forEach(comp => {
+        const compElement = document.createElement('div');
+        compElement.className = 'border rounded-md p-3';
+        compElement.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-medium">${comp.address}</p>
+              <p class="text-sm text-gray-500">${comp.distanceInMiles.toFixed(1)} miles away</p>
+            </div>
+            <p class="font-bold">${formatCurrency(comp.price)}</p>
+          </div>
+          <div class="mt-2 grid grid-cols-3 gap-2 text-sm">
+            <div>
+              <span class="text-gray-500">Beds:</span> ${comp.bedrooms}
+            </div>
+            <div>
+              <span class="text-gray-500">Baths:</span> ${comp.bathrooms}
+            </div>
+            <div>
+              <span class="text-gray-500">SqFt:</span> ${comp.squareFeet.toLocaleString()}
+            </div>
+          </div>
+        `;
+        compsContainer.appendChild(compElement);
+      });
+    }
+    
+    // Get features from UI
+    function getFeatures() {
+      const features = [];
+      const featureElements = document.querySelectorAll('#features-container span');
+      featureElements.forEach(element => {
+        features.push(element.textContent.trim().replace('×', '').trim());
+      });
+      return features;
+    }
+    
+    // Handle form submission
+    document.getElementById('property-form').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Show loading state
+      document.getElementById('no-results').classList.add('hidden');
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('error').classList.add('hidden');
+      document.getElementById('loading').classList.remove('hidden');
+      
+      try {
+        // Get form values
+        const propertyData = {
+          address: document.getElementById('address').value,
+          city: document.getElementById('city').value,
+          state: document.getElementById('state').value,
+          zipCode: document.getElementById('zipCode').value,
+          bedrooms: parseInt(document.getElementById('bedrooms').value),
+          bathrooms: parseFloat(document.getElementById('bathrooms').value),
+          squareFeet: parseInt(document.getElementById('squareFeet').value),
+          yearBuilt: parseInt(document.getElementById('yearBuilt').value),
+          propertyType: document.getElementById('propertyType').value,
+          condition: document.getElementById('condition').value,
+          features: getFeatures()
+        };
+        
+        // Simulate API call - in real app, call the server API
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        
+        // For demo, we'll use mock data as if it came from the server
+        const analysis = {
+          estimatedValue: 315000,
+          confidenceLevel: 85,
+          valueRange: {
+            min: 305000,
+            max: 325000
+          },
+          marketAnalysis: "The property at 406 Stardust Ct is located in a stable market with moderate growth potential. Recent comparable sales in Grandview show properties like this typically selling within 30 days of listing. Housing inventory in this area is currently low, creating favorable conditions for sellers.",
+          comparableProperties: mockComparables
+        };
+        
+        // Update UI with results
+        document.getElementById('estimated-value').textContent = formatCurrency(analysis.estimatedValue);
+        document.getElementById('value-range').textContent = `${formatCurrency(analysis.valueRange.min)} - ${formatCurrency(analysis.valueRange.max)}`;
+        document.getElementById('confidence-bar').style.width = `${analysis.confidenceLevel}%`;
+        document.getElementById('confidence-text').textContent = `${analysis.confidenceLevel}%`;
+        document.getElementById('market-analysis').textContent = analysis.marketAnalysis;
+        
+        populateComparables(analysis.comparableProperties);
+        
+        // Show results
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('results').classList.remove('hidden');
+      } catch (error) {
+        // Show error
+        document.getElementById('loading').classList.add('hidden');
+        document.getElementById('error').classList.remove('hidden');
+        document.getElementById('error-message').textContent = error.message || "Unable to analyze the property at this time. Please try again later.";
+      }
+    });
+  </script>
+</body>
+</html>
