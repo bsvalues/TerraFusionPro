@@ -56,6 +56,7 @@ import { useState, useEffect } from "react";
 import RedirectToProperty from "./pages/RedirectToProperty";
 import NewHomePage from "./pages/NewHomePage";
 import PropertyDashboard from "./pages/PropertyDashboard";
+import NewPropertyAnalyzer from "./pages/NewPropertyAnalyzer";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
