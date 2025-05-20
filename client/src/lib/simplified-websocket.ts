@@ -45,6 +45,20 @@ export class SimplifiedWebSocketManager {
       return;
     }
 
+    // In Replit environment, immediately fall back to long polling
+    // This avoids unnecessary connection attempts that are likely to fail
+    const isReplit = window.location.hostname.includes('replit.dev');
+    if (isReplit) {
+      console.log('[WebSocket] Replit environment detected, using long polling immediately');
+      this.notifyConnectionHandlers('disconnected', { 
+        finalFailure: true, 
+        reason: 'Replit environment - using long polling', 
+        skipReconnect: true 
+      });
+      return;
+    }
+
+    // For non-Replit environments, try WebSocket
     // Generate a new URL with fresh timestamp
     const cacheBuster = `t=${Date.now()}`;
     const clientIdentifier = `client=${this.clientId.substring(0, 8)}`;
