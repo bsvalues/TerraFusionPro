@@ -45,44 +45,40 @@ export class SimplifiedWebSocketManager {
       return;
     }
 
-    // In Replit environment, immediately fall back to long polling
-    // This avoids unnecessary connection attempts that are likely to fail
+    // Special handling for Replit environment
     const isReplit = window.location.hostname.includes('replit.dev');
-    if (isReplit) {
-      console.log('[WebSocket] Replit environment detected, using long polling immediately');
-      this.notifyConnectionHandlers('disconnected', { 
-        finalFailure: true, 
-        reason: 'Replit environment - using long polling', 
-        skipReconnect: true 
-      });
-      return;
-    }
-
-    // For non-Replit environments, try WebSocket
-    // Generate a new URL with fresh timestamp
-    const cacheBuster = `t=${Date.now()}`;
-    const clientIdentifier = `client=${this.clientId.substring(0, 8)}`;
+    
+    // Generate connection parameters optimized for Replit environment
+    const timestamp = Date.now();
+    const randomId = Math.random().toString(36).substring(2, 10);
+    const cacheBuster = `t=${timestamp}_${randomId}`;
+    const clientIdentifier = `client=${this.clientId}`;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const host = window.location.host;
     
-    // Get the base endpoint without parameters
-    // Fix issue with nested URLs
-    let endpoint = '/ws';
-    if (this.url.includes('/ws')) {
-      const parts = this.url.split('/ws');
-      if (parts.length > 0) {
-        endpoint = '/ws' + (parts[1] || '').split('?')[0];
-      }
+    // Basic endpoint that works more reliably in Replit
+    const endpoint = '/basic-ws';
+    
+    // Generate the WebSocket URL with special parameters for Replit
+    this.url = `${wsProtocol}//${host}${endpoint}?${cacheBuster}&${clientIdentifier}`;
+    
+    if (isReplit) {
+      console.log('[WebSocket] Replit environment detected, using optimized connection strategy');
     }
-    
-    // Generate a clean URL
-    this.url = `${wsProtocol}//${window.location.host}${endpoint}?${cacheBuster}&${clientIdentifier}`;
 
     console.log(`[WebSocket] Connecting to ${this.url}`);
     this.notifyConnectionHandlers('connecting');
     
     try {
-      // Create WebSocket without protocols for maximum compatibility
+      // In Replit environment, we need special socket configuration
       this.socket = new WebSocket(this.url);
+      
+      // Increase timeouts for Replit environment
+      // @ts-ignore - custom property for browser implementation
+      if (this.socket.setSocketTimeout) {
+        // @ts-ignore
+        this.socket.setSocketTimeout(30000);
+      }
       
       // Set up event handlers
       this.socket.onopen = this.handleOpen.bind(this);
