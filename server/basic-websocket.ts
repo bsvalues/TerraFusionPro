@@ -1,23 +1,23 @@
 import { WebSocketServer, WebSocket } from 'ws';
 import http from 'http';
 import { v4 as uuidv4 } from 'uuid';
+import net from 'net';
 
 // Simple storage for connected clients
 const clients = new Map<string, WebSocket>();
 
 // Log with timestamp
 function logWithTime(message: string) {
-  console.log(`[${new Date().toISOString()}] [BasicWS] ${message}`);
+  console.log(`[WebSocket] ${message}`);
 }
 
 export function setupBasicWebSocketServer(server: http.Server) {
-  logWithTime('Setting up basic WebSocket server');
+  logWithTime('Setting up unified WebSocket server');
   
-  // Create an extremely simple WebSocket server directly attached to the HTTP server
-  // This is the most reliable way to handle WebSockets in Replit
+  // Create a single WebSocket server using noServer mode
+  // This gives us more control over the upgrade process
   const wss = new WebSocketServer({ 
-    server, 
-    path: '/basic-ws',
+    noServer: true,
     // Accept connections from any origin
     verifyClient: () => true,
     // Special handling for protocol negotiation to improve compatibility
@@ -39,7 +39,32 @@ export function setupBasicWebSocketServer(server: http.Server) {
     clientTracking: true
   });
   
-  logWithTime('Basic WebSocket server created');
+  logWithTime('WebSocket server created with noServer mode');
+  
+  // Handle the HTTP server's upgrade events
+  server.on('upgrade', (request, socket: net.Socket, head) => {
+    const url = request.url || '';
+    const pathname = url.split('?')[0];
+    
+    logWithTime(`Upgrade request for: ${pathname}`);
+    
+    // Accept connections to any of these WebSocket paths
+    if (pathname === '/ws' || pathname === '/basic-ws' || pathname === '/ws-alt') {
+      // Configure the socket
+      socket.setTimeout(30000);
+      socket.setNoDelay(true);
+      
+      // Handle WebSocket upgrade
+      wss.handleUpgrade(request, socket, head, (ws) => {
+        logWithTime(`New connection established on ${pathname}`);
+        wss.emit('connection', ws, request);
+      });
+    } else {
+      // Not a WebSocket path we're handling
+      logWithTime(`Ignoring upgrade request for ${pathname}`);
+      socket.destroy();
+    }
+  });
   
   // Handle new connections
   wss.on('connection', (ws, request) => {
@@ -54,7 +79,7 @@ export function setupBasicWebSocketServer(server: http.Server) {
       ws.send(JSON.stringify({
         type: 'connection_established',
         clientId,
-        message: 'Successfully connected to basic WebSocket',
+        message: 'Successfully connected to WebSocket',
         timestamp: Date.now()
       }));
       logWithTime(`Welcome message sent to client ${clientId}`);
@@ -65,7 +90,6 @@ export function setupBasicWebSocketServer(server: http.Server) {
     // Set up heartbeat (ping) every 30 seconds to keep connection alive
     const heartbeatInterval = setInterval(() => {
       if (ws.readyState === WebSocket.OPEN) {
-        logWithTime(`Sending ping to client ${clientId}`);
         try {
           ws.ping();
         } catch (err) {
@@ -78,7 +102,6 @@ export function setupBasicWebSocketServer(server: http.Server) {
     ws.on('message', (message) => {
       try {
         const data = JSON.parse(message.toString());
-        logWithTime(`Message from ${clientId}: ${JSON.stringify(data)}`);
         
         // Echo back the message
         if (ws.readyState === WebSocket.OPEN) {
@@ -120,7 +143,7 @@ export function setupBasicWebSocketServer(server: http.Server) {
     
     // Handle pong responses (client is alive)
     ws.on('pong', () => {
-      logWithTime(`Received pong from client ${clientId}`);
+      // Client is alive
     });
   });
   
