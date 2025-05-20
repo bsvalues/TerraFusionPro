@@ -22,6 +22,7 @@ interface WebSocketContextType {
   markAllAsRead: () => void;
   sendMessage: (message: any) => void;
   connectionMode: 'websocket' | 'polling' | 'disconnected';
+  lastMessage: any | null; // Add this to support property analysis results
 }
 
 // Create the context with default values
@@ -32,6 +33,7 @@ const WebSocketContext = createContext<WebSocketContextType>({
   markAllAsRead: () => {},
   sendMessage: () => {},
   connectionMode: 'disconnected',
+  lastMessage: null, // Default to null
 });
 
 // Define a list of example notifications to show on first load
@@ -65,6 +67,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [connected, setConnected] = useState(false);
   const [connectionMode, setConnectionMode] = useState<'websocket' | 'polling' | 'disconnected'>('disconnected');
   const [notifications, setNotifications] = useState<Notification[]>(initialNotifications);
+  const [lastMessage, setLastMessage] = useState<any | null>(null);
 
   // Reference to our WebSocket manager
   const wsManagerRef = useRef<SimplifiedWebSocketManager | null>(null);
@@ -74,7 +77,10 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   // Function to handle messages from the WebSocket
   const handleSocketMessage = useCallback((data: any) => {
     console.log('[WebSocketContext] Received message:', data);
-
+    
+    // Store the last received message
+    setLastMessage(data);
+    
     // If it's a notification, add it
     if (data.type === 'notification') {
       const newNotification: Notification = {
@@ -87,6 +93,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
       };
       
       setNotifications((prev) => [newNotification, ...prev]);
+    }
+    
+    // Handle property analysis results
+    if (data.type === 'property-analysis') {
+      console.log('[WebSocketContext] Received property analysis result:', data.data);
     }
   }, []);
 
@@ -112,6 +123,9 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
           // If we received notifications, process them
           if (data.messages && Array.isArray(data.messages)) {
             data.messages.forEach((msg: any) => {
+              // Store the last message for any message type
+              setLastMessage(msg);
+              
               if (msg.type === 'notification') {
                 const newNotification: Notification = {
                   id: `notification-${Date.now()}-${Math.random()}`,
@@ -122,6 +136,11 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
                   data: msg.data,
                 };
                 setNotifications((prev) => [newNotification, ...prev]);
+              }
+              
+              // Also handle property analysis results in polling mode
+              if (msg.type === 'property-analysis') {
+                console.log('[WebSocketContext] Received property analysis result via polling:', msg.data);
               }
             });
           }
@@ -236,6 +255,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({ chi
         markAllAsRead,
         sendMessage,
         connectionMode,
+        lastMessage, // Add this to the context value
       }}
     >
       {children}
