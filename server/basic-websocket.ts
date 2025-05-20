@@ -48,21 +48,36 @@ export function setupBasicWebSocketServer(server: http.Server) {
     
     logWithTime(`Upgrade request for: ${pathname}`);
     
-    // Accept connections to any of these WebSocket paths
-    if (pathname === '/ws' || pathname === '/basic-ws' || pathname === '/ws-alt') {
-      // Configure the socket
-      socket.setTimeout(30000);
-      socket.setNoDelay(true);
-      
-      // Handle WebSocket upgrade
-      wss.handleUpgrade(request, socket, head, (ws) => {
-        logWithTime(`New connection established on ${pathname}`);
-        wss.emit('connection', ws, request);
-      });
+    // Accept connections to any WebSocket path for maximum compatibility
+    // We keep /ws as preferred but accept other paths to maximize compatibility
+    if (pathname.includes('/ws') || pathname === '/basic-ws' || pathname === '/socket') {
+      try {
+        // Configure the socket for better reliability
+        socket.setTimeout(60000); // Longer timeout for Replit environment
+        socket.setNoDelay(true);
+        socket.setKeepAlive(true, 30000);
+        
+        // Handle WebSocket upgrade with error handling
+        wss.handleUpgrade(request, socket, head, (ws) => {
+          logWithTime(`New connection established on ${pathname}`);
+          wss.emit('connection', ws, request);
+        });
+      } catch (error) {
+        logWithTime(`Error during upgrade: ${error}`);
+        try {
+          socket.destroy();
+        } catch (e) {
+          logWithTime(`Error destroying socket: ${e}`);
+        }
+      }
     } else {
       // Not a WebSocket path we're handling
       logWithTime(`Ignoring upgrade request for ${pathname}`);
-      socket.destroy();
+      try {
+        socket.destroy();
+      } catch (e) {
+        logWithTime(`Error destroying socket: ${e}`);
+      }
     }
   });
   

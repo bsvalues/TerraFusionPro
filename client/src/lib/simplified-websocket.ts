@@ -20,16 +20,18 @@ export class SimplifiedWebSocketManager {
    * Create a new SimplifiedWebSocketManager
    * @param endpoint WebSocket endpoint path (e.g., '/ws')
    */
-  constructor(endpoint: string) {
+  constructor(endpoint: string = '/ws') {
     // Make sure endpoint starts with /
     if (!endpoint.startsWith('/')) {
       endpoint = '/' + endpoint;
     }
     
-    // Add cache-busting parameter for Replit environment
+    // Add cache-busting and client ID parameters for Replit environment
     const cacheBuster = `t=${Date.now()}`;
+    const clientIdentifier = `client=${this.clientId.substring(0, 8)}`;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    this.url = `${wsProtocol}//${window.location.host}${endpoint}?${cacheBuster}`;
+    
+    this.url = `${wsProtocol}//${window.location.host}${endpoint}?${cacheBuster}&${clientIdentifier}`;
     
     console.log(`[WebSocket] Initialized with URL: ${this.url}`);
   }
@@ -43,11 +45,18 @@ export class SimplifiedWebSocketManager {
       return;
     }
 
+    // Generate a new URL with fresh timestamp
+    const cacheBuster = `t=${Date.now()}`;
+    const clientIdentifier = `client=${this.clientId.substring(0, 8)}`;
+    const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const endpoint = this.url.split('?')[0]; // Get the base endpoint without parameters
+    this.url = `${wsProtocol}//${window.location.host}${endpoint}?${cacheBuster}&${clientIdentifier}`;
+
     console.log(`[WebSocket] Connecting to ${this.url}`);
     this.notifyConnectionHandlers('connecting');
     
     try {
-      // Create a simple WebSocket without protocols for maximum compatibility
+      // Create WebSocket without protocols for maximum compatibility
       this.socket = new WebSocket(this.url);
       
       // Set up event handlers
