@@ -50,7 +50,7 @@ export function setupBasicWebSocketServer(server: http.Server) {
     
     // Accept connections to any WebSocket path for maximum compatibility
     // We keep /ws as preferred but accept other paths to maximize compatibility
-    if (pathname.includes('/ws') || pathname === '/basic-ws' || pathname === '/socket') {
+    if (pathname.includes('/ws') || pathname === '/basic-ws' || pathname === '/socket' || pathname.includes('/shap-ws')) {
       try {
         // Configure the socket for better reliability
         socket.setTimeout(60000); // Longer timeout for Replit environment
