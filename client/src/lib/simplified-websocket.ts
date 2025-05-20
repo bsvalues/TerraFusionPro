@@ -232,7 +232,38 @@ export class SimplifiedWebSocketManager {
    */
   private handleError(event: Event): void {
     console.error('[WebSocket] Error:', event);
-    // The close handler will be called after this and handle reconnection
+    
+    // Special handling for Replit environment
+    const isReplit = window.location.hostname.includes('replit.dev');
+    if (isReplit) {
+      // For Replit, we need more aggressive error recovery
+      console.log('[WebSocket] Replit environment detected, using special error recovery');
+      
+      // Force reconnection attempt with new connection parameters
+      setTimeout(() => {
+        if (this.socket) {
+          try {
+            // Close the existing socket
+            this.socket.close();
+          } catch (e) {
+            // Ignore errors when closing
+          }
+          this.socket = null;
+        }
+        
+        // Add slight delay before reconnect to avoid connection thrashing
+        setTimeout(() => {
+          // Update connection URL with new parameters for next attempt
+          const timestamp = Date.now();
+          const randomId = Math.random().toString(36).substring(2, 10);
+          this.url = this.url.replace(/t=\d+(_[a-z0-9]+)?/, `t=${timestamp}_${randomId}`);
+          
+          // Try to connect again with new connection parameters
+          this.connect();
+        }, 500);
+      }, 100);
+    }
+    // Otherwise the close handler will be called after this and handle standard reconnection
   }
 
   /**
@@ -241,20 +272,49 @@ export class SimplifiedWebSocketManager {
   private scheduleReconnect(): void {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log('[WebSocket] Maximum reconnect attempts reached, giving up');
+      
+      // Notify about permanent disconnection
+      this.notifyConnectionHandlers('disconnected', {
+        finalFailure: true,
+        reason: 'Maximum reconnect attempts reached',
+        reconnectAttempts: this.reconnectAttempts
+      });
       return;
     }
     
     // Clear any existing timeout
     this.clearReconnectTimeout();
     
-    // Calculate delay based on attempt number (simple incremental backoff)
-    const delay = 1000 * (this.reconnectAttempts + 1);
+    // Special handling for Replit
+    const isReplit = window.location.hostname.includes('replit.dev');
+    let delay = 1000 * (this.reconnectAttempts + 1);
+    
+    // For Replit environment, use more aggressive reconnection
+    if (isReplit) {
+      // In Replit, try a faster reconnection cycle with different parameters
+      delay = 500;
+      
+      // Try alternating between basic-ws and ws endpoints for better success rate
+      if (this.reconnectAttempts % 2 === 0) {
+        if (this.url.includes('/basic-ws')) {
+          this.url = this.url.replace('/basic-ws', '/ws');
+        } else if (this.url.includes('/ws')) {
+          this.url = this.url.replace('/ws', '/basic-ws');
+        }
+      }
+    }
     
     console.log(`[WebSocket] Scheduling reconnect in ${delay}ms (attempt ${this.reconnectAttempts + 1}/${this.maxReconnectAttempts})`);
     
     // Set timeout to reconnect
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectAttempts++;
+      
+      // Update timestamp parameter for a fresh connection
+      const timestamp = Date.now();
+      const randomId = Math.random().toString(36).substring(2, 10);
+      this.url = this.url.replace(/t=\d+(_[a-z0-9]+)?/, `t=${timestamp}_${randomId}`);
+      
       this.connect();
     }, delay);
   }
