@@ -1,287 +1,120 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TerraFusion Property Analysis</title>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: Arial, sans-serif;
-        }
-        body {
-            background-color: #f0f2f5;
-            padding: 20px;
-        }
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-            background-color: white;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
-        .header {
-            background-color: #0047AB;
-            color: white;
-            padding: 20px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-        }
-        .content {
-            padding: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 20px;
-        }
-        .section {
-            background-color: #fff;
-            border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            padding: 20px;
-            margin-bottom: 20px;
-            width: 100%;
-        }
-        .property-card {
-            width: 100%;
-        }
-        .property-header {
-            border-bottom: 1px solid #eee;
-            padding-bottom: 15px;
-            margin-bottom: 15px;
-        }
-        .property-title {
-            font-size: 24px;
-            font-weight: bold;
-            margin-bottom: 5px;
-        }
-        .property-address {
-            color: #666;
-            font-size: 16px;
-        }
-        .property-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-            gap: 15px;
-            margin-bottom: 20px;
-        }
-        .detail-item {
-            margin-bottom: 10px;
-        }
-        .detail-label {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 5px;
-        }
-        .detail-value {
-            font-size: 18px;
-            font-weight: 500;
-        }
-        .features {
-            margin-top: 20px;
-        }
-        .feature-tag {
-            display: inline-block;
-            background-color: #f0f0f0;
-            padding: 5px 10px;
-            border-radius: 4px;
-            margin-right: 8px;
-            margin-bottom: 8px;
-            font-size: 14px;
-        }
-        .valuation-card {
-            background-color: #f8fffa;
-            width: 100%;
-        }
-        .valuation-amount {
-            font-size: 36px;
-            font-weight: bold;
-            color: #0047AB;
-            text-align: center;
-            margin: 20px 0 10px;
-        }
-        .valuation-range {
-            text-align: center;
-            color: #666;
-            margin-bottom: 20px;
-        }
-        .adjustments {
-            margin-top: 20px;
-        }
-        .adjustment-item {
-            display: flex;
-            justify-content: space-between;
-            padding: 10px 0;
-            border-bottom: 1px solid #eee;
-        }
-        .adjustment-info {
-            flex: 1;
-        }
-        .adjustment-factor {
-            font-weight: 500;
-        }
-        .adjustment-description {
-            color: #666;
-            font-size: 14px;
-        }
-        .adjustment-amount {
-            font-weight: bold;
-        }
-        .positive {
-            color: #22c55e;
-        }
-        .negative {
-            color: #ef4444;
-        }
-        .two-columns {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 20px;
-        }
-        @media (max-width: 768px) {
-            .two-columns {
-                grid-template-columns: 1fr;
-            }
-        }
-        h2 {
-            margin-bottom: 15px;
-            font-size: 20px;
-            color: #333;
-        }
-        .section-title {
-            margin-top: 20px;
-            margin-bottom: 10px;
-            font-size: 18px;
-            color: #0047AB;
-        }
-        p {
-            margin-bottom: 15px;
-            line-height: 1.5;
-        }
-    </style>
+  <title>406 Stardust Court Analysis</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      text-align: center;
+      color: #2c5282;
+    }
+    .card {
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+    .value {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c5282;
+      text-align: center;
+      margin: 20px 0;
+    }
+    .adjustment {
+      display: flex;
+      justify-content: space-between;
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+    }
+    .adjustment:last-child {
+      border-bottom: none;
+    }
+    .positive {
+      color: green;
+    }
+    .negative {
+      color: red;
+    }
+    button {
+      background-color: #4299e1;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      font-size: 16px;
+      border-radius: 5px;
+      cursor: pointer;
+      width: 100%;
+    }
+    button:hover {
+      background-color: #3182ce;
+    }
+    #results {
+      display: none;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <div class="header">
-            <div class="logo">TerraFusionAI</div>
-            <div>Property Analysis Report</div>
-        </div>
-        
-        <div class="content">
-            <div class="two-columns">
-                <!-- Property Details -->
-                <div class="section property-card">
-                    <div class="property-header">
-                        <h1 class="property-title">406 Stardust Ct</h1>
-                        <div class="property-address">Grandview, WA 98930</div>
-                    </div>
-                    
-                    <div class="property-details">
-                        <div class="detail-item">
-                            <div class="detail-label">Property Type</div>
-                            <div class="detail-value">Single Family</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Bedrooms</div>
-                            <div class="detail-value">4</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Bathrooms</div>
-                            <div class="detail-value">2.5</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Square Feet</div>
-                            <div class="detail-value">1,850</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Year Built</div>
-                            <div class="detail-value">1995</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Lot Size</div>
-                            <div class="detail-value">0.17 acres</div>
-                        </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Condition</div>
-                            <div class="detail-value">Good</div>
-                        </div>
-                    </div>
-                    
-                    <div class="features">
-                        <div class="detail-label">Features</div>
-                        <div style="margin-top: 8px;">
-                            <span class="feature-tag">Garage</span>
-                            <span class="feature-tag">Fireplace</span>
-                            <span class="feature-tag">Patio</span>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Valuation -->
-                <div class="section valuation-card">
-                    <h2>AI Property Valuation</h2>
-                    
-                    <div class="valuation-amount">$345,000</div>
-                    <div class="valuation-range">Range: $330,000 - $360,000</div>
-                    
-                    <div class="section-title">Value Adjustments</div>
-                    <div class="adjustments">
-                        <div class="adjustment-item">
-                            <div class="adjustment-info">
-                                <div class="adjustment-factor">Location</div>
-                                <div class="adjustment-description">Grandview, WA location</div>
-                            </div>
-                            <div class="adjustment-amount positive">+$15,000</div>
-                        </div>
-                        
-                        <div class="adjustment-item">
-                            <div class="adjustment-info">
-                                <div class="adjustment-factor">Size</div>
-                                <div class="adjustment-description">1850 square feet</div>
-                            </div>
-                            <div class="adjustment-amount positive">+$10,000</div>
-                        </div>
-                        
-                        <div class="adjustment-item">
-                            <div class="adjustment-info">
-                                <div class="adjustment-factor">Year Built</div>
-                                <div class="adjustment-description">Built in 1995</div>
-                            </div>
-                            <div class="adjustment-amount negative">-$5,000</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            
-            <!-- Market Analysis -->
-            <div class="section">
-                <h2>Market Analysis</h2>
-                <p>
-                    The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. 
-                    This property benefits from good schools nearby and a stable community atmosphere.
-                </p>
-                
-                <div class="section-title">Comparable Analysis</div>
-                <p>
-                    Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. 
-                    Properties with updated features tend to sell at the higher end of this range.
-                </p>
-                
-                <div class="section-title">Valuation Methodology</div>
-                <p>
-                    This valuation utilizes a comparable sales approach combined with machine learning models analyzing property-specific 
-                    features and location factors. Market trends and historical data for the Grandview area have been incorporated to 
-                    provide an accurate estimate of current market value.
-                </p>
-            </div>
-        </div>
+  <h1>406 Stardust Court, Grandview WA</h1>
+  
+  <div class="card">
+    <h2>Property Details</h2>
+    <p><strong>Address:</strong> 406 Stardust Ct, Grandview, WA 98930</p>
+    <p><strong>Property Type:</strong> Single Family</p>
+    <p><strong>Bedrooms:</strong> 4</p>
+    <p><strong>Bathrooms:</strong> 2.5</p>
+    <p><strong>Square Feet:</strong> 1,850</p>
+    <p><strong>Year Built:</strong> 1995</p>
+    <p><strong>Lot Size:</strong> 0.17 acres</p>
+    <p><strong>Condition:</strong> Good</p>
+    <p><strong>Features:</strong> Garage, Fireplace, Patio</p>
+    
+    <button id="analyze">Analyze This Property</button>
+  </div>
+  
+  <div id="results" class="card">
+    <h2>Valuation Results</h2>
+    <div class="value">$345,000</div>
+    <p style="text-align: center;">Confidence Level: Medium</p>
+    <p style="text-align: center;">Value Range: $330,000 - $360,000</p>
+    
+    <h3>Property Adjustments</h3>
+    <div class="adjustment">
+      <span>Grandview, WA location</span>
+      <span class="positive">+$15,000</span>
     </div>
+    <div class="adjustment">
+      <span>1850 square feet</span>
+      <span class="positive">+$10,000</span>
+    </div>
+    <div class="adjustment">
+      <span>Built in 1995</span>
+      <span class="negative">-$5,000</span>
+    </div>
+    
+    <h3>Market Analysis</h3>
+    <p>The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property benefits from good schools nearby and a stable community atmosphere.</p>
+  </div>
+  
+  <script>
+    document.getElementById('analyze').addEventListener('click', function() {
+      // Show loading state
+      this.textContent = 'Analyzing...';
+      this.disabled = true;
+      
+      // Simulate API call
+      setTimeout(function() {
+        document.getElementById('results').style.display = 'block';
+        document.getElementById('analyze').textContent = 'Analysis Complete';
+      }, 1500);
+    });
+  </script>
 </body>
 </html>
