@@ -113,21 +113,57 @@ export function setupBasicWebSocketServer(server: http.Server) {
       }
     }, 30000);
     
-    // Handle messages
-    ws.on('message', (message) => {
+    // Handle messages 
+    ws.on('message', async (message) => {
       try {
         const data = JSON.parse(message.toString());
+        logWithTime(`Received message type: ${data.type}`);
         
-        // Echo back the message
-        if (ws.readyState === WebSocket.OPEN) {
+        // Handle different message types
+        if (data.type === 'analyze-property' && data.data) {
+          logWithTime(`Processing property analysis request`);
+          
           try {
-            ws.send(JSON.stringify({
-              type: 'echo',
-              originalMessage: data,
-              timestamp: Date.now()
-            }));
-          } catch (e) {
-            logWithTime(`Error echoing message: ${e}`);
+            // Import the property analysis function
+            const { analyzeProperty } = await import('./property-analysis.mjs');
+            
+            // Analyze the property
+            const analysisResult = await analyzeProperty(data.data);
+            
+            // Send back the analysis result
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'property-analysis',
+                data: analysisResult,
+                timestamp: Date.now()
+              }));
+              logWithTime(`Property analysis result sent to client ${clientId}`);
+            }
+          } catch (error) {
+            logWithTime(`Error analyzing property: ${error}`);
+            
+            // Send error message back to client
+            if (ws.readyState === WebSocket.OPEN) {
+              ws.send(JSON.stringify({
+                type: 'error',
+                error: 'Property analysis failed',
+                message: error.message || 'Unknown error occurred',
+                timestamp: Date.now()
+              }));
+            }
+          }
+        } else {
+          // Echo back the message for other message types
+          if (ws.readyState === WebSocket.OPEN) {
+            try {
+              ws.send(JSON.stringify({
+                type: 'echo',
+                originalMessage: data,
+                timestamp: Date.now()
+              }));
+            } catch (e) {
+              logWithTime(`Error echoing message: ${e}`);
+            }
           }
         }
       } catch (err) {
