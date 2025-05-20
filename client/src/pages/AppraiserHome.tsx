@@ -227,7 +227,13 @@ export default function AppraiserHome() {
       <div className="space-y-10">
         {/* Test message to confirm this component is showing */}
         <div className="bg-primary/10 p-4 rounded-md border border-primary/30 text-center">
-          <p className="text-primary font-medium">***APPRAISER UI TEST*** PLEASE CONFIRM YOU SEE THIS</p>
+          <p className="text-primary font-medium">Property analysis can now be accessed directly through the navigation</p>
+          <Button
+            className="mt-4 bg-primary hover:bg-primary/90"
+            onClick={() => window.location.href = '/property-analysis-new'}
+          >
+            Access Property Analysis
+          </Button>
         </div>
         
         {/* Hero Section - Focused on appraiser's workflow needs */}

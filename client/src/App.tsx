@@ -96,7 +96,8 @@ function App() {
                   <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro PropertyDashboard */}
-                <Route path="/" component={PropertyDashboard} />
+                <Route path="/" component={AppraiserHome} />
+                <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
                 <Route path="/stardust" component={SimplePropertyPage} />
 <Route path="/appraiser" component={AppraiserHome} />
