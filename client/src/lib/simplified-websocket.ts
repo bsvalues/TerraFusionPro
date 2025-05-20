@@ -49,7 +49,18 @@ export class SimplifiedWebSocketManager {
     const cacheBuster = `t=${Date.now()}`;
     const clientIdentifier = `client=${this.clientId.substring(0, 8)}`;
     const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-    const endpoint = this.url.split('?')[0]; // Get the base endpoint without parameters
+    
+    // Get the base endpoint without parameters
+    // Fix issue with nested URLs
+    let endpoint = '/ws';
+    if (this.url.includes('/ws')) {
+      const parts = this.url.split('/ws');
+      if (parts.length > 0) {
+        endpoint = '/ws' + (parts[1] || '').split('?')[0];
+      }
+    }
+    
+    // Generate a clean URL
     this.url = `${wsProtocol}//${window.location.host}${endpoint}?${cacheBuster}&${clientIdentifier}`;
 
     console.log(`[WebSocket] Connecting to ${this.url}`);

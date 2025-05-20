@@ -15,19 +15,23 @@ async function testAIValuationPDF() {
     console.log('\n1. Testing AI Valuation engine...');
     
     const sampleProperty = {
-      id: 1001,
-      address: '123 Main Street',
-      city: 'Austin',
-      state: 'TX',
-      zipCode: '78701',
+      address: {
+        street: '123 Main Street',
+        city: 'Austin', 
+        state: 'TX', 
+        zipCode: '78701'
+      },
       propertyType: 'Single Family',
-      yearBuilt: 2005,
-      grossLivingArea: 2200,
-      lotSize: 8500,
       bedrooms: 4,
       bathrooms: 2.5,
-      garage: '2 Car Attached',
-      pool: 'Yes',
+      squareFeet: 2200,
+      yearBuilt: 2005,
+      lotSize: 0.2,
+      features: [
+        { name: 'Garage' },
+        { name: 'Fireplace' },
+        { name: 'Pool' }
+      ],
       condition: 'Good'
     };
     
@@ -35,7 +39,7 @@ async function testAIValuationPDF() {
     console.log('\nTesting POST endpoint with property details...');
     
     try {
-      const valuationResponse = await fetch('http://localhost:5000/api/ai/value', {
+      const valuationResponse = await fetch('http://localhost:5000/api/property-analysis', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
