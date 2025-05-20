@@ -26,7 +26,7 @@ const PropertyDashboard = () => {
   const [showComparables, setShowComparables] = useState(false);
   const { sendMessage, lastMessage } = useWebSocket();
   
-  // Property data state
+  // Property data state with correct TypeScript typing
   const [propertyData, setPropertyData] = useState({
     address: {
       street: "",
@@ -40,15 +40,59 @@ const PropertyDashboard = () => {
     squareFeet: 1500,
     yearBuilt: 2000,
     lotSize: 0.15,
-    features: [],
+    features: [] as string[],  // Explicitly type features as string array
     condition: "Average"
   });
   
   // New feature to add
   const [newFeature, setNewFeature] = useState("");
   
+  // Define result type for property analysis
+  interface PropertyAnalysisResult {
+    property: {
+      address: {
+        street: string;
+        city: string;
+        state: string;
+        zipCode: string;
+      };
+      propertyType: string;
+      bedrooms: number;
+      bathrooms: number;
+      squareFeet: number;
+      yearBuilt: number;
+      lotSize: number;
+      features: string[];
+      condition: string;
+    };
+    estimatedValue: number;
+    confidenceLevel: 'High' | 'Medium' | 'Low';
+    valueRange: {
+      min: number;
+      max: number;
+    };
+    adjustments: Array<{
+      factor: string;
+      description: string;
+      amount: number;
+      reasoning: string;
+    }>;
+    marketAnalysis: string;
+    comparableAnalysis: string;
+    comparables?: Array<{
+      address: string;
+      salePrice: number;
+      saleDate: string;
+      bedrooms: number;
+      bathrooms: number;
+      squareFeet: number;
+      yearBuilt: number;
+      distanceFromSubject: string;
+    }>;
+  }
+  
   // Analysis results
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState<PropertyAnalysisResult | null>(null);
 
   // Process WebSocket messages
   useEffect(() => {
@@ -60,7 +104,7 @@ const PropertyDashboard = () => {
   }, [lastMessage]);
 
   // Handle property data changes
-  const handleChange = (e) => {
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     
     if (name.includes('.')) {
@@ -68,7 +112,7 @@ const PropertyDashboard = () => {
       setPropertyData(prev => ({
         ...prev,
         [parent]: {
-          ...prev[parent],
+          ...prev[parent as keyof typeof prev] as Record<string, any>,
           [child]: value
         }
       }));
@@ -81,7 +125,7 @@ const PropertyDashboard = () => {
   };
   
   // Handle number input changes with validation
-  const handleNumberChange = (e) => {
+  const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const numberValue = parseFloat(value);
     
@@ -105,7 +149,7 @@ const PropertyDashboard = () => {
   };
   
   // Handle feature removals
-  const removeFeature = (index) => {
+  const removeFeature = (index: number) => {
     setPropertyData(prev => ({
       ...prev,
       features: prev.features.filter((_, i) => i !== index)
@@ -134,7 +178,7 @@ const PropertyDashboard = () => {
       if (!sendMessage) {
         console.log('WebSocket not available, using direct API call');
         
-        const response = await fetch('/api/property/analyze', {
+        const response = await fetch('/api/property-analysis', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -159,7 +203,7 @@ const PropertyDashboard = () => {
   };
 
   // Format currency values
-  const formatCurrency = (value) => {
+  const formatCurrency = (value: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: 'USD',
@@ -556,7 +600,7 @@ const PropertyDashboard = () => {
                       <span className="text-sm text-muted-foreground">Features</span>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {result.property.features.length > 0 ? (
-                          result.property.features.map((feature, index) => (
+                          result.property.features.map((feature: string, index: number) => (
                             <Badge key={index} variant="outline">{feature}</Badge>
                           ))
                         ) : (
@@ -610,7 +654,7 @@ const PropertyDashboard = () => {
                     <div>
                       <h3 className="text-lg font-medium mb-2">Value Adjustments</h3>
                       <div className="space-y-2">
-                        {result.adjustments.map((adjustment, index) => (
+                        {result.adjustments.map((adjustment: {factor: string, description: string, amount: number, reasoning: string}, index: number) => (
                           <div key={index} className="flex justify-between border-b pb-2">
                             <div>
                               <p className="font-medium">{adjustment.factor}</p>
