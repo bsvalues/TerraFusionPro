@@ -225,15 +225,170 @@ export default function AppraiserHome() {
       }
     >
       <div className="space-y-10">
-        {/* Test message to confirm this component is showing */}
-        <div className="bg-primary/10 p-4 rounded-md border border-primary/30 text-center">
-          <p className="text-primary font-medium">Property analysis can now be accessed directly through the navigation</p>
-          <Button
-            className="mt-4 bg-primary hover:bg-primary/90"
-            onClick={() => window.location.href = '/property-analysis-new'}
-          >
-            Access Property Analysis
-          </Button>
+        {/* Property Analysis Component Replacement */}
+        <div className="bg-white border rounded-md shadow-md">
+          <div className="bg-primary text-white p-4 rounded-t-md">
+            <h2 className="text-xl font-bold">TerraFusion Property Analysis</h2>
+            <p className="text-sm opacity-90">AI-powered property valuation and analytics</p>
+          </div>
+          
+          <div className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="text-lg font-medium mb-2">Property Details</h3>
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Street Address</label>
+                    <input 
+                      type="text" 
+                      className="w-full p-2 border rounded-md"
+                      placeholder="Enter property address"
+                      defaultValue="406 Stardust Ct"
+                    />
+                  </div>
+                  
+                  <div className="grid grid-cols-3 gap-2">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">City</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-2 border rounded-md"
+                        placeholder="City"
+                        defaultValue="Grandview"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">State</label>
+                      <select className="w-full p-2 border rounded-md" defaultValue="WA">
+                        <option value="WA">Washington</option>
+                        <option value="OR">Oregon</option>
+                        <option value="CA">California</option>
+                        <option value="ID">Idaho</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Zip</label>
+                      <input 
+                        type="text" 
+                        className="w-full p-2 border rounded-md"
+                        placeholder="Zip Code"
+                        defaultValue="99347"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Bedrooms</label>
+                      <input 
+                        type="number" 
+                        className="w-full p-2 border rounded-md"
+                        defaultValue="3"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Bathrooms</label>
+                      <input 
+                        type="number" 
+                        className="w-full p-2 border rounded-md"
+                        defaultValue="2"
+                        step="0.5"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Square Feet</label>
+                      <input 
+                        type="number" 
+                        className="w-full p-2 border rounded-md"
+                        defaultValue="1850"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Year Built</label>
+                      <input 
+                        type="number" 
+                        className="w-full p-2 border rounded-md"
+                        defaultValue="1997"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <label className="block text-sm font-medium mb-1">Condition</label>
+                    <select className="w-full p-2 border rounded-md" defaultValue="Good">
+                      <option>Excellent</option>
+                      <option>Good</option>
+                      <option>Average</option>
+                      <option>Fair</option>
+                      <option>Poor</option>
+                    </select>
+                  </div>
+                </div>
+                
+                <Button 
+                  className="w-full bg-primary hover:bg-primary/90 mt-4"
+                  onClick={() => window.location.href = '/property-analysis-new'}
+                >
+                  Access Full Property Analysis
+                </Button>
+              </div>
+              
+              <div className="border-t pt-6 md:border-t-0 md:pt-0 md:border-l md:pl-6">
+                <h3 className="text-lg font-medium mb-4">Recent Analysis Results</h3>
+                
+                <div className="space-y-4">
+                  <div className="border rounded-md p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">406 Stardust Ct</p>
+                        <p className="text-sm text-gray-600">Grandview, WA 99347</p>
+                      </div>
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-gray-500">Estimated Value</p>
+                        <p className="font-medium">$315,000</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Confidence</p>
+                        <p className="font-medium">High (94%)</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-3 w-full">
+                      View Details
+                    </Button>
+                  </div>
+                  
+                  <div className="border rounded-md p-4">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium">123 Main St</p>
+                        <p className="text-sm text-gray-600">Grandview, WA 99347</p>
+                      </div>
+                      <Badge className="bg-blue-100 text-blue-800 hover:bg-blue-100">Recent</Badge>
+                    </div>
+                    <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
+                      <div>
+                        <p className="text-gray-500">Estimated Value</p>
+                        <p className="font-medium">$287,500</p>
+                      </div>
+                      <div>
+                        <p className="text-gray-500">Confidence</p>
+                        <p className="font-medium">Medium (78%)</p>
+                      </div>
+                    </div>
+                    <Button variant="outline" size="sm" className="mt-3 w-full">
+                      View Details
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         
         {/* Hero Section - Focused on appraiser's workflow needs */}
