@@ -99,6 +99,7 @@ function App() {
                 <Route path="/" component={AppraiserHome} />
                 <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
+                <Route path="/property-analyzer" component={NewPropertyAnalyzer} />
                 <Route path="/stardust" component={SimplePropertyPage} />
 <Route path="/appraiser" component={AppraiserHome} />
                 <Route path="/form" component={FormPage} />

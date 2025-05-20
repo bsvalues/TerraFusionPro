@@ -230,6 +230,12 @@ export default function AppraiserHome() {
           <div className="bg-primary text-white p-4 rounded-t-md">
             <h2 className="text-xl font-bold">TerraFusion Property Analysis</h2>
             <p className="text-sm opacity-90">AI-powered property valuation and analytics</p>
+            <Button 
+              className="mt-4 bg-white text-primary hover:bg-gray-100" 
+              onClick={() => window.location.href = '/property-analyzer'}
+            >
+              Open New Property Analyzer
+            </Button>
           </div>
           
           <div className="p-6">
