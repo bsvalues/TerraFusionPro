@@ -70,12 +70,20 @@ async function analyzeStardustProperty() {
     console.log('----------------------');
     console.log(`Estimated Value: $${analysisResult.estimatedValue.toLocaleString()}`);
     console.log(`Confidence Level: ${analysisResult.confidenceLevel}`);
-    console.log(`Value Range: ${analysisResult.valueRange}`);
+    // Format the value range properly
+    console.log(`Value Range: ${analysisResult.valueRange.min} - ${analysisResult.valueRange.max}`);
     
     console.log('\nKey Property Adjustments:');
-    analysisResult.adjustments.forEach(adjustment => {
-      console.log(`- ${adjustment}`);
-    });
+    // Parse and display adjustments properly
+    if (Array.isArray(analysisResult.adjustments)) {
+      analysisResult.adjustments.forEach(adjustment => {
+        if (typeof adjustment === 'object') {
+          console.log(`- ${adjustment.description}: ${adjustment.amount}`);
+        } else {
+          console.log(`- ${adjustment}`);
+        }
+      });
+    }
 
     console.log('\n4. MARKET ANALYSIS:');
     console.log('-----------------');
