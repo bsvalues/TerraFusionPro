@@ -715,7 +715,16 @@ const PropertyDashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {result.comparables.map((comp, index) => (
+                          {result.comparables && result.comparables.map((comp: {
+                            address: string;
+                            salePrice: number;
+                            saleDate: string;
+                            bedrooms: number;
+                            bathrooms: number;
+                            squareFeet: number;
+                            yearBuilt: number;
+                            distanceFromSubject: string;
+                          }, index: number) => (
                             <tr key={index} className="border-b">
                               <td className="p-2">{comp.address}</td>
                               <td className="p-2 font-medium">{formatCurrency(comp.salePrice)}</td>
