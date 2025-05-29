@@ -1,18 +1,92 @@
 import { useState, useRef, useEffect } from "react";
+import ImportRow from "../components/ImportRow";
+
+interface TerraFusionComp {
+  address: string;
+  sale_price_usd: number;
+  gla_sqft: number;
+  sale_date: string;
+  source_table: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  lot_size_sqft?: number;
+  year_built?: number;
+  property_type?: string;
+}
+
+interface ImportJob {
+  id: string;
+  fileName: string;
+  status: 'pending' | 'processing' | 'complete' | 'error';
+  progress: number;
+  recordsProcessed: number;
+  totalRecords: number;
+  error?: string;
+}
 
 export default function LegacyImporter() {
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadStatus, setUploadStatus] = useState<string>("");
+  const [importedComps, setImportedComps] = useState<TerraFusionComp[]>([]);
+  const [activeJob, setActiveJob] = useState<ImportJob | null>(null);
+  const [isStreaming, setIsStreaming] = useState(false);
+  const [streamConnected, setStreamConnected] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const eventSourceRef = useRef<EventSource | null>(null);
 
   useEffect(() => {
     console.log("Legacy Importer Component Successfully Mounted");
+    
+    return () => {
+      // Cleanup event source on unmount
+      if (eventSourceRef.current) {
+        eventSourceRef.current.close();
+      }
+    };
   }, []);
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
     setUploadStatus("");
+  };
+
+  const startMockStream = () => {
+    setImportedComps([]);
+    setIsStreaming(true);
+    setStreamConnected(false);
+    setUploadStatus("Starting import stream...");
+
+    const eventSource = new EventSource('/api/import/mock-stream');
+    eventSourceRef.current = eventSource;
+
+    eventSource.onopen = () => {
+      setStreamConnected(true);
+      setUploadStatus("Connected to import stream");
+    };
+
+    eventSource.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        
+        if (message.type === 'record') {
+          setImportedComps(prev => [message.data, ...prev]);
+        } else if (message.type === 'end') {
+          setIsStreaming(false);
+          setUploadStatus(`Import ${message.result}: ${importedComps.length + 1} records processed`);
+          eventSource.close();
+        }
+      } catch (error) {
+        console.error('Error parsing stream data:', error);
+      }
+    };
+
+    eventSource.onerror = () => {
+      setStreamConnected(false);
+      setIsStreaming(false);
+      setUploadStatus("Stream connection error");
+      eventSource.close();
+    };
   };
 
   const handleUpload = async () => {
@@ -169,15 +243,121 @@ export default function LegacyImporter() {
           </div>
         </div>
 
-        {/* Import History Section */}
-        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <h2 className="text-xl font-semibold text-gray-900 mb-4">Import History</h2>
-          <div className="text-center py-12 text-gray-500">
-            <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-            </svg>
-            <p>No import jobs yet. Upload some files to get started.</p>
+        {/* Live Import Stream Section */}
+        <div className="mt-8 bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">Live Import Stream</h2>
+                <p className="text-sm text-gray-500 mt-1">
+                  Real-time processing with AI validation
+                </p>
+              </div>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    streamConnected ? 'bg-green-500' : 
+                    isStreaming ? 'bg-yellow-500' : 'bg-gray-300'
+                  }`}></div>
+                  <span className="text-sm text-gray-600">
+                    {streamConnected ? 'Connected' : 
+                     isStreaming ? 'Connecting...' : 'Disconnected'}
+                  </span>
+                </div>
+                <button
+                  onClick={startMockStream}
+                  disabled={isStreaming}
+                  className={`px-4 py-2 rounded-md text-sm font-medium ${
+                    isStreaming 
+                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                  }`}
+                >
+                  {isStreaming ? 'Processing...' : 'Start Demo Import'}
+                </button>
+              </div>
+            </div>
           </div>
+
+          {/* Stream Data Display */}
+          <div className="max-h-96 overflow-y-auto">
+            {importedComps.length === 0 && !isStreaming ? (
+              <div className="text-center py-12 text-gray-500">
+                <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                </svg>
+                <p>No imported records yet. Start an import to see live data streaming.</p>
+              </div>
+            ) : (
+              <div>
+                {/* Header Row */}
+                <div className="bg-gray-50 p-3 grid grid-cols-6 gap-3 text-xs font-semibold text-gray-700 uppercase tracking-wider border-b">
+                  <div>Property Address</div>
+                  <div className="text-right">Sale Price</div>
+                  <div className="text-center">Living Area</div>
+                  <div className="text-center">Sale Date</div>
+                  <div>Validation Issues</div>
+                  <div className="text-right">Status</div>
+                </div>
+
+                {/* Data Rows */}
+                {importedComps.map((comp, index) => (
+                  <ImportRow key={index} comp={comp} />
+                ))}
+
+                {/* Loading indicator */}
+                {isStreaming && (
+                  <div className="p-4 text-center border-b">
+                    <div className="flex items-center justify-center gap-2">
+                      <div className="animate-spin h-4 w-4 border-2 border-blue-500 border-t-transparent rounded-full"></div>
+                      <span className="text-sm text-gray-600">Processing more records...</span>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+
+          {/* Stream Summary */}
+          {importedComps.length > 0 && (
+            <div className="p-4 bg-gray-50 border-t">
+              <div className="grid grid-cols-4 gap-4 text-sm">
+                <div>
+                  <span className="text-gray-500">Records Processed:</span>
+                  <span className="ml-2 font-semibold">{importedComps.length}</span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Valid Records:</span>
+                  <span className="ml-2 font-semibold text-green-600">
+                    {importedComps.filter(comp => {
+                      // This would use the actual validation function
+                      return comp.address && comp.sale_price_usd && comp.gla_sqft;
+                    }).length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Issues Found:</span>
+                  <span className="ml-2 font-semibold text-yellow-600">
+                    {importedComps.filter(comp => {
+                      // This would use the actual validation function  
+                      return !comp.address || !comp.sale_price_usd || !comp.gla_sqft;
+                    }).length}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-gray-500">Avg Price/Sqft:</span>
+                  <span className="ml-2 font-semibold">
+                    ${importedComps.reduce((sum, comp) => {
+                      if (comp.sale_price_usd && comp.gla_sqft) {
+                        return sum + (comp.sale_price_usd / comp.gla_sqft);
+                      }
+                      return sum;
+                    }, 0) / importedComps.filter(c => c.sale_price_usd && c.gla_sqft).length || 0}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

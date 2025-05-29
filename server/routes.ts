@@ -2704,6 +2704,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Import streaming routes
+  app.get('/api/import/stream/:jobId', async (req, res) => {
+    const { handleImportStream } = await import('./routes/import-stream');
+    handleImportStream(req, res);
+  });
+
+  app.get('/api/import/mock-stream', async (req, res) => {
+    const { handleMockStream } = await import('./routes/import-stream');
+    handleMockStream(req, res);
+  });
+
   // Legacy Import API endpoints
   app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {
     try {
