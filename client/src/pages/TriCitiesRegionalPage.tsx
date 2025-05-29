@@ -42,7 +42,7 @@ export default function TriCitiesRegionalPage() {
     {
       name: 'Benton',
       nodeType: 'Master',
-      status: 'Staging',
+      status: 'Active',
       appraisers: 28,
       agProperties: 1847,
       mixedZoneProperties: 892,
@@ -53,7 +53,7 @@ export default function TriCitiesRegionalPage() {
     {
       name: 'Franklin',
       nodeType: 'Master',
-      status: 'Staging',
+      status: 'Active',
       appraisers: 15,
       agProperties: 1234,
       mixedZoneProperties: 567,
@@ -64,7 +64,7 @@ export default function TriCitiesRegionalPage() {
     {
       name: 'Walla Walla',
       nodeType: 'Sync',
-      status: 'Queued',
+      status: 'Staging',
       appraisers: 12,
       agProperties: 987,
       mixedZoneProperties: 234,
@@ -75,13 +75,57 @@ export default function TriCitiesRegionalPage() {
     {
       name: 'Yakima',
       nodeType: 'Sync',
-      status: 'Queued',
+      status: 'Staging',
       appraisers: 34,
       agProperties: 2156,
       mixedZoneProperties: 1089,
       waterRightsTracked: 567,
       soilTypesIntegrated: 31,
       compliance: 93.7
+    },
+    {
+      name: 'Columbia',
+      nodeType: 'Sync',
+      status: 'Staging',
+      appraisers: 6,
+      agProperties: 423,
+      mixedZoneProperties: 89,
+      waterRightsTracked: 76,
+      soilTypesIntegrated: 8,
+      compliance: 92.1
+    },
+    {
+      name: 'Asotin',
+      nodeType: 'Sync',
+      status: 'Queued',
+      appraisers: 4,
+      agProperties: 298,
+      mixedZoneProperties: 67,
+      waterRightsTracked: 45,
+      soilTypesIntegrated: 6,
+      compliance: 91.8
+    },
+    {
+      name: 'Garfield',
+      nodeType: 'Sync',
+      status: 'Queued',
+      appraisers: 3,
+      agProperties: 189,
+      mixedZoneProperties: 34,
+      waterRightsTracked: 28,
+      soilTypesIntegrated: 4,
+      compliance: 90.9
+    },
+    {
+      name: 'Whitman',
+      nodeType: 'Sync',
+      status: 'Queued',
+      appraisers: 8,
+      agProperties: 567,
+      mixedZoneProperties: 123,
+      waterRightsTracked: 89,
+      soilTypesIntegrated: 12,
+      compliance: 93.4
     }
   ];
 
@@ -94,11 +138,13 @@ export default function TriCitiesRegionalPage() {
   };
 
   const deploymentObjectives = [
-    { task: 'Establish Benton & Franklin as dual master nodes', status: 'In Progress', progress: 85 },
-    { task: 'Enable multi-county cross-boundary comp sharing', status: 'In Progress', progress: 72 },
-    { task: 'Integrate Yakima & Walla Walla via lightweight sync nodes', status: 'Queued', progress: 15 },
-    { task: 'Train LLM agents on rural narrative styles', status: 'Active', progress: 78 },
-    { task: 'Deploy farm/residential split valuation logic', status: 'Active', progress: 64 }
+    { task: 'Establish Benton & Franklin as dual master nodes', status: 'Active', progress: 95 },
+    { task: 'Enable multi-county cross-boundary comp sharing', status: 'Active', progress: 88 },
+    { task: 'Integrate Yakima & Walla Walla via lightweight sync nodes', status: 'In Progress', progress: 67 },
+    { task: 'Train LLM agents on rural narrative styles', status: 'Active', progress: 92 },
+    { task: 'Deploy farm/residential split valuation logic', status: 'Complete', progress: 100 },
+    { task: 'Configure Columbia/Asotin/Garfield lightweight nodes', status: 'In Progress', progress: 23 },
+    { task: 'Deploy Whitman/Lincoln/Adams predictive nodes', status: 'Queued', progress: 8 }
   ];
 
   const getStatusColor = (status: string) => {
@@ -381,11 +427,31 @@ export default function TriCitiesRegionalPage() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 flex-wrap">
-            <Button>Deploy Benton/Franklin as Dual Core Nodes</Button>
-            <Button variant="outline">Run Tri-Cities Ingestion Test</Button>
-            <Button variant="outline">Activate Zoning Overlay Viewer</Button>
-            <Button variant="outline">Begin Agent Tuning for Rural Logic</Button>
-            <Button variant="outline">Launch Appraiser Onboarding</Button>
+            <Button>Finalize Eastern WA Deployment</Button>
+            <Button variant="outline">Run EWA Batch Ingestion Simulation</Button>
+            <Button variant="outline">Launch Regional DAO Governance</Button>
+            <Button variant="outline">Initiate WA Statewide Mesh Expansion</Button>
+            <Button variant="outline">Deploy TFFormEngine WA-EAST Mode</Button>
+          </div>
+          
+          {/* Eastern Washington Grid Status */}
+          <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
+            <div className="flex items-start space-x-3">
+              <CheckCircle className="w-5 h-5 text-orange-600 mt-0.5" />
+              <div>
+                <h4 className="font-medium text-orange-900">Eastern Washington Grid Active</h4>
+                <p className="text-sm text-orange-700 mt-1">
+                  Comprehensive agricultural intelligence deployment across 8 Eastern WA counties. 
+                  Dual master nodes (Benton/Franklin) coordinating with 6 sync nodes for regional mesh coverage.
+                </p>
+                <div className="mt-2 flex items-center space-x-4 text-xs text-orange-600">
+                  <span>• 110 active appraisers</span>
+                  <span>• 7,901 agricultural properties</span>
+                  <span>• 3,218 mixed-zone properties</span>
+                  <span>• 1,746 water rights tracked</span>
+                </div>
+              </div>
+            </div>
           </div>
         </CardContent>
       </Card>
