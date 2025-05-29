@@ -1,4 +1,56 @@
-import { validateComp, ValidationIssue, TerraFusionComp } from '../../../server/services/schema-validator';
+// Simple validation function since we can't import server code in client
+interface ValidationIssue {
+  field: string;
+  type: 'missing' | 'suspicious' | 'anomaly' | 'format';
+  message: string;
+  severity: 'low' | 'medium' | 'high';
+}
+
+interface TerraFusionComp {
+  address: string;
+  sale_price_usd: number;
+  gla_sqft: number;
+  sale_date: string;
+  source_table: string;
+  bedrooms?: number;
+  bathrooms?: number;
+  lot_size_sqft?: number;
+  year_built?: number;
+  property_type?: string;
+}
+
+function validateComp(comp: TerraFusionComp): ValidationIssue[] {
+  const issues: ValidationIssue[] = [];
+  
+  if (!comp.address) {
+    issues.push({
+      field: 'address',
+      type: 'missing',
+      message: 'Missing address',
+      severity: 'high'
+    });
+  }
+  
+  if (!comp.sale_price_usd || comp.sale_price_usd <= 0) {
+    issues.push({
+      field: 'sale_price_usd',
+      type: 'missing',
+      message: 'Invalid sale price',
+      severity: 'high'
+    });
+  }
+  
+  if (!comp.gla_sqft || comp.gla_sqft <= 0) {
+    issues.push({
+      field: 'gla_sqft',
+      type: 'missing',
+      message: 'Invalid living area',
+      severity: 'medium'
+    });
+  }
+  
+  return issues;
+}
 
 interface ImportRowProps {
   comp: TerraFusionComp;
