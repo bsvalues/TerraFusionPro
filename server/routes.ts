@@ -2835,6 +2835,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register import routes for appraisal file processing
   app.use('/api/import', importRoutes);
   
+  // Register legacy import routes for Universal Legacy Appraisal Importer
+  app.use('/api/legacy-import', legacyImportRouter);
+  
   // Register photo enhancement routes for AI-powered property image processing
   app.use('/api/photo-enhancement', photoEnhancementRoutes);
   

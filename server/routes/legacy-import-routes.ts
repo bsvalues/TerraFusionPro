@@ -6,7 +6,7 @@ import { insertLegacyImportJobSchema, insertLegacyImportRecordSchema, insertLega
 import path from 'path';
 import fs from 'fs/promises';
 import { XMLParser } from 'fast-xml-parser';
-import csv from 'csv-parse';
+import * as csvParse from 'csv-parse/sync';
 import JSZip from 'jszip';
 
 const router = Router();

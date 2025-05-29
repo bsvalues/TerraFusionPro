@@ -62,6 +62,7 @@ import TestDashboard from "./pages/TestDashboard";
 import IntelligentURAR from "./pages/IntelligentURAR";
 import ConversionCenter from "./pages/ConversionCenter";
 import Dashboard from "./pages/Dashboard";
+import LegacyImporter from "./pages/LegacyImporter";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -131,6 +132,7 @@ function App() {
                 <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
                 <Route path="/terms" component={TermsPage} />
                 <Route path="/import" component={ImportPage} />
+                <Route path="/legacy-import" component={LegacyImporter} />
                 <Route path="/crdt-test" component={CRDTTestPage} />
                 <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
                 <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
