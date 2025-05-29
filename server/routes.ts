@@ -2863,6 +2863,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Register reviewer UX routes for collaborative review functionality
   app.use('/api/reviewer', reviewerRouter);
   
+  // Register Universal Conversion Agent routes
+  app.use('/api', conversionRouter);
+  
   // Register WebSocket routes to ensure they're handled by Express
   // This prevents Vite from intercepting these paths
   app.use('/api', websocketRouter);
