@@ -122,6 +122,13 @@ export function Sidebar() {
       href: "/wa-counties",
       badge: "WA",
       isActive: location.startsWith("/wa-counties")
+    },
+    {
+      icon: MapPin,
+      label: "Tri-Cities Regional",
+      href: "/tri-cities",
+      badge: "TC",
+      isActive: location.startsWith("/tri-cities")
     }
   ];
 

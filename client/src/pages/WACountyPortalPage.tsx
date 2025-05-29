@@ -59,10 +59,48 @@ export default function WACountyPortalPage() {
       averageValue: 625000,
       complianceScore: 97.4
     },
+    // Phase 2 - PRIORITY: TRI-CITIES NEXUS (South-Eastern WA)
+    {
+      name: 'Benton',
+      type: 'Type-2 Regional',
+      status: 'Staging',
+      appraisers: 28,
+      monthlyReports: 420,
+      averageValue: 325000,
+      complianceScore: 96.3
+    },
+    {
+      name: 'Franklin',
+      type: 'Type-2 Regional',
+      status: 'Staging',
+      appraisers: 15,
+      monthlyReports: 240,
+      averageValue: 285000,
+      complianceScore: 95.8
+    },
+    {
+      name: 'Walla Walla',
+      type: 'Type-3 Rural',
+      status: 'Queued',
+      appraisers: 12,
+      monthlyReports: 180,
+      averageValue: 245000,
+      complianceScore: 94.2
+    },
+    {
+      name: 'Yakima',
+      type: 'Type-3 Rural',
+      status: 'Queued',
+      appraisers: 34,
+      monthlyReports: 510,
+      averageValue: 195000,
+      complianceScore: 93.7
+    },
+    // Phase 3 - Secondary Expansion
     {
       name: 'Spokane',
       type: 'Type-2 Regional',
-      status: 'Staging',
+      status: 'Queued',
       appraisers: 45,
       monthlyReports: 560,
       averageValue: 285000,
@@ -71,7 +109,7 @@ export default function WACountyPortalPage() {
     {
       name: 'Clark',
       type: 'Type-2 Regional',
-      status: 'Staging',
+      status: 'Queued',
       appraisers: 38,
       monthlyReports: 420,
       averageValue: 445000,
