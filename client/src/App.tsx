@@ -22,7 +22,6 @@ import EnhancedUADFormPage from "./pages/UADFormPage.enhanced";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import ImportPage from "./pages/ImportPage";
 import LegacyImporter from "./pages/LegacyImporter";
-import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/not-found";
 import SharedPropertyPage from "./pages/SharedPropertyPage";
 import SnapshotViewerPage from "./pages/SnapshotViewerPage";
@@ -63,7 +62,6 @@ import TerraFusionDashboard from "./pages/TerraFusionDashboard";
 import TestDashboard from "./pages/TestDashboard";
 import IntelligentURAR from "./pages/IntelligentURAR";
 import ConversionCenter from "./pages/ConversionCenter";
-import Dashboard from "./pages/Dashboard";
 import SimpleLegacyImporter from "./pages/SimpleLegacyImporter";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
@@ -99,7 +97,7 @@ function App() {
       <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
                 <Route path="/">
-                  {() => <Dashboard />}
+                  {() => <TerraFusionDashboard />}
                 </Route>
                 <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
