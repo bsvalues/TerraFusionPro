@@ -13,17 +13,18 @@ const root = createRoot(document.getElementById("root")!);
 
 console.log("main.tsx executing, rendering App component");
 
-// Use the enhanced app with the new UI components
-// Change this to <App /> to use the original app
-const UseEnhancedUI = true; // Using enhanced UI with updated components
+// FORCE NEW UI TO DISPLAY - Direct import
+import ForcedNewDashboard from './pages/ForcedNewDashboard';
 
-// Then render the actual app with all necessary providers
+// Then render the actual app with all necessary providers - FORCE SIMPLE DIRECT RENDER
 root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
         <AppProvider>
-          {UseEnhancedUI ? <EnhancedApp2 /> : <App />}
+          <div className="min-h-screen">
+            <ForcedNewDashboard />
+          </div>
         </AppProvider>
       </ThemeProvider>
     </QueryClientProvider>
