@@ -63,6 +63,8 @@ import TestDashboard from "./pages/TestDashboard";
 import IntelligentURAR from "./pages/IntelligentURAR";
 import ConversionCenter from "./pages/ConversionCenter";
 import SimpleLegacyImporter from "./pages/SimpleLegacyImporter";
+import ExplorerPage from "./pages/ExplorerPage";
+import AnalyticsDashboard from "./pages/AnalyticsDashboard";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -156,6 +158,9 @@ function App() {
                 <Route path="/conversion" component={ConversionCenter} />
                 <Route path="/conversion-center" component={ConversionCenter} />
                 <Route path="/data-conversion" component={ConversionCenter} />
+                {/* TerraFusion Explorer & Analytics */}
+                <Route path="/explorer" component={ExplorerPage} />
+                <Route path="/analytics" component={AnalyticsDashboard} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <IntelligentURAR />}

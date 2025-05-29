@@ -2711,6 +2711,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Analytics API routes
   app.use('/api/analytics', (await import('./routes/analytics')).default);
 
+  // Explorer API routes
+  app.use('/api/explorer', (await import('./routes/explorer')).default);
+
   // Legacy Import API endpoints
   app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {
     try {
