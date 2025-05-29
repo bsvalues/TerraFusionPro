@@ -132,7 +132,9 @@ function App() {
                 <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
                 <Route path="/terms" component={TermsPage} />
                 <Route path="/import" component={ImportPage} />
-                <Route path="/legacy-import" component={LegacyImporter} />
+                <Route path="/legacy-import">
+                  {() => <LegacyImporter />}
+                </Route>
                 <Route path="/crdt-test" component={CRDTTestPage} />
                 <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
                 <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
