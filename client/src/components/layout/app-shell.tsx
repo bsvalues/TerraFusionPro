@@ -213,6 +213,13 @@ export function AppShell({ children }: AppShellProps) {
       badge: { text: "AI", variant: "secondary" },
       description: "Intelligent form completion and validation"
     },
+    { 
+      href: "/infiniform", 
+      label: "Infiniform Engine", 
+      icon: <Sparkles className="h-4 w-4" />,
+      badge: { text: "∞", variant: "destructive" },
+      description: "Post-human appraisal intelligence - living protocol system"
+    },
   ];
   
   // AI Analysis Tools - Enhanced AI-specific features prominently displayed
