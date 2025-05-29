@@ -101,6 +101,20 @@ export function Sidebar() {
       href: "/infiniform",
       badge: "NEW",
       isActive: location.startsWith("/infiniform")
+    },
+    {
+      icon: Shield,
+      label: "Public Ledger",
+      href: "/ledger",
+      badge: "LIVE",
+      isActive: location.startsWith("/ledger")
+    },
+    {
+      icon: MapPin,
+      label: "Zoning AI Map",
+      href: "/zoning-map",
+      badge: "AI",
+      isActive: location.startsWith("/zoning-map")
     }
   ];
 
