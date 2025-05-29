@@ -57,6 +57,8 @@ import RedirectToProperty from "./pages/RedirectToProperty";
 import NewHomePage from "./pages/NewHomePage";
 import PropertyDashboard from "./pages/PropertyDashboard";
 import NewPropertyAnalyzer from "./pages/NewPropertyAnalyzer";
+import TerraFusionDashboard from "./pages/TerraFusionDashboard";
+import IntelligentURAR from "./pages/IntelligentURAR";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -96,8 +98,8 @@ function App() {
                 <AppShell>
                   <WebSocketManager />
                 <Switch>
-                {/* Explicit routes first - Show TerraFusion Pro PropertyDashboard */}
-                <Route path="/" component={AppraiserHome} />
+                {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
+                <Route path="/" component={TerraFusionDashboard} />
                 <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
                 <Route path="/property-analyzer" component={NewPropertyAnalyzer} />
@@ -151,10 +153,10 @@ function App() {
                 <Route path="/get-started" component={OnboardingPage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
-                  {() => <UrarPage />}
+                  {() => <IntelligentURAR />}
                 </Route>
                 <Route path="/urar/:propertyId">
-                  {(params) => <UrarPage propertyId={Number(params.propertyId)} />}
+                  {(params) => <IntelligentURAR propertyId={Number(params.propertyId)} />}
                 </Route>
                 <Route path="/legal-urar">
                   {() => <UrarPage />}

@@ -317,6 +317,64 @@ export const fieldNotes = pgTable("field_notes", {
   userId: integer("user_id").references(() => users.id),
 });
 
+// ======= APPRAISAL FORMS & DATA ========
+
+export const appraisalForms = pgTable("appraisal_forms", {
+  id: serial("id").primaryKey(),
+  orderId: integer("order_id").references(() => orders.id).notNull(),
+  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  formType: text("form_type").notNull(), // urar, commercial, land, etc.
+  formData: json("form_data").notNull(), // Complete form field data
+  status: text("status").default("draft").notNull(), // draft, in_progress, completed, reviewed
+  completionPercentage: integer("completion_percentage").default(0),
+  aiSuggestions: json("ai_suggestions"), // AI-generated suggestions for fields
+  validationErrors: json("validation_errors"), // Current validation issues
+  lastSavedAt: timestamp("last_saved_at").defaultNow().notNull(),
+  submittedAt: timestamp("submitted_at"),
+  reviewedAt: timestamp("reviewed_at"),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const appraisalFormsRelations = relations(appraisalForms, ({ one }) => ({
+  order: one(orders, {
+    fields: [appraisalForms.orderId],
+    references: [orders.id],
+  }),
+  property: one(properties, {
+    fields: [appraisalForms.propertyId],
+    references: [properties.id],
+  }),
+  createdBy: one(users, {
+    fields: [appraisalForms.createdById],
+    references: [users.id],
+  }),
+}));
+
+export const formTemplates = pgTable("form_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  formType: text("form_type").notNull(),
+  templateData: json("template_data").notNull(), // Template structure and defaults
+  isDefault: boolean("is_default").default(false),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const formTemplatesRelations = relations(formTemplates, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [formTemplates.organizationId],
+    references: [organizations.id],
+  }),
+  createdBy: one(users, {
+    fields: [formTemplates.createdById],
+    references: [users.id],
+  }),
+}));
+
 // ======= MLS INTEGRATION ========
 
 export const mlsSystems = pgTable("mls_systems", {
