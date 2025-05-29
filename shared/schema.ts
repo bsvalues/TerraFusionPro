@@ -291,6 +291,85 @@ export const modelInferences = pgTable("model_inferences", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// ======= UNIVERSAL LEGACY IMPORTER ========
+
+export const legacyImportJobs = pgTable("legacy_import_jobs", {
+  id: serial("id").primaryKey(),
+  jobName: text("job_name").notNull(),
+  status: text("status").default("pending").notNull(), // pending, processing, mapping, review, completed, failed
+  uploadedFiles: json("uploaded_files").notNull(), // Array of file objects
+  detectedFormats: json("detected_formats"), // Auto-detected file types and systems
+  extractedData: json("extracted_data"), // Raw extracted data from files
+  fieldMappings: json("field_mappings"), // Legacy field to TerraFusion field mappings
+  validationErrors: json("validation_errors"), // Data validation issues
+  previewData: json("preview_data"), // Sample data for user review
+  importSettings: json("import_settings"), // User preferences for import
+  processedRecords: integer("processed_records").default(0),
+  totalRecords: integer("total_records").default(0),
+  errorLogs: json("error_logs"), // Processing errors and warnings
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+  completedAt: timestamp("completed_at"),
+});
+
+export const legacyImportJobsRelations = relations(legacyImportJobs, ({ one, many }) => ({
+  createdBy: one(users, {
+    fields: [legacyImportJobs.createdById],
+    references: [users.id],
+  }),
+  importedRecords: many(legacyImportRecords),
+}));
+
+export const legacyImportRecords = pgTable("legacy_import_records", {
+  id: serial("id").primaryKey(),
+  jobId: integer("job_id").references(() => legacyImportJobs.id).notNull(),
+  sourceSystem: text("source_system"), // TOTAL, ClickForms, ACI, DataMaster, etc.
+  sourceRecordId: text("source_record_id"), // Original record ID from legacy system
+  recordType: text("record_type").notNull(), // property, valuation, order, etc.
+  rawData: json("raw_data").notNull(), // Original data from legacy system
+  mappedData: json("mapped_data"), // Data mapped to TerraFusion schema
+  importStatus: text("import_status").default("pending").notNull(), // pending, imported, failed
+  targetEntityId: integer("target_entity_id"), // ID of created TerraFusion entity
+  targetEntityType: text("target_entity_type"), // Which table the record was imported to
+  errorMessage: text("error_message"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  importedAt: timestamp("imported_at"),
+});
+
+export const legacyImportRecordsRelations = relations(legacyImportRecords, ({ one }) => ({
+  job: one(legacyImportJobs, {
+    fields: [legacyImportRecords.jobId],
+    references: [legacyImportJobs.id],
+  }),
+}));
+
+export const legacySystemTemplates = pgTable("legacy_system_templates", {
+  id: serial("id").primaryKey(),
+  templateName: text("template_name").notNull(),
+  systemType: text("system_type").notNull(), // TOTAL, ClickForms, ACI, DataMaster, etc.
+  fileFormats: text("file_formats").array(), // [xml, env, sql, csv, pdf]
+  fieldMappings: json("field_mappings").notNull(), // Standard field mapping rules
+  extractionRules: json("extraction_rules"), // How to extract data from this system
+  validationRules: json("validation_rules"), // Data validation specific to this system
+  isActive: boolean("is_active").default(true).notNull(),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const legacySystemTemplatesRelations = relations(legacySystemTemplates, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [legacySystemTemplates.organizationId],
+    references: [organizations.id],
+  }),
+  createdBy: one(users, {
+    fields: [legacySystemTemplates.createdById],
+    references: [users.id],
+  }),
+}));
+
 // ======= TOOLTIP & TERMINOLOGY ========
 
 export const realEstateTerms = pgTable("real_estate_terms", {
@@ -779,3 +858,18 @@ export type InsertSketch = z.infer<typeof insertSketchSchema>;
 export type ComplianceCheck = typeof complianceChecks.$inferSelect;
 export const insertComplianceCheckSchema = createInsertSchema(complianceChecks).omit({ id: true });
 export type InsertComplianceCheck = z.infer<typeof insertComplianceCheckSchema>;
+
+// Legacy Import Job types
+export type LegacyImportJob = typeof legacyImportJobs.$inferSelect;
+export const insertLegacyImportJobSchema = createInsertSchema(legacyImportJobs).omit({ id: true });
+export type InsertLegacyImportJob = z.infer<typeof insertLegacyImportJobSchema>;
+
+// Legacy Import Record types
+export type LegacyImportRecord = typeof legacyImportRecords.$inferSelect;
+export const insertLegacyImportRecordSchema = createInsertSchema(legacyImportRecords).omit({ id: true });
+export type InsertLegacyImportRecord = z.infer<typeof insertLegacyImportRecordSchema>;
+
+// Legacy System Template types
+export type LegacySystemTemplate = typeof legacySystemTemplates.$inferSelect;
+export const insertLegacySystemTemplateSchema = createInsertSchema(legacySystemTemplates).omit({ id: true });
+export type InsertLegacySystemTemplate = z.infer<typeof insertLegacySystemTemplateSchema>;

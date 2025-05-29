@@ -23,6 +23,9 @@ import {
   MlsFieldMapping, InsertMlsFieldMapping, mlsFieldMappings,
   MlsPropertyMapping, InsertMlsPropertyMapping, mlsPropertyMappings,
   MlsComparableMapping, InsertMlsComparableMapping, mlsComparableMappings,
+  LegacyImportJob, InsertLegacyImportJob, legacyImportJobs,
+  LegacyImportRecord, InsertLegacyImportRecord, legacyImportRecords,
+  LegacySystemTemplate, InsertLegacySystemTemplate, legacySystemTemplates,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql, inArray, like } from "drizzle-orm";
@@ -144,6 +147,31 @@ export interface IStorage {
   getRevisionHistoryByObject(objectType: string, objectId: number, limit?: number): Promise<RevisionHistory[]>;
   getRevisionHistoryByUser(userId: number, limit?: number): Promise<RevisionHistory[]>;
   createRevisionHistory(insertHistory: InsertRevisionHistory): Promise<RevisionHistory>;
+
+  // Legacy Import Job operations
+  getLegacyImportJob(id: number): Promise<LegacyImportJob | undefined>;
+  getLegacyImportJobsByUser(userId: number, limit?: number): Promise<LegacyImportJob[]>;
+  getLegacyImportJobsByStatus(status: string, limit?: number): Promise<LegacyImportJob[]>;
+  createLegacyImportJob(insertJob: InsertLegacyImportJob): Promise<LegacyImportJob>;
+  updateLegacyImportJob(id: number, job: Partial<InsertLegacyImportJob>): Promise<LegacyImportJob | undefined>;
+  deleteLegacyImportJob(id: number): Promise<boolean>;
+
+  // Legacy Import Record operations
+  getLegacyImportRecord(id: number): Promise<LegacyImportRecord | undefined>;
+  getLegacyImportRecordsByJob(jobId: number): Promise<LegacyImportRecord[]>;
+  getLegacyImportRecordsByStatus(status: string, limit?: number): Promise<LegacyImportRecord[]>;
+  createLegacyImportRecord(insertRecord: InsertLegacyImportRecord): Promise<LegacyImportRecord>;
+  updateLegacyImportRecord(id: number, record: Partial<InsertLegacyImportRecord>): Promise<LegacyImportRecord | undefined>;
+  deleteLegacyImportRecord(id: number): Promise<boolean>;
+
+  // Legacy System Template operations
+  getLegacySystemTemplate(id: number): Promise<LegacySystemTemplate | undefined>;
+  getLegacySystemTemplatesByType(systemType: string): Promise<LegacySystemTemplate[]>;
+  getLegacySystemTemplatesByOrganization(orgId: number): Promise<LegacySystemTemplate[]>;
+  getAllActiveLegacySystemTemplates(): Promise<LegacySystemTemplate[]>;
+  createLegacySystemTemplate(insertTemplate: InsertLegacySystemTemplate): Promise<LegacySystemTemplate>;
+  updateLegacySystemTemplate(id: number, template: Partial<InsertLegacySystemTemplate>): Promise<LegacySystemTemplate | undefined>;
+  deleteLegacySystemTemplate(id: number): Promise<boolean>;
 }
 
 // Database Storage Implementation
@@ -958,6 +986,236 @@ export class DatabaseStorage implements IStorage {
     } catch (error) {
       console.error('Error creating revision history:', error);
       throw new Error('Failed to create revision history');
+    }
+  }
+
+  // ===== LEGACY IMPORT JOB METHODS =====
+
+  async getLegacyImportJob(id: number): Promise<LegacyImportJob | undefined> {
+    try {
+      const [job] = await db.select().from(legacyImportJobs).where(eq(legacyImportJobs.id, id));
+      return job;
+    } catch (error) {
+      console.error(`Error getting legacy import job ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getLegacyImportJobsByUser(userId: number, limit = 50): Promise<LegacyImportJob[]> {
+    try {
+      return await db.select().from(legacyImportJobs)
+        .where(eq(legacyImportJobs.createdById, userId))
+        .orderBy(desc(legacyImportJobs.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting legacy import jobs by user ${userId}:`, error);
+      return [];
+    }
+  }
+
+  async getLegacyImportJobsByStatus(status: string, limit = 50): Promise<LegacyImportJob[]> {
+    try {
+      return await db.select().from(legacyImportJobs)
+        .where(eq(legacyImportJobs.status, status))
+        .orderBy(desc(legacyImportJobs.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting legacy import jobs by status ${status}:`, error);
+      return [];
+    }
+  }
+
+  async createLegacyImportJob(insertJob: InsertLegacyImportJob): Promise<LegacyImportJob> {
+    try {
+      const [job] = await db.insert(legacyImportJobs).values(insertJob).returning();
+      return job;
+    } catch (error) {
+      console.error('Error creating legacy import job:', error);
+      throw new Error('Failed to create legacy import job');
+    }
+  }
+
+  async updateLegacyImportJob(id: number, job: Partial<InsertLegacyImportJob>): Promise<LegacyImportJob | undefined> {
+    try {
+      const [updatedJob] = await db.update(legacyImportJobs)
+        .set({
+          ...job,
+          updatedAt: new Date()
+        })
+        .where(eq(legacyImportJobs.id, id))
+        .returning();
+      
+      return updatedJob;
+    } catch (error) {
+      console.error(`Error updating legacy import job ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteLegacyImportJob(id: number): Promise<boolean> {
+    try {
+      await db.delete(legacyImportJobs).where(eq(legacyImportJobs.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting legacy import job ${id}:`, error);
+      return false;
+    }
+  }
+
+  // ===== LEGACY IMPORT RECORD METHODS =====
+
+  async getLegacyImportRecord(id: number): Promise<LegacyImportRecord | undefined> {
+    try {
+      const [record] = await db.select().from(legacyImportRecords).where(eq(legacyImportRecords.id, id));
+      return record;
+    } catch (error) {
+      console.error(`Error getting legacy import record ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getLegacyImportRecordsByJob(jobId: number): Promise<LegacyImportRecord[]> {
+    try {
+      return await db.select().from(legacyImportRecords)
+        .where(eq(legacyImportRecords.jobId, jobId))
+        .orderBy(desc(legacyImportRecords.createdAt));
+    } catch (error) {
+      console.error(`Error getting legacy import records by job ${jobId}:`, error);
+      return [];
+    }
+  }
+
+  async getLegacyImportRecordsByStatus(status: string, limit = 50): Promise<LegacyImportRecord[]> {
+    try {
+      return await db.select().from(legacyImportRecords)
+        .where(eq(legacyImportRecords.importStatus, status))
+        .orderBy(desc(legacyImportRecords.createdAt))
+        .limit(limit);
+    } catch (error) {
+      console.error(`Error getting legacy import records by status ${status}:`, error);
+      return [];
+    }
+  }
+
+  async createLegacyImportRecord(insertRecord: InsertLegacyImportRecord): Promise<LegacyImportRecord> {
+    try {
+      const [record] = await db.insert(legacyImportRecords).values(insertRecord).returning();
+      return record;
+    } catch (error) {
+      console.error('Error creating legacy import record:', error);
+      throw new Error('Failed to create legacy import record');
+    }
+  }
+
+  async updateLegacyImportRecord(id: number, record: Partial<InsertLegacyImportRecord>): Promise<LegacyImportRecord | undefined> {
+    try {
+      const [updatedRecord] = await db.update(legacyImportRecords)
+        .set(record)
+        .where(eq(legacyImportRecords.id, id))
+        .returning();
+      
+      return updatedRecord;
+    } catch (error) {
+      console.error(`Error updating legacy import record ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteLegacyImportRecord(id: number): Promise<boolean> {
+    try {
+      await db.delete(legacyImportRecords).where(eq(legacyImportRecords.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting legacy import record ${id}:`, error);
+      return false;
+    }
+  }
+
+  // ===== LEGACY SYSTEM TEMPLATE METHODS =====
+
+  async getLegacySystemTemplate(id: number): Promise<LegacySystemTemplate | undefined> {
+    try {
+      const [template] = await db.select().from(legacySystemTemplates).where(eq(legacySystemTemplates.id, id));
+      return template;
+    } catch (error) {
+      console.error(`Error getting legacy system template ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async getLegacySystemTemplatesByType(systemType: string): Promise<LegacySystemTemplate[]> {
+    try {
+      return await db.select().from(legacySystemTemplates)
+        .where(and(
+          eq(legacySystemTemplates.systemType, systemType),
+          eq(legacySystemTemplates.isActive, true)
+        ))
+        .orderBy(desc(legacySystemTemplates.createdAt));
+    } catch (error) {
+      console.error(`Error getting legacy system templates by type ${systemType}:`, error);
+      return [];
+    }
+  }
+
+  async getLegacySystemTemplatesByOrganization(orgId: number): Promise<LegacySystemTemplate[]> {
+    try {
+      return await db.select().from(legacySystemTemplates)
+        .where(and(
+          eq(legacySystemTemplates.organizationId, orgId),
+          eq(legacySystemTemplates.isActive, true)
+        ))
+        .orderBy(desc(legacySystemTemplates.createdAt));
+    } catch (error) {
+      console.error(`Error getting legacy system templates by organization ${orgId}:`, error);
+      return [];
+    }
+  }
+
+  async getAllActiveLegacySystemTemplates(): Promise<LegacySystemTemplate[]> {
+    try {
+      return await db.select().from(legacySystemTemplates)
+        .where(eq(legacySystemTemplates.isActive, true))
+        .orderBy(desc(legacySystemTemplates.createdAt));
+    } catch (error) {
+      console.error('Error getting all active legacy system templates:', error);
+      return [];
+    }
+  }
+
+  async createLegacySystemTemplate(insertTemplate: InsertLegacySystemTemplate): Promise<LegacySystemTemplate> {
+    try {
+      const [template] = await db.insert(legacySystemTemplates).values(insertTemplate).returning();
+      return template;
+    } catch (error) {
+      console.error('Error creating legacy system template:', error);
+      throw new Error('Failed to create legacy system template');
+    }
+  }
+
+  async updateLegacySystemTemplate(id: number, template: Partial<InsertLegacySystemTemplate>): Promise<LegacySystemTemplate | undefined> {
+    try {
+      const [updatedTemplate] = await db.update(legacySystemTemplates)
+        .set({
+          ...template,
+          updatedAt: new Date()
+        })
+        .where(eq(legacySystemTemplates.id, id))
+        .returning();
+      
+      return updatedTemplate;
+    } catch (error) {
+      console.error(`Error updating legacy system template ${id}:`, error);
+      return undefined;
+    }
+  }
+
+  async deleteLegacySystemTemplate(id: number): Promise<boolean> {
+    try {
+      await db.delete(legacySystemTemplates).where(eq(legacySystemTemplates.id, id));
+      return true;
+    } catch (error) {
+      console.error(`Error deleting legacy system template ${id}:`, error);
+      return false;
     }
   }
 }

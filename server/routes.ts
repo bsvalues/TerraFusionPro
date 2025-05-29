@@ -67,6 +67,7 @@ import { registerExportRoutes } from './routes/export-routes';
 import { reviewerRouter } from './routes/reviewer';
 import websocketRouter from './routes/websocket-routes';
 import conversionRouter from './routes/conversion-routes';
+import legacyImportRouter from './routes/legacy-import-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
