@@ -49,7 +49,7 @@ import { PerformanceProvider } from "./contexts/PerformanceContext";
 import { RealtimeProvider } from "./contexts/RealtimeContext";
 import { WebSocketProvider } from "./contexts/WebSocketContext";
 import { BasicWebSocketProvider } from "./contexts/BasicWebSocketContext";
-import { AppShell } from "./components/layout/app-shell";
+import { AppShell } from "./components/ui/app-shell";
 import WebSocketManager from "./components/WebSocketManager";
 import { useState, useEffect } from "react";
 // Add missing imports if any
@@ -61,6 +61,7 @@ import TerraFusionDashboard from "./pages/TerraFusionDashboard";
 import TestDashboard from "./pages/TestDashboard";
 import IntelligentURAR from "./pages/IntelligentURAR";
 import ConversionCenter from "./pages/ConversionCenter";
+import Dashboard from "./pages/Dashboard";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -102,7 +103,7 @@ function App() {
                 <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
                 <Route path="/">
-                  {() => <TestDashboard />}
+                  {() => <Dashboard />}
                 </Route>
                 <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
