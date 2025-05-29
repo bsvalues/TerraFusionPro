@@ -1,121 +1,48 @@
 import { useState, useRef } from "react";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Upload, FileText, Database, AlertCircle, CheckCircle, Clock } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-
-interface ImportJob {
-  id: number;
-  jobName: string;
-  status: string;
-  uploadedFiles: any[];
-  detectedFormats: string[];
-  processedRecords: number;
-  totalRecords: number;
-  createdAt: string;
-  errorLogs: any[];
-}
+import { Upload, FileText, Database } from "lucide-react";
 
 export default function LegacyImporter() {
-  const [uploadProgress, setUploadProgress] = useState(0);
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const queryClient = useQueryClient();
-  const { toast } = useToast();
-
-  // Fetch import jobs for current user
-  const { data: importJobs = [], isLoading } = useQuery({
-    queryKey: ["/api/legacy-import/jobs", { userId: 1 }],
-    queryFn: async () => {
-      const response = await fetch('/api/legacy-import/jobs?userId=1');
-      if (!response.ok) {
-        throw new Error('Failed to fetch import jobs');
-      }
-      return response.json();
-    }
-  });
-
-  // Upload mutation
-  const uploadMutation = useMutation({
-    mutationFn: async (files: FileList) => {
-      const formData = new FormData();
-      Array.from(files).forEach(file => {
-        formData.append('files', file);
-      });
-      formData.append('userId', '1'); // Default user for demo
-      formData.append('jobName', `Import ${new Date().toLocaleDateString()}`);
-
-      const response = await fetch('/api/legacy-import/upload', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (!response.ok) {
-        throw new Error('Upload failed');
-      }
-
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/legacy-import/jobs"] });
-      setSelectedFiles(null);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = '';
-      }
-      toast({
-        title: "Upload Successful",
-        description: "Your files have been uploaded and are being processed.",
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Upload Failed",
-        description: error.message,
-        variant: "destructive",
-      });
-    },
-  });
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     setSelectedFiles(event.target.files);
   };
 
-  const handleUpload = () => {
+  const handleUpload = async () => {
     if (selectedFiles && selectedFiles.length > 0) {
-      uploadMutation.mutate(selectedFiles);
-    }
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-500';
-      case 'failed':
-        return 'bg-red-500';
-      case 'processing':
-        return 'bg-blue-500';
-      case 'pending':
-        return 'bg-yellow-500';
-      default:
-        return 'bg-gray-500';
-    }
-  };
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return <CheckCircle className="w-4 h-4" />;
-      case 'failed':
-        return <AlertCircle className="w-4 h-4" />;
-      case 'processing':
-        return <Clock className="w-4 h-4 animate-spin" />;
-      default:
-        return <Clock className="w-4 h-4" />;
+      setIsUploading(true);
+      try {
+        const formData = new FormData();
+        Array.from(selectedFiles).forEach(file => {
+          formData.append('files', file);
+        });
+        
+        const response = await fetch('/api/legacy-import/upload', {
+          method: 'POST',
+          body: formData,
+        });
+        
+        if (response.ok) {
+          setSelectedFiles(null);
+          if (fileInputRef.current) {
+            fileInputRef.current.value = '';
+          }
+          alert('Files uploaded successfully!');
+        } else {
+          alert('Upload failed');
+        }
+      } catch (error) {
+        console.error('Upload failed:', error);
+        alert('Upload failed');
+      } finally {
+        setIsUploading(false);
+      }
     }
   };
 
@@ -183,10 +110,10 @@ export default function LegacyImporter() {
                   ))}
                   <Button
                     onClick={handleUpload}
-                    disabled={uploadMutation.isPending}
+                    disabled={isUploading}
                     className="w-full"
                   >
-                    {uploadMutation.isPending ? 'Uploading...' : 'Upload Files'}
+                    {isUploading ? 'Uploading...' : 'Upload Files'}
                   </Button>
                 </div>
               )}
@@ -211,72 +138,10 @@ export default function LegacyImporter() {
               </CardDescription>
             </CardHeader>
             <CardContent>
-              {isLoading ? (
-                <div className="text-center p-4">Loading import jobs...</div>
-              ) : importJobs.length === 0 ? (
-                <div className="text-center p-8 text-muted-foreground">
-                  <Upload className="w-12 h-12 mx-auto mb-4 opacity-50" />
-                  <p>No import jobs yet. Upload some files to get started.</p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {importJobs.map((job: ImportJob) => (
-                    <Card key={job.id}>
-                      <CardContent className="p-4">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            {getStatusIcon(job.status)}
-                            <div>
-                              <h4 className="font-medium">{job.jobName}</h4>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(job.createdAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <Badge className={getStatusColor(job.status)}>
-                              {job.status}
-                            </Badge>
-                            {job.totalRecords > 0 && (
-                              <span className="text-sm text-muted-foreground">
-                                {job.processedRecords}/{job.totalRecords} records
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                        
-                        {job.totalRecords > 0 && (
-                          <div className="mt-3">
-                            <Progress 
-                              value={(job.processedRecords / job.totalRecords) * 100} 
-                              className="w-full"
-                            />
-                          </div>
-                        )}
-
-                        {job.detectedFormats && job.detectedFormats.length > 0 && (
-                          <div className="mt-3 flex flex-wrap gap-1">
-                            {job.detectedFormats.map((format, index) => (
-                              <Badge key={index} variant="outline" className="text-xs">
-                                {format}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-
-                        {job.errorLogs && job.errorLogs.length > 0 && (
-                          <Alert className="mt-3">
-                            <AlertCircle className="w-4 h-4" />
-                            <AlertDescription>
-                              {job.errorLogs.length} errors encountered during processing
-                            </AlertDescription>
-                          </Alert>
-                        )}
-                      </CardContent>
-                    </Card>
-                  ))}
-                </div>
-              )}
+              <div className="text-center p-8 text-muted-foreground">
+                <Upload className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                <p>No import jobs yet. Upload some files to get started.</p>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
