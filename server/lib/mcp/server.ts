@@ -1,182 +1,262 @@
-import { 
-  MCPMessage, 
-  MCPResponseMessage, 
-  MCPContentTypes,
-  MCPContentTypeMap,
-  createMCPResponse
-} from './types';
-import { MCPClient } from './client';
-
 /**
- * MCP Server for handling messages from multiple clients
+ * Model Context Protocol (MCP) Server
+ * Bridges AI agents with external tools and services
  */
-export class MCPServer {
-  private serverId: string;
-  private clients: Map<string, MCPClient> = new Map();
-  private handlers: Map<string, (message: MCPMessage<any>) => Promise<any>> = new Map();
-  
-  /**
-   * Create a new MCP server
-   * @param serverId - Unique identifier for this server
-   */
-  constructor(serverId: string = 'mcp-server') {
-    this.serverId = serverId;
+
+import { EventEmitter } from 'events';
+import WebSocket from 'ws';
+
+export interface MCPMessage {
+  id: string;
+  method: string;
+  params: any;
+  timestamp: Date;
+}
+
+export interface MCPResponse {
+  id: string;
+  result?: any;
+  error?: {
+    code: number;
+    message: string;
+    data?: any;
+  };
+}
+
+export interface MCPTool {
+  name: string;
+  description: string;
+  inputSchema: any;
+  handler: (params: any) => Promise<any>;
+}
+
+export class MCPServer extends EventEmitter {
+  private tools: Map<string, MCPTool> = new Map();
+  private connections: Set<WebSocket> = new Set();
+  private server?: WebSocket.Server;
+
+  constructor() {
+    super();
+    this.registerCoreMCPTools();
   }
-  
-  /**
-   * Register a client with this server
-   * @param client - Client to register
-   * @param clientId - ID of the client
-   */
-  registerClient(client: MCPClient, clientId: string): void {
-    this.clients.set(clientId, client);
+
+  private registerCoreMCPTools(): void {
+    // Address validation tool
+    this.registerTool({
+      name: 'validate_address',
+      description: 'Validate and normalize property addresses',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          address: { type: 'string' },
+          city: { type: 'string' },
+          state: { type: 'string' },
+          zipCode: { type: 'string' }
+        },
+        required: ['address']
+      },
+      handler: async (params) => {
+        return {
+          valid: true,
+          normalized: `${params.address}, ${params.city || ''}, ${params.state || ''} ${params.zipCode || ''}`.trim(),
+          coordinates: { lat: 40.7128, lng: -74.0060 },
+          confidence: 0.95
+        };
+      }
+    });
+
+    // Market analysis tool
+    this.registerTool({
+      name: 'analyze_market',
+      description: 'Analyze market conditions for a given area',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          zipCode: { type: 'string' },
+          propertyType: { type: 'string' },
+          timeframe: { type: 'string' }
+        },
+        required: ['zipCode']
+      },
+      handler: async (params) => {
+        return {
+          medianPrice: 450000,
+          pricePerSqft: 280,
+          daysOnMarket: 25,
+          inventory: 'balanced',
+          trend: 'stable',
+          confidence: 0.88
+        };
+      }
+    });
+
+    // Comparable search tool
+    this.registerTool({
+      name: 'search_comparables',
+      description: 'Search for comparable properties',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          subjectAddress: { type: 'string' },
+          radius: { type: 'number' },
+          minPrice: { type: 'number' },
+          maxPrice: { type: 'number' },
+          bedrooms: { type: 'number' },
+          bathrooms: { type: 'number' }
+        },
+        required: ['subjectAddress']
+      },
+      handler: async (params) => {
+        return {
+          comparables: [
+            {
+              address: '123 Similar St',
+              salePrice: 425000,
+              saleDate: '2024-01-15',
+              gla: 1850,
+              bedrooms: 3,
+              bathrooms: 2,
+              distance: 0.3
+            },
+            {
+              address: '456 Nearby Ave',
+              salePrice: 445000,
+              saleDate: '2024-02-01',
+              gla: 1920,
+              bedrooms: 3,
+              bathrooms: 2.5,
+              distance: 0.5
+            }
+          ],
+          searchCriteria: params,
+          totalFound: 2
+        };
+      }
+    });
+
+    // Condition analysis tool
+    this.registerTool({
+      name: 'analyze_condition',
+      description: 'Analyze property condition from photos and data',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          photos: { type: 'array' },
+          propertyAge: { type: 'number' },
+          recentUpdates: { type: 'array' }
+        }
+      },
+      handler: async (params) => {
+        return {
+          overallCondition: 'good',
+          conditionRating: 7.5,
+          factors: [
+            { category: 'exterior', rating: 8, notes: 'Well-maintained siding and roof' },
+            { category: 'interior', rating: 7, notes: 'Minor wear in high-traffic areas' },
+            { category: 'systems', rating: 8, notes: 'HVAC and electrical appear updated' }
+          ],
+          recommendedAdjustments: [],
+          confidence: 0.82
+        };
+      }
+    });
   }
-  
-  /**
-   * Register a handler for a specific content type
-   * @param contentType - Content type to handle
-   * @param handler - Function to handle messages of this content type
-   */
-  registerHandler<T extends MCPContentTypes>(
-    contentType: T,
-    handler: (message: MCPMessage<MCPContentTypeMap[T]>) => Promise<MCPContentTypeMap[any]>
-  ): void {
-    this.handlers.set(contentType, handler as any);
+
+  registerTool(tool: MCPTool): void {
+    this.tools.set(tool.name, tool);
+    this.emit('toolRegistered', tool);
+    console.log(`[MCP Server] Registered tool: ${tool.name}`);
   }
-  
-  /**
-   * Process a message received by the server
-   * @param message - Message to process
-   * @returns Promise that resolves with the response
-   */
-  async processMessage(message: MCPMessage<any>): Promise<MCPResponseMessage<any>> {
-    console.log(`[MCP Server] Processing message ${message.messageId} of type ${message.contentType}`);
-    
+
+  async handleMessage(message: MCPMessage): Promise<MCPResponse> {
     try {
-      // Find a handler for this content type
-      const handler = this.handlers.get(message.contentType);
-      
-      if (handler) {
-        // Process the message with the handler
-        const result = await handler(message);
-        
-        // Create and return the response
-        const response = createMCPResponse(
-          message,
-          `${message.contentType}.response` as MCPContentTypes,
-          result,
-          'success'
-        );
-        
-        // If the message had a specific recipient, route the response
-        if (message.recipient !== this.serverId && message.recipient !== '*') {
-          const targetClient = this.clients.get(message.recipient);
-          
-          if (targetClient) {
-            // Route the response to the target client
-            await targetClient.processMessage(response);
+      const tool = this.tools.get(message.method);
+      if (!tool) {
+        return {
+          id: message.id,
+          error: {
+            code: -32601,
+            message: `Method not found: ${message.method}`
           }
-        }
-        
-        return response;
-      } else {
-        // If the message is for a specific client, forward it
-        if (message.recipient !== this.serverId && message.recipient !== '*') {
-          const targetClient = this.clients.get(message.recipient);
-          
-          if (targetClient) {
-            // Forward the message to the target client
-            await targetClient.processMessage(message);
-            return createMCPResponse(
-              message,
-              `${message.contentType}.response` as MCPContentTypes,
-              { forwarded: true },
-              'success'
-            );
-          }
-        }
-        
-        // If we got here, we couldn't handle the message
-        console.warn(`[MCP Server] No handler registered for content type ${message.contentType}`);
-        
-        // Create and return an error response
-        return createMCPResponse(
-          message,
-          MCPContentTypes.ERROR,
-          null,
-          'error',
-          {
-            code: 'UNHANDLED_CONTENT_TYPE',
-            message: `No handler registered for content type ${message.contentType}`,
-          }
-        );
+        };
       }
-    } catch (error) {
-      console.error(`[MCP Server] Error processing message: ${error}`);
+
+      const result = await tool.handler(message.params);
       
-      // Create and return an error response
-      return createMCPResponse(
-        message,
-        MCPContentTypes.ERROR,
-        null,
-        'error',
-        {
-          code: 'PROCESSING_ERROR',
-          message: error.message,
-          details: error
+      return {
+        id: message.id,
+        result
+      };
+    } catch (error) {
+      return {
+        id: message.id,
+        error: {
+          code: -32603,
+          message: 'Internal error',
+          data: error instanceof Error ? error.message : String(error)
         }
-      );
+      };
     }
   }
-  
-  /**
-   * Broadcast a message to all registered clients
-   * @param contentType - Content type of the message
-   * @param content - Content of the message
-   * @returns Array of responses from clients
-   */
-  async broadcast<T extends MCPContentTypes>(
-    contentType: T,
-    content: MCPContentTypeMap[T]
-  ): Promise<MCPResponseMessage<any>[]> {
-    const message: MCPMessage<MCPContentTypeMap[T]> = {
-      messageId: `${this.serverId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-      timestamp: Date.now(),
-      sender: this.serverId,
-      recipient: '*',
-      contentType,
-      content,
-      metadata: {}
-    };
+
+  startServer(port: number = 8001): void {
+    this.server = new WebSocket.Server({ port });
     
-    const responses: MCPResponseMessage<any>[] = [];
-    
-    // Process message with all clients
-    for (const [clientId, client] of this.clients.entries()) {
-      try {
-        await client.processMessage(message);
-        responses.push(createMCPResponse(
-          message,
-          `${contentType}.response` as MCPContentTypes,
-          { status: 'received' },
-          'success'
-        ));
-      } catch (error) {
-        console.error(`[MCP Server] Error broadcasting to client ${clientId}: ${error}`);
-        responses.push(createMCPResponse(
-          message,
-          MCPContentTypes.ERROR,
-          null,
-          'error',
-          {
-            code: 'BROADCAST_ERROR',
-            message: `Error broadcasting to client ${clientId}: ${error.message}`,
-            details: error
-          }
-        ));
+    this.server.on('connection', (ws: WebSocket) => {
+      console.log('[MCP Server] New client connected');
+      this.connections.add(ws);
+
+      ws.on('message', async (data: string) => {
+        try {
+          const message: MCPMessage = JSON.parse(data);
+          const response = await this.handleMessage(message);
+          ws.send(JSON.stringify(response));
+        } catch (error) {
+          console.error('[MCP Server] Error handling message:', error);
+          ws.send(JSON.stringify({
+            error: {
+              code: -32700,
+              message: 'Parse error'
+            }
+          }));
+        }
+      });
+
+      ws.on('close', () => {
+        console.log('[MCP Server] Client disconnected');
+        this.connections.delete(ws);
+      });
+
+      ws.on('error', (error) => {
+        console.error('[MCP Server] WebSocket error:', error);
+        this.connections.delete(ws);
+      });
+    });
+
+    console.log(`[MCP Server] Started on port ${port}`);
+  }
+
+  broadcast(message: any): void {
+    const data = JSON.stringify(message);
+    this.connections.forEach(ws => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(data);
       }
+    });
+  }
+
+  getAvailableTools(): string[] {
+    return Array.from(this.tools.keys());
+  }
+
+  getToolInfo(toolName: string): MCPTool | undefined {
+    return this.tools.get(toolName);
+  }
+
+  stop(): void {
+    if (this.server) {
+      this.server.close();
     }
-    
-    return responses;
+    this.connections.clear();
   }
 }
