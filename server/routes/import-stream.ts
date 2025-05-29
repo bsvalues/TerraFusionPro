@@ -1,181 +1,271 @@
-import { Request, Response } from 'express';
-import { jobQueue } from '../services/job-queue';
+import { Router, Request, Response } from 'express';
+import { rustImporter } from '../services/rust-importer-bridge';
+import { schemaValidator } from '../services/schema-validator';
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-interface StreamClient {
-  id: string;
-  userId: string;
-  jobId: string;
-  response: Response;
-}
+const router = Router();
 
-class ImportStreamManager {
-  private clients: Map<string, StreamClient> = new Map();
-
-  addClient(clientId: string, userId: string, jobId: string, res: Response) {
-    // Set SSE headers
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
-      'Access-Control-Allow-Origin': '*',
-      'Access-Control-Allow-Headers': 'Cache-Control'
-    });
-
-    // Send initial connection message
-    res.write(`data: ${JSON.stringify({ type: 'connected', jobId })}\n\n`);
-
-    // Store client
-    this.clients.set(clientId, { id: clientId, userId, jobId, response: res });
-
-    // Handle client disconnect
-    res.on('close', () => {
-      this.clients.delete(clientId);
-    });
-  }
-
-  broadcastRecord(jobId: string, record: any) {
-    const clientsForJob = Array.from(this.clients.values())
-      .filter(client => client.jobId === jobId);
-
-    const message = JSON.stringify({ type: 'record', data: record });
+// Configure multer for file uploads
+const upload = multer({
+  dest: 'uploads/',
+  limits: {
+    fileSize: 500 * 1024 * 1024, // 500MB max file size
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = ['.db', '.sqlite', '.sqlite3', '.csv', '.xml', '.zip', '.sql'];
+    const ext = path.extname(file.originalname).toLowerCase();
     
-    clientsForJob.forEach(client => {
-      try {
-        client.response.write(`data: ${message}\n\n`);
-      } catch (error) {
-        // Client disconnected, remove from list
-        this.clients.delete(client.id);
-      }
+    if (allowedExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error(`File type not supported. Allowed: ${allowedExtensions.join(', ')}`));
+    }
+  }
+});
+
+// POST /api/import/upload - Start a new import job
+router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
+
+    const userId = 1; // TODO: Get from authenticated user session
+    const fileName = req.file.originalname;
+    const filePath = req.file.path;
+    const format = req.body.format || 'auto-detect';
+
+    // Create import job
+    const jobId = rustImporter.createJob(userId, fileName, filePath, format);
+
+    res.json({
+      success: true,
+      jobId,
+      message: 'Import job created successfully'
+    });
+
+  } catch (error) {
+    console.error('Upload error:', error);
+    res.status(500).json({ 
+      error: 'Upload failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
     });
   }
+});
 
-  broadcastJobUpdate(jobId: string, update: any) {
-    const clientsForJob = Array.from(this.clients.values())
-      .filter(client => client.jobId === jobId);
+// GET /api/import/stream/:jobId - Stream import results via Server-Sent Events
+router.get('/stream/:jobId', (req: Request, res: Response) => {
+  const jobId = req.params.jobId;
+  const job = rustImporter.getJob(jobId);
 
-    const message = JSON.stringify({ type: 'job_update', data: update });
-    
-    clientsForJob.forEach(client => {
-      try {
-        client.response.write(`data: ${message}\n\n`);
-      } catch (error) {
-        this.clients.delete(client.id);
-      }
-    });
-  }
-
-  endStream(jobId: string, result: 'complete' | 'error', message?: string) {
-    const clientsForJob = Array.from(this.clients.values())
-      .filter(client => client.jobId === jobId);
-
-    const endMessage = JSON.stringify({ 
-      type: 'end', 
-      result, 
-      message: message || `Import ${result}` 
-    });
-    
-    clientsForJob.forEach(client => {
-      try {
-        client.response.write(`data: ${endMessage}\n\n`);
-        client.response.end();
-      } catch (error) {
-        // Ignore errors on ending
-      }
-      this.clients.delete(client.id);
-    });
-  }
-}
-
-export const streamManager = new ImportStreamManager();
-
-// SSE endpoint for streaming import data
-export function handleImportStream(req: Request, res: Response) {
-  const { jobId } = req.params;
-  const userId = req.query.userId as string || '1'; // Default user for now
-  const clientId = `${userId}-${jobId}-${Date.now()}`;
-
-  // Verify job exists and belongs to user
-  const job = jobQueue.getJob(jobId);
   if (!job) {
-    res.status(404).json({ error: 'Job not found' });
-    return;
+    return res.status(404).json({ error: 'Job not found' });
   }
 
-  if (job.userId !== userId) {
-    res.status(403).json({ error: 'Access denied' });
-    return;
-  }
-
-  // Add client to stream
-  streamManager.addClient(clientId, userId, jobId, res);
-
-  // Send current job status
-  streamManager.broadcastJobUpdate(jobId, {
-    status: job.status,
-    progress: job.progress,
-    recordsProcessed: job.recordsProcessed,
-    totalRecords: job.totalRecords
-  });
-}
-
-// Mock streaming endpoint for testing without Rust binary
-export function handleMockStream(req: Request, res: Response) {
+  // Set up Server-Sent Events
   res.writeHead(200, {
     'Content-Type': 'text/event-stream',
     'Cache-Control': 'no-cache',
     'Connection': 'keep-alive',
-    'Access-Control-Allow-Origin': '*'
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': 'Cache-Control'
   });
 
-  // Mock data
-  const mockRecords = [
-    {
-      address: '123 Elm Street, Seattle, WA',
-      sale_price_usd: 425000,
-      gla_sqft: 2125,
-      sale_date: '2023-05-15',
-      source_table: 'sqlite_demo',
-      bedrooms: 3,
-      bathrooms: 2.5,
-      year_built: 1985
-    },
-    {
-      address: '456 Oak Avenue, Portland, OR',
-      sale_price_usd: 385000,
-      gla_sqft: 1950,
-      sale_date: '2023-06-22',
-      source_table: 'sqlite_demo',
-      bedrooms: 4,
-      bathrooms: 2,
-      year_built: 1992
-    },
-    {
-      address: '789 Pine Road, Vancouver, WA',
-      sale_price_usd: 310000,
-      gla_sqft: 1650,
-      sale_date: '2023-07-10',
-      source_table: 'sqlite_demo',
-      bedrooms: 3,
-      bathrooms: 2,
-      year_built: 1978
-    }
-  ];
+  // Send initial job status
+  res.write(`data: ${JSON.stringify({
+    type: 'job_status',
+    data: job
+  })}\n\n`);
 
-  let index = 0;
-  const interval = setInterval(() => {
-    if (index >= mockRecords.length) {
-      res.write(`data: ${JSON.stringify({ type: 'end', result: 'complete' })}\n\n`);
+  // Listen for job events
+  const onCompProcessed = (compJobId: string, comp: any) => {
+    if (compJobId === jobId) {
+      // Validate the comp data
+      const validation = schemaValidator.validate(comp);
+      
+      res.write(`data: ${JSON.stringify({
+        type: 'comp_processed',
+        data: {
+          comp,
+          validation
+        }
+      })}\n\n`);
+    }
+  };
+
+  const onJobProgress = (progressJob: any) => {
+    if (progressJob.id === jobId) {
+      res.write(`data: ${JSON.stringify({
+        type: 'job_progress',
+        data: progressJob
+      })}\n\n`);
+    }
+  };
+
+  const onJobCompleted = (completedJob: any) => {
+    if (completedJob.id === jobId) {
+      res.write(`data: ${JSON.stringify({
+        type: 'job_completed',
+        data: completedJob
+      })}\n\n`);
+      
+      // Close the connection
       res.end();
-      clearInterval(interval);
-      return;
+      cleanup();
     }
+  };
 
-    const record = mockRecords[index];
-    res.write(`data: ${JSON.stringify({ type: 'record', data: record })}\n\n`);
-    index++;
-  }, 800);
+  const onJobStatusChanged = (changedJob: any) => {
+    if (changedJob.id === jobId) {
+      res.write(`data: ${JSON.stringify({
+        type: 'job_status_changed',
+        data: changedJob
+      })}\n\n`);
+    }
+  };
+
+  // Register event listeners
+  rustImporter.on('compProcessed', onCompProcessed);
+  rustImporter.on('jobProgress', onJobProgress);
+  rustImporter.on('jobCompleted', onJobCompleted);
+  rustImporter.on('jobStatusChanged', onJobStatusChanged);
+
+  const cleanup = () => {
+    rustImporter.removeListener('compProcessed', onCompProcessed);
+    rustImporter.removeListener('jobProgress', onJobProgress);
+    rustImporter.removeListener('jobCompleted', onJobCompleted);
+    rustImporter.removeListener('jobStatusChanged', onJobStatusChanged);
+  };
+
+  // Handle client disconnect
+  req.on('close', cleanup);
+  req.on('aborted', cleanup);
+
+  // Send heartbeat every 30 seconds
+  const heartbeat = setInterval(() => {
+    res.write(`data: ${JSON.stringify({
+      type: 'heartbeat',
+      timestamp: Date.now()
+    })}\n\n`);
+  }, 30000);
 
   req.on('close', () => {
-    clearInterval(interval);
+    clearInterval(heartbeat);
+    cleanup();
   });
-}
+});
+
+// GET /api/import/jobs - Get all import jobs for user
+router.get('/jobs', (req: Request, res: Response) => {
+  const userId = 1; // TODO: Get from authenticated user session
+  const jobs = rustImporter.getJobsByUser(userId);
+  
+  res.json({ jobs });
+});
+
+// GET /api/import/jobs/:jobId - Get specific job status
+router.get('/jobs/:jobId', (req: Request, res: Response) => {
+  const jobId = req.params.jobId;
+  const job = rustImporter.getJob(jobId);
+
+  if (!job) {
+    return res.status(404).json({ error: 'Job not found' });
+  }
+
+  res.json({ job });
+});
+
+// DELETE /api/import/jobs/:jobId - Cancel import job
+router.delete('/jobs/:jobId', (req: Request, res: Response) => {
+  const jobId = req.params.jobId;
+  const cancelled = rustImporter.cancelJob(jobId);
+
+  if (!cancelled) {
+    return res.status(404).json({ error: 'Job not found or cannot be cancelled' });
+  }
+
+  res.json({ 
+    success: true,
+    message: 'Job cancelled successfully'
+  });
+});
+
+// POST /api/import/validate - Validate TerraFusionComp data
+router.post('/validate', (req: Request, res: Response) => {
+  try {
+    const { comp, batch } = req.body;
+
+    if (batch && Array.isArray(batch)) {
+      // Batch validation
+      const results = schemaValidator.validateBatch(batch);
+      const summary = schemaValidator.getValidationSummary(results);
+      
+      res.json({
+        success: true,
+        results,
+        summary
+      });
+    } else if (comp) {
+      // Single comp validation
+      const result = schemaValidator.validate(comp);
+      
+      res.json({
+        success: true,
+        result
+      });
+    } else {
+      res.status(400).json({ 
+        error: 'Must provide either "comp" or "batch" data' 
+      });
+    }
+
+  } catch (error) {
+    console.error('Validation error:', error);
+    res.status(500).json({ 
+      error: 'Validation failed',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// GET /api/import/formats - Get supported import formats
+router.get('/formats', (req: Request, res: Response) => {
+  res.json({
+    formats: [
+      {
+        id: 'sqlite',
+        name: 'SQLite Database',
+        extensions: ['.db', '.sqlite', '.sqlite3'],
+        description: 'Legacy appraisal system databases'
+      },
+      {
+        id: 'csv',
+        name: 'CSV Files',
+        extensions: ['.csv'],
+        description: 'Comma-separated values files'
+      },
+      {
+        id: 'xml',
+        name: 'XML Files',
+        extensions: ['.xml'],
+        description: 'XML formatted appraisal data'
+      },
+      {
+        id: 'zip',
+        name: 'Archive Files',
+        extensions: ['.zip'],
+        description: 'Compressed archives containing multiple files'
+      },
+      {
+        id: 'sql',
+        name: 'SQL Scripts',
+        extensions: ['.sql'],
+        description: 'SQL database dumps'
+      }
+    ]
+  });
+});
+
+export default router;

@@ -191,6 +191,22 @@ const TerraFusionDashboard = () => {
                   </CardContent>
                 </Card>
               </Link>
+
+              <Link href="/legacy-importer">
+                <Card className="hover:shadow-md transition-all duration-200 cursor-pointer border-2 border-transparent hover:border-indigo-200 bg-gradient-to-br from-indigo-50 to-indigo-100">
+                  <CardContent className="p-6">
+                    <div className="flex items-center gap-3">
+                      <div className="h-12 w-12 bg-indigo-500 rounded-lg flex items-center justify-center">
+                        <Download className="h-6 w-6 text-white" />
+                      </div>
+                      <div>
+                        <h4 className="font-semibold text-gray-900">Legacy Import</h4>
+                        <p className="text-sm text-gray-600">Import legacy data</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Link>
             </div>
           </CardContent>
         </Card>

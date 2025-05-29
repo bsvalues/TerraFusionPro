@@ -48,6 +48,7 @@ import {
 import { aiOrchestrator, AIProvider } from "./lib/ai-orchestrator";
 import { gamificationRoutes } from './routes/gamification';
 import { tooltipRoutes } from './routes/tooltips';
+import importStreamRouter from './routes/import-stream';
 import { importRoutes } from './routes/import-routes';
 import photoEnhancementRoutes from './routes/photo-enhancement-routes';
 import notificationRouter from './routes/notification-routes';
@@ -2705,15 +2706,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Import streaming routes
-  app.get('/api/import/stream/:jobId', async (req, res) => {
-    const { handleImportStream } = await import('./routes/import-stream');
-    handleImportStream(req, res);
-  });
-
-  app.get('/api/import/mock-stream', async (req, res) => {
-    const { handleMockStream } = await import('./routes/import-stream');
-    handleMockStream(req, res);
-  });
+  app.use('/api/import', importStreamRouter);
 
   // Legacy Import API endpoints
   app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {
