@@ -66,6 +66,7 @@ import mlsRoutes from './routes/mls-routes';
 import { registerExportRoutes } from './routes/export-routes';
 import { reviewerRouter } from './routes/reviewer';
 import websocketRouter from './routes/websocket-routes';
+import conversionRouter from './routes/conversion-routes';
 
 // Define the type for AI Valuation Response
 export interface AIValuationResponse {
