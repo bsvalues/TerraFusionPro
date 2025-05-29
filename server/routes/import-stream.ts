@@ -324,4 +324,86 @@ router.post('/validate/rag', async (req: Request, res: Response) => {
   }
 });
 
+// GET /api/audit/export - Export audit logs in multiple formats
+router.get('/export', async (req: Request, res: Response) => {
+  try {
+    const format = (req.query.format as string) || 'json';
+    const jobId = req.query.jobId as string;
+    
+    const auditReport = auditLogger.exportAuditReport(jobId);
+    
+    switch (format.toLowerCase()) {
+      case 'json':
+        res.setHeader('Content-Type', 'application/json');
+        res.setHeader('Content-Disposition', `attachment; filename="terrafusion-audit-${Date.now()}.json"`);
+        res.json(auditReport);
+        break;
+        
+      case 'csv':
+        const { Parser } = await import('json2csv');
+        const fields = ['id', 'jobId', 'compHash', 'merkleRoot', 'blockchainTxId', 'createdAt'];
+        const parser = new Parser({ fields });
+        const csv = parser.parse(auditReport.logs);
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="terrafusion-audit-${Date.now()}.csv"`);
+        res.send(csv);
+        break;
+        
+      case 'pdf':
+        const PDFDocument = (await import('pdfkit')).default;
+        const doc = new PDFDocument();
+        
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="terrafusion-audit-${Date.now()}.pdf"`);
+        
+        doc.pipe(res);
+        
+        // PDF Header
+        doc.fontSize(20).text('TerraFusion Audit Report', { align: 'center' });
+        doc.moveDown();
+        
+        // Summary
+        doc.fontSize(14).text('Summary:', { underline: true });
+        doc.fontSize(12)
+          .text(`Total Jobs: ${auditReport.summary.totalJobs}`)
+          .text(`Total Records: ${auditReport.summary.totalRecords}`)
+          .text(`Blockchain Transactions: ${auditReport.summary.blockchainTransactions}`)
+          .text(`Generated: ${new Date().toISOString()}`);
+        
+        doc.moveDown();
+        
+        // Audit Entries
+        doc.fontSize(14).text('Audit Entries:', { underline: true });
+        doc.fontSize(10);
+        
+        auditReport.logs.forEach((entry, index) => {
+          if (index > 0 && index % 25 === 0) {
+            doc.addPage();
+          }
+          
+          doc.text(`${index + 1}. Job: ${entry.jobId}`);
+          doc.text(`   Hash: ${entry.compHash}`);
+          doc.text(`   Merkle Root: ${entry.merkleRoot || 'Pending'}`);
+          doc.text(`   Blockchain TX: ${entry.blockchainTxId || 'Pending'}`);
+          doc.text(`   Created: ${entry.createdAt}`);
+          doc.moveDown(0.5);
+        });
+        
+        doc.end();
+        break;
+        
+      default:
+        res.status(400).json({ error: 'Unsupported format. Use json, csv, or pdf.' });
+    }
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ 
+      error: 'Failed to export audit data',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;

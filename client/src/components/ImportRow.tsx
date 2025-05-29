@@ -1,3 +1,5 @@
+import LLMFeedbackOverlay from './LLMFeedbackOverlay';
+
 // Validation interfaces matching server-side schema
 interface ValidationIssue {
   type: 'error' | 'warning' | 'info';
@@ -151,6 +153,11 @@ export default function ImportRow({ comp, validation }: ImportRowProps) {
         {!hasIssues && (
           <div className="w-2 h-2 bg-green-500 rounded-full" title="No issues"></div>
         )}
+      </div>
+      
+      {/* LLM Feedback Overlay */}
+      <div className="mt-2">
+        <LLMFeedbackOverlay comp={comp} />
       </div>
     </div>
   );
