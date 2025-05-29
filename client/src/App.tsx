@@ -99,7 +99,9 @@ function App() {
                   <WebSocketManager />
                 <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
-                <Route path="/" component={TerraFusionDashboard} />
+                <Route path="/">
+                  {() => <TerraFusionDashboard />}
+                </Route>
                 <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
                 <Route path="/property-analyzer" component={NewPropertyAnalyzer} />
