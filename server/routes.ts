@@ -2708,6 +2708,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Import streaming routes
   app.use('/api/import', importStreamRouter);
 
+  // Analytics API routes
+  app.use('/api/analytics', (await import('./routes/analytics')).default);
+
   // Legacy Import API endpoints
   app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {
     try {
