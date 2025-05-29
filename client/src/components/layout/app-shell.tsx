@@ -306,6 +306,12 @@ export function AppShell({ children }: AppShellProps) {
   // Utilities and Reference
   const utilityItems: NavItem[] = [
     { 
+      href: "/legacy-import", 
+      label: "Legacy Importer", 
+      icon: <Database className="h-4 w-4" />,
+      description: "Import legacy appraisal data from TOTAL, ClickForms, ACI, DataMaster, Alamode"
+    },
+    { 
       href: "/import", 
       label: "Import Data", 
       icon: <Upload className="h-4 w-4" />,
