@@ -21,6 +21,7 @@ import UADFormPage from "./pages/UADFormPage";
 import EnhancedUADFormPage from "./pages/UADFormPage.enhanced";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import ImportPage from "./pages/ImportPage";
+import LegacyImporter from "./pages/LegacyImporter";
 import NotFound from "./pages/not-found";
 import SharedPropertyPage from "./pages/SharedPropertyPage";
 import SnapshotViewerPage from "./pages/SnapshotViewerPage";
@@ -125,8 +126,8 @@ function App() {
                 <Route path="/comparables/:reportId" component={ComparablePropertiesPage} />
                 <Route path="/terms" component={TermsPage} />
                 <Route path="/import" component={ImportPage} />
-                <Route path="/legacy-import" component={SimpleLegacyImporter} />
-                <Route path="/legacy-importer" component={SimpleLegacyImporter} />
+                <Route path="/legacy-import" component={LegacyImporter} />
+                <Route path="/legacy-importer" component={LegacyImporter} />
                 <Route path="/crdt-test" component={CRDTTestPage} />
                 <Route path="/photo-enhancement" component={PhotoEnhancementPage} />
                 <Route path="/photo-sync-test" component={PhotoSyncTestPage} />
