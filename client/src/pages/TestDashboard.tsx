@@ -1,5 +1,7 @@
 import React from 'react';
 
+// TIMESTAMP: Changes made at 2:40 AM - If you see this, updates are working!
+
 const TestDashboard = () => {
   return (
     <div style={{
@@ -78,13 +80,32 @@ const TestDashboard = () => {
       </div>
       
       <div style={{ marginTop: '3rem', textAlign: 'center' }}>
-        <p style={{ fontSize: '1.2rem', marginBottom: '1rem' }}>
-          ✨ This is your NEW TerraFusion Pro Dashboard ✨
-        </p>
-        <p style={{ fontSize: '1rem' }}>
-          If you can see this colorful page, the changes are working!
-        </p>
+        <div style={{
+          background: 'rgba(255, 0, 0, 0.8)',
+          padding: '2rem',
+          borderRadius: '20px',
+          border: '5px solid yellow',
+          animation: 'pulse 2s infinite'
+        }}>
+          <p style={{ fontSize: '2rem', marginBottom: '1rem', fontWeight: 'bold' }}>
+            🚨 ATTENTION: CHANGES ARE WORKING! 🚨
+          </p>
+          <p style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>
+            Updated at 2:40 AM - TerraFusion Pro is LIVE!
+          </p>
+          <p style={{ fontSize: '1.2rem' }}>
+            If you can see this red alert box, your platform is successfully updated!
+          </p>
+        </div>
       </div>
+      
+      <style>{`
+        @keyframes pulse {
+          0% { transform: scale(1); }
+          50% { transform: scale(1.05); }
+          100% { transform: scale(1); }
+        }
+      `}</style>
     </div>
   );
 };
