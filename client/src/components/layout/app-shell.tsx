@@ -166,6 +166,12 @@ export function AppShell({ children }: AppShellProps) {
   // Appraisal Workflow - Redesigned to emphasize the AI-enhanced appraisal process
   const appraisalWorkflowItems: NavItem[] = [
     { 
+      href: "/legacy-import", 
+      label: "Legacy Importer", 
+      icon: <Database className="h-4 w-4" />,
+      description: "Import legacy appraisal data from TOTAL, ClickForms, ACI, DataMaster, Alamode"
+    },
+    { 
       href: "/property-analysis-new", 
       label: "Property Analysis", 
       icon: <LayoutDashboard className="h-4 w-4" />,
