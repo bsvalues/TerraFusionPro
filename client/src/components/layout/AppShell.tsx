@@ -31,6 +31,7 @@ interface AppShellProps {
 
 const navigationItems = [
   { icon: Home, label: 'Dashboard', path: '/' },
+  { icon: Database, label: 'Legacy Importer', path: '/legacy-import' },
   { icon: FileText, label: 'Reports', path: '/reports' },
   { icon: Upload, label: 'Orders', path: '/orders' },
   { icon: Building2, label: 'Properties', path: '/properties' },
