@@ -23,6 +23,7 @@ import mlsRouter from './routes/mls-routes';
 import aiValuationRouter from './routes/ai-valuation-routes';
 import propertyAnalysisRouter from './routes/property-analysis-routes';
 import metaInfrastructureRoutes from './routes/meta-infrastructure';
+import formEngineRoutes from './routes/form-engine-routes';
 import { 
   insertUserSchema, 
   insertPropertySchema,
@@ -2717,6 +2718,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Meta Infrastructure API routes
   app.use('/api/meta', metaInfrastructureRoutes);
+
+  // TerraFusion Form Engine API routes
+  app.use('/api/form-engine', formEngineRoutes);
 
   // Legacy Import API endpoints
   app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {

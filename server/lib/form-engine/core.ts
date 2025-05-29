@@ -88,32 +88,15 @@ export interface AgentFeedback {
 }
 
 export class FormEngine extends EventEmitter {
-  private agentBus: AgentBus;
-  private mcpServer: MCPServer;
   private templates: Map<string, FormTemplate> = new Map();
   private instances: Map<string, FormInstance> = new Map();
 
   constructor() {
     super();
-    this.agentBus = new AgentBus();
-    this.mcpServer = new MCPServer();
-    this.setupAgentHandlers();
     this.loadDefaultTemplates();
   }
 
-  private setupAgentHandlers(): void {
-    this.agentBus.on('fieldValidation', (result: ValidationResult) => {
-      this.emit('validationUpdate', result);
-    });
 
-    this.agentBus.on('agentFeedback', (feedback: AgentFeedback) => {
-      this.emit('agentFeedback', feedback);
-    });
-
-    this.agentBus.on('narrativeGenerated', (data: any) => {
-      this.emit('narrativeUpdate', data);
-    });
-  }
 
   private loadDefaultTemplates(): void {
     const urarTemplate: FormTemplate = {
@@ -217,15 +200,8 @@ export class FormEngine extends EventEmitter {
     instance.data[fieldId] = value;
     instance.updatedAt = new Date();
 
-    this.agentBus.publish({
-      type: 'FieldUpdate',
-      formId,
-      fieldId,
-      value,
-      formData: instance.data
-    });
-
-    this.emit('fieldUpdated', { formId, fieldId, value });
+    // Emit field update for agent processing
+    this.emit('fieldUpdated', { formId, fieldId, value, formData: instance.data });
   }
 
   async submitForm(formId: string): Promise<{ hash: string; signature: string }> {
