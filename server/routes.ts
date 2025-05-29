@@ -22,6 +22,7 @@ import fieldNotesRouter from './routes/field-notes-routes';
 import mlsRouter from './routes/mls-routes';
 import aiValuationRouter from './routes/ai-valuation-routes';
 import propertyAnalysisRouter from './routes/property-analysis-routes';
+import metaInfrastructureRoutes from './routes/meta-infrastructure';
 import { 
   insertUserSchema, 
   insertPropertySchema,
@@ -2713,6 +2714,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Explorer API routes
   app.use('/api/explorer', (await import('./routes/explorer')).default);
+
+  // Meta Infrastructure API routes
+  app.use('/api/meta', metaInfrastructureRoutes);
 
   // Legacy Import API endpoints
   app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {
