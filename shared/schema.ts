@@ -582,6 +582,57 @@ export const complianceChecks = pgTable("compliance_checks", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// ======= CONVERSION CENTER ========
+
+export const conversionHistory = pgTable("conversion_history", {
+  id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id).notNull(),
+  templateName: text("template_name").notNull(),
+  inputFileName: text("input_file_name").notNull(),
+  outputFileName: text("output_file_name"),
+  inputRecords: integer("input_records").default(0),
+  outputRecords: integer("output_records").default(0),
+  mappingData: json("mapping_data"), // Field mapping configuration
+  conversionResult: json("conversion_result"), // Complete conversion output
+  agentSummary: text("agent_summary"), // AI agent analysis
+  warnings: text("warnings").array().default([]),
+  status: text("status").default("completed").notNull(), // pending, completed, failed
+  executionTimeMs: integer("execution_time_ms"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const conversionTemplates = pgTable("conversion_templates", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  templateType: text("template_type").notNull(), // xml, json, yaml
+  templateContent: text("template_content").notNull(),
+  fieldMappings: json("field_mappings"), // Default field mappings
+  isDefault: boolean("is_default").default(false),
+  organizationId: integer("organization_id").references(() => organizations.id),
+  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+export const conversionHistoryRelations = relations(conversionHistory, ({ one }) => ({
+  user: one(users, {
+    fields: [conversionHistory.userId],
+    references: [users.id],
+  }),
+}));
+
+export const conversionTemplatesRelations = relations(conversionTemplates, ({ one }) => ({
+  organization: one(organizations, {
+    fields: [conversionTemplates.organizationId],
+    references: [organizations.id],
+  }),
+  createdBy: one(users, {
+    fields: [conversionTemplates.createdById],
+    references: [users.id],
+  }),
+}));
+
 // ======= SCHEMA TYPES & VALIDATION ========
 
 // User types
@@ -698,6 +749,16 @@ export type InsertAnnotation = z.infer<typeof insertAnnotationSchema>;
 export type RevisionHistory = typeof revisionHistory.$inferSelect;
 export const insertRevisionHistorySchema = createInsertSchema(revisionHistory).omit({ id: true });
 export type InsertRevisionHistory = z.infer<typeof insertRevisionHistorySchema>;
+
+// Conversion History types
+export type ConversionHistory = typeof conversionHistory.$inferSelect;
+export const insertConversionHistorySchema = createInsertSchema(conversionHistory).omit({ id: true });
+export type InsertConversionHistory = z.infer<typeof insertConversionHistorySchema>;
+
+// Conversion Template types
+export type ConversionTemplate = typeof conversionTemplates.$inferSelect;
+export const insertConversionTemplateSchema = createInsertSchema(conversionTemplates).omit({ id: true });
+export type InsertConversionTemplate = z.infer<typeof insertConversionTemplateSchema>;
 
 // Appraisal Report types
 export type AppraisalReport = typeof appraisalReports.$inferSelect;

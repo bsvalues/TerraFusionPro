@@ -60,6 +60,7 @@ import NewPropertyAnalyzer from "./pages/NewPropertyAnalyzer";
 import TerraFusionDashboard from "./pages/TerraFusionDashboard";
 import TestDashboard from "./pages/TestDashboard";
 import IntelligentURAR from "./pages/IntelligentURAR";
+import ConversionCenter from "./pages/ConversionCenter";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -154,6 +155,10 @@ function App() {
                 <Route path="/reviewer" component={ReviewerPage} />
                 <Route path="/onboarding" component={OnboardingPage} />
                 <Route path="/get-started" component={OnboardingPage} />
+                {/* Data Conversion Center */}
+                <Route path="/conversion" component={ConversionCenter} />
+                <Route path="/conversion-center" component={ConversionCenter} />
+                <Route path="/data-conversion" component={ConversionCenter} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <IntelligentURAR />}
