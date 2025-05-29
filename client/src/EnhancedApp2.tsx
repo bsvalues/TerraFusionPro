@@ -46,6 +46,7 @@ import AchievementsPage from './pages/AchievementsPage';
 
 // Import the enhanced versions of pages
 import EnhancedHome from './pages/Home.enhanced';
+import ForcedNewDashboard from './pages/ForcedNewDashboard';
 import EnhancedAIValuationPage from './pages/AIValuationPage.enhanced';
 import EnhancedCompliancePage from './pages/CompliancePage.enhanced';
 import EnhancedPhotosPage from './pages/PhotosPage.enhanced';
@@ -54,8 +55,8 @@ import BasicSketchesPage from './pages/BasicSketchesPage';
 import EnhancedPhotoSyncTestPage from './pages/PhotoSyncTestPage.enhanced';
 import EnhancedUADFormPage from './pages/UADFormPage.enhanced';
 
-// Use the enhanced versions
-const HomeComponent = EnhancedHome;
+// Use the forced new dashboard to guarantee visual change
+const HomeComponent = ForcedNewDashboard;
 const AIValuationPageComponent = EnhancedAIValuationPage;
 const CompliancePageComponent = EnhancedCompliancePage;
 const PhotosPageComponent = EnhancedPhotosPage;
