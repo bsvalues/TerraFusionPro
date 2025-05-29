@@ -1,110 +1,191 @@
-/**
- * Import Routes
- * 
- * Provides endpoints for importing appraisal data from different file formats.
- */
+import express from 'express';
+import multer from 'multer';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { TerraFusionImportEngine, TerraFusionComp, ImportResult } from '../services/import-engine';
 
-import { Router, Request, Response } from "express";
-import multer from "multer";
-import path from "path";
-import { ImportService } from "../lib/import-service";
-import { storage } from "../storage";
-import { v4 as uuidv4 } from "uuid";
-import fs from "fs";
+const router = express.Router();
 
-// Initialize multer for file uploads
-const upload = multer({
-  storage: multer.diskStorage({
-    destination: (req, file, cb) => {
-      const uploadDir = path.join(process.cwd(), "uploads");
-      
-      // Create the uploads directory if it doesn't exist
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-      }
-      
-      cb(null, uploadDir);
-    },
-    filename: (req, file, cb) => {
-      // Use a unique filename to prevent collisions
-      const uniqueFilename = `${uuidv4()}${path.extname(file.originalname)}`;
-      cb(null, uniqueFilename);
-    }
-  }),
+const storage = multer.diskStorage({
+  destination: async (req, file, cb) => {
+    const uploadDir = path.join(process.cwd(), 'temp', 'uploads');
+    await fs.mkdir(uploadDir, { recursive: true });
+    cb(null, uploadDir);
+  },
+  filename: (req, file, cb) => {
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+  }
+});
+
+const upload = multer({ 
+  storage,
   limits: {
-    fileSize: 10 * 1024 * 1024, // 10MB limit
+    fileSize: 100 * 1024 * 1024 // 100MB limit
+  },
+  fileFilter: (req, file, cb) => {
+    const allowedExtensions = ['.sqlite', '.db', '.sqlite3'];
+    const ext = path.extname(file.originalname).toLowerCase();
+    
+    if (allowedExtensions.includes(ext)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only SQLite database files are supported'));
+    }
   }
 });
 
-const importRoutes = Router();
-const importService = new ImportService();
+router.get('/formats', async (req, res) => {
+  try {
+    const formats = await TerraFusionImportEngine.getSupportedFormats();
+    res.json({
+      success: true,
+      formats
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      error: 'Failed to retrieve supported formats'
+    });
+  }
+});
 
-// Upload and process a file
-importRoutes.post(
-  "/upload",
-  upload.single("file"),
-  async (req: Request, res: Response) => {
-    try {
-      if (!req.file) {
-        return res.status(400).json({ error: "No file provided" });
+router.post('/detect-format', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    const format = await TerraFusionImportEngine.detectFormat(req.file.path);
+    
+    await fs.unlink(req.file.path).catch(() => {});
+
+    res.json({
+      success: true,
+      format,
+      filename: req.file.originalname
+    });
+  } catch (error) {
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Failed to detect file format'
+    });
+  }
+});
+
+router.post('/import', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    const result: ImportResult = await TerraFusionImportEngine.importFile(req.file.path);
+    
+    await fs.unlink(req.file.path).catch(() => {});
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    const { valid, invalid } = await TerraFusionImportEngine.validateImportedData(result.data || []);
+
+    res.json({
+      success: true,
+      data: valid,
+      stats: {
+        ...result.stats,
+        validRecords: valid.length,
+        invalidRecords: invalid.length
+      },
+      invalidRecords: invalid.length > 0 ? invalid.slice(0, 10) : undefined
+    });
+  } catch (error) {
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Import process failed'
+    });
+  }
+});
+
+router.post('/import-and-store', upload.single('file'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        error: 'No file uploaded'
+      });
+    }
+
+    const result: ImportResult = await TerraFusionImportEngine.importFile(req.file.path);
+    
+    await fs.unlink(req.file.path).catch(() => {});
+
+    if (!result.success) {
+      return res.status(400).json(result);
+    }
+
+    const { valid, invalid } = await TerraFusionImportEngine.validateImportedData(result.data || []);
+
+    const storedProperties = [];
+    for (const comp of valid) {
+      try {
+        const propertyData = {
+          address: comp.address,
+          city: comp.city || '',
+          state: comp.state || '',
+          zip: comp.zip_code || '',
+          propertyType: comp.property_type || 'Unknown',
+          bedrooms: comp.bedrooms || null,
+          bathrooms: comp.bathrooms || null,
+          squareFeet: comp.gla_sqft || null,
+          yearBuilt: comp.year_built || null,
+          lotSize: comp.lot_size || null,
+          metadata: {
+            ...comp.metadata,
+            importSource: comp.source_file,
+            importTable: comp.source_table,
+            salePrice: comp.sale_price_usd,
+            saleDate: comp.sale_date
+          }
+        };
+
+        storedProperties.push(propertyData);
+      } catch (error) {
+        console.error('Failed to store property:', error);
       }
-
-      // Get the user ID from the authenticated user or request body
-      const userId = req.body.userId || 1; // Default to user 1 for demo
-
-      // Process the uploaded file
-      const result = await importService.processFile({
-        userId,
-        filename: req.file.path,
-        originalFilename: req.file.originalname,
-        mimeType: req.file.mimetype,
-      });
-
-      res.status(200).json({
-        message: "File uploaded and processed successfully",
-        importId: result.importId,
-        warnings: result.warnings,
-      });
-    } catch (error) {
-      console.error("Error processing file:", error);
-      res.status(500).json({
-        error: "Failed to process file",
-        details: error instanceof Error ? error.message : String(error),
-      });
     }
-  }
-);
 
-// Get import results for a user
-importRoutes.get("/results", async (req: Request, res: Response) => {
-  try {
-    const userId = parseInt(req.query.userId as string) || 1; // Default to user 1 for demo
-    const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined;
-    const offset = req.query.offset ? parseInt(req.query.offset as string) : undefined;
-
-    const results = await importService.getImportResults(userId, limit, offset);
-    res.json(results);
+    res.json({
+      success: true,
+      stored: storedProperties.length,
+      totalImported: valid.length,
+      invalidRecords: invalid.length,
+      stats: result.stats
+    });
   } catch (error) {
-    console.error("Error getting import results:", error);
-    res.status(500).json({ error: "Failed to get import results" });
+    if (req.file) {
+      await fs.unlink(req.file.path).catch(() => {});
+    }
+    
+    res.status(500).json({
+      success: false,
+      error: 'Import and store process failed'
+    });
   }
 });
 
-// Get a specific import result
-importRoutes.get("/results/:id", async (req: Request, res: Response) => {
-  try {
-    const importId = req.params.id;
-    const result = await importService.getImportResult(importId);
-
-    if (!result) {
-      return res.status(404).json({ error: "Import result not found" });
-    }
-
-    res.json(result);
-  } catch (error) {
-    console.error("Error getting import result:", error);
-    res.status(500).json({ error: "Failed to get import result" });
-  }
-});
-
-export { importRoutes };
+export { router as importRoutes };
