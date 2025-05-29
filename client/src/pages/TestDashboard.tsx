@@ -13,7 +13,7 @@ const TestDashboard = () => {
       fontFamily: 'Arial, sans-serif'
     }}>
       <h1 style={{ fontSize: '4rem', marginBottom: '1rem', textAlign: 'center' }}>
-        🚀 TerraFusion Pro
+        🎯 WORKING! TerraFusion Pro
       </h1>
       <h2 style={{ fontSize: '2rem', marginBottom: '2rem' }}>
         AI-Powered Appraisal Platform
@@ -28,15 +28,16 @@ const TestDashboard = () => {
         padding: '2rem'
       }}>
         <div style={{
-          background: 'rgba(255, 255, 255, 0.1)',
+          background: 'rgba(0, 255, 0, 0.3)',
           padding: '2rem',
           borderRadius: '15px',
           textAlign: 'center',
-          backdropFilter: 'blur(10px)'
+          backdropFilter: 'blur(10px)',
+          border: '3px solid lime'
         }}>
-          <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>📊 Active Orders</h3>
-          <p style={{ fontSize: '3rem', fontWeight: 'bold' }}>23</p>
-          <p>↑ 12% from last week</p>
+          <h3 style={{ fontSize: '1.5rem', marginBottom: '1rem' }}>✅ CHANGES WORK!</h3>
+          <p style={{ fontSize: '3rem', fontWeight: 'bold' }}>YES</p>
+          <p>🎉 The system is updating!</p>
         </div>
         
         <div style={{
