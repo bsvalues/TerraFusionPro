@@ -8,6 +8,7 @@ import multer from 'multer';
 import { spawn } from 'child_process';
 import path from 'path';
 import { promises as fs } from 'fs';
+import { storage } from '../storage';
 
 const router = Router();
 const upload = multer({ dest: 'uploads/' });
@@ -59,7 +60,7 @@ class UniversalConversionAgent {
                             { success: true, data: JSON.parse(stdout) };
                         resolve(result);
                     } catch (error) {
-                        reject(new Error(`Failed to parse output: ${error.message}`));
+                        reject(new Error(`Failed to parse output: ${(error as Error).message}`));
                     }
                 } else {
                     reject(new Error(`Conversion failed: ${stderr || 'Unknown error'}`));
@@ -95,7 +96,7 @@ class UniversalConversionAgent {
         } catch (error) {
             return {
                 success: false,
-                error: error.message,
+                error: (error as Error).message,
                 timestamp: new Date().toISOString()
             };
         }
@@ -152,7 +153,7 @@ router.get('/conversion/health', async (req, res) => {
     } catch (error) {
         res.status(500).json({
             status: 'error',
-            message: error.message,
+            message: (error as Error).message,
             timestamp: new Date().toISOString()
         });
     }
@@ -229,11 +230,126 @@ router.post('/conversion/convert', upload.single('csvFile'), async (req, res) =>
             await fs.unlink(req.file.path).catch(() => {});
         }
 
+        // Track conversion history
+        try {
+            const historyEntry = {
+                templateName: templateName || 'default_template',
+                inputFileName: req.file?.filename || 'inline_data',
+                outputFileName: `converted_${Date.now()}.json`,
+                inputRecords: dataToProcess.length,
+                outputRecords: (result as any)?.processedData?.length || 0,
+                status: (result as any)?.success ? 'completed' : 'failed',
+                agentSummary: `Processed ${dataToProcess.length} records using ${templateName || 'default'} template. ${(result as any)?.success ? 'Conversion completed successfully.' : 'Conversion encountered errors.'}`,
+                warnings: (result as any)?.error ? [(result as any).error] : undefined
+            };
+            
+            await storage.createConversionHistory(historyEntry);
+        } catch (historyError) {
+            console.warn('Failed to save conversion history:', historyError);
+        }
+
         res.json(result);
     } catch (error) {
         res.status(500).json({
             success: false,
-            error: error.message,
+            error: (error as Error).message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Get conversion history
+router.get('/conversion/history', async (req, res) => {
+    try {
+        const history = await storage.getAllConversionHistory();
+        res.json(history.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()));
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: (error as Error).message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Get available conversion templates
+router.get('/conversion/templates', async (req, res) => {
+    try {
+        const templates = await storage.getAllConversionTemplates();
+        
+        // If no templates in database, return some defaults
+        if (templates.length === 0) {
+            const defaultTemplates = [
+                {
+                    id: 1,
+                    name: 'Property Import Template',
+                    description: 'Standard template for importing property data from MLS systems',
+                    fieldMappings: {
+                        'Address': 'address',
+                        'Price': 'price',
+                        'SqFt': 'squareFootage',
+                        'Bedrooms': 'bedrooms',
+                        'Bathrooms': 'bathrooms'
+                    },
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                },
+                {
+                    id: 2,
+                    name: 'Comparable Sales Template',
+                    description: 'Template for processing comparable sales data',
+                    fieldMappings: {
+                        'Sale_Date': 'saleDate',
+                        'Sale_Price': 'salePrice',
+                        'Property_Address': 'address',
+                        'Living_Area': 'grossLivingArea'
+                    },
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString()
+                }
+            ];
+            
+            return res.json(defaultTemplates);
+        }
+        
+        res.json(templates);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: (error as Error).message,
+            timestamp: new Date().toISOString()
+        });
+    }
+});
+
+// Create new conversion template
+router.post('/conversion/templates', async (req, res) => {
+    try {
+        const { name, description, fieldMappings } = req.body;
+        
+        if (!name || !fieldMappings) {
+            return res.status(400).json({
+                success: false,
+                error: 'Template name and field mappings are required'
+            });
+        }
+
+        const template = await storage.createConversionTemplate({
+            name,
+            description: description || '',
+            fieldMappings: JSON.stringify(fieldMappings),
+            isActive: true
+        });
+
+        res.json({
+            success: true,
+            template,
+            message: 'Template created successfully'
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: (error as Error).message,
             timestamp: new Date().toISOString()
         });
     }
