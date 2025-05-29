@@ -2989,6 +2989,75 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Set up Long-Polling as final fallback option
   const longPollingInterface = setupLongPollingServer(app);
   console.log('[Routes] Long-polling endpoints initialized');
+
+  // Washington State County Federation API Routes
+  app.get('/api/wa-counties', async (req, res) => {
+    try {
+      const counties = await waCountyFederation.getCountyNodes();
+      res.json({ counties });
+    } catch (error) {
+      console.error('Error fetching WA counties:', error);
+      res.status(500).json({ error: 'Failed to fetch county data' });
+    }
+  });
+
+  app.get('/api/wa-counties/:county', async (req, res) => {
+    try {
+      const { county } = req.params;
+      const countyNode = await waCountyFederation.getCountyNode(county);
+      if (!countyNode) {
+        return res.status(404).json({ error: 'County not found' });
+      }
+      res.json({ county: countyNode });
+    } catch (error) {
+      console.error('Error fetching county:', error);
+      res.status(500).json({ error: 'Failed to fetch county data' });
+    }
+  });
+
+  app.post('/api/wa-counties/:county/deploy', async (req, res) => {
+    try {
+      const { county } = req.params;
+      console.log(`[WA Federation] Deploying ${county} County node...`);
+      const result = await waCountyFederation.deployCountyNode(county);
+      console.log(`[WA Federation] ${county} County deployment result:`, result);
+      res.json(result);
+    } catch (error) {
+      console.error('Error deploying county node:', error);
+      res.status(500).json({ error: 'Failed to deploy county node' });
+    }
+  });
+
+  app.post('/api/wa-counties/sync', async (req, res) => {
+    try {
+      const { sourceCounty, targetCounty, dataType } = req.body;
+      const result = await waCountyFederation.syncCountyData(sourceCounty, targetCounty, dataType);
+      res.json(result);
+    } catch (error) {
+      console.error('Error syncing county data:', error);
+      res.status(500).json({ error: 'Failed to sync county data' });
+    }
+  });
+
+  app.get('/api/wa-federation/stats', async (req, res) => {
+    try {
+      const stats = await waCountyFederation.getFederationStats();
+      res.json({ stats });
+    } catch (error) {
+      console.error('Error fetching federation stats:', error);
+      res.status(500).json({ error: 'Failed to fetch federation statistics' });
+    }
+  });
+
+  app.get('/api/wa-federation/report', async (req, res) => {
+    try {
+      const report = await waCountyFederation.generateWAReport();
+      res.json({ report });
+    } catch (error) {
+      console.error('Error generating WA report:', error);
+      res.status(500).json({ error: 'Failed to generate WA federation report' });
+    }
+  });
   
   // Note: SHAP WebSocket service is initialized in server/index.ts
   
