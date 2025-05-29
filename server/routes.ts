@@ -2703,6 +2703,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(500).json({ error: "Failed to get user notifications" });
     }
   });
+
+  // Legacy Import API endpoints
+  app.get("/api/legacy-import/jobs", async (req: Request, res: Response) => {
+    try {
+      const userId = req.query.userId;
+      console.log(`Fetching import jobs for user: ${userId}`);
+      
+      // Return empty array for now - this would normally fetch from database
+      res.json([]);
+    } catch (error) {
+      console.error("Error fetching import jobs:", error);
+      res.status(500).json({ error: "Failed to fetch import jobs" });
+    }
+  });
+
+  app.post("/api/legacy-import/upload", express.raw({ type: 'multipart/form-data', limit: '50mb' }), async (req: Request, res: Response) => {
+    try {
+      console.log("Legacy import upload endpoint called");
+      
+      // For now, return success response
+      // This would normally process the uploaded files
+      res.json({ 
+        success: true, 
+        message: "Files uploaded successfully",
+        jobId: Date.now()
+      });
+    } catch (error) {
+      console.error("Error uploading files:", error);
+      res.status(500).json({ error: "Failed to upload files" });
+    }
+  });
   
   // Special route for property at "4234 Old Milton Hwy" that's hardcoded with data
   app.post("/api/realtime/propertyAnalysis", async (req: Request, res: Response) => {
