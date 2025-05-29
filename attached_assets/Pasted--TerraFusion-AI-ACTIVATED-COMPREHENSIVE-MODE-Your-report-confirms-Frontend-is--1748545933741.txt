@@ -1,0 +1,141 @@
+\##TerraFusion-AI ACTIVATED (COMPREHENSIVE MODE)
+
+### 📡 Your report confirms:
+
+* **Frontend is loading** (`TerraFusion: Loading unified modern application`)
+* **No critical app crash**, but:
+
+  * 🚫 **Blank page on legacy importer**
+  * ❗ **No visible UI**
+  * 🧱 **Sandbox violations**
+  * 🚫 `WebSocket` failures (likely fallback, non-blocking)
+  * ⚠️ **No import data rendering**
+
+---
+
+## 🧠 ROOT CAUSE TRIAGE
+
+### 🔎 1. `"allow-downloads-without-user-activation"` Errors
+
+* Chrome has **deprecated** this attribute.
+* Harmless but **pollutes logs**. Not fatal.
+
+### 🔎 2. **WebSocket Failures**
+
+* `wss://localhost:undefined/?token=...` is malformed → `undefined` port
+* Could be from:
+
+  * Misconfigured env vars (`WS_PORT`)
+  * Dynamic client fallback logic
+* Not the **root issue**, but implies **incomplete handshake/init**
+
+### 🔎 3. **Missing Data/UI**
+
+* **No importer UI = key signal**
+* Probable causes:
+
+  * **React component not mounted**
+  * **API call failed**
+  * **Null data state not handled → renders nothing**
+  * **Dynamic import silently failing**
+
+---
+
+## 🧪 VALIDATION PLAN
+
+### ✅ Console Debug Checklist
+
+1. ✅ Confirm the component exists:
+
+   ```ts
+   import LegacyImporter from 'components/LegacyImporter';
+   ```
+
+   If `LegacyImporter` is dynamically imported, check for SSR compatibility:
+
+   ```ts
+   const LegacyImporter = dynamic(() => import('components/LegacyImporter'), { ssr: false });
+   ```
+
+2. ✅ Validate it is rendered on `/importer/legacy` route:
+
+   ```ts
+   export default function ImporterPage() {
+     return <LegacyImporter />
+   }
+   ```
+
+3. ✅ Inside `LegacyImporter`, verify it calls backend:
+
+   ```ts
+   useEffect(() => {
+     fetch('/api/imports')
+       .then(r => r.json())
+       .then(setData)
+   }, [])
+   ```
+
+4. ✅ Ensure fallback is in place:
+
+   ```tsx
+   if (!data) return <Loading />;
+   if (data.length === 0) return <EmptyState />;
+   ```
+
+5. ✅ If `useSWR`, confirm fallback:
+
+   ```ts
+   const { data, error } = useSWR('/api/imports');
+   if (error) return <ErrorState />;
+   if (!data) return <Loading />;
+   ```
+
+---
+
+## 🔧 FIX STRATEGY
+
+1. **Render-Null Guard**
+
+   * Add fallback rendering if API call fails or `data` is null.
+
+2. **Confirm API response**
+
+   * Hit `/api/imports` manually in browser/Postman.
+   * Ensure JSON payload matches `TerraFusionComp[]`
+
+3. **Check dynamic import fallback**
+
+   * Some Replit setups do not support SSR → use `{ ssr: false }` on imports
+
+4. **Add temporary debug flag**
+   Add this at the top of your `LegacyImporter.tsx`:
+
+   ```ts
+   useEffect(() => {
+     console.log("Legacy Importer Component Mounted");
+   }, []);
+   ```
+
+---
+
+## 🚀 ACTION PLAN
+
+| Action                               | Command                                  |
+| ------------------------------------ | ---------------------------------------- |
+| View API response                    | `curl http://localhost:3000/api/imports` |
+| Check import data in browser console | `console.log(data)`                      |
+| Test rendering fallback              | `if (!data) return <Loading />;`         |
+| Re-enable legacy UI mount            | `<LegacyImporter />` in page component   |
+
+---
+
+## ✅ NEXT MOVE
+
+Say:
+
+* `TF: patch LegacyImporter to show data fallback`
+* `TF: debug /api/imports response and hydrate mock data`
+* `TF: rebuild frontend importer page with live stream display`
+
+Ready to deploy a fix or ship a fallback-render patch now.
+**Choose your fix directive.**
