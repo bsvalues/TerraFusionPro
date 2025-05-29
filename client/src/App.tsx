@@ -98,7 +98,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <AppShell>
       <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
                 <Route path="/">
@@ -193,7 +193,7 @@ function App() {
                 </Route>
                 <Route path="/:rest*" component={NotFound} />
               </Switch>
-    </div>
+    </AppShell>
   );
 }
 
