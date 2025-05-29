@@ -6,50 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { Upload, FileText, Database, CheckCircle, AlertCircle, Eye, MapPin } from "lucide-react";
 
-interface ImportJob {
-  id: number;
-  jobName: string;
-  status: string;
-  totalRecords: number;
-  processedRecords: number;
-  detectedSystems: string[];
-  createdAt: string;
-}
-
 export default function LegacyImporter() {
-  const [currentStep, setCurrentStep] = useState<'upload' | 'extract' | 'map' | 'preview' | 'import'>('upload');
+  const [currentStep, setCurrentStep] = useState(0);
   const [jobName, setJobName] = useState("");
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [systemType, setSystemType] = useState("");
   const [progress, setProgress] = useState(0);
   const [isProcessing, setIsProcessing] = useState(false);
 
-  // Sample import jobs for demonstration
-  const sampleJobs: ImportJob[] = [
-    {
-      id: 1,
-      jobName: "Q4 2024 TOTAL Legacy Import",
-      status: "completed",
-      totalRecords: 1250,
-      processedRecords: 1250,
-      detectedSystems: ["TOTAL", "ClickForms"],
-      createdAt: "2024-12-15"
-    },
-    {
-      id: 2,
-      jobName: "ACI Data Migration",
-      status: "processing",
-      totalRecords: 875,
-      processedRecords: 420,
-      detectedSystems: ["ACI"],
-      createdAt: "2024-12-20"
-    }
-  ];
+  const steps = ['Upload', 'Extract', 'Map Fields', 'Preview', 'Import'];
 
   const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
@@ -62,52 +29,31 @@ export default function LegacyImporter() {
     if (!selectedFiles.length || !jobName.trim()) return;
     
     setIsProcessing(true);
-    setProgress(10);
+    setProgress(20);
     
-    // Simulate processing steps
-    setTimeout(() => setProgress(40), 1000);
     setTimeout(() => {
-      setProgress(100);
-      setCurrentStep('extract');
-      setIsProcessing(false);
-    }, 2000);
-  };
-
-  const handleMapping = () => {
-    setIsProcessing(true);
-    setProgress(70);
-    setTimeout(() => {
-      setCurrentStep('preview');
+      setProgress(50);
+      setCurrentStep(1);
       setIsProcessing(false);
     }, 1500);
   };
 
-  const handleImport = () => {
-    setIsProcessing(true);
-    setProgress(100);
-    setTimeout(() => {
-      setCurrentStep('import');
-      setIsProcessing(false);
-    }, 2000);
+  const handleNext = () => {
+    if (currentStep < steps.length - 1) {
+      setCurrentStep(currentStep + 1);
+      setProgress((currentStep + 2) * 20);
+    }
   };
 
-  const getStatusBadge = (status: string) => {
-    const colors = {
-      completed: "bg-green-100 text-green-800",
-      processing: "bg-blue-100 text-blue-800",
-      pending: "bg-yellow-100 text-yellow-800",
-      failed: "bg-red-100 text-red-800"
-    };
-    
-    return (
-      <Badge className={colors[status as keyof typeof colors] || colors.pending}>
-        {status.toUpperCase()}
-      </Badge>
-    );
+  const handleBack = () => {
+    if (currentStep > 0) {
+      setCurrentStep(currentStep - 1);
+      setProgress((currentStep) * 20);
+    }
   };
 
   const resetWorkflow = () => {
-    setCurrentStep('upload');
+    setCurrentStep(0);
     setJobName('');
     setSelectedFiles([]);
     setSystemType('');
@@ -132,97 +78,89 @@ export default function LegacyImporter() {
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <Tabs value={currentStep} className="w-full">
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="upload" className="flex items-center gap-2">
-                <Upload className="h-4 w-4" />
-                Upload
-              </TabsTrigger>
-              <TabsTrigger value="extract" className="flex items-center gap-2">
-                <FileText className="h-4 w-4" />
-                Extract
-              </TabsTrigger>
-              <TabsTrigger value="map" className="flex items-center gap-2">
-                <MapPin className="h-4 w-4" />
-                Map Fields
-              </TabsTrigger>
-              <TabsTrigger value="preview" className="flex items-center gap-2">
-                <Eye className="h-4 w-4" />
-                Preview
-              </TabsTrigger>
-              <TabsTrigger value="import" className="flex items-center gap-2">
-                <CheckCircle className="h-4 w-4" />
-                Import
-              </TabsTrigger>
-            </TabsList>
-
+          {/* Progress Indicator */}
+          <div className="mb-6">
+            <div className="flex justify-between items-center mb-2">
+              {steps.map((step, index) => (
+                <div key={index} className={`flex items-center ${index < steps.length - 1 ? 'flex-1' : ''}`}>
+                  <div className={`
+                    w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium
+                    ${index <= currentStep ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}
+                  `}>
+                    {index + 1}
+                  </div>
+                  <span className={`ml-2 text-sm ${index <= currentStep ? 'text-foreground' : 'text-muted-foreground'}`}>
+                    {step}
+                  </span>
+                  {index < steps.length - 1 && (
+                    <div className={`flex-1 h-0.5 mx-4 ${index < currentStep ? 'bg-primary' : 'bg-muted'}`} />
+                  )}
+                </div>
+              ))}
+            </div>
             {progress > 0 && (
-              <div className="mt-4">
-                <Progress value={progress} className="w-full" />
-                <p className="text-sm text-muted-foreground mt-2">
-                  Processing: {progress}% complete
-                </p>
-              </div>
+              <Progress value={progress} className="w-full" />
             )}
+          </div>
 
-            {/* Upload Step */}
-            <TabsContent value="upload" className="space-y-6">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="jobName">Import Job Name</Label>
+          {/* Step Content */}
+          {currentStep === 0 && (
+            <div className="space-y-6">
+              <div>
+                <Label htmlFor="jobName">Import Job Name</Label>
+                <Input
+                  id="jobName"
+                  placeholder="e.g., Q4 2024 Legacy Data Import"
+                  value={jobName}
+                  onChange={(e) => setJobName(e.target.value)}
+                />
+              </div>
+
+              <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
+                <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <div className="space-y-2">
+                  <h3 className="text-lg font-medium">Upload Legacy Files</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Supports ZIP, XML, ENV, SQL, CSV, PDF, XLSX files up to 100MB
+                  </p>
                   <Input
-                    id="jobName"
-                    placeholder="e.g., Q4 2024 Legacy Data Import"
-                    value={jobName}
-                    onChange={(e) => setJobName(e.target.value)}
+                    type="file"
+                    multiple
+                    onChange={handleFileSelect}
+                    accept=".zip,.xml,.env,.sql,.csv,.pdf,.xlsx,.xls"
+                    className="max-w-md mx-auto"
                   />
                 </div>
+              </div>
 
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
-                  <Upload className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-                  <div className="space-y-2">
-                    <h3 className="text-lg font-medium">Upload Legacy Files</h3>
-                    <p className="text-sm text-muted-foreground">
-                      Supports ZIP, XML, ENV, SQL, CSV, PDF, XLSX files up to 100MB
-                    </p>
-                    <Input
-                      type="file"
-                      multiple
-                      onChange={handleFileSelect}
-                      accept=".zip,.xml,.env,.sql,.csv,.pdf,.xlsx,.xls"
-                      className="max-w-md mx-auto"
-                    />
+              {selectedFiles.length > 0 && (
+                <div className="space-y-2">
+                  <h4 className="font-medium">Selected Files:</h4>
+                  <div className="space-y-1">
+                    {selectedFiles.map((file, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                        <span className="text-sm">{file.name}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {(file.size / 1024 / 1024).toFixed(2)} MB
+                        </span>
+                      </div>
+                    ))}
                   </div>
                 </div>
+              )}
 
-                {selectedFiles.length > 0 && (
-                  <div className="space-y-2">
-                    <h4 className="font-medium">Selected Files:</h4>
-                    <div className="space-y-1">
-                      {selectedFiles.map((file, index) => (
-                        <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded">
-                          <span className="text-sm">{file.name}</span>
-                          <span className="text-xs text-muted-foreground">
-                            {(file.size / 1024 / 1024).toFixed(2)} MB
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
+              <Button 
+                onClick={handleUpload}
+                disabled={!selectedFiles.length || !jobName.trim() || isProcessing}
+                className="w-full"
+              >
+                {isProcessing ? 'Processing...' : 'Upload & Analyze Files'}
+              </Button>
+            </div>
+          )}
 
-                <Button 
-                  onClick={handleUpload}
-                  disabled={!selectedFiles.length || !jobName.trim() || isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? 'Processing...' : 'Upload & Analyze Files'}
-                </Button>
-              </div>
-            </TabsContent>
-
-            {/* Extract Step */}
-            <TabsContent value="extract" className="space-y-4">
+          {currentStep === 1 && (
+            <div className="space-y-4">
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -245,7 +183,7 @@ export default function LegacyImporter() {
 
                 <Card>
                   <CardHeader>
-                    <CardTitle className="text-sm">File Processing</CardTitle>
+                    <CardTitle className="text-sm">File Processing Status</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
@@ -262,61 +200,61 @@ export default function LegacyImporter() {
                 </Card>
               </div>
 
-              <Button onClick={() => setCurrentStep('map')} className="w-full">
-                Proceed to Field Mapping
-              </Button>
-            </TabsContent>
-
-            {/* Mapping Step */}
-            <TabsContent value="map" className="space-y-4">
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="systemType">Select Legacy System Type</Label>
-                  <Select value={systemType} onValueChange={setSystemType}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose detected system" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="TOTAL">TOTAL</SelectItem>
-                      <SelectItem value="CLICKFORMS">ClickForms</SelectItem>
-                      <SelectItem value="ACI">ACI</SelectItem>
-                      <SelectItem value="DATAMASTER">DataMaster</SelectItem>
-                      <SelectItem value="ALAMODE">Alamode</SelectItem>
-                      <SelectItem value="CUSTOM">Custom Mapping</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                {systemType === 'CUSTOM' && (
-                  <div>
-                    <Label htmlFor="customMappings">Custom Field Mappings (JSON)</Label>
-                    <Textarea
-                      id="customMappings"
-                      placeholder='{"legacy_field": "modern_field", "property_address": "address"}'
-                      rows={6}
-                    />
-                  </div>
-                )}
-
-                <Alert>
-                  <FileText className="h-4 w-4" />
-                  <AlertDescription>
-                    Field mapping templates will be auto-generated based on detected system type.
-                  </AlertDescription>
-                </Alert>
-
-                <Button 
-                  onClick={handleMapping}
-                  disabled={!systemType || isProcessing}
-                  className="w-full"
-                >
-                  {isProcessing ? 'Generating Mappings...' : 'Generate Field Mappings'}
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleBack} className="flex-1">
+                  Back
+                </Button>
+                <Button onClick={handleNext} className="flex-1">
+                  Proceed to Field Mapping
                 </Button>
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Preview Step */}
-            <TabsContent value="preview" className="space-y-4">
+          {currentStep === 2 && (
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="systemType">Select Legacy System Type</Label>
+                <select
+                  id="systemType"
+                  value={systemType}
+                  onChange={(e) => setSystemType(e.target.value)}
+                  className="w-full p-2 border border-gray-300 rounded-md"
+                >
+                  <option value="">Choose detected system</option>
+                  <option value="TOTAL">TOTAL</option>
+                  <option value="CLICKFORMS">ClickForms</option>
+                  <option value="ACI">ACI</option>
+                  <option value="DATAMASTER">DataMaster</option>
+                  <option value="ALAMODE">Alamode</option>
+                  <option value="CUSTOM">Custom Mapping</option>
+                </select>
+              </div>
+
+              <Alert>
+                <FileText className="h-4 w-4" />
+                <AlertDescription>
+                  Field mapping templates will be auto-generated based on detected system type.
+                </AlertDescription>
+              </Alert>
+
+              <div className="flex gap-2">
+                <Button variant="outline" onClick={handleBack} className="flex-1">
+                  Back
+                </Button>
+                <Button 
+                  onClick={handleNext} 
+                  disabled={!systemType}
+                  className="flex-1"
+                >
+                  Generate Field Mappings
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {currentStep === 3 && (
+            <div className="space-y-4">
               <Alert>
                 <CheckCircle className="h-4 w-4" />
                 <AlertDescription>
@@ -355,70 +293,76 @@ export default function LegacyImporter() {
               </Card>
 
               <div className="flex gap-2">
-                <Button 
-                  onClick={() => setCurrentStep('map')}
-                  variant="outline"
-                  className="flex-1"
-                >
+                <Button variant="outline" onClick={handleBack} className="flex-1">
                   Back to Mapping
                 </Button>
-                <Button 
-                  onClick={handleImport}
-                  disabled={isProcessing}
-                  className="flex-1"
-                >
-                  {isProcessing ? 'Importing...' : 'Approve & Import All'}
+                <Button onClick={handleNext} className="flex-1">
+                  Approve & Import All
                 </Button>
               </div>
-            </TabsContent>
+            </div>
+          )}
 
-            {/* Import Step */}
-            <TabsContent value="import" className="space-y-4">
-              <div className="text-center space-y-4">
-                <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
-                <h3 className="text-xl font-semibold">Import Complete!</h3>
-                <p className="text-muted-foreground">
-                  Successfully imported 1,250 legacy records to your TerraFusion system.
-                </p>
-                
-                <div className="flex gap-2 justify-center">
-                  <Button onClick={resetWorkflow}>
-                    Start New Import
-                  </Button>
-                  <Button variant="outline">
-                    View Imported Data
-                  </Button>
-                </div>
+          {currentStep === 4 && (
+            <div className="text-center space-y-4">
+              <CheckCircle className="h-16 w-16 text-green-500 mx-auto" />
+              <h3 className="text-xl font-semibold">Import Complete!</h3>
+              <p className="text-muted-foreground">
+                Successfully imported 1,250 legacy records to your TerraFusion system.
+              </p>
+              
+              <div className="flex gap-2 justify-center">
+                <Button onClick={resetWorkflow}>
+                  Start New Import
+                </Button>
+                <Button variant="outline">
+                  View Imported Data
+                </Button>
               </div>
-            </TabsContent>
-          </Tabs>
+            </div>
+          )}
 
           {/* Recent Import Jobs */}
-          <div className="mt-8">
-            <h3 className="text-lg font-semibold mb-4">Recent Import Jobs</h3>
-            <div className="space-y-3">
-              {sampleJobs.map((job) => (
-                <Card key={job.id} className="p-4">
+          {currentStep === 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4">Recent Import Jobs</h3>
+              <div className="space-y-3">
+                <Card className="p-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-medium">{job.jobName}</p>
+                      <p className="font-medium">Q4 2024 TOTAL Legacy Import</p>
                       <p className="text-sm text-muted-foreground">
-                        {job.processedRecords}/{job.totalRecords} records • 
-                        {new Date(job.createdAt).toLocaleDateString()} • 
-                        Systems: {job.detectedSystems.join(', ')}
+                        1,250/1,250 records • Dec 15, 2024 • Systems: TOTAL, ClickForms
                       </p>
                     </div>
                     <div className="flex items-center gap-2">
-                      {getStatusBadge(job.status)}
+                      <Badge className="bg-green-100 text-green-800">COMPLETED</Badge>
                       <Button variant="outline" size="sm">
                         View Details
                       </Button>
                     </div>
                   </div>
                 </Card>
-              ))}
+                
+                <Card className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="font-medium">ACI Data Migration</p>
+                      <p className="text-sm text-muted-foreground">
+                        420/875 records • Dec 20, 2024 • Systems: ACI
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Badge className="bg-blue-100 text-blue-800">PROCESSING</Badge>
+                      <Button variant="outline" size="sm">
+                        View Details
+                      </Button>
+                    </div>
+                  </div>
+                </Card>
+              </div>
             </div>
-          </div>
+          )}
         </CardContent>
       </Card>
     </div>
