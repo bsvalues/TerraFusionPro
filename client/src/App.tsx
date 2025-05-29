@@ -93,15 +93,8 @@ function App() {
   }
 
   return (
-    <PerformanceProvider>
-      <RealtimeProvider>
-        <WebSocketProvider>
-          <BasicWebSocketProvider>
-            <AppProvider>
-              <TooltipProvider>
-                <AppShell>
-                  <WebSocketManager />
-                <Switch>
+    <div className="min-h-screen bg-background">
+      <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
                 <Route path="/">
                   {() => <Dashboard />}
@@ -189,13 +182,7 @@ function App() {
                 </Route>
                 <Route path="/:rest*" component={NotFound} />
               </Switch>
-            </AppShell>
-              </TooltipProvider>
-            </AppProvider>
-          </BasicWebSocketProvider>
-        </WebSocketProvider>
-      </RealtimeProvider>
-    </PerformanceProvider>
+    </div>
   );
 }
 
