@@ -72,6 +72,7 @@ import PublicLedgerPage from "./pages/PublicLedgerPage";
 import ZoningAIMapPage from "./pages/ZoningAIMapPage";
 import WACountyPortalPage from "./pages/WACountyPortalPage";
 import TriCitiesRegionalPage from "./pages/TriCitiesRegionalPage";
+import WAStatewidePage from "./pages/WAStatewidePage";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -175,6 +176,7 @@ function App() {
             <Route path="/zoning-map" component={ZoningAIMapPage} />
             <Route path="/wa-counties" component={WACountyPortalPage} />
             <Route path="/tri-cities" component={TriCitiesRegionalPage} />
+            <Route path="/wa-statewide" component={WAStatewidePage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <IntelligentURAR />}
