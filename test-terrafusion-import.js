@@ -122,8 +122,9 @@ async function testTerraFusionImport() {
   }
 }
 
-if (require.main === module) {
+// Run test if this file is executed directly
+if (import.meta.url === `file://${process.argv[1]}`) {
   testTerraFusionImport();
 }
 
-module.exports = { testTerraFusionImport };
+export { testTerraFusionImport };
