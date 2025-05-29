@@ -1,5 +1,4 @@
 import React from "react";
-import { Outlet } from "wouter";
 import { Sidebar } from "@/components/ui/sidebar";
 import { Topbar } from "@/components/ui/topbar";
 import { cn } from "@/lib/utils";
@@ -16,7 +15,7 @@ export function AppShell({ className, children }: AppShellProps) {
       <div className="flex-1 flex flex-col">
         <Topbar />
         <main className="flex-1 p-6 overflow-y-auto bg-muted/30">
-          {children || <Outlet />}
+          {children}
         </main>
       </div>
     </div>
