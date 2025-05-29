@@ -1,4 +1,4 @@
-import { ethers } from 'ethers';
+import { ethers, JsonRpcProvider, Contract, Wallet, formatEther, parseEther } from 'ethers';
 import crypto from 'crypto';
 
 export interface CompNFTMetadata {
@@ -24,9 +24,9 @@ export interface CompNFTData {
 }
 
 export class NFTMintingService {
-  private provider: ethers.providers.Provider | null = null;
-  private contract: ethers.Contract | null = null;
-  private signer: ethers.Signer | null = null;
+  private provider: JsonRpcProvider | null = null;
+  private contract: Contract | null = null;
+  private signer: Wallet | null = null;
 
   constructor() {
     this.initializeProvider();
@@ -210,6 +210,13 @@ export class NFTMintingService {
       console.error('Failed to get NFT data:', error);
       return null;
     }
+  }
+
+  /**
+   * Check if blockchain is properly configured
+   */
+  isBlockchainConfigured(): boolean {
+    return this.provider !== null && this.contract !== null && this.signer !== null;
   }
 
   /**
