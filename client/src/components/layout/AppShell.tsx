@@ -1,89 +1,145 @@
-import { ReactNode } from 'react';
-import Header from './Header';
-import Sidebar from './Sidebar';
-
-interface SyncStatusIndicatorProps {
-  status: 'synced' | 'syncing' | 'error';
-  message?: string;
-}
-
-function SyncStatusIndicator({ status, message = 'All changes synced' }: SyncStatusIndicatorProps) {
-  const statusColors = {
-    synced: 'bg-status-success',
-    syncing: 'bg-accent',
-    error: 'bg-status-error',
-  };
-
-  const statusMessages = {
-    synced: 'All changes synced',
-    syncing: 'Syncing changes...',
-    error: 'Sync error',
-  };
-
-  return (
-    <div className="fixed bottom-4 right-4 bg-white rounded-full shadow-md p-2 flex items-center">
-      <div className={`w-3 h-3 rounded-full ${statusColors[status]} mr-2`}></div>
-      <span className="text-sm font-medium pr-1">{message || statusMessages[status]}</span>
-    </div>
-  );
-}
-
-interface AIAssistantButtonProps {
-  onClick?: () => void;
-}
-
-function AIAssistantButton({ onClick }: AIAssistantButtonProps) {
-  return (
-    <button 
-      className="fixed bottom-4 left-4 bg-accent text-white rounded-full shadow-md p-3 flex items-center justify-center hover:bg-accent-dark"
-      onClick={onClick}
-      title="AI Assistant"
-    >
-      <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
-      </svg>
-    </button>
-  );
-}
+import React from 'react';
+import { useLocation } from 'wouter';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
+import { Avatar, AvatarFallback } from '@/components/ui/avatar';
+import { 
+  Home,
+  FileText,
+  Search,
+  Camera,
+  PencilRuler,
+  BarChart3,
+  Settings,
+  Upload,
+  Brain,
+  Database,
+  Bell,
+  User,
+  Building2,
+  MapPin,
+  Folder,
+  CheckSquare,
+  TrendingUp,
+  Shuffle
+} from 'lucide-react';
 
 interface AppShellProps {
-  children: ReactNode;
-  currentReport?: string;
-  userName?: string;
-  syncStatus?: 'synced' | 'syncing' | 'error';
-  syncMessage?: string;
-  onAIAssistantClick?: () => void;
-  activeSidebarPath?: string;
-  onSidebarItemClick?: (section: string, item: string) => void;
+  children: React.ReactNode;
 }
 
-export default function AppShell({ 
-  children,
-  currentReport,
-  userName,
-  syncStatus = 'synced',
-  syncMessage,
-  onAIAssistantClick,
-  activeSidebarPath,
-  onSidebarItemClick
-}: AppShellProps) {
+const navigationItems = [
+  { icon: Home, label: 'Dashboard', path: '/' },
+  { icon: FileText, label: 'Reports', path: '/reports' },
+  { icon: Upload, label: 'Orders', path: '/orders' },
+  { icon: Building2, label: 'Properties', path: '/properties' },
+  { icon: Search, label: 'Comparables', path: '/comps' },
+  { icon: Camera, label: 'Photos', path: '/photos' },
+  { icon: PencilRuler, label: 'Sketches', path: '/sketches' },
+  { icon: BarChart3, label: 'Analytics', path: '/analytics' },
+  { icon: Brain, label: 'AI Assistant', path: '/ai' },
+  { icon: Shuffle, label: 'Conversion', path: '/conversion' },
+  { icon: CheckSquare, label: 'Compliance', path: '/compliance' },
+  { icon: Settings, label: 'Settings', path: '/settings' },
+];
+
+export function AppShell({ children }: AppShellProps) {
+  const [location, setLocation] = useLocation();
+
   return (
-    <div className="h-screen flex flex-col">
-      <Header currentReport={currentReport} userName={userName} />
-      
-      <main className="flex flex-1 overflow-hidden">
-        <Sidebar 
-          activePath={activeSidebarPath}
-          onSectionItemClick={onSidebarItemClick}
-        />
-        
-        <div className="flex-1 flex flex-col overflow-hidden">
-          {children}
+    <div className="flex h-screen bg-gradient-to-br from-slate-50 to-slate-100">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-slate-200 shadow-sm flex flex-col">
+        {/* Logo */}
+        <div className="p-6 border-b border-slate-200">
+          <h1 className="text-xl font-bold text-slate-900">TerraFusion</h1>
+          <p className="text-sm text-slate-500">AI Property Platform</p>
         </div>
-      </main>
-      
-      <SyncStatusIndicator status={syncStatus} message={syncMessage} />
-      <AIAssistantButton onClick={onAIAssistantClick} />
+
+        {/* Navigation */}
+        <nav className="flex-1 p-4 space-y-1">
+          {navigationItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = location === item.path;
+            
+            return (
+              <button
+                key={item.path}
+                onClick={() => setLocation(item.path)}
+                className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors ${
+                  isActive 
+                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                <Icon className="h-5 w-5" />
+                <span className="font-medium">{item.label}</span>
+              </button>
+            );
+          })}
+        </nav>
+
+        {/* User Profile */}
+        <div className="p-4 border-t border-slate-200">
+          <div className="flex items-center gap-3">
+            <Avatar>
+              <AvatarFallback>JD</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <p className="text-sm font-medium text-slate-900">John Doe</p>
+              <p className="text-xs text-slate-500">Licensed Appraiser</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="flex-1 flex flex-col">
+        {/* Topbar */}
+        <header className="bg-white border-b border-slate-200 shadow-sm">
+          <div className="flex items-center justify-between px-6 py-4">
+            {/* Search */}
+            <div className="flex-1 max-w-md">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
+                <Input 
+                  placeholder="Search properties, reports..." 
+                  className="pl-10"
+                />
+              </div>
+            </div>
+
+            {/* Status & Actions */}
+            <div className="flex items-center gap-4">
+              <Badge variant="outline" className="bg-green-50 text-green-700 border-green-200">
+                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
+                AI Active
+              </Badge>
+              
+              <Button variant="outline" size="sm">
+                <Upload className="h-4 w-4 mr-2" />
+                Quick Upload
+              </Button>
+
+              <Button variant="outline" size="icon">
+                <Bell className="h-4 w-4" />
+              </Button>
+
+              <Button variant="outline" size="icon">
+                <User className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </header>
+
+        {/* Content Area */}
+        <main className="flex-1 overflow-y-auto">
+          <div className="p-8">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 }
