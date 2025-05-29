@@ -1,6 +1,7 @@
 import { Router, Request, Response } from 'express';
 import { rustImporter } from '../services/rust-importer-bridge';
 import { schemaValidator } from '../services/schema-validator';
+import { auditLogger } from '../services/audit-logger';
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
@@ -25,25 +26,29 @@ const upload = multer({
   }
 });
 
-// POST /api/import/upload - Start a new import job
-router.post('/upload', upload.single('file'), async (req: Request, res: Response) => {
+// POST /api/import/upload - Start new import jobs (supports multiple files)
+router.post('/upload', upload.array('files', 50), async (req: Request, res: Response) => {
   try {
-    if (!req.file) {
-      return res.status(400).json({ error: 'No file uploaded' });
+    const files = req.files as Express.Multer.File[];
+    if (!files || files.length === 0) {
+      return res.status(400).json({ error: 'No files uploaded' });
     }
 
     const userId = 1; // TODO: Get from authenticated user session
-    const fileName = req.file.originalname;
-    const filePath = req.file.path;
     const format = req.body.format || 'auto-detect';
+    const jobIds: string[] = [];
 
-    // Create import job
-    const jobId = rustImporter.createJob(userId, fileName, filePath, format);
+    // Create import job for each file
+    for (const file of files) {
+      const jobId = rustImporter.createJob(userId, file.originalname, file.path, format);
+      jobIds.push(jobId);
+    }
 
     res.json({
       success: true,
-      jobId,
-      message: 'Import job created successfully'
+      jobIds,
+      totalFiles: files.length,
+      message: `${files.length} import jobs created successfully`
     });
 
   } catch (error) {

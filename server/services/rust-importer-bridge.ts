@@ -2,6 +2,7 @@ import { spawn, ChildProcess } from 'child_process';
 import { EventEmitter } from 'events';
 import path from 'path';
 import fs from 'fs';
+import { auditLogger } from './audit-logger';
 
 export interface ImportJob {
   id: string;
@@ -140,6 +141,10 @@ export class RustImporterBridge extends EventEmitter {
           if (line.trim()) {
             try {
               const comp: TerraFusionComp = JSON.parse(line);
+              
+              // Log to audit system with blockchain hash
+              auditLogger.logCompImport(jobId, comp);
+              
               job.recordsProcessed++;
               job.progress = Math.min(95, (job.recordsProcessed / Math.max(job.totalRecords, 100)) * 100);
               
@@ -170,6 +175,11 @@ export class RustImporterBridge extends EventEmitter {
           job.status = 'complete';
           job.progress = 100;
           job.completedAt = new Date();
+          
+          // Finalize audit with blockchain hash
+          auditLogger.finalizeJobAudit(jobId).then(result => {
+            console.log(`[Audit] Job ${jobId} finalized with Merkle root: ${result.merkleRoot}, Blockchain TX: ${result.txId}`);
+          });
         } else {
           job.status = 'error';
           job.error = `Process exited with code ${code}`;
