@@ -256,6 +256,13 @@ export function AppShell({ children }: AppShellProps) {
       icon: <Activity className="h-4 w-4" />,
       description: "Monitor AI model performance and accuracy metrics"
     },
+    { 
+      href: "/infiniform", 
+      label: "Infiniform Engine", 
+      icon: <Sparkles className="h-4 w-4" />,
+      badge: { text: "∞", variant: "destructive" },
+      description: "Post-human appraisal intelligence - living protocol system"
+    },
   ];
   
   // Report Generation - Tools for finalizing and delivering reports
