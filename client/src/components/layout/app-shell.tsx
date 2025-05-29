@@ -223,6 +223,13 @@ export function AppShell({ children }: AppShellProps) {
       description: "Machine learning-powered property valuation engine"
     },
     { 
+      href: "/meta-infrastructure", 
+      label: "Meta-Infrastructure", 
+      icon: <Zap className="h-4 w-4" />,
+      badge: { text: "Advanced", variant: "default" },
+      description: "Blockchain verification, predictive modeling, and drone coordination"
+    },
+    { 
       href: "/market-analysis", 
       label: "Market Intelligence", 
       icon: <Lightbulb className="h-4 w-4" />,
