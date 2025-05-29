@@ -36,7 +36,9 @@ import {
   Inbox,
   Search,
   Activity,
-  Zap
+  Zap,
+  Sparkles,
+  Network
 } from 'lucide-react';
 import { SyncStatus } from '@/components/ui/sync-status';
 import { Button } from '@/components/ui/button';
