@@ -8,6 +8,17 @@ import { ThemeProvider } from './components/ui/theme-provider';
 import { AppProvider } from './contexts/AppContext';
 import { AppShell } from './components/layout/AppShell';
 import ModernDashboard from './pages/ModernDashboard';
+import Reports from './pages/Reports';
+import Orders from './pages/Orders';
+import Properties from './pages/Properties';
+import Comparables from './pages/Comparables';
+import Photos from './pages/Photos';
+import Sketches from './pages/Sketches';
+import Analytics from './pages/Analytics';
+import AIAssistant from './pages/AIAssistant';
+import Conversion from './pages/Conversion';
+import Compliance from './pages/Compliance';
+import Settings from './pages/Settings';
 
 // Create the root element first
 const root = createRoot(document.getElementById("root")!);
@@ -23,17 +34,17 @@ root.render(
           <AppShell>
             <Route path="/" component={ModernDashboard} />
             <Route path="/dashboard" component={ModernDashboard} />
-            <Route path="/reports" component={() => <div className="text-center py-16 text-slate-600">Reports page - Coming Soon</div>} />
-            <Route path="/orders" component={() => <div className="text-center py-16 text-slate-600">Orders page - Coming Soon</div>} />
-            <Route path="/properties" component={() => <div className="text-center py-16 text-slate-600">Properties page - Coming Soon</div>} />
-            <Route path="/comps" component={() => <div className="text-center py-16 text-slate-600">Comparables page - Coming Soon</div>} />
-            <Route path="/photos" component={() => <div className="text-center py-16 text-slate-600">Photos page - Coming Soon</div>} />
-            <Route path="/sketches" component={() => <div className="text-center py-16 text-slate-600">Sketches page - Coming Soon</div>} />
-            <Route path="/analytics" component={() => <div className="text-center py-16 text-slate-600">Analytics page - Coming Soon</div>} />
-            <Route path="/ai" component={() => <div className="text-center py-16 text-slate-600">AI Assistant page - Coming Soon</div>} />
-            <Route path="/conversion" component={() => <div className="text-center py-16 text-slate-600">Conversion page - Coming Soon</div>} />
-            <Route path="/compliance" component={() => <div className="text-center py-16 text-slate-600">Compliance page - Coming Soon</div>} />
-            <Route path="/settings" component={() => <div className="text-center py-16 text-slate-600">Settings page - Coming Soon</div>} />
+            <Route path="/reports" component={Reports} />
+            <Route path="/orders" component={Orders} />
+            <Route path="/properties" component={Properties} />
+            <Route path="/comps" component={Comparables} />
+            <Route path="/photos" component={Photos} />
+            <Route path="/sketches" component={Sketches} />
+            <Route path="/analytics" component={Analytics} />
+            <Route path="/ai" component={AIAssistant} />
+            <Route path="/conversion" component={Conversion} />
+            <Route path="/compliance" component={Compliance} />
+            <Route path="/settings" component={Settings} />
           </AppShell>
         </AppProvider>
       </ThemeProvider>
