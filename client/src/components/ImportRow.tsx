@@ -1,9 +1,17 @@
-// Simple validation function since we can't import server code in client
+// Validation interfaces matching server-side schema
 interface ValidationIssue {
+  type: 'error' | 'warning' | 'info';
   field: string;
-  type: 'missing' | 'suspicious' | 'anomaly' | 'format';
   message: string;
-  severity: 'low' | 'medium' | 'high';
+  severity: 'critical' | 'moderate' | 'low';
+  suggestion?: string;
+}
+
+interface ValidationResult {
+  isValid: boolean;
+  confidence: number;
+  issues: ValidationIssue[];
+  correctedData?: any;
 }
 
 interface TerraFusionComp {
@@ -25,27 +33,27 @@ function validateComp(comp: TerraFusionComp): ValidationIssue[] {
   if (!comp.address) {
     issues.push({
       field: 'address',
-      type: 'missing',
+      type: 'error',
       message: 'Missing address',
-      severity: 'high'
+      severity: 'critical'
     });
   }
   
   if (!comp.sale_price_usd || comp.sale_price_usd <= 0) {
     issues.push({
       field: 'sale_price_usd',
-      type: 'missing',
+      type: 'error',
       message: 'Invalid sale price',
-      severity: 'high'
+      severity: 'critical'
     });
   }
   
   if (!comp.gla_sqft || comp.gla_sqft <= 0) {
     issues.push({
       field: 'gla_sqft',
-      type: 'missing',
+      type: 'error',
       message: 'Invalid living area',
-      severity: 'medium'
+      severity: 'moderate'
     });
   }
   
@@ -54,17 +62,22 @@ function validateComp(comp: TerraFusionComp): ValidationIssue[] {
 
 interface ImportRowProps {
   comp: TerraFusionComp;
+  validation?: ValidationResult;
 }
 
-export default function ImportRow({ comp }: ImportRowProps) {
-  const issues = validateComp(comp);
+export default function ImportRow({ comp, validation }: ImportRowProps) {
+  // Use server validation if available, fallback to client validation
+  const issues = validation?.issues || validateComp(comp);
   const hasIssues = issues.length > 0;
-  const hasHighSeverity = issues.some(issue => issue.severity === 'high');
+  const hasHighSeverity = issues.some(issue => 
+    issue.severity === 'critical'
+  );
+  const confidence = validation?.confidence;
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'high': return 'text-red-600';
-      case 'medium': return 'text-yellow-600';
+      case 'critical': return 'text-red-600';
+      case 'moderate': return 'text-yellow-600';
       case 'low': return 'text-blue-600';
       default: return 'text-gray-600';
     }
