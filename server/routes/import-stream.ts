@@ -273,4 +273,55 @@ router.get('/formats', (req: Request, res: Response) => {
   });
 });
 
+// GET /api/import/audit/:jobId - Get audit trail for a job
+router.get('/audit/:jobId', (req: Request, res: Response) => {
+  const jobId = req.params.jobId;
+  try {
+    const auditReport = auditLogger.exportAuditReport(jobId);
+    res.json(auditReport);
+  } catch (error) {
+    console.error('Audit retrieval error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve audit trail',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// GET /api/import/audit - Get all audit logs
+router.get('/audit', (req: Request, res: Response) => {
+  try {
+    const auditReport = auditLogger.exportAuditReport();
+    res.json(auditReport);
+  } catch (error) {
+    console.error('Audit retrieval error:', error);
+    res.status(500).json({ 
+      error: 'Failed to retrieve audit trails',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
+// POST /api/import/validate/rag - RAG-based LLM validation and correction
+router.post('/validate/rag', async (req: Request, res: Response) => {
+  try {
+    const { comp } = req.body;
+    
+    if (!comp) {
+      return res.status(400).json({ error: 'Property record required' });
+    }
+
+    const { llmRAGValidator } = await import('../services/llm-rag-validator');
+    const correctionResult = await llmRAGValidator.correctWithRAG(comp);
+    
+    res.json(correctionResult);
+  } catch (error) {
+    console.error('RAG validation error:', error);
+    res.status(500).json({ 
+      error: 'Failed to validate with RAG',
+      details: error instanceof Error ? error.message : 'Unknown error'
+    });
+  }
+});
+
 export default router;
