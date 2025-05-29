@@ -37,6 +37,12 @@ export function Sidebar() {
       isActive: location === "/"
     },
     {
+      icon: Database,
+      label: "Legacy Importer",
+      href: "/legacy-import",
+      isActive: location.startsWith("/legacy-import")
+    },
+    {
       icon: FileText,
       label: "Orders",
       href: "/orders",
