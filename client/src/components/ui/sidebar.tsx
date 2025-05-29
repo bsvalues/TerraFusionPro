@@ -15,7 +15,9 @@ import {
   MapPin,
   Users,
   Shield,
-  Bot
+  Bot,
+  Sparkles,
+  Database
 } from "lucide-react";
 
 interface NavItem {
@@ -92,6 +94,13 @@ export function Sidebar() {
       href: "/form-engine",
       badge: "AI",
       isActive: location.startsWith("/form-engine")
+    },
+    {
+      icon: Sparkles,
+      label: "Infiniform Engine",
+      href: "/infiniform",
+      badge: "NEW",
+      isActive: location.startsWith("/infiniform")
     }
   ];
 
