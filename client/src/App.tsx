@@ -58,6 +58,7 @@ import NewHomePage from "./pages/NewHomePage";
 import PropertyDashboard from "./pages/PropertyDashboard";
 import NewPropertyAnalyzer from "./pages/NewPropertyAnalyzer";
 import TerraFusionDashboard from "./pages/TerraFusionDashboard";
+import TestDashboard from "./pages/TestDashboard";
 import IntelligentURAR from "./pages/IntelligentURAR";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
@@ -100,7 +101,7 @@ function App() {
                 <Switch>
                 {/* Explicit routes first - Show TerraFusion Pro Dashboard */}
                 <Route path="/">
-                  {() => <TerraFusionDashboard />}
+                  {() => <TestDashboard />}
                 </Route>
                 <Route path="/property-analysis" component={PropertyDashboard} />
                 <Route path="/property-analysis-new" component={PropertyDashboard} />
