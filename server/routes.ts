@@ -18,6 +18,7 @@ import {
   ParcelNote
 } from '../packages/crdt/src/index';
 import { photoSyncRouter } from './routes/photo-sync-routes';
+import { waCountyFederation } from './services/wa-county-federation';
 import fieldNotesRouter from './routes/field-notes-routes';
 import mlsRouter from './routes/mls-routes';
 import aiValuationRouter from './routes/ai-valuation-routes';

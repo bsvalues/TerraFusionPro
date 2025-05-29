@@ -115,6 +115,13 @@ export function Sidebar() {
       href: "/zoning-map",
       badge: "AI",
       isActive: location.startsWith("/zoning-map")
+    },
+    {
+      icon: Users,
+      label: "WA County Portal",
+      href: "/wa-counties",
+      badge: "WA",
+      isActive: location.startsWith("/wa-counties")
     }
   ];
 
