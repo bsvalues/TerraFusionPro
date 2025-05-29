@@ -22,6 +22,7 @@ import EnhancedUADFormPage from "./pages/UADFormPage.enhanced";
 import { ComparablePropertiesPage } from "./pages/ComparablePropertiesPage";
 import ImportPage from "./pages/ImportPage";
 import LegacyImporter from "./pages/LegacyImporter";
+import Dashboard from "./pages/Dashboard";
 import NotFound from "./pages/not-found";
 import SharedPropertyPage from "./pages/SharedPropertyPage";
 import SnapshotViewerPage from "./pages/SnapshotViewerPage";
