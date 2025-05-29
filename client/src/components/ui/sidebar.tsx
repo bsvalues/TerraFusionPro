@@ -85,6 +85,13 @@ export function Sidebar() {
       href: "/compliance",
       badge: "QC",
       isActive: location.startsWith("/compliance")
+    },
+    {
+      icon: FileText,
+      label: "Form Engine",
+      href: "/form-engine",
+      badge: "AI",
+      isActive: location.startsWith("/form-engine")
     }
   ];
 
