@@ -47,8 +47,8 @@ export class NFTMintingService {
         return;
       }
 
-      this.provider = new ethers.providers.JsonRpcProvider(rpcUrl);
-      this.signer = new ethers.Wallet(privateKey, this.provider);
+      this.provider = new JsonRpcProvider(rpcUrl);
+      this.signer = new Wallet(privateKey, this.provider);
 
       // Contract ABI (simplified for demo)
       const contractABI = [
@@ -88,7 +88,7 @@ export class NFTMintingService {
         compData.jobId,
         ipfsURI,
         compData.county,
-        ethers.utils.parseEther(compData.salePrice.toString()),
+        parseEther(compData.salePrice.toString()),
         compData.gla,
         compData.zipCode
       );
@@ -200,7 +200,7 @@ export class NFTMintingService {
         jobId: compData.jobId,
         merkleHash: compData.merkleHash,
         county: compData.county,
-        salePrice: ethers.utils.formatEther(compData.salePrice),
+        salePrice: formatEther(compData.salePrice),
         gla: compData.gla.toNumber(),
         zipCode: compData.zipCode,
         verificationTimestamp: new Date(compData.verificationTimestamp.toNumber() * 1000),

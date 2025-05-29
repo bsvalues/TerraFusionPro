@@ -253,16 +253,52 @@ router.post('/federation/register', async (req, res) => {
 // Meta Infrastructure Status
 router.get('/status', (req, res) => {
   try {
-    const status = {
-      nft: {
+    // Safely get NFT status
+    let nftStatus;
+    try {
+      nftStatus = {
         configured: nftService.isBlockchainConfigured(),
         status: 'operational'
-      },
+      };
+    } catch (error) {
+      nftStatus = {
+        configured: false,
+        status: 'configuration_needed'
+      };
+    }
+
+    // Safely get drone status
+    let droneStatus;
+    try {
+      droneStatus = droneService.getFleetStatus();
+    } catch (error) {
+      droneStatus = {
+        totalDrones: 0,
+        activeDrones: 0,
+        pendingJobs: 0,
+        activeJobs: 0
+      };
+    }
+
+    // Safely get federation status
+    let federationStatus;
+    try {
+      federationStatus = federationService.getFederationStatus();
+    } catch (error) {
+      federationStatus = {
+        nodeId: 'demo-node',
+        totalPeers: 0,
+        onlinePeers: 0
+      };
+    }
+
+    const status = {
+      nft: nftStatus,
       prediction: {
         status: 'operational'
       },
-      drones: droneService.getFleetStatus(),
-      federation: federationService.getFederationStatus(),
+      drones: droneStatus,
+      federation: federationStatus,
       timestamp: new Date().toISOString()
     };
 
