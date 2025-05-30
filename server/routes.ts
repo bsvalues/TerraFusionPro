@@ -3101,11 +3101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const errors = [];
       
       // Process each FileDetail record (contains the actual property data)
+      console.log(`Processing ${fileDetails.length} FileDetail records...`);
+      
       for (const fileDetail of fileDetails) {
         try {
           // Extract property information from FileDetail
           const location = fileDetail.Location;
           if (location && location.trim()) {
+            console.log(`Processing record with location: ${location}`);
             // Parse location string for address components
             const locationParts = location.split(',');
             const address = locationParts[0]?.trim() || location;
@@ -3120,12 +3123,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
               zip = stateZipParts[1] || null;
             }
             
-            // Only import if we have at least an address
-            if (address && address !== location) {
+            // Import properties with location data (even if it's just area/city)
+            if (location && location.trim()) {
+              // Use location as address if it's the only info we have
+              const propertyAddress = address && address !== location ? address : location;
+              
               // Check if property already exists
-              const searchCriteria = { address };
-              if (city) searchCriteria.city = city;
-              if (state) searchCriteria.state = state;
+              const searchCriteria = { address: propertyAddress };
               
               const existingProperties = await storage.getPropertiesBySearch(searchCriteria);
               
