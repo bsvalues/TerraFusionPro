@@ -3142,7 +3142,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                 
                 // Create new property from legacy appraisal data
                 const propertyData = {
-                  address,
+                  address: propertyAddress,
                   city: city || 'Unknown',
                   state: state || 'WA',
                   zip: zip || '',
@@ -3188,7 +3188,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.status(200).json({
         message: "Legacy data import completed",
         importedProperties: importedCount,
-        totalFiles: files.length,
+        totalFiles: fileDetails.length,
         errors: errors.length,
         errorDetails: errors.slice(0, 10) // Return first 10 errors
       });
