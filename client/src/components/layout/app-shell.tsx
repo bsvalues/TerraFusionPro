@@ -294,6 +294,13 @@ export function AppShell({ children }: AppShellProps) {
       description: "Zero-knowledge proof verification for appraisal integrity"
     },
     { 
+      href: "/uad-training", 
+      label: "UAD Training Agent", 
+      icon: <GraduationCap className="h-4 w-4" />,
+      badge: { text: "AI", variant: "secondary" },
+      description: "AI-powered training system for UAD 3.6 compliance and certification"
+    },
+    { 
       href: "/infiniform", 
       label: "Infiniform Engine", 
       icon: <Sparkles className="h-4 w-4" />,
