@@ -63,7 +63,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 
 export const properties = pgTable("properties", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id),
+  createdById: integer("created_by_id").references(() => users.id),
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
@@ -95,8 +95,8 @@ export const properties = pgTable("properties", {
 });
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
-  user: one(users, {
-    fields: [properties.userId],
+  createdBy: one(users, {
+    fields: [properties.createdById],
     references: [users.id],
   }),
   orders: many(orders),

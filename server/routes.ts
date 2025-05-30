@@ -3123,6 +3123,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Create new property from legacy appraisal data with unique address
             const propertyData = {
+              createdById: 1, // Use existing test user for legacy imports
               address: uniqueAddress,
               city: location.includes('Kennewick') ? 'Kennewick' : 
                     location.includes('Richland') ? 'Richland' :
