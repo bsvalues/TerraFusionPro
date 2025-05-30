@@ -3059,6 +3059,105 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
+  // Legacy Data Import API Endpoints
+  app.get("/api/legacy/converted-data", async (req: Request, res: Response) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      const dataPath = path.join(process.cwd(), 'data/converted/filemanagement.json');
+      
+      if (!fs.existsSync(dataPath)) {
+        return res.status(404).json({ message: "Converted data not found" });
+      }
+      
+      const data = fs.readFileSync(dataPath, 'utf8');
+      const parsedData = JSON.parse(data);
+      
+      res.status(200).json(parsedData);
+    } catch (error) {
+      console.error('Error loading converted data:', error);
+      res.status(500).json({ message: "Error loading converted data" });
+    }
+  });
+
+  app.post("/api/legacy/import", async (req: Request, res: Response) => {
+    try {
+      const fs = await import('fs');
+      const path = await import('path');
+      
+      // Load converted data
+      const dataPath = path.join(process.cwd(), 'data/converted/filemanagement.json');
+      
+      if (!fs.existsSync(dataPath)) {
+        return res.status(404).json({ message: "No converted data found to import" });
+      }
+      
+      const data = fs.readFileSync(dataPath, 'utf8');
+      const parsedData = JSON.parse(data);
+      const files = parsedData.tables?.File?.data || [];
+      
+      let importedCount = 0;
+      const errors = [];
+      
+      // Process each file record and create properties
+      for (const file of files) {
+        try {
+          // Only import files with complete address information
+          if (file.StreetName && file.City && file.State) {
+            const address = `${file.StreetNumber || ''} ${file.StreetName} ${file.StreetSuffix || ''}`.trim();
+            
+            // Check if property already exists
+            const existingProperties = await storage.getPropertiesBySearch({
+              address,
+              city: file.City,
+              state: file.State
+            });
+            
+            if (existingProperties.length === 0) {
+              // Create new property from legacy data
+              const propertyData = {
+                address,
+                city: file.City,
+                state: file.State,
+                zip: file.Zip || '',
+                propertyType: 'Single Family',
+                metadata: {
+                  legacyFileId: file.FileId,
+                  originalFilename: file.Filename,
+                  legacyDateCreated: file.DateCreated,
+                  fileSize: file.FileSize,
+                  importedAt: new Date().toISOString(),
+                  source: 'Legacy SQLite Import'
+                }
+              };
+              
+              await storage.createProperty(propertyData);
+              importedCount++;
+            }
+          }
+        } catch (fileError) {
+          errors.push({
+            fileId: file.FileId,
+            error: fileError.message
+          });
+        }
+      }
+      
+      res.status(200).json({
+        message: "Legacy data import completed",
+        importedProperties: importedCount,
+        totalFiles: files.length,
+        errors: errors.length,
+        errorDetails: errors.slice(0, 10) // Return first 10 errors
+      });
+      
+    } catch (error) {
+      console.error('Error importing legacy data:', error);
+      res.status(500).json({ message: "Error importing legacy data" });
+    }
+  });
+
   // Note: SHAP WebSocket service is initialized in server/index.ts
   
   return httpServer;

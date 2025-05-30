@@ -79,6 +79,7 @@ import MultiZipForecastPage from "./pages/MultiZipForecastPage";
 import ZkChainTrustPage from "./pages/ZkChainTrustPage";
 import UADTrainingAgentPage from "./pages/UADTrainingAgentPage";
 import AgentSessionsPage from "./pages/AgentSessionsPage";
+import LegacyImporterPage from "./pages/LegacyImporterPage";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -189,6 +190,7 @@ function App() {
             <Route path="/zk-chain-trust" component={ZkChainTrustPage} />
             <Route path="/uad-training" component={UADTrainingAgentPage} />
             <Route path="/agent-sessions" component={AgentSessionsPage} />
+            <Route path="/legacy-importer" component={LegacyImporterPage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <IntelligentURAR />}

@@ -41,8 +41,9 @@ export function Sidebar() {
     {
       icon: Database,
       label: "Legacy Importer",
-      href: "/legacy-import",
-      isActive: location.startsWith("/legacy-import")
+      href: "/legacy-importer",
+      badge: "NEW",
+      isActive: location.startsWith("/legacy-importer")
     },
     {
       icon: FileText,
