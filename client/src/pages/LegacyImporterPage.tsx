@@ -94,22 +94,21 @@ export default function LegacyImporterPage() {
     importMutation.mutate();
   };
 
-  const files = legacyData?.tables?.File?.data as LegacyFile[] || [];
-  const fileCount = legacyData?.tables?.File?.rowCount || 0;
+  const fileDetails = legacyData?.tables?.FileDetail?.data || [];
+  const fileCount = legacyData?.tables?.FileDetail?.rowCount || 0;
 
-  // Calculate statistics
+  // Calculate statistics using FileDetail data (contains actual property info)
   const stats: ImportStats = {
     totalFiles: fileCount,
-    processedFiles: files.length,
-    successfulImports: files.filter(f => f.StreetName && f.City).length,
-    failedImports: files.filter(f => !f.StreetName || !f.City).length,
-    uniqueAddresses: new Set(files.map(f => 
-      `${f.StreetNumber || ''} ${f.StreetName || ''} ${f.StreetSuffix || ''}, ${f.City || ''}`
-    ).filter(addr => addr.trim() !== ',')).size
+    processedFiles: fileDetails.length,
+    successfulImports: fileDetails.filter(f => f.Location && f.Location.trim()).length,
+    failedImports: fileDetails.filter(f => !f.Location || !f.Location.trim()).length,
+    uniqueAddresses: new Set(fileDetails.map(f => f.Location)
+      .filter(location => location && location.trim())).size
   };
 
-  // Sample property files for preview
-  const sampleFiles = files.slice(0, 10);
+  // Sample property files for preview  
+  const sampleFiles = fileDetails.slice(0, 10);
 
   if (isLoading) {
     return (
@@ -235,27 +234,27 @@ export default function LegacyImporterPage() {
                 <TableHeader>
                   <TableRow>
                     <TableHead>File ID</TableHead>
-                    <TableHead>Address</TableHead>
-                    <TableHead>City</TableHead>
-                    <TableHead>State</TableHead>
-                    <TableHead>ZIP</TableHead>
-                    <TableHead>Created</TableHead>
+                    <TableHead>Location</TableHead>
+                    <TableHead>Appraiser</TableHead>
+                    <TableHead>Appraised Value</TableHead>
+                    <TableHead>Form Type</TableHead>
+                    <TableHead>Square Footage</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {sampleFiles.map((file) => {
-                    const address = `${file.StreetNumber || ''} ${file.StreetName || ''} ${file.StreetSuffix || ''}`.trim();
-                    const isComplete = file.StreetName && file.City;
+                    const location = file.Location || 'No location';
+                    const isComplete = !!(file.Location && file.Location.trim());
                     
                     return (
                       <TableRow key={file.FileId}>
                         <TableCell className="font-mono">{file.FileId}</TableCell>
-                        <TableCell>{address || 'No address'}</TableCell>
-                        <TableCell>{file.City || 'N/A'}</TableCell>
-                        <TableCell>{file.State || 'N/A'}</TableCell>
-                        <TableCell>{file.Zip || 'N/A'}</TableCell>
-                        <TableCell>{new Date(file.DateCreated).toLocaleDateString()}</TableCell>
+                        <TableCell>{location}</TableCell>
+                        <TableCell>{file.AppraiserName || 'N/A'}</TableCell>
+                        <TableCell>${file.AppraisedValue ? file.AppraisedValue.toLocaleString() : 'N/A'}</TableCell>
+                        <TableCell>{file.MajorFormDescription || 'N/A'}</TableCell>
+                        <TableCell>{file.GrossLivingArea ? `${file.GrossLivingArea} sq ft` : 'N/A'}</TableCell>
                         <TableCell>
                           <Badge variant={isComplete ? 'default' : 'secondary'}>
                             {isComplete ? 'Complete' : 'Incomplete'}
