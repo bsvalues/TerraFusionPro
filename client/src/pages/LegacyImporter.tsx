@@ -55,9 +55,26 @@ export default function LegacyImporter() {
     setImportedComps([]);
     setIsStreaming(true);
     setStreamConnected(false);
-    setUploadStatus("Starting import stream...");
+    setUploadStatus("Starting import of authentic SQLite appraisal data...");
 
-    const eventSource = new EventSource('/api/import/mock-stream');
+    // Import the real converted SQLite data
+    fetch('/api/legacy/import', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' }
+    })
+    .then(response => response.json())
+    .then(result => {
+      setUploadStatus(`Import completed: ${result.importedProperties} properties imported from ${result.totalFiles} records`);
+      setIsStreaming(false);
+      setStreamConnected(true);
+    })
+    .catch(error => {
+      setUploadStatus(`Import failed: ${error.message}`);
+      setIsStreaming(false);
+    });
+
+    // Simulate the EventSource for now
+    const eventSource = { close: () => {} } as EventSource;
     eventSourceRef.current = eventSource;
 
     eventSource.onopen = () => {
@@ -273,7 +290,7 @@ export default function LegacyImporter() {
                       : 'bg-blue-600 text-white hover:bg-blue-700'
                   }`}
                 >
-                  {isStreaming ? 'Processing...' : 'Start Demo Import'}
+                  {isStreaming ? 'Processing...' : 'Import SQLite Data'}
                 </button>
               </div>
             </div>
