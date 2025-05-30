@@ -3131,6 +3131,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     location.includes('PROSSER') ? 'Prosser' : 'Unknown',
               state: 'WA',
               zip: '',
+              county: fileDetail.County || null,
+              legalDescription: fileDetail.LegalDescription || null,
               propertyType,
               bedrooms: fileDetail.Bedrooms || null,
               bathrooms: fileDetail.Bathrooms || null,

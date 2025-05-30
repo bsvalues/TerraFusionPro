@@ -63,27 +63,40 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
 
 export const properties = pgTable("properties", {
   id: serial("id").primaryKey(),
+  userId: integer("user_id").references(() => users.id),
   address: text("address").notNull(),
   city: text("city").notNull(),
   state: text("state").notNull(),
   zip: text("zip").notNull(),
-  propertyType: text("property_type").notNull(), // residential, commercial, etc.
-  bedrooms: integer("bedrooms"),
-  bathrooms: real("bathrooms"),
-  squareFeet: integer("square_feet"),
-  lotSize: real("lot_size"),
+  county: text("county"),
+  legalDescription: text("legal_description"),
+  taxParcelId: text("tax_parcel_id"),
+  propertyType: text("property_type").notNull(),
   yearBuilt: integer("year_built"),
-  latitude: real("latitude"),
-  longitude: real("longitude"),
-  createdById: integer("created_by_id").references(() => users.id),
+  effectiveAge: integer("effective_age"),
+  grossLivingArea: real("gross_living_area"),
+  lotSize: real("lot_size"),
+  bedrooms: real("bedrooms"),
+  bathrooms: real("bathrooms"),
+  basement: text("basement"),
+  garage: text("garage"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-  metadata: json("metadata"), // Additional property details
+  parcelId: text("parcel_id"),
+  propertyIdentifier: text("property_identifier"),
+  acreage: real("acreage"),
+  squareFeet: integer("square_feet"),
+  lastSaleDate: timestamp("last_sale_date"),
+  lastSaleAmount: real("last_sale_amount"),
+  latitude: real("latitude"),
+  longitude: real("longitude"),
+  metadata: json("metadata"),
+  enableRLS: boolean("enable_r_l_s"),
 });
 
 export const propertiesRelations = relations(properties, ({ one, many }) => ({
-  createdBy: one(users, {
-    fields: [properties.createdById],
+  user: one(users, {
+    fields: [properties.userId],
     references: [users.id],
   }),
   orders: many(orders),
