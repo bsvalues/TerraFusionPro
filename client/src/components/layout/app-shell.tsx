@@ -273,6 +273,27 @@ export function AppShell({ children }: AppShellProps) {
       description: "UAD 3.6 form pipeline with simulation and validation suite"
     },
     { 
+      href: "/neural-appraiser", 
+      label: "Neural Appraiser", 
+      icon: <Brain className="h-4 w-4" />,
+      badge: { text: "NAME", variant: "destructive" },
+      description: "Digital twin agents learning from 72,000+ real-world appraisal forms"
+    },
+    { 
+      href: "/multi-zip-forecast", 
+      label: "Multi-Zip Forecast", 
+      icon: <TrendingUp className="h-4 w-4" />,
+      badge: { text: "MZDF", variant: "destructive" },
+      description: "Predictive modeling for infrastructure investment and land lift forecasting"
+    },
+    { 
+      href: "/zk-chain-trust", 
+      label: "zkChain of Trust", 
+      icon: <Shield className="h-4 w-4" />,
+      badge: { text: "ZCT", variant: "destructive" },
+      description: "Zero-knowledge proof verification for appraisal integrity"
+    },
+    { 
       href: "/infiniform", 
       label: "Infiniform Engine", 
       icon: <Sparkles className="h-4 w-4" />,

@@ -74,6 +74,9 @@ import WACountyPortalPage from "./pages/WACountyPortalPage";
 import TriCitiesRegionalPage from "./pages/TriCitiesRegionalPage";
 import WAStatewidePage from "./pages/WAStatewidePage";
 import UAD36PipelinePage from "./pages/UAD36PipelinePage";
+import NeuralAppraiserPage from "./pages/NeuralAppraiserPage";
+import MultiZipForecastPage from "./pages/MultiZipForecastPage";
+import ZkChainTrustPage from "./pages/ZkChainTrustPage";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -179,6 +182,9 @@ function App() {
             <Route path="/tri-cities" component={TriCitiesRegionalPage} />
             <Route path="/wa-statewide" component={WAStatewidePage} />
             <Route path="/uad-pipeline" component={UAD36PipelinePage} />
+            <Route path="/neural-appraiser" component={NeuralAppraiserPage} />
+            <Route path="/multi-zip-forecast" component={MultiZipForecastPage} />
+            <Route path="/zk-chain-trust" component={ZkChainTrustPage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <IntelligentURAR />}
