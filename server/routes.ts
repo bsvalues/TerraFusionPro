@@ -3095,50 +3095,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const data = fs.readFileSync(dataPath, 'utf8');
       const parsedData = JSON.parse(data);
-      const files = parsedData.tables?.File?.data || [];
+      const fileDetails = parsedData.tables?.FileDetail?.data || [];
       
       let importedCount = 0;
       const errors = [];
       
-      // Process each file record and create properties
-      for (const file of files) {
+      // Process each FileDetail record (contains the actual property data)
+      for (const fileDetail of fileDetails) {
         try {
-          // Only import files with complete address information
-          if (file.StreetName && file.City && file.State) {
-            const address = `${file.StreetNumber || ''} ${file.StreetName} ${file.StreetSuffix || ''}`.trim();
+          // Extract property information from FileDetail
+          const location = fileDetail.Location;
+          if (location && location.trim()) {
+            // Parse location string for address components
+            const locationParts = location.split(',');
+            const address = locationParts[0]?.trim() || location;
+            const city = locationParts[1]?.trim() || null;
+            const stateZip = locationParts[2]?.trim() || null;
             
-            // Check if property already exists
-            const existingProperties = await storage.getPropertiesBySearch({
-              address,
-              city: file.City,
-              state: file.State
-            });
+            let state = null;
+            let zip = null;
+            if (stateZip) {
+              const stateZipParts = stateZip.split(' ');
+              state = stateZipParts[0] || null;
+              zip = stateZipParts[1] || null;
+            }
             
-            if (existingProperties.length === 0) {
-              // Create new property from legacy data
-              const propertyData = {
-                address,
-                city: file.City,
-                state: file.State,
-                zip: file.Zip || '',
-                propertyType: 'Single Family',
-                metadata: {
-                  legacyFileId: file.FileId,
-                  originalFilename: file.Filename,
-                  legacyDateCreated: file.DateCreated,
-                  fileSize: file.FileSize,
-                  importedAt: new Date().toISOString(),
-                  source: 'Legacy SQLite Import'
-                }
-              };
+            // Only import if we have at least an address
+            if (address && address !== location) {
+              // Check if property already exists
+              const searchCriteria = { address };
+              if (city) searchCriteria.city = city;
+              if (state) searchCriteria.state = state;
               
-              await storage.createProperty(propertyData);
-              importedCount++;
+              const existingProperties = await storage.getPropertiesBySearch(searchCriteria);
+              
+              if (existingProperties.length === 0) {
+                // Determine property type from form data
+                let propertyType = 'Single Family';
+                if (fileDetail.MajorFormDescription?.includes('Condo')) {
+                  propertyType = 'Condominium';
+                } else if (fileDetail.MajorFormDescription?.includes('Multi')) {
+                  propertyType = 'Multi Family';
+                }
+                
+                // Create new property from legacy appraisal data
+                const propertyData = {
+                  address,
+                  city: city || 'Unknown',
+                  state: state || 'WA',
+                  zip: zip || '',
+                  propertyType,
+                  bedrooms: fileDetail.Bedrooms || null,
+                  bathrooms: fileDetail.Bathrooms || null,
+                  squareFootage: fileDetail.GrossLivingArea || null,
+                  metadata: {
+                    legacyFileId: fileDetail.FileId,
+                    majorFormCode: fileDetail.MajorFormCode,
+                    majorFormDescription: fileDetail.MajorFormDescription,
+                    appraisedValue: fileDetail.AppraisedValue,
+                    salePrice: fileDetail.SalePrice,
+                    saleDate: fileDetail.SaleDate,
+                    inspectionDate: fileDetail.InspectionDate,
+                    appraiserName: fileDetail.AppraiserName,
+                    clientName: fileDetail.ClientName,
+                    borrowerName: fileDetail.BorrowerName,
+                    lenderName: fileDetail.LenderName,
+                    county: fileDetail.County,
+                    censusTract: fileDetail.CensusTract,
+                    legalDescription: fileDetail.LegalDescription,
+                    importedAt: new Date().toISOString(),
+                    source: 'Legacy SQLite Appraisal Import'
+                  }
+                };
+                
+                await storage.createProperty(propertyData);
+                importedCount++;
+              }
             }
           }
         } catch (fileError) {
           errors.push({
-            fileId: file.FileId,
+            fileId: fileDetail.FileId,
             error: fileError.message
           });
         }
