@@ -3128,10 +3128,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Use location as address if it's the only info we have
               const propertyAddress = address && address !== location ? address : location;
               
-              // Check if property already exists
-              const searchCriteria = { address: propertyAddress };
-              
-              const existingProperties = await storage.getPropertiesBySearch(searchCriteria);
+              // Check if property already exists by searching for the address
+              const existingProperties = await storage.getPropertiesBySearch(propertyAddress);
               
               if (existingProperties.length === 0) {
                 // Determine property type from form data
@@ -3172,8 +3170,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
                   }
                 };
                 
+                console.log(`Creating property: ${propertyAddress} in ${city || 'Unknown'}, ${state || 'WA'}`);
                 await storage.createProperty(propertyData);
                 importedCount++;
+                console.log(`Successfully imported property ${importedCount}`);
               }
             }
           }
