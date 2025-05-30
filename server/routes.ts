@@ -3130,11 +3130,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     location.includes('WALLA WALLA') ? 'Walla Walla' :
                     location.includes('PROSSER') ? 'Prosser' : 'Unknown',
               state: 'WA',
-              zip: '',
+              zipCode: '',
               propertyType,
               bedrooms: fileDetail.Bedrooms || null,
               bathrooms: fileDetail.Bathrooms || null,
-              squareFootage: fileDetail.GrossLivingArea || null,
+              grossLivingArea: fileDetail.GrossLivingArea || null,
               metadata: {
                 legacyFileId: fileDetail.FileId,
                 majorFormCode: fileDetail.MajorFormCode,
