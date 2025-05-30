@@ -3109,73 +3109,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
           const location = fileDetail.Location;
           if (location && location.trim()) {
             console.log(`Processing record with location: ${location}`);
-            // Parse location string for address components
-            const locationParts = location.split(',');
-            const address = locationParts[0]?.trim() || location;
-            const city = locationParts[1]?.trim() || null;
-            const stateZip = locationParts[2]?.trim() || null;
             
-            let state = null;
-            let zip = null;
-            if (stateZip) {
-              const stateZipParts = stateZip.split(' ');
-              state = stateZipParts[0] || null;
-              zip = stateZipParts[1] || null;
+            // Use the full FileID as a unique identifier in the address
+            const uniqueAddress = `${location} (File: ${fileDetail.FileId})`;
+            
+            // Determine property type from form data
+            let propertyType = 'Single Family';
+            if (fileDetail.MajorFormDescription?.includes('Condo')) {
+              propertyType = 'Condominium';
+            } else if (fileDetail.MajorFormDescription?.includes('Multi')) {
+              propertyType = 'Multi Family';
             }
             
-            // Import properties with location data (even if it's just area/city)
-            if (location && location.trim()) {
-              // Use location as address if it's the only info we have
-              const propertyAddress = address && address !== location ? address : location;
-              
-              // Check if property already exists by searching for the address
-              const existingProperties = await storage.getPropertiesBySearch(propertyAddress);
-              
-              if (existingProperties.length === 0) {
-                // Determine property type from form data
-                let propertyType = 'Single Family';
-                if (fileDetail.MajorFormDescription?.includes('Condo')) {
-                  propertyType = 'Condominium';
-                } else if (fileDetail.MajorFormDescription?.includes('Multi')) {
-                  propertyType = 'Multi Family';
-                }
-                
-                // Create new property from legacy appraisal data
-                const propertyData = {
-                  address: propertyAddress,
-                  city: city || 'Unknown',
-                  state: state || 'WA',
-                  zip: zip || '',
-                  propertyType,
-                  bedrooms: fileDetail.Bedrooms || null,
-                  bathrooms: fileDetail.Bathrooms || null,
-                  squareFootage: fileDetail.GrossLivingArea || null,
-                  metadata: {
-                    legacyFileId: fileDetail.FileId,
-                    majorFormCode: fileDetail.MajorFormCode,
-                    majorFormDescription: fileDetail.MajorFormDescription,
-                    appraisedValue: fileDetail.AppraisedValue,
-                    salePrice: fileDetail.SalePrice,
-                    saleDate: fileDetail.SaleDate,
-                    inspectionDate: fileDetail.InspectionDate,
-                    appraiserName: fileDetail.AppraiserName,
-                    clientName: fileDetail.ClientName,
-                    borrowerName: fileDetail.BorrowerName,
-                    lenderName: fileDetail.LenderName,
-                    county: fileDetail.County,
-                    censusTract: fileDetail.CensusTract,
-                    legalDescription: fileDetail.LegalDescription,
-                    importedAt: new Date().toISOString(),
-                    source: 'Legacy SQLite Appraisal Import'
-                  }
-                };
-                
-                console.log(`Creating property: ${propertyAddress} in ${city || 'Unknown'}, ${state || 'WA'}`);
-                await storage.createProperty(propertyData);
-                importedCount++;
-                console.log(`Successfully imported property ${importedCount}`);
+            // Create new property from legacy appraisal data with unique address
+            const propertyData = {
+              address: uniqueAddress,
+              city: location.includes('Kennewick') ? 'Kennewick' : 
+                    location.includes('Richland') ? 'Richland' :
+                    location.includes('Pasco') ? 'Pasco' :
+                    location.includes('WALLA WALLA') ? 'Walla Walla' :
+                    location.includes('PROSSER') ? 'Prosser' : 'Unknown',
+              state: 'WA',
+              zip: '',
+              propertyType,
+              bedrooms: fileDetail.Bedrooms || null,
+              bathrooms: fileDetail.Bathrooms || null,
+              squareFootage: fileDetail.GrossLivingArea || null,
+              metadata: {
+                legacyFileId: fileDetail.FileId,
+                majorFormCode: fileDetail.MajorFormCode,
+                majorFormDescription: fileDetail.MajorFormDescription,
+                appraisedValue: fileDetail.AppraisedValue,
+                salePrice: fileDetail.SalePrice,
+                saleDate: fileDetail.SaleDate,
+                inspectionDate: fileDetail.InspectionDate,
+                appraiserName: fileDetail.AppraiserName,
+                clientName: fileDetail.ClientName,
+                borrowerName: fileDetail.BorrowerName,
+                lenderName: fileDetail.LenderName,
+                county: fileDetail.County,
+                censusTract: fileDetail.CensusTract,
+                legalDescription: fileDetail.LegalDescription,
+                importedAt: new Date().toISOString(),
+                source: 'Legacy SQLite Appraisal Import'
               }
-            }
+            };
+            
+            console.log(`Creating property: ${uniqueAddress}`);
+            await storage.createProperty(propertyData);
+            importedCount++;
+            console.log(`Successfully imported property ${importedCount}`);
           }
         } catch (fileError) {
           errors.push({
