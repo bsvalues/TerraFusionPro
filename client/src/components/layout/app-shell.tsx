@@ -266,6 +266,13 @@ export function AppShell({ children }: AppShellProps) {
       description: "Monitor AI model performance and accuracy metrics"
     },
     { 
+      href: "/uad-pipeline", 
+      label: "UAD 3.6 Pipeline", 
+      icon: <Zap className="h-4 w-4" />,
+      badge: { text: "Live", variant: "default" },
+      description: "UAD 3.6 form pipeline with simulation and validation suite"
+    },
+    { 
       href: "/infiniform", 
       label: "Infiniform Engine", 
       icon: <Sparkles className="h-4 w-4" />,
