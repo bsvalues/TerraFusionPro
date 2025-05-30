@@ -78,6 +78,7 @@ import NeuralAppraiserPage from "./pages/NeuralAppraiserPage";
 import MultiZipForecastPage from "./pages/MultiZipForecastPage";
 import ZkChainTrustPage from "./pages/ZkChainTrustPage";
 import UADTrainingAgentPage from "./pages/UADTrainingAgentPage";
+import AgentSessionsPage from "./pages/AgentSessionsPage";
 
 // Main App Component - Now using AppProvider and AppShell for consistent layout
 function App() {
@@ -187,6 +188,7 @@ function App() {
             <Route path="/multi-zip-forecast" component={MultiZipForecastPage} />
             <Route path="/zk-chain-trust" component={ZkChainTrustPage} />
             <Route path="/uad-training" component={UADTrainingAgentPage} />
+            <Route path="/agent-sessions" component={AgentSessionsPage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
                 <Route path="/urar">
                   {() => <IntelligentURAR />}

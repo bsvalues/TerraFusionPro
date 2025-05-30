@@ -301,6 +301,13 @@ export function AppShell({ children }: AppShellProps) {
       description: "AI-powered training system for UAD 3.6 compliance and certification"
     },
     { 
+      href: "/agent-sessions", 
+      label: "Agent Sessions", 
+      icon: <Bot className="h-4 w-4" />,
+      badge: { text: "Live", variant: "destructive" },
+      description: "Real-time monitoring of appraiser simulation and training sessions"
+    },
+    { 
       href: "/infiniform", 
       label: "Infiniform Engine", 
       icon: <Sparkles className="h-4 w-4" />,
