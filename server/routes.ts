@@ -3130,7 +3130,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     location.includes('WALLA WALLA') ? 'Walla Walla' :
                     location.includes('PROSSER') ? 'Prosser' : 'Unknown',
               state: 'WA',
-              zipCode: '',
+              zip: '',
               propertyType,
               bedrooms: fileDetail.Bedrooms || null,
               bathrooms: fileDetail.Bathrooms || null,
