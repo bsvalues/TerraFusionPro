@@ -3156,9 +3156,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             };
             
             console.log(`Creating property: ${uniqueAddress}`);
-            await storage.createProperty(propertyData);
-            importedCount++;
-            console.log(`Successfully imported property ${importedCount}`);
+            console.log('Property data:', JSON.stringify(propertyData, null, 2));
+            try {
+              await storage.createProperty(propertyData);
+              importedCount++;
+              console.log(`Successfully imported property ${importedCount}`);
+            } catch (createError) {
+              console.error(`Failed to create property ${uniqueAddress}:`, createError);
+              errors.push({
+                fileId: fileDetail.FileId,
+                error: `Database insert failed: ${createError.message}`
+              });
+            }
           }
         } catch (fileError) {
           errors.push({
