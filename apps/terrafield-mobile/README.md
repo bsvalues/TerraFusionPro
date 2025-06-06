@@ -75,3 +75,28 @@ The mobile app communicates with the following server endpoints:
 - `/api/sync/parcels/:parcelId/notes` - Parcel notes synchronization
 
 All synchronization requests include CRDT updates encoded as Base64 strings.
+
+## Execution Command
+
+To execute the TerraFusion revolution, run the following command:
+
+```bash
+.\EXECUTE_NOW.bat
+```
+
+# 1. Install Rust (15 minutes)
+choco install rust
+
+# 2. Configure Environment (10 minutes)
+cd terrafusion_rust
+copy .env.example .env
+# Add your API keys: OPENAI_API_KEY, ANTHROPIC_API_KEY
+
+# 3. Deploy Platform (30 minutes)
+cargo build --release
+docker-compose up -d
+cargo run --release -- run
+
+# 4. Verify All Systems (15 minutes)
+curl http://localhost:8080/api/health
+curl http://localhost:8080/api/agents
