@@ -1,14 +1,11 @@
 # 🦀 Rust Installation Guide for TerraFusion
 
-## Quick Installation Options
+## Quick Installation
 
-### Option 1: Manual Download (Recommended)
-
-1. Go to https://rustup.rs/
-2. Download rustup-init.exe
-3. Run the installer
-4. Follow prompts (default options are fine)
-5. Restart terminal
+1. Visit [https://rustup.rs/](https://rustup.rs/)
+2. Download and run the installer
+3. Follow the prompts (default settings work fine)
+4. Restart your terminal/command prompt
 
 ### Option 2: Chocolatey
 
