@@ -433,28 +433,29 @@ export default function MarketAnalysisPage() {
                   ) : (
                     <>
                       <div className="text-3xl font-bold mb-1">
-                        {marketTrendData && marketTrendData.length > 2
-                          ? // Calculate trend percentage based on first and last data points
-                            (() => {
-                              const sortedData = [...marketTrendData].sort((a, b) => {
-                                const dateA = new Date(a.month);
-                                const dateB = new Date(b.month);
-                                return dateA.getTime() - dateB.getTime();
-                              });
+                        {
+                          marketTrendData && marketTrendData.length > 2
+                            ? // Calculate trend percentage based on first and last data points
+                              (() => {
+                                const sortedData = [...marketTrendData].sort((a, b) => {
+                                  const dateA = new Date(a.month);
+                                  const dateB = new Date(b.month);
+                                  return dateA.getTime() - dateB.getTime();
+                                });
 
-                              const firstPoint = sortedData[0];
-                              const lastPoint = sortedData[sortedData.length - 1];
+                                const firstPoint = sortedData[0];
+                                const lastPoint = sortedData[sortedData.length - 1];
 
-                              if (firstPoint?.medianPrice && lastPoint?.medianPrice) {
-                                const percentChange =
-                                  ((lastPoint.medianPrice - firstPoint.medianPrice) /
-                                    firstPoint.medianPrice) *
-                                  100;
-                                return `${percentChange >= 0 ? "+" : ""}${percentChange.toFixed(1)}%`;
-                              }
-                              return "+5.2%"; // Default value
-                            })()
-                          : "+5.2%" // Default value
+                                if (firstPoint?.medianPrice && lastPoint?.medianPrice) {
+                                  const percentChange =
+                                    ((lastPoint.medianPrice - firstPoint.medianPrice) /
+                                      firstPoint.medianPrice) *
+                                    100;
+                                  return `${percentChange >= 0 ? "+" : ""}${percentChange.toFixed(1)}%`;
+                                }
+                                return "+5.2%"; // Default value
+                              })()
+                            : "+5.2%" // Default value
                         }
                       </div>
                       <p className="text-sm text-muted-foreground">Year-over-year appreciation</p>
@@ -478,23 +479,24 @@ export default function MarketAnalysisPage() {
                   ) : (
                     <>
                       <div className="text-3xl font-bold mb-1">
-                        {marketTrendData && marketTrendData.length > 0
-                          ? (() => {
-                              // Get the most recent data point
-                              const sortedData = [...marketTrendData].sort((a, b) => {
-                                const dateA = new Date(a.month);
-                                const dateB = new Date(b.month);
-                                return dateB.getTime() - dateA.getTime(); // Sort descending
-                              });
+                        {
+                          marketTrendData && marketTrendData.length > 0
+                            ? (() => {
+                                // Get the most recent data point
+                                const sortedData = [...marketTrendData].sort((a, b) => {
+                                  const dateA = new Date(a.month);
+                                  const dateB = new Date(b.month);
+                                  return dateB.getTime() - dateA.getTime(); // Sort descending
+                                });
 
-                              const latestPoint = sortedData[0];
+                                const latestPoint = sortedData[0];
 
-                              if (latestPoint?.medianPrice) {
-                                return `$${latestPoint.medianPrice.toLocaleString()}`;
-                              }
-                              return "$312,500"; // Default value
-                            })()
-                          : "$312,500" // Default value
+                                if (latestPoint?.medianPrice) {
+                                  return `$${latestPoint.medianPrice.toLocaleString()}`;
+                                }
+                                return "$312,500"; // Default value
+                              })()
+                            : "$312,500" // Default value
                         }
                       </div>
                       <p className="text-sm text-muted-foreground">Current median price</p>
@@ -518,23 +520,24 @@ export default function MarketAnalysisPage() {
                   ) : (
                     <>
                       <div className="text-3xl font-bold mb-1">
-                        {marketTrendData && marketTrendData.length > 0
-                          ? (() => {
-                              // Get the most recent data point
-                              const sortedData = [...marketTrendData].sort((a, b) => {
-                                const dateA = new Date(a.month);
-                                const dateB = new Date(b.month);
-                                return dateB.getTime() - dateA.getTime(); // Sort descending
-                              });
+                        {
+                          marketTrendData && marketTrendData.length > 0
+                            ? (() => {
+                                // Get the most recent data point
+                                const sortedData = [...marketTrendData].sort((a, b) => {
+                                  const dateA = new Date(a.month);
+                                  const dateB = new Date(b.month);
+                                  return dateB.getTime() - dateA.getTime(); // Sort descending
+                                });
 
-                              const latestPoint = sortedData[0];
+                                const latestPoint = sortedData[0];
 
-                              if (latestPoint?.daysOnMarket) {
-                                return `${Math.round(latestPoint.daysOnMarket)} days`;
-                              }
-                              return "28 days"; // Default value
-                            })()
-                          : "28 days" // Default value
+                                if (latestPoint?.daysOnMarket) {
+                                  return `${Math.round(latestPoint.daysOnMarket)} days`;
+                                }
+                                return "28 days"; // Default value
+                              })()
+                            : "28 days" // Default value
                         }
                       </div>
                       <p className="text-sm text-muted-foreground">Current days on market</p>

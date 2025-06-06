@@ -2267,12 +2267,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else if (userId) {
         history = await storage.getAdjustmentHistoryByUser(userId);
       } else {
-        return res
-          .status(400)
-          .json({
-            message:
-              "At least one query parameter is required (userId, adjustmentId, or modelAdjustmentId)",
-          });
+        return res.status(400).json({
+          message:
+            "At least one query parameter is required (userId, adjustmentId, or modelAdjustmentId)",
+        });
       }
 
       res.status(200).json(history);

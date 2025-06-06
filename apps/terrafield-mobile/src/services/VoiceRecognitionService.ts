@@ -1043,9 +1043,7 @@ export class VoiceRecognitionService {
   /**
    * Record property data
    */
-  public async recordPropertyData(
-    options: Partial<VoiceRecordingOptions> = {}
-  ): Promise<{
+  public async recordPropertyData(options: Partial<VoiceRecordingOptions> = {}): Promise<{
     recording: RecordingResult;
     transcription: TranscriptionResult;
     propertyData: Record<string, any>;
