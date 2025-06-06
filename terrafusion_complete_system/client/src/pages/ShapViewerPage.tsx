@@ -1,68 +1,85 @@
-import { useEffect, useState } from 'react';
-import { useLocation, useSearch } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { ShapViewer } from '@/components/ShapViewer';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
+import { useEffect, useState } from "react";
+import { useLocation, useSearch } from "wouter";
+import { Button } from "@/components/ui/button";
+import { ShapViewer } from "@/components/ShapViewer";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { InfoIcon, BarChart3, History, ChevronRight, HelpCircle, PlusCircle, Server } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Alert, AlertDescription } from '@/components/ui/alert';
+import {
+  InfoIcon,
+  BarChart3,
+  History,
+  ChevronRight,
+  HelpCircle,
+  PlusCircle,
+  Server,
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 export default function ShapViewerPage() {
   const [_, setLocation] = useLocation();
   const search = useSearch();
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState("shap-viewer");
-  
+
   // Parse URL parameters
   const searchParams = new URLSearchParams(search);
-  const condition = searchParams.get('condition') || 'good';
-  const propertyId = searchParams.get('propertyId') ? Number(searchParams.get('propertyId')) : undefined;
-  
+  const condition = searchParams.get("condition") || "good";
+  const propertyId = searchParams.get("propertyId")
+    ? Number(searchParams.get("propertyId"))
+    : undefined;
+
   console.log("SHAP Viewer Page rendering", { condition, propertyId });
 
   // Simulated model version information
   const modelVersionHistory = [
-    { 
-      version: "2.1.0", 
+    {
+      version: "2.1.0",
       date: "March 15, 2025",
       architect: "Dr. Sarah Chen",
       improvements: [
         "Enhanced feature extraction for historical properties",
         "Better handling of seasonal lighting variations",
-        "Reduced bias in foundation assessment"
+        "Reduced bias in foundation assessment",
       ],
       accuracy: 0.92,
-      samples: 175
+      samples: 175,
     },
-    { 
-      version: "2.0.0", 
+    {
+      version: "2.0.0",
       date: "February 1, 2025",
       architect: "Dr. Sarah Chen",
       improvements: [
         "Major architectural change to MobileNetV2",
         "Added transfer learning from real estate imagery",
-        "Improved generalization across different property styles"
+        "Improved generalization across different property styles",
       ],
       accuracy: 0.89,
-      samples: 150
+      samples: 150,
     },
-    { 
-      version: "1.0.0", 
+    {
+      version: "1.0.0",
       date: "December 10, 2024",
       architect: "Dr. Michael Torres",
       improvements: [
         "Initial release",
         "Basic condition assessment capabilities",
-        "Limited feature detection across 6 key categories"
+        "Limited feature detection across 6 key categories",
       ],
       accuracy: 0.85,
-      samples: 100
-    }
+      samples: 100,
+    },
   ];
-  
+
   // Handle viewing specific model version
   const handleViewVersion = (version: string) => {
     toast({
@@ -77,22 +94,21 @@ export default function ShapViewerPage() {
         <div className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
           <div>
             <h1 className="text-2xl md:text-3xl font-bold">SHAP Value Explorer</h1>
-            <p className="text-muted-foreground mt-1">Transparent AI-driven property condition assessments</p>
+            <p className="text-muted-foreground mt-1">
+              Transparent AI-driven property condition assessments
+            </p>
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="outline" className="px-2 py-1">
               <Server className="h-3 w-3 mr-1" />
               <span>Model v2.1.0</span>
             </Badge>
-            <Button
-              variant="outline"
-              onClick={() => setLocation('/')}
-            >
+            <Button variant="outline" onClick={() => setLocation("/")}>
               Back to Home
             </Button>
           </div>
         </div>
-        
+
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
           <TabsList className="grid grid-cols-3 md:w-[400px]">
             <TabsTrigger value="shap-viewer">
@@ -108,42 +124,41 @@ export default function ShapViewerPage() {
               Performance
             </TabsTrigger>
           </TabsList>
-          
+
           {/* SHAP Viewer Tab */}
           <TabsContent value="shap-viewer" className="mt-6">
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               <div className="lg:col-span-2">
-                <ShapViewer 
+                <ShapViewer
                   propertyId={propertyId}
-                  initialCondition={condition as string} 
+                  initialCondition={condition as string}
                   showVersionComparison={true}
                 />
               </div>
-              
+
               <div className="space-y-6">
                 <Card>
                   <CardHeader>
                     <CardTitle>About SHAP Values</CardTitle>
-                    <CardDescription>
-                      Understanding property condition scoring
-                    </CardDescription>
+                    <CardDescription>Understanding property condition scoring</CardDescription>
                   </CardHeader>
                   <CardContent>
                     <p className="mb-4 text-sm">
                       SHAP (SHapley Additive exPlanations) values help explain how each feature
-                      contributes to the final property condition score, providing transparency into AI decisions.
+                      contributes to the final property condition score, providing transparency into
+                      AI decisions.
                     </p>
                     <p className="mb-4 text-sm">
-                      Features with positive values (green) push the score higher, while
-                      features with negative values (blue) push the score lower.
+                      Features with positive values (green) push the score higher, while features
+                      with negative values (blue) push the score lower.
                     </p>
                     <p className="text-sm">
-                      This transparency helps appraisers understand and validate
-                      AI-generated condition assessments for more accurate property valuations.
+                      This transparency helps appraisers understand and validate AI-generated
+                      condition assessments for more accurate property valuations.
                     </p>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Model Evolution Benefits</CardTitle>
@@ -152,30 +167,40 @@ export default function ShapViewerPage() {
                     <ul className="space-y-2">
                       <li className="flex items-start gap-2">
                         <Badge className="mt-0.5 shrink-0">v1.0</Badge>
-                        <span className="text-sm">Basic analysis of 6 property features using ResNet architecture</span>
+                        <span className="text-sm">
+                          Basic analysis of 6 property features using ResNet architecture
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
                         <Badge className="mt-0.5 shrink-0">v2.0</Badge>
-                        <span className="text-sm">Enhanced MobileNetV2 with transfer learning from 150+ properties</span>
+                        <span className="text-sm">
+                          Enhanced MobileNetV2 with transfer learning from 150+ properties
+                        </span>
                       </li>
                       <li className="flex items-start gap-2">
-                        <Badge variant="outline" className="bg-green-50 mt-0.5 shrink-0">v2.1</Badge>
-                        <span className="text-sm">Current: Improved seasonal lighting compensation and historical property detection</span>
+                        <Badge variant="outline" className="bg-green-50 mt-0.5 shrink-0">
+                          v2.1
+                        </Badge>
+                        <span className="text-sm">
+                          Current: Improved seasonal lighting compensation and historical property
+                          detection
+                        </span>
                       </li>
                     </ul>
                   </CardContent>
                 </Card>
-                
+
                 <Alert variant="default" className="bg-slate-50">
                   <HelpCircle className="h-4 w-4 mr-2" />
                   <AlertDescription>
-                    Compare versions by selecting "Model Version" in the SHAP viewer and toggling "Compare with previous version"
+                    Compare versions by selecting "Model Version" in the SHAP viewer and toggling
+                    "Compare with previous version"
                   </AlertDescription>
                 </Alert>
               </div>
             </div>
           </TabsContent>
-          
+
           {/* Version History Tab */}
           <TabsContent value="version-history" className="mt-6">
             <Card>
@@ -193,10 +218,12 @@ export default function ShapViewerPage() {
                       {index < modelVersionHistory.length - 1 && (
                         <div className="absolute left-[15px] top-[70px] bottom-0 w-0.5 bg-slate-200"></div>
                       )}
-                      
+
                       <div className="flex gap-6">
                         <div className="flex flex-col items-center">
-                          <div className={`rounded-full h-8 w-8 flex items-center justify-center ${index === 0 ? 'bg-green-100 text-green-600' : 'bg-slate-100 text-slate-600'}`}>
+                          <div
+                            className={`rounded-full h-8 w-8 flex items-center justify-center ${index === 0 ? "bg-green-100 text-green-600" : "bg-slate-100 text-slate-600"}`}
+                          >
                             {index === 0 ? (
                               <PlusCircle className="h-5 w-5" />
                             ) : (
@@ -204,30 +231,36 @@ export default function ShapViewerPage() {
                             )}
                           </div>
                         </div>
-                        
+
                         <div className="flex-1">
                           <div className="flex flex-col md:flex-row md:items-center justify-between gap-2 mb-2">
                             <div>
                               <h3 className="text-lg font-semibold flex items-center">
                                 Version {version.version}
                                 {index === 0 && (
-                                  <Badge className="ml-2" variant="default">Current</Badge>
+                                  <Badge className="ml-2" variant="default">
+                                    Current
+                                  </Badge>
                                 )}
                               </h3>
-                              <p className="text-muted-foreground text-sm">{version.date} • By {version.architect}</p>
+                              <p className="text-muted-foreground text-sm">
+                                {version.date} • By {version.architect}
+                              </p>
                             </div>
-                            
+
                             <div className="flex items-center gap-3">
                               <div className="text-sm">
-                                <span className="text-muted-foreground">Accuracy:</span>{' '}
-                                <span className="font-medium">{(version.accuracy * 100).toFixed(0)}%</span>
+                                <span className="text-muted-foreground">Accuracy:</span>{" "}
+                                <span className="font-medium">
+                                  {(version.accuracy * 100).toFixed(0)}%
+                                </span>
                               </div>
                               <div className="text-sm">
-                                <span className="text-muted-foreground">Samples:</span>{' '}
+                                <span className="text-muted-foreground">Samples:</span>{" "}
                                 <span className="font-medium">{version.samples}</span>
                               </div>
-                              <Button 
-                                size="sm" 
+                              <Button
+                                size="sm"
                                 variant="outline"
                                 onClick={() => handleViewVersion(version.version)}
                               >
@@ -236,7 +269,7 @@ export default function ShapViewerPage() {
                               </Button>
                             </div>
                           </div>
-                          
+
                           <div className="border rounded-md p-3 bg-slate-50 mb-2">
                             <h4 className="text-sm font-medium mb-2">Improvements</h4>
                             <ul className="space-y-1">
@@ -256,15 +289,13 @@ export default function ShapViewerPage() {
               </CardContent>
             </Card>
           </TabsContent>
-          
+
           {/* Performance Tab */}
           <TabsContent value="performance" className="mt-6">
             <Card>
               <CardHeader>
                 <CardTitle>Model Performance Analytics</CardTitle>
-                <CardDescription>
-                  Analytics and metrics across model versions
-                </CardDescription>
+                <CardDescription>Analytics and metrics across model versions</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-6">
@@ -279,7 +310,7 @@ export default function ShapViewerPage() {
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-base">Error Distribution</CardTitle>
@@ -290,7 +321,7 @@ export default function ShapViewerPage() {
                         </div>
                       </CardContent>
                     </Card>
-                    
+
                     <Card>
                       <CardHeader className="pb-2">
                         <CardTitle className="text-base">Feature Importance</CardTitle>
@@ -302,7 +333,7 @@ export default function ShapViewerPage() {
                       </CardContent>
                     </Card>
                   </div>
-                  
+
                   <div>
                     <h3 className="text-lg font-medium mb-4">Model Performance Comparison</h3>
                     <div className="overflow-x-auto">
@@ -350,8 +381,9 @@ export default function ShapViewerPage() {
               </CardContent>
               <CardFooter className="text-sm text-muted-foreground">
                 <p>
-                  Performance metrics measured on validation set of 50 diverse properties across all condition scores.
-                  Drift rate indicates the percentage of predictions that significantly deviate from expert assessments.
+                  Performance metrics measured on validation set of 50 diverse properties across all
+                  condition scores. Drift rate indicates the percentage of predictions that
+                  significantly deviate from expert assessments.
                 </p>
               </CardFooter>
             </Card>

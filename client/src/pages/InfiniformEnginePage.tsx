@@ -3,15 +3,15 @@
  * Beyond forms, beyond AI, beyond belief - living protocol system
  */
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Separator } from '@/components/ui/separator';
+import React, { useState, useEffect, useRef } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Brain,
   Shield,
@@ -33,8 +33,8 @@ import {
   Sparkles,
   Database,
   Globe,
-  Lock
-} from 'lucide-react';
+  Lock,
+} from "lucide-react";
 
 interface AgentThread {
   id: string;
@@ -46,7 +46,7 @@ interface AgentThread {
 
 interface AgentMessage {
   id: string;
-  role: 'user' | 'agent';
+  role: "user" | "agent";
   content: string;
   timestamp: Date;
   reasoning?: string;
@@ -58,15 +58,15 @@ interface FieldState {
   value: any;
   agentSuggestions: string[];
   overrideReason?: string;
-  validationState: 'valid' | 'warning' | 'error';
+  validationState: "valid" | "warning" | "error";
   explainability: string;
   lastModified: Date;
-  modifiedBy: 'user' | 'agent';
+  modifiedBy: "user" | "agent";
 }
 
 interface AppraisalState {
   id: string;
-  status: 'draft' | 'agent_enhanced' | 'reviewed' | 'finalized' | 'blockchain_anchored';
+  status: "draft" | "agent_enhanced" | "reviewed" | "finalized" | "blockchain_anchored";
   fields: Record<string, FieldState>;
   agentThreads: AgentThread[];
   narrativeHistory: string[];
@@ -81,27 +81,27 @@ interface AuditEntry {
   oldValue?: any;
   newValue?: any;
   reason?: string;
-  actor: 'user' | 'agent' | 'system';
+  actor: "user" | "agent" | "system";
 }
 
 export default function InfiniformEnginePage() {
   const [appraisalState, setAppraisalState] = useState<AppraisalState>({
     id: `inf-${Date.now()}`,
-    status: 'draft',
+    status: "draft",
     fields: {},
     agentThreads: [],
     narrativeHistory: [],
     auditTrail: [],
-    hashChain: []
+    hashChain: [],
   });
 
-  const [activeAgent, setActiveAgent] = useState<string>('narrative-synth');
+  const [activeAgent, setActiveAgent] = useState<string>("narrative-synth");
   const [showExplainMode, setShowExplainMode] = useState(false);
   const [traineeMode, setTraineeMode] = useState(false);
   const [agentProfiles, setAgentProfiles] = useState({
-    'my-narrative': { style: 'professional', preferences: [], learningData: [] },
-    'my-risk': { thresholds: {}, patterns: [] },
-    'my-comp': { style: 'detailed', weightings: {} }
+    "my-narrative": { style: "professional", preferences: [], learningData: [] },
+    "my-risk": { thresholds: {}, patterns: [] },
+    "my-comp": { style: "detailed", weightings: {} },
   });
 
   // Initialize Infiniform system
@@ -111,53 +111,55 @@ export default function InfiniformEnginePage() {
   }, []);
 
   const initializeInfiniformCore = () => {
-    console.log('[Infiniform] Initializing post-human appraisal intelligence...');
-    
+    console.log("[Infiniform] Initializing post-human appraisal intelligence...");
+
     // Create initial agent threads
     const initialThreads: AgentThread[] = [
       {
-        id: 'narrative-thread',
-        agentId: 'narrative-synth',
-        agentName: 'Narrative Synthesis Agent',
+        id: "narrative-thread",
+        agentId: "narrative-synth",
+        agentName: "Narrative Synthesis Agent",
         messages: [],
-        active: true
+        active: true,
       },
       {
-        id: 'comp-thread',
-        agentId: 'comp-model',
-        agentName: 'Comparable Analysis Agent',
+        id: "comp-thread",
+        agentId: "comp-model",
+        agentName: "Comparable Analysis Agent",
         messages: [],
-        active: true
+        active: true,
       },
       {
-        id: 'risk-thread',
-        agentId: 'risk-validator',
-        agentName: 'Risk Validation Agent',
+        id: "risk-thread",
+        agentId: "risk-validator",
+        agentName: "Risk Validation Agent",
         messages: [],
-        active: true
-      }
+        active: true,
+      },
     ];
 
-    setAppraisalState(prev => ({
+    setAppraisalState((prev) => ({
       ...prev,
       agentThreads: initialThreads,
-      auditTrail: [{
-        timestamp: new Date(),
-        action: 'Infiniform Core Initialized',
-        actor: 'system'
-      }]
+      auditTrail: [
+        {
+          timestamp: new Date(),
+          action: "Infiniform Core Initialized",
+          actor: "system",
+        },
+      ],
     }));
   };
 
   const loadUserAgentProfiles = async () => {
     // Load personalized agent configurations
-    console.log('[Infiniform] Loading user agent DNA...');
+    console.log("[Infiniform] Loading user agent DNA...");
   };
 
   const handleFieldChange = (fieldId: string, value: any) => {
     const timestamp = new Date();
-    
-    setAppraisalState(prev => ({
+
+    setAppraisalState((prev) => ({
       ...prev,
       fields: {
         ...prev.fields,
@@ -165,22 +167,22 @@ export default function InfiniformEnginePage() {
           id: fieldId,
           value,
           agentSuggestions: [],
-          validationState: 'valid',
+          validationState: "valid",
           explainability: `Field updated by user at ${timestamp.toLocaleTimeString()}`,
           lastModified: timestamp,
-          modifiedBy: 'user'
-        }
+          modifiedBy: "user",
+        },
       },
       auditTrail: [
         ...prev.auditTrail,
         {
           timestamp,
-          action: 'Field Updated',
+          action: "Field Updated",
           fieldId,
           newValue: value,
-          actor: 'user'
-        }
-      ]
+          actor: "user",
+        },
+      ],
     }));
 
     // Trigger agent analysis
@@ -189,33 +191,36 @@ export default function InfiniformEnginePage() {
 
   const triggerAgentAnalysis = async (fieldId: string, value: any) => {
     console.log(`[Infiniform] Triggering agent analysis for field: ${fieldId}`);
-    
+
     // Simulate agent reasoning
     setTimeout(() => {
       const agentSuggestion = generateAgentSuggestion(fieldId, value);
-      
-      setAppraisalState(prev => ({
+
+      setAppraisalState((prev) => ({
         ...prev,
         fields: {
           ...prev.fields,
           [fieldId]: {
             ...prev.fields[fieldId],
-            agentSuggestions: [agentSuggestion]
-          }
-        }
+            agentSuggestions: [agentSuggestion],
+          },
+        },
       }));
     }, 1000);
   };
 
   const generateAgentSuggestion = (fieldId: string, value: any): string => {
     const suggestions = {
-      'property-address': `Agent suggests verifying address against county records. Confidence: 95%`,
-      'gross-living-area': `Based on comparable analysis, this GLA appears consistent with similar properties in the area. Consider reviewing measurement methodology.`,
-      'condition-rating': `Risk validator notes: Current rating aligns with photo documentation. Recommend documenting any recent improvements.`,
-      'market-conditions': `Narrative agent suggests: "Market conditions remain stable with slight appreciation trend based on recent sales analysis."`
+      "property-address": `Agent suggests verifying address against county records. Confidence: 95%`,
+      "gross-living-area": `Based on comparable analysis, this GLA appears consistent with similar properties in the area. Consider reviewing measurement methodology.`,
+      "condition-rating": `Risk validator notes: Current rating aligns with photo documentation. Recommend documenting any recent improvements.`,
+      "market-conditions": `Narrative agent suggests: "Market conditions remain stable with slight appreciation trend based on recent sales analysis."`,
     };
-    
-    return suggestions[fieldId] || `Agent analysis: Field value appears appropriate based on current data.`;
+
+    return (
+      suggestions[fieldId] ||
+      `Agent analysis: Field value appears appropriate based on current data.`
+    );
   };
 
   const explainField = (fieldId: string) => {
@@ -223,16 +228,18 @@ export default function InfiniformEnginePage() {
     if (!field) return;
 
     // Show detailed explanation overlay
-    alert(`Field Explanation:\n\n${field.explainability}\n\nAgent Reasoning: ${field.agentSuggestions.join('\n')}`);
+    alert(
+      `Field Explanation:\n\n${field.explainability}\n\nAgent Reasoning: ${field.agentSuggestions.join("\n")}`
+    );
   };
 
   const overrideWithJustification = (fieldId: string, newValue: any) => {
-    const reason = prompt('Please provide justification for this override:');
+    const reason = prompt("Please provide justification for this override:");
     if (!reason) return;
 
     const timestamp = new Date();
-    
-    setAppraisalState(prev => ({
+
+    setAppraisalState((prev) => ({
       ...prev,
       fields: {
         ...prev.fields,
@@ -241,53 +248,53 @@ export default function InfiniformEnginePage() {
           value: newValue,
           overrideReason: reason,
           lastModified: timestamp,
-          modifiedBy: 'user'
-        }
+          modifiedBy: "user",
+        },
       },
       auditTrail: [
         ...prev.auditTrail,
         {
           timestamp,
-          action: 'Override with Justification',
+          action: "Override with Justification",
           fieldId,
           newValue,
           reason,
-          actor: 'user'
-        }
-      ]
+          actor: "user",
+        },
+      ],
     }));
   };
 
   const generateNarrative = async (prompt: string) => {
-    console.log('[Infiniform] Generating AI narrative...');
-    
+    console.log("[Infiniform] Generating AI narrative...");
+
     // Simulate narrative generation
     const narrative = `Based on the subject property analysis and comparable sales data, the property exhibits ${prompt}. The market conditions analysis indicates stable demand with appropriate pricing support from recent transactions.`;
-    
-    setAppraisalState(prev => ({
+
+    setAppraisalState((prev) => ({
       ...prev,
-      narrativeHistory: [...prev.narrativeHistory, narrative]
+      narrativeHistory: [...prev.narrativeHistory, narrative],
     }));
   };
 
   const finalizeAppraisal = async () => {
-    console.log('[Infiniform] Finalizing appraisal with blockchain anchoring...');
-    
+    console.log("[Infiniform] Finalizing appraisal with blockchain anchoring...");
+
     // Generate hash chain
     const hashChain = generateHashChain(appraisalState);
-    
-    setAppraisalState(prev => ({
+
+    setAppraisalState((prev) => ({
       ...prev,
-      status: 'blockchain_anchored',
+      status: "blockchain_anchored",
       hashChain,
       auditTrail: [
         ...prev.auditTrail,
         {
           timestamp: new Date(),
-          action: 'Appraisal Finalized and Blockchain Anchored',
-          actor: 'system'
-        }
-      ]
+          action: "Appraisal Finalized and Blockchain Anchored",
+          actor: "system",
+        },
+      ],
     }));
   };
 
@@ -296,27 +303,27 @@ export default function InfiniformEnginePage() {
     return [
       `sha256:${Date.now().toString(36)}`,
       `blake2b:${Math.random().toString(36)}`,
-      `keccak256:${state.id}`
+      `keccak256:${state.id}`,
     ];
   };
 
   const exportTFP = () => {
-    console.log('[Infiniform] Exporting TerraFusion Package (.tfp)...');
-    
+    console.log("[Infiniform] Exporting TerraFusion Package (.tfp)...");
+
     const tfpData = {
       appraisal: appraisalState,
       agents: agentProfiles,
       metadata: {
         exportTime: new Date(),
-        version: 'infiniform-1.0',
-        compliance: 'UAD/UCDP + JSON-LD'
-      }
+        version: "infiniform-1.0",
+        compliance: "UAD/UCDP + JSON-LD",
+      },
     };
-    
+
     // Create downloadable file
-    const blob = new Blob([JSON.stringify(tfpData, null, 2)], { type: 'application/json' });
+    const blob = new Blob([JSON.stringify(tfpData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${appraisalState.id}.tfp`;
     a.click();
@@ -335,7 +342,7 @@ export default function InfiniformEnginePage() {
           <p className="text-xl text-blue-200">
             Post-Human Appraisal Intelligence • Living Protocol System • Beyond Forms, Beyond AI
           </p>
-          
+
           {/* Status Indicators */}
           <div className="flex items-center justify-center space-x-4">
             <Badge variant="outline" className="border-green-400 text-green-400">
@@ -397,19 +404,19 @@ export default function InfiniformEnginePage() {
                   {/* Property Info Fields */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white">Property Information</h3>
-                    
+
                     <div className="space-y-2">
                       <label className="text-sm text-slate-300">Property Address</label>
                       <div className="relative">
                         <Input
                           placeholder="Enter property address..."
                           className="bg-slate-700 border-slate-600 text-white"
-                          onChange={(e) => handleFieldChange('property-address', e.target.value)}
+                          onChange={(e) => handleFieldChange("property-address", e.target.value)}
                         />
                         <Button
                           size="sm"
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 bg-blue-600 hover:bg-blue-700"
-                          onClick={() => explainField('property-address')}
+                          onClick={() => explainField("property-address")}
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
@@ -423,12 +430,12 @@ export default function InfiniformEnginePage() {
                           type="number"
                           placeholder="Square feet..."
                           className="bg-slate-700 border-slate-600 text-white"
-                          onChange={(e) => handleFieldChange('gross-living-area', e.target.value)}
+                          onChange={(e) => handleFieldChange("gross-living-area", e.target.value)}
                         />
                         <Button
                           size="sm"
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 bg-blue-600 hover:bg-blue-700"
-                          onClick={() => explainField('gross-living-area')}
+                          onClick={() => explainField("gross-living-area")}
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
@@ -440,7 +447,7 @@ export default function InfiniformEnginePage() {
                       <div className="relative">
                         <select
                           className="w-full bg-slate-700 border border-slate-600 text-white rounded-md p-2"
-                          onChange={(e) => handleFieldChange('condition-rating', e.target.value)}
+                          onChange={(e) => handleFieldChange("condition-rating", e.target.value)}
                         >
                           <option value="">Select condition...</option>
                           <option value="excellent">Excellent</option>
@@ -452,7 +459,7 @@ export default function InfiniformEnginePage() {
                         <Button
                           size="sm"
                           className="absolute right-2 top-1/2 transform -translate-y-1/2 h-6 px-2 bg-blue-600 hover:bg-blue-700"
-                          onClick={() => explainField('condition-rating')}
+                          onClick={() => explainField("condition-rating")}
                         >
                           <Eye className="h-3 w-3" />
                         </Button>
@@ -463,20 +470,23 @@ export default function InfiniformEnginePage() {
                   {/* Agent Suggestions Panel */}
                   <div className="space-y-4">
                     <h3 className="text-lg font-semibold text-white">Agent Intelligence</h3>
-                    
+
                     <Card className="bg-slate-700 border-slate-600">
                       <CardHeader className="pb-2">
-                        <CardTitle className="text-sm text-blue-400">Live Agent Suggestions</CardTitle>
+                        <CardTitle className="text-sm text-blue-400">
+                          Live Agent Suggestions
+                        </CardTitle>
                       </CardHeader>
                       <CardContent className="space-y-2">
-                        {Object.entries(appraisalState.fields).map(([fieldId, field]) => (
-                          field.agentSuggestions.length > 0 && (
-                            <div key={fieldId} className="p-2 bg-slate-600 rounded text-sm">
-                              <div className="text-green-400 font-medium">{fieldId}</div>
-                              <div className="text-slate-300">{field.agentSuggestions[0]}</div>
-                            </div>
-                          )
-                        ))}
+                        {Object.entries(appraisalState.fields).map(
+                          ([fieldId, field]) =>
+                            field.agentSuggestions.length > 0 && (
+                              <div key={fieldId} className="p-2 bg-slate-600 rounded text-sm">
+                                <div className="text-green-400 font-medium">{fieldId}</div>
+                                <div className="text-slate-300">{field.agentSuggestions[0]}</div>
+                              </div>
+                            )
+                        )}
                         {Object.keys(appraisalState.fields).length === 0 && (
                           <div className="text-slate-400 text-sm">
                             Start entering field data to see agent suggestions...
@@ -492,7 +502,7 @@ export default function InfiniformEnginePage() {
                         onClick={() => setTraineeMode(!traineeMode)}
                       >
                         <Users className="h-4 w-4 mr-1" />
-                        {traineeMode ? 'Exit' : 'Enter'} Trainee Mode
+                        {traineeMode ? "Exit" : "Enter"} Trainee Mode
                       </Button>
                       <Button
                         size="sm"
@@ -520,11 +530,13 @@ export default function InfiniformEnginePage() {
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-3 gap-4">
-                  {appraisalState.agentThreads.map(thread => (
+                  {appraisalState.agentThreads.map((thread) => (
                     <Card key={thread.id} className="bg-slate-700 border-slate-600">
                       <CardHeader className="pb-2">
                         <CardTitle className="text-sm text-white flex items-center">
-                          <div className={`w-2 h-2 rounded-full mr-2 ${thread.active ? 'bg-green-400' : 'bg-red-400'}`} />
+                          <div
+                            className={`w-2 h-2 rounded-full mr-2 ${thread.active ? "bg-green-400" : "bg-red-400"}`}
+                          />
                           {thread.agentName}
                         </CardTitle>
                       </CardHeader>
@@ -565,7 +577,7 @@ export default function InfiniformEnginePage() {
                     className="bg-slate-700 border-slate-600 text-white min-h-[100px]"
                   />
                 </div>
-                
+
                 <Button
                   className="w-full bg-purple-600 hover:bg-purple-700"
                   onClick={() => generateNarrative("excellent condition with modern updates")}
@@ -579,7 +591,10 @@ export default function InfiniformEnginePage() {
                     <h4 className="text-white font-medium">Generated Narratives</h4>
                     <ScrollArea className="h-48 w-full">
                       {appraisalState.narrativeHistory.map((narrative, index) => (
-                        <div key={index} className="p-3 bg-slate-700 rounded mb-2 text-slate-300 text-sm">
+                        <div
+                          key={index}
+                          className="p-3 bg-slate-700 rounded mb-2 text-slate-300 text-sm"
+                        >
                           {narrative}
                         </div>
                       ))}
@@ -603,7 +618,10 @@ export default function InfiniformEnginePage() {
                 <ScrollArea className="h-96 w-full">
                   <div className="space-y-2">
                     {appraisalState.auditTrail.map((entry, index) => (
-                      <div key={index} className="flex items-center justify-between p-3 bg-slate-700 rounded">
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-3 bg-slate-700 rounded"
+                      >
                         <div className="space-y-1">
                           <div className="text-white font-medium">{entry.action}</div>
                           {entry.fieldId && (
@@ -617,11 +635,16 @@ export default function InfiniformEnginePage() {
                           <div className="text-xs text-slate-400">
                             {entry.timestamp.toLocaleString()}
                           </div>
-                          <Badge variant="outline" className={`text-xs ${
-                            entry.actor === 'user' ? 'border-blue-400 text-blue-400' :
-                            entry.actor === 'agent' ? 'border-green-400 text-green-400' :
-                            'border-orange-400 text-orange-400'
-                          }`}>
+                          <Badge
+                            variant="outline"
+                            className={`text-xs ${
+                              entry.actor === "user"
+                                ? "border-blue-400 text-blue-400"
+                                : entry.actor === "agent"
+                                  ? "border-green-400 text-green-400"
+                                  : "border-orange-400 text-orange-400"
+                            }`}
+                          >
                             {entry.actor}
                           </Badge>
                         </div>
@@ -661,7 +684,7 @@ export default function InfiniformEnginePage() {
                       </div>
                     </div>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <h4 className="text-white font-medium">Your Contributions</h4>
                     <div className="space-y-1 text-sm">
@@ -680,7 +703,7 @@ export default function InfiniformEnginePage() {
                     </div>
                   </div>
                 </div>
-                
+
                 <Button className="w-full bg-teal-600 hover:bg-teal-700">
                   <Globe className="h-4 w-4 mr-2" />
                   Explore Comp Network
@@ -708,15 +731,17 @@ export default function InfiniformEnginePage() {
                       <div className="text-xs text-slate-400">Ready for export</div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card className="bg-slate-700 border-slate-600">
                     <CardContent className="p-4 text-center">
                       <Hash className="h-8 w-8 mx-auto mb-2 text-blue-400" />
                       <div className="text-white font-medium">Hash Anchored</div>
-                      <div className="text-xs text-slate-400">{appraisalState.hashChain.length} hashes</div>
+                      <div className="text-xs text-slate-400">
+                        {appraisalState.hashChain.length} hashes
+                      </div>
                     </CardContent>
                   </Card>
-                  
+
                   <Card className="bg-slate-700 border-slate-600">
                     <CardContent className="p-4 text-center">
                       <FileSignature className="h-8 w-8 mx-auto mb-2 text-purple-400" />
@@ -730,10 +755,7 @@ export default function InfiniformEnginePage() {
                 <div className="space-y-4">
                   <h4 className="text-white font-medium">Export Formats</h4>
                   <div className="grid grid-cols-2 gap-3">
-                    <Button 
-                      className="bg-blue-600 hover:bg-blue-700"
-                      onClick={exportTFP}
-                    >
+                    <Button className="bg-blue-600 hover:bg-blue-700" onClick={exportTFP}>
                       <Database className="h-4 w-4 mr-2" />
                       Export .tfp Package
                     </Button>
@@ -753,13 +775,15 @@ export default function InfiniformEnginePage() {
                 </div>
 
                 {/* Finalize */}
-                <Button 
+                <Button
                   className="w-full bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white font-bold py-4"
                   onClick={finalizeAppraisal}
-                  disabled={appraisalState.status === 'blockchain_anchored'}
+                  disabled={appraisalState.status === "blockchain_anchored"}
                 >
                   <Lock className="h-5 w-5 mr-2" />
-                  {appraisalState.status === 'blockchain_anchored' ? 'Appraisal Finalized & Anchored' : 'Finalize & Blockchain Anchor'}
+                  {appraisalState.status === "blockchain_anchored"
+                    ? "Appraisal Finalized & Anchored"
+                    : "Finalize & Blockchain Anchor"}
                 </Button>
               </CardContent>
             </Card>
@@ -772,17 +796,15 @@ export default function InfiniformEnginePage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
                 <Badge variant="outline" className="border-blue-400 text-blue-400">
-                  Status: {appraisalState.status.replace('_', ' ').toUpperCase()}
+                  Status: {appraisalState.status.replace("_", " ").toUpperCase()}
                 </Badge>
                 <div className="text-slate-400 text-sm">
-                  Fields: {Object.keys(appraisalState.fields).length} • 
-                  Audit Entries: {appraisalState.auditTrail.length} • 
-                  Agent Threads: {appraisalState.agentThreads.length}
+                  Fields: {Object.keys(appraisalState.fields).length} • Audit Entries:{" "}
+                  {appraisalState.auditTrail.length} • Agent Threads:{" "}
+                  {appraisalState.agentThreads.length}
                 </div>
               </div>
-              <div className="text-slate-400 text-sm">
-                Infiniform ID: {appraisalState.id}
-              </div>
+              <div className="text-slate-400 text-sm">Infiniform ID: {appraisalState.id}</div>
             </div>
           </CardContent>
         </Card>

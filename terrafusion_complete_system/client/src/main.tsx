@@ -3,10 +3,10 @@ import React from "react";
 import "./index.css";
 import App from "./App";
 import EnhancedApp2 from "./EnhancedApp2";
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './lib/queryClient';
-import { ThemeProvider } from './components/ui/theme-provider';
-import { AppProvider } from './contexts/AppContext';
+import { QueryClientProvider } from "@tanstack/react-query";
+import { queryClient } from "./lib/queryClient";
+import { ThemeProvider } from "./components/ui/theme-provider";
+import { AppProvider } from "./contexts/AppContext";
 
 // Create the root element first
 const root = createRoot(document.getElementById("root")!);
@@ -22,9 +22,7 @@ root.render(
   <React.StrictMode>
     <QueryClientProvider client={queryClient}>
       <ThemeProvider>
-        <AppProvider>
-          {UseEnhancedUI ? <EnhancedApp2 /> : <App />}
-        </AppProvider>
+        <AppProvider>{UseEnhancedUI ? <EnhancedApp2 /> : <App />}</AppProvider>
       </ThemeProvider>
     </QueryClientProvider>
   </React.StrictMode>

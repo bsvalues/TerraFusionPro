@@ -1,6 +1,6 @@
 /**
  * Modal Content Protocol (MCP) Type Definitions
- * 
+ *
  * This file contains the core type definitions for the Modal Content Protocol,
  * which standardizes how data is exchanged between different components of the system.
  */
@@ -19,7 +19,7 @@ export interface MCPMessage<T = unknown> {
 // Response message interface
 export interface MCPResponseMessage<T = unknown> extends MCPMessage<T> {
   inResponseTo: string;
-  status: 'success' | 'error' | 'partial';
+  status: "success" | "error" | "partial";
   errorDetails?: {
     code: string;
     message: string;
@@ -28,41 +28,40 @@ export interface MCPResponseMessage<T = unknown> extends MCPMessage<T> {
 }
 
 // Message handler type
-export type MCPMessageHandler<T = unknown, R = unknown> = 
-  (message: MCPMessage<T>) => Promise<R>;
+export type MCPMessageHandler<T = unknown, R = unknown> = (message: MCPMessage<T>) => Promise<R>;
 
 // Standard content types for real estate appraisal domain
 export enum MCPContentTypes {
   // Property data
-  PROPERTY_DATA_REQUEST = 'mcp.property.data.request',
-  PROPERTY_DATA_RESPONSE = 'mcp.property.data.response',
-  
+  PROPERTY_DATA_REQUEST = "mcp.property.data.request",
+  PROPERTY_DATA_RESPONSE = "mcp.property.data.response",
+
   // Valuation
-  VALUATION_REQUEST = 'mcp.valuation.request',
-  VALUATION_RESPONSE = 'mcp.valuation.response',
-  
+  VALUATION_REQUEST = "mcp.valuation.request",
+  VALUATION_RESPONSE = "mcp.valuation.response",
+
   // Comparables
-  COMPARABLES_REQUEST = 'mcp.comparables.request',
-  COMPARABLES_RESPONSE = 'mcp.comparables.response',
-  
+  COMPARABLES_REQUEST = "mcp.comparables.request",
+  COMPARABLES_RESPONSE = "mcp.comparables.response",
+
   // Market analysis
-  MARKET_ANALYSIS_REQUEST = 'mcp.market.analysis.request',
-  MARKET_ANALYSIS_RESPONSE = 'mcp.market.analysis.response',
-  
+  MARKET_ANALYSIS_REQUEST = "mcp.market.analysis.request",
+  MARKET_ANALYSIS_RESPONSE = "mcp.market.analysis.response",
+
   // Document extraction
-  DOCUMENT_EXTRACTION_REQUEST = 'mcp.document.extraction.request',
-  DOCUMENT_EXTRACTION_RESPONSE = 'mcp.document.extraction.response',
-  
+  DOCUMENT_EXTRACTION_REQUEST = "mcp.document.extraction.request",
+  DOCUMENT_EXTRACTION_RESPONSE = "mcp.document.extraction.response",
+
   // Compliance
-  COMPLIANCE_CHECK_REQUEST = 'mcp.compliance.check.request',
-  COMPLIANCE_CHECK_RESPONSE = 'mcp.compliance.check.response',
-  
+  COMPLIANCE_CHECK_REQUEST = "mcp.compliance.check.request",
+  COMPLIANCE_CHECK_RESPONSE = "mcp.compliance.check.response",
+
   // Narrative generation
-  NARRATIVE_GENERATION_REQUEST = 'mcp.narrative.generation.request',
-  NARRATIVE_GENERATION_RESPONSE = 'mcp.narrative.generation.response',
-  
+  NARRATIVE_GENERATION_REQUEST = "mcp.narrative.generation.request",
+  NARRATIVE_GENERATION_RESPONSE = "mcp.narrative.generation.response",
+
   // Errors
-  ERROR = 'mcp.error'
+  ERROR = "mcp.error",
 }
 
 // Common data structures used across the MCP
@@ -86,14 +85,14 @@ export interface PropertyData {
 
 export interface ValuationRequest {
   property: PropertyData;
-  approachType: 'sales_comparison' | 'cost' | 'income' | 'all';
+  approachType: "sales_comparison" | "cost" | "income" | "all";
   includeAdjustments?: boolean;
   includeRationale?: boolean;
 }
 
 export interface ValuationResponse {
   estimatedValue: number;
-  confidenceLevel: 'high' | 'medium' | 'low';
+  confidenceLevel: "high" | "medium" | "low";
   valueRange?: {
     min: number;
     max: number;
@@ -127,7 +126,7 @@ export interface DocumentExtractionResponse {
 export interface ComplianceCheckRequest {
   reportText: string;
   complianceStandards: string[];
-  severityThreshold?: 'low' | 'medium' | 'high';
+  severityThreshold?: "low" | "medium" | "high";
 }
 
 export interface ComplianceCheckResponse {
@@ -135,7 +134,7 @@ export interface ComplianceCheckResponse {
   issues: Array<{
     standard: string;
     description: string;
-    severity: 'low' | 'medium' | 'high';
+    severity: "low" | "medium" | "high";
     location?: string;
     recommendation?: string;
   }>;
@@ -143,10 +142,16 @@ export interface ComplianceCheckResponse {
 }
 
 export interface NarrativeGenerationRequest {
-  section: 'neighborhood' | 'improvements' | 'site' | 'market_conditions' | 'approach_to_value' | 'reconciliation';
+  section:
+    | "neighborhood"
+    | "improvements"
+    | "site"
+    | "market_conditions"
+    | "approach_to_value"
+    | "reconciliation";
   propertyData: PropertyData;
   additionalContext?: string;
-  length?: 'brief' | 'standard' | 'detailed';
+  length?: "brief" | "standard" | "detailed";
 }
 
 export interface NarrativeGenerationResponse {
@@ -166,7 +171,7 @@ export type MCPContentTypeMap = {
   [MCPContentTypes.COMPLIANCE_CHECK_RESPONSE]: ComplianceCheckResponse;
   [MCPContentTypes.NARRATIVE_GENERATION_REQUEST]: NarrativeGenerationRequest;
   [MCPContentTypes.NARRATIVE_GENERATION_RESPONSE]: NarrativeGenerationResponse;
-}
+};
 
 // Type-safe message creator
 export function createMCPMessage<T extends MCPContentTypes>(
@@ -183,7 +188,7 @@ export function createMCPMessage<T extends MCPContentTypes>(
     recipient,
     contentType,
     content,
-    metadata
+    metadata,
   };
 }
 
@@ -192,7 +197,7 @@ export function createMCPResponse<T extends MCPContentTypes>(
   originalMessage: MCPMessage,
   contentType: T,
   content: MCPContentTypeMap[T],
-  status: 'success' | 'error' | 'partial' = 'success',
+  status: "success" | "error" | "partial" = "success",
   errorDetails?: { code: string; message: string; details?: any }
 ): MCPResponseMessage<MCPContentTypeMap[T]> {
   return {
@@ -205,6 +210,6 @@ export function createMCPResponse<T extends MCPContentTypes>(
     content,
     metadata: {},
     status,
-    errorDetails
+    errorDetails,
   };
 }

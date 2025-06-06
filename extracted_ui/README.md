@@ -1,4 +1,3 @@
-
 # TerraFusionPro Bootstrap Guide
 
 This archive contains everything needed to deploy TerraFusionPro locally, in production via Docker, on Kubernetes via Helm, or to provision AWS infrastructure using Terraform.
@@ -34,6 +33,7 @@ terraform apply
 ```
 
 Creates:
+
 - S3 bucket for backups
 - PostgreSQL (RDS) instance
 

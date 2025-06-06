@@ -1,11 +1,11 @@
-import { BaseAgent } from '../core/base-agent';
-import { AIService } from '../core/ai-service';
-import { AgentTask } from '../interfaces/agent';
-import { RealEstateTerm } from '@shared/schema';
+import { BaseAgent } from "../core/base-agent";
+import { AIService } from "../core/ai-service";
+import { AgentTask } from "../interfaces/agent";
+import { RealEstateTerm } from "@shared/schema";
 
 /**
  * Terminology Agent
- * 
+ *
  * Specializes in explaining and contextualizing real estate terminology
  * to help users understand complex terms within their specific use case.
  */
@@ -17,16 +17,19 @@ export class TerminologyAgent extends BaseAgent {
    * Constructor
    */
   constructor() {
-    super('terminology-agent', 'Terminology Explanation Agent');
+    super("terminology-agent", "Terminology Explanation Agent");
     this.aiService = new AIService();
     this.logger = console;
-    
+
     // Register handlers for specific terminology tasks
-    this.registerTaskHandler('explain_term', this.explainTerm.bind(this));
-    this.registerTaskHandler('generate_contextual_definition', this.generateContextualDefinition.bind(this));
-    this.registerTaskHandler('find_related_terms', this.findRelatedTerms.bind(this));
-    this.registerTaskHandler('simplify_explanation', this.simplifyExplanation.bind(this));
-    this.registerTaskHandler('enhance_term_database', this.enhanceTermDatabase.bind(this));
+    this.registerTaskHandler("explain_term", this.explainTerm.bind(this));
+    this.registerTaskHandler(
+      "generate_contextual_definition",
+      this.generateContextualDefinition.bind(this)
+    );
+    this.registerTaskHandler("find_related_terms", this.findRelatedTerms.bind(this));
+    this.registerTaskHandler("simplify_explanation", this.simplifyExplanation.bind(this));
+    this.registerTaskHandler("enhance_term_database", this.enhanceTermDatabase.bind(this));
   }
 
   /**
@@ -35,13 +38,13 @@ export class TerminologyAgent extends BaseAgent {
    */
   protected async processTask<T, R>(task: AgentTask<T>): Promise<R> {
     this.logger.info(`TerminologyAgent processing task: ${task.type}`);
-    
+
     // Call the appropriate handler based on task type
     const handler = this.getTaskHandler(task.type);
     if (!handler) {
       throw new Error(`No handler for task type: ${task.type}`);
     }
-    
+
     return handler(task);
   }
 
@@ -51,18 +54,18 @@ export class TerminologyAgent extends BaseAgent {
    */
   private async explainTerm(task: AgentTask<any>): Promise<any> {
     const { term, userContext, userRole, useCase } = task.data;
-    
+
     if (!term) {
-      throw new Error('Term is required for explanation');
+      throw new Error("Term is required for explanation");
     }
-    
-    this.logger.info(`Explaining term: ${term} for ${userRole || 'general user'}`);
-    
+
+    this.logger.info(`Explaining term: ${term} for ${userRole || "general user"}`);
+
     // Construct the prompt for the AI
     const prompt = `
-      Please explain the real estate term "${term}" in a way that's appropriate for ${userRole || 'a property owner'}.
-      ${userContext ? `Context: ${userContext}` : ''}
-      ${useCase ? `The explanation will be used for: ${useCase}` : ''}
+      Please explain the real estate term "${term}" in a way that's appropriate for ${userRole || "a property owner"}.
+      ${userContext ? `Context: ${userContext}` : ""}
+      ${useCase ? `The explanation will be used for: ${useCase}` : ""}
       
       Provide the following:
       1. A clear, concise definition (1-2 sentences)
@@ -70,16 +73,16 @@ export class TerminologyAgent extends BaseAgent {
       3. Why this term matters in real estate transactions or assessments
       4. Any common misconceptions about this term
     `;
-    
+
     // Use the AI service to get an explanation
     const explanation = await this.aiService.getCompletion(prompt);
-    
+
     return {
       term,
       explanation,
       timestamp: new Date().toISOString(),
       context: userContext || null,
-      userRole: userRole || 'general',
+      userRole: userRole || "general",
     };
   }
 
@@ -89,48 +92,50 @@ export class TerminologyAgent extends BaseAgent {
    */
   private async generateContextualDefinition(task: AgentTask<any>): Promise<any> {
     const { term, propertyData, assessmentContext, targetAudience } = task.data;
-    
+
     if (!term) {
-      throw new Error('Term is required for contextual definition');
+      throw new Error("Term is required for contextual definition");
     }
-    
+
     this.logger.info(`Generating contextual definition for: ${term}`);
-    
+
     // Extract relevant property characteristics if provided
-    const propertyContext = propertyData ? `
-      Property Type: ${propertyData.propertyType || 'Not specified'}
-      Location: ${propertyData.county || ''}, ${propertyData.state || ''}
-      Zoning: ${propertyData.zoning || 'Not specified'}
-      ${propertyData.specialFeatures ? `Special Features: ${propertyData.specialFeatures}` : ''}
-    ` : '';
-    
+    const propertyContext = propertyData
+      ? `
+      Property Type: ${propertyData.propertyType || "Not specified"}
+      Location: ${propertyData.county || ""}, ${propertyData.state || ""}
+      Zoning: ${propertyData.zoning || "Not specified"}
+      ${propertyData.specialFeatures ? `Special Features: ${propertyData.specialFeatures}` : ""}
+    `
+      : "";
+
     // Construct the prompt with property context
     const prompt = `
       Please provide a contextual definition of the real estate term "${term}" that is specifically 
       relevant to the following context:
       
       ${propertyContext}
-      ${assessmentContext ? `Assessment Context: ${assessmentContext}` : ''}
+      ${assessmentContext ? `Assessment Context: ${assessmentContext}` : ""}
       
-      The explanation should be tailored for: ${targetAudience || 'property owners'}
+      The explanation should be tailored for: ${targetAudience || "property owners"}
       
       Please format your response as:
       - Contextual Definition: (2-3 sentences specific to this property/context)
       - Why it matters in this case: (practical significance for this specific property/situation)
       - How it affects value: (impact on property valuation in this specific context)
     `;
-    
+
     // Get the contextual definition from the AI service
     const contextualDefinition = await this.aiService.getCompletion(prompt);
-    
+
     return {
       term,
       contextualDefinition,
       propertyType: propertyData?.propertyType || null,
-      location: propertyData ? `${propertyData.county || ''}, ${propertyData.state || ''}` : null,
+      location: propertyData ? `${propertyData.county || ""}, ${propertyData.state || ""}` : null,
       assessmentContext: assessmentContext || null,
-      targetAudience: targetAudience || 'property owners',
-      timestamp: new Date().toISOString()
+      targetAudience: targetAudience || "property owners",
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -140,18 +145,19 @@ export class TerminologyAgent extends BaseAgent {
    */
   private async findRelatedTerms(task: AgentTask<any>): Promise<any> {
     const { term, count = 5, knownTerms = [] } = task.data;
-    
+
     if (!term) {
-      throw new Error('Term is required for finding related terms');
+      throw new Error("Term is required for finding related terms");
     }
-    
+
     this.logger.info(`Finding ${count} terms related to: ${term}`);
-    
+
     // Create list of already known terms to avoid redundancy
-    const knownTermsList = knownTerms.length > 0 
-      ? `Already known terms (do not repeat these): ${knownTerms.join(', ')}`
-      : '';
-    
+    const knownTermsList =
+      knownTerms.length > 0
+        ? `Already known terms (do not repeat these): ${knownTerms.join(", ")}`
+        : "";
+
     // Construct the prompt for related terms
     const prompt = `
       Please identify ${count} real estate terms that are closely related to "${term}" and would be 
@@ -165,10 +171,10 @@ export class TerminologyAgent extends BaseAgent {
       
       Format as a JSON array of objects with properties: termName, definition, relationship
     `;
-    
+
     // Get the related terms from the AI service
     const relatedTermsText = await this.aiService.getCompletionWithJsonResponse(prompt);
-    
+
     // Parse the JSON response
     let relatedTerms;
     try {
@@ -177,12 +183,12 @@ export class TerminologyAgent extends BaseAgent {
       this.logger.error(`Error parsing related terms JSON: ${error.message}`);
       relatedTerms = [];
     }
-    
+
     return {
       sourceTerm: term,
       relatedTerms,
       count: relatedTerms.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -191,14 +197,14 @@ export class TerminologyAgent extends BaseAgent {
    * @param task The task containing the term and original explanation
    */
   private async simplifyExplanation(task: AgentTask<any>): Promise<any> {
-    const { term, originalExplanation, targetReadingLevel = 'middle school' } = task.data;
-    
+    const { term, originalExplanation, targetReadingLevel = "middle school" } = task.data;
+
     if (!term || !originalExplanation) {
-      throw new Error('Term and original explanation are required for simplification');
+      throw new Error("Term and original explanation are required for simplification");
     }
-    
+
     this.logger.info(`Simplifying explanation for "${term}" to ${targetReadingLevel} level`);
-    
+
     // Construct the prompt for simplification
     const prompt = `
       Please simplify the following real estate term explanation to a ${targetReadingLevel} reading level.
@@ -214,16 +220,16 @@ export class TerminologyAgent extends BaseAgent {
       2. A real-world comparison or analogy that makes the concept intuitive
       3. Why this matters to someone who owns or wants to buy a home
     `;
-    
+
     // Get the simplified explanation from the AI service
     const simplifiedExplanation = await this.aiService.getCompletion(prompt);
-    
+
     return {
       term,
       originalExplanation,
       simplifiedExplanation,
       targetReadingLevel,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 
@@ -232,16 +238,16 @@ export class TerminologyAgent extends BaseAgent {
    * @param task The task containing terms to enhance
    */
   private async enhanceTermDatabase(task: AgentTask<any>): Promise<any> {
-    const { terms, detailLevel = 'comprehensive' } = task.data;
-    
+    const { terms, detailLevel = "comprehensive" } = task.data;
+
     if (!terms || !Array.isArray(terms) || terms.length === 0) {
-      throw new Error('Array of terms is required for database enhancement');
+      throw new Error("Array of terms is required for database enhancement");
     }
-    
+
     this.logger.info(`Enhancing ${terms.length} terms in database`);
-    
+
     const enhancedTerms: Partial<RealEstateTerm>[] = [];
-    
+
     // Process each term to enhance its definition and metadata
     for (const termName of terms) {
       const prompt = `
@@ -259,26 +265,28 @@ export class TerminologyAgent extends BaseAgent {
           "source": "Source of this definition, if applicable"
         }
       `;
-      
+
       try {
         // Get enhanced term details
         const enhancedTermJson = await this.aiService.getCompletionWithJsonResponse(prompt);
-        
+
         try {
           const parsedTerm = JSON.parse(enhancedTermJson);
           enhancedTerms.push(parsedTerm);
         } catch (parseError) {
-          this.logger.error(`Error parsing enhanced term JSON for ${termName}: ${parseError.message}`);
+          this.logger.error(
+            `Error parsing enhanced term JSON for ${termName}: ${parseError.message}`
+          );
         }
       } catch (error) {
         this.logger.error(`Error enhancing term ${termName}: ${error.message}`);
       }
     }
-    
+
     return {
       enhancedTerms,
       count: enhancedTerms.length,
-      timestamp: new Date().toISOString()
+      timestamp: new Date().toISOString(),
     };
   }
 }

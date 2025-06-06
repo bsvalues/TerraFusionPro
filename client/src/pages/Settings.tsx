@@ -1,11 +1,11 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Switch } from '@/components/ui/switch';
-import { 
-  Settings as SettingsIcon, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
+import {
+  Settings as SettingsIcon,
   User,
   Shield,
   Bell,
@@ -15,8 +15,8 @@ import {
   Globe,
   Save,
   RefreshCw,
-  Download
-} from 'lucide-react';
+  Download,
+} from "lucide-react";
 
 export default function Settings() {
   return (
@@ -25,7 +25,9 @@ export default function Settings() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-slate-900">Settings</h1>
-          <p className="text-slate-600">Manage your account, preferences, and system configuration</p>
+          <p className="text-slate-600">
+            Manage your account, preferences, and system configuration
+          </p>
         </div>
         <div className="flex gap-2">
           <Button variant="outline">
@@ -110,7 +112,9 @@ export default function Settings() {
               <div className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">AI Insights</div>
-                  <div className="text-sm text-slate-500">AI-generated insights and suggestions</div>
+                  <div className="text-sm text-slate-500">
+                    AI-generated insights and suggestions
+                  </div>
                 </div>
                 <Switch defaultChecked />
               </div>

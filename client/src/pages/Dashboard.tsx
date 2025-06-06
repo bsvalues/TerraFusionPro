@@ -3,13 +3,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  TrendingUp, 
-  FileText, 
-  Bot, 
-  Zap, 
-  Clock, 
-  CheckCircle, 
+import {
+  TrendingUp,
+  FileText,
+  Bot,
+  Zap,
+  Clock,
+  CheckCircle,
   AlertTriangle,
   Users,
   BarChart3,
@@ -17,7 +17,7 @@ import {
   ArrowRight,
   Activity,
   DollarSign,
-  MapPin
+  MapPin,
 } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { Link } from "wouter";
@@ -33,11 +33,11 @@ interface DashboardStats {
 
 interface RecentActivity {
   id: string;
-  type: 'order' | 'conversion' | 'qc' | 'ai_insight';
+  type: "order" | "conversion" | "qc" | "ai_insight";
   title: string;
   subtitle: string;
   time: string;
-  status: 'completed' | 'pending' | 'in_progress';
+  status: "completed" | "pending" | "in_progress";
 }
 
 export default function Dashboard() {
@@ -48,7 +48,7 @@ export default function Dashboard() {
     avgTurnaroundTime: "2.3 days",
     aiConversions: 24,
     qcPending: 3,
-    totalValue: "$2.4M"
+    totalValue: "$2.4M",
   };
 
   const recentActivities: RecentActivity[] = [
@@ -58,15 +58,15 @@ export default function Dashboard() {
       title: "AI Agent completed property analysis",
       subtitle: "406 Stardust Ct, Grandview WA - $485,000 valuation",
       time: "2 minutes ago",
-      status: "completed"
+      status: "completed",
     },
     {
-      id: "2", 
+      id: "2",
       type: "conversion",
       title: "Data conversion completed",
       subtitle: "MLS export converted: 45 properties processed",
       time: "8 minutes ago",
-      status: "completed"
+      status: "completed",
     },
     {
       id: "3",
@@ -74,7 +74,7 @@ export default function Dashboard() {
       title: "QC Review required",
       subtitle: "Comparable adjustments need verification",
       time: "15 minutes ago",
-      status: "pending"
+      status: "pending",
     },
     {
       id: "4",
@@ -82,24 +82,31 @@ export default function Dashboard() {
       title: "New appraisal order",
       subtitle: "Single family residence - Rush order",
       time: "32 minutes ago",
-      status: "in_progress"
-    }
+      status: "in_progress",
+    },
   ];
 
-  const getActivityIcon = (type: RecentActivity['type']) => {
+  const getActivityIcon = (type: RecentActivity["type"]) => {
     switch (type) {
-      case 'ai_insight': return <Bot className="w-4 h-4" />;
-      case 'conversion': return <RefreshCw className="w-4 h-4" />;
-      case 'qc': return <AlertTriangle className="w-4 h-4" />;
-      case 'order': return <FileText className="w-4 h-4" />;
+      case "ai_insight":
+        return <Bot className="w-4 h-4" />;
+      case "conversion":
+        return <RefreshCw className="w-4 h-4" />;
+      case "qc":
+        return <AlertTriangle className="w-4 h-4" />;
+      case "order":
+        return <FileText className="w-4 h-4" />;
     }
   };
 
-  const getStatusColor = (status: RecentActivity['status']) => {
+  const getStatusColor = (status: RecentActivity["status"]) => {
     switch (status) {
-      case 'completed': return 'bg-green-500';
-      case 'pending': return 'bg-orange-500';
-      case 'in_progress': return 'bg-blue-500';
+      case "completed":
+        return "bg-green-500";
+      case "pending":
+        return "bg-orange-500";
+      case "in_progress":
+        return "bg-blue-500";
     }
   };
 
@@ -253,7 +260,10 @@ export default function Dashboard() {
           <CardContent>
             <div className="space-y-4">
               {recentActivities.map((activity) => (
-                <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors">
+                <div
+                  key={activity.id}
+                  className="flex items-start space-x-3 p-3 rounded-lg bg-muted/30 hover:bg-muted/50 transition-colors"
+                >
                   <div className="mt-1">
                     <div className={`w-2 h-2 rounded-full ${getStatusColor(activity.status)}`} />
                   </div>

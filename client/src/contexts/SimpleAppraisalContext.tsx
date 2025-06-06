@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
-import { User, AppraisalReport } from '../../shared/schema';
+import React, { createContext, useContext, useState, ReactNode } from "react";
+import { User, AppraisalReport } from "../../shared/schema";
 
 // Define a simplified context type
 interface SimpleAppraisalContextType {
@@ -16,7 +16,7 @@ const SimpleAppraisalContext = createContext<SimpleAppraisalContextType | undefi
 export function useSimpleAppraisal() {
   const context = useContext(SimpleAppraisalContext);
   if (context === undefined) {
-    throw new Error('useSimpleAppraisal must be used within a SimpleAppraisalProvider');
+    throw new Error("useSimpleAppraisal must be used within a SimpleAppraisalProvider");
   }
   return context;
 }
@@ -29,27 +29,25 @@ interface SimpleAppraisalProviderProps {
 export function SimpleAppraisalProvider({ children }: SimpleAppraisalProviderProps) {
   const [currentUser, setCurrentUser] = useState<User | null>({
     id: 1,
-    username: 'demo',
-    password: 'password',
-    fullName: 'John Appraiser',
-    company: 'ABC Appraisal',
-    licenseNumber: 'AP12345',
-    email: 'john@abcappraisal.com',
-    phoneNumber: '555-123-4567'
+    username: "demo",
+    password: "password",
+    fullName: "John Appraiser",
+    company: "ABC Appraisal",
+    licenseNumber: "AP12345",
+    email: "john@abcappraisal.com",
+    phoneNumber: "555-123-4567",
   });
-  
+
   const [currentReport, setCurrentReport] = useState<AppraisalReport | null>(null);
 
   const value = {
     currentUser,
     currentReport,
     setCurrentUser,
-    setCurrentReport
+    setCurrentReport,
   };
 
   return (
-    <SimpleAppraisalContext.Provider value={value}>
-      {children}
-    </SimpleAppraisalContext.Provider>
+    <SimpleAppraisalContext.Provider value={value}>{children}</SimpleAppraisalContext.Provider>
   );
 }

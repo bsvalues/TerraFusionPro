@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -14,9 +14,9 @@ import {
   TextInput,
   KeyboardAvoidingView,
   Platform,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRoute, useNavigation } from "@react-navigation/native";
 
 import {
   FieldDataVerificationService,
@@ -26,19 +26,19 @@ import {
   VerificationBatch,
   VerificationResult,
   VerificationOptions,
-} from '../services/FieldDataVerificationService';
+} from "../services/FieldDataVerificationService";
 
 /**
  * Mock property entity for demo
  */
 const MOCK_PROPERTY = {
-  id: 'property_123',
-  address: '123 Main St',
-  city: 'Anytown',
-  state: 'CA',
-  postalCode: '90210',
-  country: 'USA',
-  propertyType: 'Single Family',
+  id: "property_123",
+  address: "123 Main St",
+  city: "Anytown",
+  state: "CA",
+  postalCode: "90210",
+  country: "USA",
+  propertyType: "Single Family",
   bedrooms: 3,
   bathrooms: 2,
   squareFootage: 2000,
@@ -49,20 +49,20 @@ const MOCK_PROPERTY = {
 
 /**
  * FieldDataVerificationScreen
- * 
+ *
  * A screen for verifying field data for consistency and quality
  */
 const FieldDataVerificationScreen: React.FC = () => {
   // Get route and navigation
   const route = useRoute();
   const navigation = useNavigation();
-  
+
   // Get property ID from route params
-  const propertyId = route.params?.propertyId || 'property_123';
-  
+  const propertyId = route.params?.propertyId || "property_123";
+
   // Service
   const verificationService = FieldDataVerificationService.getInstance();
-  
+
   // State
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isVerifying, setIsVerifying] = useState<boolean>(false);
@@ -78,326 +78,314 @@ const FieldDataVerificationScreen: React.FC = () => {
     minimumSeverity: VerificationSeverity.WARNING,
     saveResults: true,
   });
-  
+
   // Modal visibility state
   const [showRulesModal, setShowRulesModal] = useState<boolean>(false);
   const [showOptionsModal, setShowOptionsModal] = useState<boolean>(false);
   const [showResultDetailModal, setShowResultDetailModal] = useState<boolean>(false);
   const [showCreateRuleModal, setShowCreateRuleModal] = useState<boolean>(false);
   const [showEditRuleModal, setShowEditRuleModal] = useState<boolean>(false);
-  
+
   // New rule state
   const [newRule, setNewRule] = useState<Partial<VerificationRule>>({
-    name: '',
-    description: '',
+    name: "",
+    description: "",
     type: VerificationRuleType.REQUIRED_FIELD,
-    entityType: 'property',
-    fieldPath: '',
+    entityType: "property",
+    fieldPath: "",
     parameters: {},
-    errorMessage: '',
+    errorMessage: "",
     severity: VerificationSeverity.WARNING,
     enabled: true,
     tags: [],
   });
-  
+
   // Load data on mount
   useEffect(() => {
     const loadData = async () => {
       try {
         setIsLoading(true);
-        
+
         // Load rules
-        const loadedRules = await verificationService.getRules('property');
+        const loadedRules = await verificationService.getRules("property");
         setRules(loadedRules);
-        
+
         // Load results
-        const loadedResults = await verificationService.getResults(propertyId, 'property');
+        const loadedResults = await verificationService.getResults(propertyId, "property");
         setResults(loadedResults);
-        
+
         // In a real app, you would fetch the property details from a service
         // For this example, we use mock data
         setProperty(MOCK_PROPERTY);
       } catch (error) {
-        console.error('Error loading verification data:', error);
-        Alert.alert('Error', 'Failed to load verification data');
+        console.error("Error loading verification data:", error);
+        Alert.alert("Error", "Failed to load verification data");
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     loadData();
   }, [propertyId]);
-  
+
   // Handle verify property
   const handleVerifyProperty = async () => {
     try {
       setIsVerifying(true);
-      
+
       // Verify property
       const batch = await verificationService.verifyEntity(
         property,
-        'property',
+        "property",
         verificationOptions
       );
-      
+
       // Update results
-      const updatedResults = await verificationService.getResults(propertyId, 'property');
+      const updatedResults = await verificationService.getResults(propertyId, "property");
       setResults(updatedResults);
-      
+
       // Select the new batch
       setSelectedBatch(batch);
       setShowResultDetailModal(true);
     } catch (error) {
-      console.error('Error verifying property:', error);
-      Alert.alert('Error', 'Failed to verify property');
+      console.error("Error verifying property:", error);
+      Alert.alert("Error", "Failed to verify property");
     } finally {
       setIsVerifying(false);
     }
   };
-  
+
   // Handle create rule
   const handleCreateRule = async () => {
     try {
       // Validate rule
       if (!newRule.name || !newRule.description || !newRule.fieldPath || !newRule.errorMessage) {
-        Alert.alert('Error', 'Please fill in all required fields');
+        Alert.alert("Error", "Please fill in all required fields");
         return;
       }
-      
+
       // Create rule
-      await verificationService.createRule(newRule as Omit<VerificationRule, 'id' | 'createdAt' | 'updatedAt' | 'isSystemRule'>);
-      
+      await verificationService.createRule(
+        newRule as Omit<VerificationRule, "id" | "createdAt" | "updatedAt" | "isSystemRule">
+      );
+
       // Reload rules
-      const loadedRules = await verificationService.getRules('property');
+      const loadedRules = await verificationService.getRules("property");
       setRules(loadedRules);
-      
+
       // Reset new rule state
       setNewRule({
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         type: VerificationRuleType.REQUIRED_FIELD,
-        entityType: 'property',
-        fieldPath: '',
+        entityType: "property",
+        fieldPath: "",
         parameters: {},
-        errorMessage: '',
+        errorMessage: "",
         severity: VerificationSeverity.WARNING,
         enabled: true,
         tags: [],
       });
-      
+
       // Close modal
       setShowCreateRuleModal(false);
-      
+
       // Show success message
-      Alert.alert('Success', 'Rule created successfully');
+      Alert.alert("Success", "Rule created successfully");
     } catch (error) {
-      console.error('Error creating rule:', error);
-      Alert.alert('Error', 'Failed to create rule');
+      console.error("Error creating rule:", error);
+      Alert.alert("Error", "Failed to create rule");
     }
   };
-  
+
   // Handle update rule
   const handleUpdateRule = async () => {
     try {
       if (!selectedRule) return;
-      
+
       // Validate rule
       if (!newRule.name || !newRule.description || !newRule.fieldPath || !newRule.errorMessage) {
-        Alert.alert('Error', 'Please fill in all required fields');
+        Alert.alert("Error", "Please fill in all required fields");
         return;
       }
-      
+
       // Update rule
       await verificationService.updateRule(selectedRule.id, newRule);
-      
+
       // Reload rules
-      const loadedRules = await verificationService.getRules('property');
+      const loadedRules = await verificationService.getRules("property");
       setRules(loadedRules);
-      
+
       // Reset selected rule
       setSelectedRule(null);
-      
+
       // Close modal
       setShowEditRuleModal(false);
-      
+
       // Show success message
-      Alert.alert('Success', 'Rule updated successfully');
+      Alert.alert("Success", "Rule updated successfully");
     } catch (error) {
-      console.error('Error updating rule:', error);
-      Alert.alert('Error', 'Failed to update rule');
+      console.error("Error updating rule:", error);
+      Alert.alert("Error", "Failed to update rule");
     }
   };
-  
+
   // Handle delete rule
   const handleDeleteRule = async (ruleId: string) => {
     try {
       // Confirm deletion
-      Alert.alert(
-        'Confirm Deletion',
-        'Are you sure you want to delete this rule?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
+      Alert.alert("Confirm Deletion", "Are you sure you want to delete this rule?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            // Delete rule
+            const success = await verificationService.deleteRule(ruleId);
+
+            if (success) {
+              // Reload rules
+              const loadedRules = await verificationService.getRules("property");
+              setRules(loadedRules);
+
+              // Show success message
+              Alert.alert("Success", "Rule deleted successfully");
+            } else {
+              Alert.alert("Error", "Failed to delete rule");
+            }
           },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              // Delete rule
-              const success = await verificationService.deleteRule(ruleId);
-              
-              if (success) {
-                // Reload rules
-                const loadedRules = await verificationService.getRules('property');
-                setRules(loadedRules);
-                
-                // Show success message
-                Alert.alert('Success', 'Rule deleted successfully');
-              } else {
-                Alert.alert('Error', 'Failed to delete rule');
-              }
-            },
-          },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
-      console.error('Error deleting rule:', error);
-      Alert.alert('Error', 'Failed to delete rule');
+      console.error("Error deleting rule:", error);
+      Alert.alert("Error", "Failed to delete rule");
     }
   };
-  
+
   // Handle acknowledge issue
   const handleAcknowledgeIssue = async (batchId: string, resultId: string) => {
     try {
       // Prompt for notes
       Alert.prompt(
-        'Acknowledge Issue',
-        'Please enter any notes about this acknowledgment:',
+        "Acknowledge Issue",
+        "Please enter any notes about this acknowledgment:",
         [
           {
-            text: 'Cancel',
-            style: 'cancel',
+            text: "Cancel",
+            style: "cancel",
           },
           {
-            text: 'Acknowledge',
+            text: "Acknowledge",
             onPress: async (notes) => {
               // Acknowledge issue
               const success = await verificationService.acknowledgeResult(
                 batchId,
                 resultId,
-                notes || ''
+                notes || ""
               );
-              
+
               if (success) {
                 // Reload results
-                const updatedResults = await verificationService.getResults(propertyId, 'property');
+                const updatedResults = await verificationService.getResults(propertyId, "property");
                 setResults(updatedResults);
-                
+
                 // Update selected batch if needed
                 if (selectedBatch && selectedBatch.id === batchId) {
-                  const updatedBatch = updatedResults.find(batch => batch.id === batchId);
+                  const updatedBatch = updatedResults.find((batch) => batch.id === batchId);
                   if (updatedBatch) {
                     setSelectedBatch(updatedBatch);
                   }
                 }
-                
+
                 // Show success message
-                Alert.alert('Success', 'Issue acknowledged');
+                Alert.alert("Success", "Issue acknowledged");
               } else {
-                Alert.alert('Error', 'Failed to acknowledge issue');
+                Alert.alert("Error", "Failed to acknowledge issue");
               }
             },
           },
         ],
-        'plain-text'
+        "plain-text"
       );
     } catch (error) {
-      console.error('Error acknowledging issue:', error);
-      Alert.alert('Error', 'Failed to acknowledge issue');
+      console.error("Error acknowledging issue:", error);
+      Alert.alert("Error", "Failed to acknowledge issue");
     }
   };
-  
+
   // Handle delete result
   const handleDeleteResult = async (batchId: string) => {
     try {
       // Confirm deletion
-      Alert.alert(
-        'Confirm Deletion',
-        'Are you sure you want to delete this verification result?',
-        [
-          {
-            text: 'Cancel',
-            style: 'cancel',
-          },
-          {
-            text: 'Delete',
-            style: 'destructive',
-            onPress: async () => {
-              // Delete result
-              const success = await verificationService.deleteResult(batchId);
-              
-              if (success) {
-                // Reload results
-                const updatedResults = await verificationService.getResults(propertyId, 'property');
-                setResults(updatedResults);
-                
-                // Close detail modal if needed
-                if (selectedBatch && selectedBatch.id === batchId) {
-                  setSelectedBatch(null);
-                  setShowResultDetailModal(false);
-                }
-                
-                // Show success message
-                Alert.alert('Success', 'Result deleted successfully');
-              } else {
-                Alert.alert('Error', 'Failed to delete result');
+      Alert.alert("Confirm Deletion", "Are you sure you want to delete this verification result?", [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            // Delete result
+            const success = await verificationService.deleteResult(batchId);
+
+            if (success) {
+              // Reload results
+              const updatedResults = await verificationService.getResults(propertyId, "property");
+              setResults(updatedResults);
+
+              // Close detail modal if needed
+              if (selectedBatch && selectedBatch.id === batchId) {
+                setSelectedBatch(null);
+                setShowResultDetailModal(false);
               }
-            },
+
+              // Show success message
+              Alert.alert("Success", "Result deleted successfully");
+            } else {
+              Alert.alert("Error", "Failed to delete result");
+            }
           },
-        ]
-      );
+        },
+      ]);
     } catch (error) {
-      console.error('Error deleting result:', error);
-      Alert.alert('Error', 'Failed to delete result');
+      console.error("Error deleting result:", error);
+      Alert.alert("Error", "Failed to delete result");
     }
   };
-  
+
   // Render header
   const renderHeader = () => {
     return (
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <MaterialCommunityIcons name="arrow-left" size={24} color="#fff" />
         </TouchableOpacity>
-        
+
         <Text style={styles.headerTitle}>Field Data Verification</Text>
-        
-        <TouchableOpacity
-          style={styles.optionsButton}
-          onPress={() => setShowOptionsModal(true)}
-        >
+
+        <TouchableOpacity style={styles.optionsButton} onPress={() => setShowOptionsModal(true)}>
           <MaterialCommunityIcons name="cog" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
     );
   };
-  
+
   // Render property section
   const renderPropertySection = () => {
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Property Information</Text>
-        
+
         <View style={styles.propertyInfo}>
           <Text style={styles.propertyAddress}>{property.address}</Text>
           <Text style={styles.propertyLocation}>
             {property.city}, {property.state} {property.postalCode}
           </Text>
-          
+
           <View style={styles.propertySpecs}>
             <View style={styles.propertySpec}>
               <MaterialCommunityIcons name="home-floor-0" size={16} color="#3498db" />
@@ -405,49 +393,45 @@ const FieldDataVerificationScreen: React.FC = () => {
                 {property.squareFootage.toLocaleString()} sq ft
               </Text>
             </View>
-            
+
             <View style={styles.propertySpec}>
               <MaterialCommunityIcons name="bed" size={16} color="#3498db" />
               <Text style={styles.propertySpecText}>
-                {property.bedrooms} {property.bedrooms === 1 ? 'bed' : 'beds'}
+                {property.bedrooms} {property.bedrooms === 1 ? "bed" : "beds"}
               </Text>
             </View>
-            
+
             <View style={styles.propertySpec}>
               <MaterialCommunityIcons name="shower" size={16} color="#3498db" />
               <Text style={styles.propertySpecText}>
-                {property.bathrooms} {property.bathrooms === 1 ? 'bath' : 'baths'}
+                {property.bathrooms} {property.bathrooms === 1 ? "bath" : "baths"}
               </Text>
             </View>
           </View>
-          
+
           <View style={styles.propertySpecs}>
             <View style={styles.propertySpec}>
               <MaterialCommunityIcons name="calendar" size={16} color="#3498db" />
-              <Text style={styles.propertySpecText}>
-                Built {property.yearBuilt}
-              </Text>
+              <Text style={styles.propertySpecText}>Built {property.yearBuilt}</Text>
             </View>
-            
+
             <View style={styles.propertySpec}>
               <MaterialCommunityIcons name="home" size={16} color="#3498db" />
-              <Text style={styles.propertySpecText}>
-                {property.propertyType}
-              </Text>
+              <Text style={styles.propertySpecText}>{property.propertyType}</Text>
             </View>
           </View>
         </View>
       </View>
     );
   };
-  
+
   // Render rules section
   const renderRulesSection = () => {
     return (
       <View style={styles.section}>
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Verification Rules</Text>
-          
+
           <View style={styles.ruleActions}>
             <TouchableOpacity
               style={styles.viewRulesButton}
@@ -456,7 +440,7 @@ const FieldDataVerificationScreen: React.FC = () => {
               <MaterialCommunityIcons name="eye" size={16} color="#3498db" />
               <Text style={styles.viewRulesText}>View Rules</Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.createRuleButton}
               onPress={() => setShowCreateRuleModal(true)}
@@ -466,24 +450,26 @@ const FieldDataVerificationScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
         </View>
-        
+
         <Text style={styles.ruleSummary}>
-          {rules.length} rules available ({rules.filter(r => r.enabled).length} enabled)
+          {rules.length} rules available ({rules.filter((r) => r.enabled).length} enabled)
         </Text>
-        
+
         <View style={styles.ruleCategoriesContainer}>
           <Text style={styles.ruleCategoriesTitle}>Rule Categories:</Text>
           <View style={styles.ruleCategories}>
-            {Array.from(new Set(rules.flatMap(rule => rule.tags)))
+            {Array.from(new Set(rules.flatMap((rule) => rule.tags)))
               .slice(0, 5)
               .map((tag, index) => (
                 <View key={index} style={styles.ruleCategory}>
                   <Text style={styles.ruleCategoryText}>{tag}</Text>
                 </View>
               ))}
-            {Array.from(new Set(rules.flatMap(rule => rule.tags))).length > 5 && (
+            {Array.from(new Set(rules.flatMap((rule) => rule.tags))).length > 5 && (
               <View style={styles.ruleCategory}>
-                <Text style={styles.ruleCategoryText}>+{Array.from(new Set(rules.flatMap(rule => rule.tags))).length - 5} more</Text>
+                <Text style={styles.ruleCategoryText}>
+                  +{Array.from(new Set(rules.flatMap((rule) => rule.tags))).length - 5} more
+                </Text>
               </View>
             )}
           </View>
@@ -491,7 +477,7 @@ const FieldDataVerificationScreen: React.FC = () => {
       </View>
     );
   };
-  
+
   // Render verification button
   const renderVerificationButton = () => {
     return (
@@ -514,14 +500,14 @@ const FieldDataVerificationScreen: React.FC = () => {
       </TouchableOpacity>
     );
   };
-  
+
   // Render results section
   const renderResultsSection = () => {
     if (results.length === 0) {
       return (
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Verification Results</Text>
-          
+
           <View style={styles.emptyResultsContainer}>
             <MaterialCommunityIcons name="clipboard-check" size={48} color="#bdc3c7" />
             <Text style={styles.emptyResultsText}>No verification results yet</Text>
@@ -532,11 +518,11 @@ const FieldDataVerificationScreen: React.FC = () => {
         </View>
       );
     }
-    
+
     return (
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>Verification Results</Text>
-        
+
         <FlatList
           data={results}
           keyExtractor={(item) => item.id}
@@ -554,11 +540,11 @@ const FieldDataVerificationScreen: React.FC = () => {
                     styles.resultStatusBadge,
                     {
                       backgroundColor:
-                        item.status === 'passed'
-                          ? '#2ecc71'
-                          : item.status === 'warning'
-                            ? '#f39c12'
-                            : '#e74c3c',
+                        item.status === "passed"
+                          ? "#2ecc71"
+                          : item.status === "warning"
+                            ? "#f39c12"
+                            : "#e74c3c",
                     },
                   ]}
                 >
@@ -568,60 +554,60 @@ const FieldDataVerificationScreen: React.FC = () => {
                   {new Date(item.timestamp).toLocaleString()}
                 </Text>
               </View>
-              
+
               <View style={styles.resultSummary}>
                 <View style={styles.resultSummaryItem}>
                   <Text style={styles.resultSummaryLabel}>Critical</Text>
                   <Text
                     style={[
                       styles.resultSummaryValue,
-                      { color: item.issueCount.critical > 0 ? '#e74c3c' : '#2ecc71' },
+                      { color: item.issueCount.critical > 0 ? "#e74c3c" : "#2ecc71" },
                     ]}
                   >
                     {item.issueCount.critical}
                   </Text>
                 </View>
-                
+
                 <View style={styles.resultSummaryItem}>
                   <Text style={styles.resultSummaryLabel}>Errors</Text>
                   <Text
                     style={[
                       styles.resultSummaryValue,
-                      { color: item.issueCount.error > 0 ? '#e74c3c' : '#2ecc71' },
+                      { color: item.issueCount.error > 0 ? "#e74c3c" : "#2ecc71" },
                     ]}
                   >
                     {item.issueCount.error}
                   </Text>
                 </View>
-                
+
                 <View style={styles.resultSummaryItem}>
                   <Text style={styles.resultSummaryLabel}>Warnings</Text>
                   <Text
                     style={[
                       styles.resultSummaryValue,
-                      { color: item.issueCount.warning > 0 ? '#f39c12' : '#2ecc71' },
+                      { color: item.issueCount.warning > 0 ? "#f39c12" : "#2ecc71" },
                     ]}
                   >
                     {item.issueCount.warning}
                   </Text>
                 </View>
-                
+
                 <View style={styles.resultSummaryItem}>
                   <Text style={styles.resultSummaryLabel}>Info</Text>
                   <Text
                     style={[
                       styles.resultSummaryValue,
-                      { color: item.issueCount.info > 0 ? '#3498db' : '#2ecc71' },
+                      { color: item.issueCount.info > 0 ? "#3498db" : "#2ecc71" },
                     ]}
                   >
                     {item.issueCount.info}
                   </Text>
                 </View>
               </View>
-              
+
               <View style={styles.resultIssues}>
                 <Text style={styles.resultIssuesText}>
-                  {item.results.filter(r => !r.passed).length} issues found
+                  {item.results.filter((r) => !r.passed).length} issues found
                 </Text>
                 <MaterialCommunityIcons name="chevron-right" size={20} color="#7f8c8d" />
               </View>
@@ -633,7 +619,7 @@ const FieldDataVerificationScreen: React.FC = () => {
       </View>
     );
   };
-  
+
   // Render rules modal
   const renderRulesModal = () => {
     return (
@@ -647,13 +633,11 @@ const FieldDataVerificationScreen: React.FC = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Verification Rules</Text>
-              <TouchableOpacity
-                onPress={() => setShowRulesModal(false)}
-              >
+              <TouchableOpacity onPress={() => setShowRulesModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <FlatList
               data={rules}
               keyExtractor={(item) => item.id}
@@ -668,41 +652,41 @@ const FieldDataVerificationScreen: React.FC = () => {
                           // Only allow editing of user-defined rules
                           if (item.isSystemRule) {
                             Alert.alert(
-                              'System Rule',
-                              'System rules cannot be modified. You can create a custom rule instead.'
+                              "System Rule",
+                              "System rules cannot be modified. You can create a custom rule instead."
                             );
                             return;
                           }
-                          
+
                           await verificationService.updateRule(item.id, { enabled: value });
-                          
+
                           // Reload rules
-                          const loadedRules = await verificationService.getRules('property');
+                          const loadedRules = await verificationService.getRules("property");
                           setRules(loadedRules);
                         } catch (error) {
-                          console.error('Error updating rule:', error);
-                          Alert.alert('Error', 'Failed to update rule');
+                          console.error("Error updating rule:", error);
+                          Alert.alert("Error", "Failed to update rule");
                         }
                       }}
-                      trackColor={{ false: '#bdc3c7', true: '#3498db' }}
-                      thumbColor={item.enabled ? '#fff' : '#f4f3f4'}
+                      trackColor={{ false: "#bdc3c7", true: "#3498db" }}
+                      thumbColor={item.enabled ? "#fff" : "#f4f3f4"}
                       disabled={item.isSystemRule}
                     />
                   </View>
-                  
+
                   <Text style={styles.ruleDescription}>{item.description}</Text>
-                  
+
                   <View style={styles.ruleDetails}>
                     <View style={styles.ruleDetail}>
                       <Text style={styles.ruleDetailLabel}>Type:</Text>
                       <Text style={styles.ruleDetailValue}>{item.type}</Text>
                     </View>
-                    
+
                     <View style={styles.ruleDetail}>
                       <Text style={styles.ruleDetailLabel}>Field:</Text>
                       <Text style={styles.ruleDetailValue}>{item.fieldPath}</Text>
                     </View>
-                    
+
                     <View style={styles.ruleDetail}>
                       <Text style={styles.ruleDetailLabel}>Severity:</Text>
                       <View
@@ -711,12 +695,12 @@ const FieldDataVerificationScreen: React.FC = () => {
                           {
                             backgroundColor:
                               item.severity === VerificationSeverity.INFO
-                                ? '#3498db'
+                                ? "#3498db"
                                 : item.severity === VerificationSeverity.WARNING
-                                  ? '#f39c12'
+                                  ? "#f39c12"
                                   : item.severity === VerificationSeverity.ERROR
-                                    ? '#e74c3c'
-                                    : '#c0392b',
+                                    ? "#e74c3c"
+                                    : "#c0392b",
                           },
                         ]}
                       >
@@ -724,7 +708,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                       </View>
                     </View>
                   </View>
-                  
+
                   <View style={styles.ruleTags}>
                     {item.tags.map((tag, index) => (
                       <View key={index} style={styles.ruleTag}>
@@ -732,7 +716,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                       </View>
                     ))}
                   </View>
-                  
+
                   {!item.isSystemRule && (
                     <View style={styles.ruleActions}>
                       <TouchableOpacity
@@ -759,7 +743,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                         <MaterialCommunityIcons name="pencil" size={16} color="#fff" />
                         <Text style={styles.editRuleText}>Edit</Text>
                       </TouchableOpacity>
-                      
+
                       <TouchableOpacity
                         style={styles.deleteRuleButton}
                         onPress={() => handleDeleteRule(item.id)}
@@ -774,11 +758,8 @@ const FieldDataVerificationScreen: React.FC = () => {
               style={styles.rulesList}
               contentContainerStyle={styles.rulesListContent}
             />
-            
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setShowRulesModal(false)}
-            >
+
+            <TouchableOpacity style={styles.modalButton} onPress={() => setShowRulesModal(false)}>
               <Text style={styles.modalButtonText}>Close</Text>
             </TouchableOpacity>
           </View>
@@ -786,7 +767,7 @@ const FieldDataVerificationScreen: React.FC = () => {
       </Modal>
     );
   };
-  
+
   // Render options modal
   const renderOptionsModal = () => {
     return (
@@ -800,65 +781,63 @@ const FieldDataVerificationScreen: React.FC = () => {
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Verification Options</Text>
-              <TouchableOpacity
-                onPress={() => setShowOptionsModal(false)}
-              >
+              <TouchableOpacity onPress={() => setShowOptionsModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <ScrollView style={styles.optionsScrollView}>
               <View style={styles.optionItem}>
                 <Text style={styles.optionLabel}>Stop on First Error</Text>
                 <Switch
                   value={verificationOptions.stopOnFirstError}
                   onValueChange={(value) =>
-                    setVerificationOptions(prev => ({ ...prev, stopOnFirstError: value }))
+                    setVerificationOptions((prev) => ({ ...prev, stopOnFirstError: value }))
                   }
-                  trackColor={{ false: '#bdc3c7', true: '#3498db' }}
-                  thumbColor={verificationOptions.stopOnFirstError ? '#fff' : '#f4f3f4'}
+                  trackColor={{ false: "#bdc3c7", true: "#3498db" }}
+                  thumbColor={verificationOptions.stopOnFirstError ? "#fff" : "#f4f3f4"}
                 />
               </View>
-              
+
               <View style={styles.optionItem}>
                 <Text style={styles.optionLabel}>Include System Rules</Text>
                 <Switch
                   value={verificationOptions.includeSystemRules}
                   onValueChange={(value) =>
-                    setVerificationOptions(prev => ({ ...prev, includeSystemRules: value }))
+                    setVerificationOptions((prev) => ({ ...prev, includeSystemRules: value }))
                   }
-                  trackColor={{ false: '#bdc3c7', true: '#3498db' }}
-                  thumbColor={verificationOptions.includeSystemRules ? '#fff' : '#f4f3f4'}
+                  trackColor={{ false: "#bdc3c7", true: "#3498db" }}
+                  thumbColor={verificationOptions.includeSystemRules ? "#fff" : "#f4f3f4"}
                 />
               </View>
-              
+
               <View style={styles.optionItem}>
                 <Text style={styles.optionLabel}>Include User Rules</Text>
                 <Switch
                   value={verificationOptions.includeUserRules}
                   onValueChange={(value) =>
-                    setVerificationOptions(prev => ({ ...prev, includeUserRules: value }))
+                    setVerificationOptions((prev) => ({ ...prev, includeUserRules: value }))
                   }
-                  trackColor={{ false: '#bdc3c7', true: '#3498db' }}
-                  thumbColor={verificationOptions.includeUserRules ? '#fff' : '#f4f3f4'}
+                  trackColor={{ false: "#bdc3c7", true: "#3498db" }}
+                  thumbColor={verificationOptions.includeUserRules ? "#fff" : "#f4f3f4"}
                 />
               </View>
-              
+
               <View style={styles.optionItem}>
                 <Text style={styles.optionLabel}>Save Results</Text>
                 <Switch
                   value={verificationOptions.saveResults}
                   onValueChange={(value) =>
-                    setVerificationOptions(prev => ({ ...prev, saveResults: value }))
+                    setVerificationOptions((prev) => ({ ...prev, saveResults: value }))
                   }
-                  trackColor={{ false: '#bdc3c7', true: '#3498db' }}
-                  thumbColor={verificationOptions.saveResults ? '#fff' : '#f4f3f4'}
+                  trackColor={{ false: "#bdc3c7", true: "#3498db" }}
+                  thumbColor={verificationOptions.saveResults ? "#fff" : "#f4f3f4"}
                 />
               </View>
-              
+
               <View style={styles.optionSection}>
                 <Text style={styles.optionSectionTitle}>Minimum Severity</Text>
-                
+
                 <View style={styles.severityOptions}>
                   {Object.values(VerificationSeverity).map((severity) => (
                     <TouchableOpacity
@@ -868,7 +847,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                         verificationOptions.minimumSeverity === severity && styles.selectedSeverity,
                       ]}
                       onPress={() =>
-                        setVerificationOptions(prev => ({ ...prev, minimumSeverity: severity }))
+                        setVerificationOptions((prev) => ({ ...prev, minimumSeverity: severity }))
                       }
                     >
                       <View
@@ -877,19 +856,20 @@ const FieldDataVerificationScreen: React.FC = () => {
                           {
                             backgroundColor:
                               severity === VerificationSeverity.INFO
-                                ? '#3498db'
+                                ? "#3498db"
                                 : severity === VerificationSeverity.WARNING
-                                  ? '#f39c12'
+                                  ? "#f39c12"
                                   : severity === VerificationSeverity.ERROR
-                                    ? '#e74c3c'
-                                    : '#c0392b',
+                                    ? "#e74c3c"
+                                    : "#c0392b",
                           },
                         ]}
                       />
                       <Text
                         style={[
                           styles.severityText,
-                          verificationOptions.minimumSeverity === severity && styles.selectedSeverityText,
+                          verificationOptions.minimumSeverity === severity &&
+                            styles.selectedSeverityText,
                         ]}
                       >
                         {severity}
@@ -899,11 +879,8 @@ const FieldDataVerificationScreen: React.FC = () => {
                 </View>
               </View>
             </ScrollView>
-            
-            <TouchableOpacity
-              style={styles.modalButton}
-              onPress={() => setShowOptionsModal(false)}
-            >
+
+            <TouchableOpacity style={styles.modalButton} onPress={() => setShowOptionsModal(false)}>
               <Text style={styles.modalButtonText}>Save Options</Text>
             </TouchableOpacity>
           </View>
@@ -911,11 +888,11 @@ const FieldDataVerificationScreen: React.FC = () => {
       </Modal>
     );
   };
-  
+
   // Render result detail modal
   const renderResultDetailModal = () => {
     if (!selectedBatch) return null;
-    
+
     return (
       <Modal
         visible={showResultDetailModal}
@@ -927,24 +904,22 @@ const FieldDataVerificationScreen: React.FC = () => {
           <View style={styles.resultDetailModal}>
             <View style={styles.modalHeader}>
               <Text style={styles.modalTitle}>Verification Results</Text>
-              <TouchableOpacity
-                onPress={() => setShowResultDetailModal(false)}
-              >
+              <TouchableOpacity onPress={() => setShowResultDetailModal(false)}>
                 <MaterialCommunityIcons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
-            
+
             <View style={styles.resultDetailHeader}>
               <View
                 style={[
                   styles.resultDetailStatus,
                   {
                     backgroundColor:
-                      selectedBatch.status === 'passed'
-                        ? '#2ecc71'
-                        : selectedBatch.status === 'warning'
-                          ? '#f39c12'
-                          : '#e74c3c',
+                      selectedBatch.status === "passed"
+                        ? "#2ecc71"
+                        : selectedBatch.status === "warning"
+                          ? "#f39c12"
+                          : "#e74c3c",
                   },
                 ]}
               >
@@ -952,70 +927,70 @@ const FieldDataVerificationScreen: React.FC = () => {
                   {selectedBatch.status.toUpperCase()}
                 </Text>
               </View>
-              
+
               <Text style={styles.resultDetailTimestamp}>
                 {new Date(selectedBatch.timestamp).toLocaleString()}
               </Text>
             </View>
-            
+
             <View style={styles.resultDetailSummary}>
               <View style={styles.resultDetailSummaryItem}>
                 <Text style={styles.resultDetailSummaryLabel}>Critical</Text>
                 <Text
                   style={[
                     styles.resultDetailSummaryValue,
-                    { color: selectedBatch.issueCount.critical > 0 ? '#e74c3c' : '#2ecc71' },
+                    { color: selectedBatch.issueCount.critical > 0 ? "#e74c3c" : "#2ecc71" },
                   ]}
                 >
                   {selectedBatch.issueCount.critical}
                 </Text>
               </View>
-              
+
               <View style={styles.resultDetailSummaryItem}>
                 <Text style={styles.resultDetailSummaryLabel}>Errors</Text>
                 <Text
                   style={[
                     styles.resultDetailSummaryValue,
-                    { color: selectedBatch.issueCount.error > 0 ? '#e74c3c' : '#2ecc71' },
+                    { color: selectedBatch.issueCount.error > 0 ? "#e74c3c" : "#2ecc71" },
                   ]}
                 >
                   {selectedBatch.issueCount.error}
                 </Text>
               </View>
-              
+
               <View style={styles.resultDetailSummaryItem}>
                 <Text style={styles.resultDetailSummaryLabel}>Warnings</Text>
                 <Text
                   style={[
                     styles.resultDetailSummaryValue,
-                    { color: selectedBatch.issueCount.warning > 0 ? '#f39c12' : '#2ecc71' },
+                    { color: selectedBatch.issueCount.warning > 0 ? "#f39c12" : "#2ecc71" },
                   ]}
                 >
                   {selectedBatch.issueCount.warning}
                 </Text>
               </View>
-              
+
               <View style={styles.resultDetailSummaryItem}>
                 <Text style={styles.resultDetailSummaryLabel}>Info</Text>
                 <Text
                   style={[
                     styles.resultDetailSummaryValue,
-                    { color: selectedBatch.issueCount.info > 0 ? '#3498db' : '#2ecc71' },
+                    { color: selectedBatch.issueCount.info > 0 ? "#3498db" : "#2ecc71" },
                   ]}
                 >
                   {selectedBatch.issueCount.info}
                 </Text>
               </View>
             </View>
-            
+
             <Text style={styles.resultDetailIssuesTitle}>Issues Found</Text>
-            
+
             <FlatList
               data={selectedBatch.results.filter((result) => !result.passed)}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => {
                 const rule = rules.find((r) => r.id === item.ruleId);
-                
+
                 return (
                   <View style={styles.issueItem}>
                     <View style={styles.issueHeader}>
@@ -1025,18 +1000,18 @@ const FieldDataVerificationScreen: React.FC = () => {
                           {
                             backgroundColor:
                               item.severity === VerificationSeverity.INFO
-                                ? '#3498db'
+                                ? "#3498db"
                                 : item.severity === VerificationSeverity.WARNING
-                                  ? '#f39c12'
+                                  ? "#f39c12"
                                   : item.severity === VerificationSeverity.ERROR
-                                    ? '#e74c3c'
-                                    : '#c0392b',
+                                    ? "#e74c3c"
+                                    : "#c0392b",
                           },
                         ]}
                       >
                         <Text style={styles.issueSeverityText}>{item.severity}</Text>
                       </View>
-                      
+
                       {item.acknowledged && (
                         <View style={styles.acknowledgedBadge}>
                           <MaterialCommunityIcons name="check" size={12} color="#fff" />
@@ -1044,37 +1019,39 @@ const FieldDataVerificationScreen: React.FC = () => {
                         </View>
                       )}
                     </View>
-                    
+
                     <Text style={styles.issueMessage}>{item.message}</Text>
-                    
+
                     <View style={styles.issueDetails}>
                       <View style={styles.issueDetail}>
                         <Text style={styles.issueDetailLabel}>Field:</Text>
                         <Text style={styles.issueDetailValue}>{item.fieldPath}</Text>
                       </View>
-                      
+
                       <View style={styles.issueDetail}>
                         <Text style={styles.issueDetailLabel}>Value:</Text>
                         <Text style={styles.issueDetailValue}>
                           {item.fieldValue !== null && item.fieldValue !== undefined
                             ? String(item.fieldValue)
-                            : '(empty)'}
+                            : "(empty)"}
                         </Text>
                       </View>
-                      
+
                       <View style={styles.issueDetail}>
                         <Text style={styles.issueDetailLabel}>Rule:</Text>
-                        <Text style={styles.issueDetailValue}>{rule?.name || 'Unknown'}</Text>
+                        <Text style={styles.issueDetailValue}>{rule?.name || "Unknown"}</Text>
                       </View>
                     </View>
-                    
+
                     {item.acknowledged && item.acknowledgmentNotes && (
                       <View style={styles.acknowledgmentNotes}>
                         <Text style={styles.acknowledgmentNotesLabel}>Notes:</Text>
-                        <Text style={styles.acknowledgmentNotesText}>{item.acknowledgmentNotes}</Text>
+                        <Text style={styles.acknowledgmentNotesText}>
+                          {item.acknowledgmentNotes}
+                        </Text>
                       </View>
                     )}
-                    
+
                     {!item.acknowledged && (
                       <TouchableOpacity
                         style={styles.acknowledgeButton}
@@ -1099,11 +1076,11 @@ const FieldDataVerificationScreen: React.FC = () => {
               style={styles.issuesList}
               contentContainerStyle={
                 selectedBatch.results.filter((result) => !result.passed).length === 0
-                  ? { flex: 1, justifyContent: 'center' }
+                  ? { flex: 1, justifyContent: "center" }
                   : { paddingBottom: 16 }
               }
             />
-            
+
             <View style={styles.resultDetailActions}>
               <TouchableOpacity
                 style={styles.deleteResultButton}
@@ -1112,7 +1089,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                 <MaterialCommunityIcons name="delete" size={16} color="#fff" />
                 <Text style={styles.deleteResultText}>Delete Result</Text>
               </TouchableOpacity>
-              
+
               <TouchableOpacity
                 style={styles.closeResultButton}
                 onPress={() => setShowResultDetailModal(false)}
@@ -1125,7 +1102,7 @@ const FieldDataVerificationScreen: React.FC = () => {
       </Modal>
     );
   };
-  
+
   // Render create rule modal
   const renderCreateRuleModal = () => {
     return (
@@ -1137,40 +1114,38 @@ const FieldDataVerificationScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ width: '100%' }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={{ width: "100%" }}
           >
             <View style={styles.ruleFormModal}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Create Rule</Text>
-                <TouchableOpacity
-                  onPress={() => setShowCreateRuleModal(false)}
-                >
+                <TouchableOpacity onPress={() => setShowCreateRuleModal(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#333" />
                 </TouchableOpacity>
               </View>
-              
+
               <ScrollView style={styles.ruleFormScrollView}>
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Rule Name</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.name}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, name: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, name: text }))}
                     placeholder="Enter rule name"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Description</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.description}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, description: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, description: text }))}
                     placeholder="Enter rule description"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Rule Type</Text>
                   <View style={styles.formSelect}>
@@ -1178,7 +1153,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       ios: (
                         <Picker
                           selectedValue={newRule.type}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, type: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, type: value }))
+                          }
                           style={styles.formSelectIOS}
                         >
                           {Object.values(VerificationRuleType).map((type) => (
@@ -1189,7 +1166,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       android: (
                         <Picker
                           selectedValue={newRule.type}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, type: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, type: value }))
+                          }
                           style={styles.formSelectAndroid}
                         >
                           {Object.values(VerificationRuleType).map((type) => (
@@ -1200,27 +1179,27 @@ const FieldDataVerificationScreen: React.FC = () => {
                     })}
                   </View>
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Field Path</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.fieldPath}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, fieldPath: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, fieldPath: text }))}
                     placeholder="Enter field path (e.g., bedrooms)"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Error Message</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.errorMessage}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, errorMessage: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, errorMessage: text }))}
                     placeholder="Enter error message"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Severity</Text>
                   <View style={styles.formSelect}>
@@ -1228,7 +1207,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       ios: (
                         <Picker
                           selectedValue={newRule.severity}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, severity: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, severity: value }))
+                          }
                           style={styles.formSelectIOS}
                         >
                           {Object.values(VerificationSeverity).map((severity) => (
@@ -1239,7 +1220,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       android: (
                         <Picker
                           selectedValue={newRule.severity}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, severity: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, severity: value }))
+                          }
                           style={styles.formSelectAndroid}
                         >
                           {Object.values(VerificationSeverity).map((severity) => (
@@ -1250,22 +1233,25 @@ const FieldDataVerificationScreen: React.FC = () => {
                     })}
                   </View>
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Tags (comma separated)</Text>
                   <TextInput
                     style={styles.formInput}
-                    value={newRule.tags?.join(', ')}
+                    value={newRule.tags?.join(", ")}
                     onChangeText={(text) =>
-                      setNewRule(prev => ({
+                      setNewRule((prev) => ({
                         ...prev,
-                        tags: text.split(',').map(tag => tag.trim()).filter(Boolean),
+                        tags: text
+                          .split(",")
+                          .map((tag) => tag.trim())
+                          .filter(Boolean),
                       }))
                     }
                     placeholder="Enter tags (e.g., required, property)"
                   />
                 </View>
-                
+
                 {/* Additional fields based on rule type */}
                 {newRule.type === VerificationRuleType.RANGE_CHECK && (
                   <>
@@ -1273,9 +1259,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       <Text style={styles.formLabel}>Minimum Value</Text>
                       <TextInput
                         style={styles.formInput}
-                        value={String(newRule.parameters?.min || '')}
+                        value={String(newRule.parameters?.min || "")}
                         onChangeText={(text) =>
-                          setNewRule(prev => ({
+                          setNewRule((prev) => ({
                             ...prev,
                             parameters: {
                               ...prev.parameters,
@@ -1287,14 +1273,14 @@ const FieldDataVerificationScreen: React.FC = () => {
                         placeholder="Enter minimum value"
                       />
                     </View>
-                    
+
                     <View style={styles.formField}>
                       <Text style={styles.formLabel}>Maximum Value</Text>
                       <TextInput
                         style={styles.formInput}
-                        value={String(newRule.parameters?.max || '')}
+                        value={String(newRule.parameters?.max || "")}
                         onChangeText={(text) =>
-                          setNewRule(prev => ({
+                          setNewRule((prev) => ({
                             ...prev,
                             parameters: {
                               ...prev.parameters,
@@ -1308,15 +1294,15 @@ const FieldDataVerificationScreen: React.FC = () => {
                     </View>
                   </>
                 )}
-                
+
                 {newRule.type === VerificationRuleType.FORMAT_CHECK && (
                   <View style={styles.formField}>
                     <Text style={styles.formLabel}>Regex Pattern</Text>
                     <TextInput
                       style={styles.formInput}
-                      value={newRule.parameters?.pattern || ''}
+                      value={newRule.parameters?.pattern || ""}
                       onChangeText={(text) =>
-                        setNewRule(prev => ({
+                        setNewRule((prev) => ({
                           ...prev,
                           parameters: { ...prev.parameters, pattern: text },
                         }))
@@ -1325,7 +1311,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                     />
                   </View>
                 )}
-                
+
                 {newRule.type === VerificationRuleType.CROSS_REFERENCE ||
                 newRule.type === VerificationRuleType.ANOMALY_DETECTION ||
                 newRule.type === VerificationRuleType.LOGICAL_VALIDATION ? (
@@ -1333,20 +1319,22 @@ const FieldDataVerificationScreen: React.FC = () => {
                     <Text style={styles.formLabel}>Validation Function</Text>
                     <TextInput
                       style={[styles.formInput, styles.formTextarea]}
-                      value={newRule.validationFunction || ''}
-                      onChangeText={(text) => setNewRule(prev => ({ ...prev, validationFunction: text }))}
+                      value={newRule.validationFunction || ""}
+                      onChangeText={(text) =>
+                        setNewRule((prev) => ({ ...prev, validationFunction: text }))
+                      }
                       placeholder="Enter validation function (e.g., return entity.value > 0;)"
                       multiline
                       numberOfLines={4}
                     />
                     <Text style={styles.formHelperText}>
-                      Function should return true if validation passes, false otherwise.
-                      Available variables: entity, params
+                      Function should return true if validation passes, false otherwise. Available
+                      variables: entity, params
                     </Text>
                   </View>
                 ) : null}
               </ScrollView>
-              
+
               <View style={styles.formActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -1354,11 +1342,8 @@ const FieldDataVerificationScreen: React.FC = () => {
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.createButton}
-                  onPress={handleCreateRule}
-                >
+
+                <TouchableOpacity style={styles.createButton} onPress={handleCreateRule}>
                   <Text style={styles.createButtonText}>Create Rule</Text>
                 </TouchableOpacity>
               </View>
@@ -1368,11 +1353,11 @@ const FieldDataVerificationScreen: React.FC = () => {
       </Modal>
     );
   };
-  
+
   // Render edit rule modal
   const renderEditRuleModal = () => {
     if (!selectedRule) return null;
-    
+
     return (
       <Modal
         visible={showEditRuleModal}
@@ -1382,40 +1367,38 @@ const FieldDataVerificationScreen: React.FC = () => {
       >
         <View style={styles.modalOverlay}>
           <KeyboardAvoidingView
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            style={{ width: '100%' }}
+            behavior={Platform.OS === "ios" ? "padding" : undefined}
+            style={{ width: "100%" }}
           >
             <View style={styles.ruleFormModal}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Edit Rule</Text>
-                <TouchableOpacity
-                  onPress={() => setShowEditRuleModal(false)}
-                >
+                <TouchableOpacity onPress={() => setShowEditRuleModal(false)}>
                   <MaterialCommunityIcons name="close" size={24} color="#333" />
                 </TouchableOpacity>
               </View>
-              
+
               <ScrollView style={styles.ruleFormScrollView}>
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Rule Name</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.name}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, name: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, name: text }))}
                     placeholder="Enter rule name"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Description</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.description}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, description: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, description: text }))}
                     placeholder="Enter rule description"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Rule Type</Text>
                   <View style={styles.formSelect}>
@@ -1423,7 +1406,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       ios: (
                         <Picker
                           selectedValue={newRule.type}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, type: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, type: value }))
+                          }
                           style={styles.formSelectIOS}
                         >
                           {Object.values(VerificationRuleType).map((type) => (
@@ -1434,7 +1419,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       android: (
                         <Picker
                           selectedValue={newRule.type}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, type: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, type: value }))
+                          }
                           style={styles.formSelectAndroid}
                         >
                           {Object.values(VerificationRuleType).map((type) => (
@@ -1445,27 +1432,27 @@ const FieldDataVerificationScreen: React.FC = () => {
                     })}
                   </View>
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Field Path</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.fieldPath}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, fieldPath: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, fieldPath: text }))}
                     placeholder="Enter field path (e.g., bedrooms)"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Error Message</Text>
                   <TextInput
                     style={styles.formInput}
                     value={newRule.errorMessage}
-                    onChangeText={(text) => setNewRule(prev => ({ ...prev, errorMessage: text }))}
+                    onChangeText={(text) => setNewRule((prev) => ({ ...prev, errorMessage: text }))}
                     placeholder="Enter error message"
                   />
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Severity</Text>
                   <View style={styles.formSelect}>
@@ -1473,7 +1460,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       ios: (
                         <Picker
                           selectedValue={newRule.severity}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, severity: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, severity: value }))
+                          }
                           style={styles.formSelectIOS}
                         >
                           {Object.values(VerificationSeverity).map((severity) => (
@@ -1484,7 +1473,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       android: (
                         <Picker
                           selectedValue={newRule.severity}
-                          onValueChange={(value) => setNewRule(prev => ({ ...prev, severity: value }))}
+                          onValueChange={(value) =>
+                            setNewRule((prev) => ({ ...prev, severity: value }))
+                          }
                           style={styles.formSelectAndroid}
                         >
                           {Object.values(VerificationSeverity).map((severity) => (
@@ -1495,22 +1486,25 @@ const FieldDataVerificationScreen: React.FC = () => {
                     })}
                   </View>
                 </View>
-                
+
                 <View style={styles.formField}>
                   <Text style={styles.formLabel}>Tags (comma separated)</Text>
                   <TextInput
                     style={styles.formInput}
-                    value={newRule.tags?.join(', ')}
+                    value={newRule.tags?.join(", ")}
                     onChangeText={(text) =>
-                      setNewRule(prev => ({
+                      setNewRule((prev) => ({
                         ...prev,
-                        tags: text.split(',').map(tag => tag.trim()).filter(Boolean),
+                        tags: text
+                          .split(",")
+                          .map((tag) => tag.trim())
+                          .filter(Boolean),
                       }))
                     }
                     placeholder="Enter tags (e.g., required, property)"
                   />
                 </View>
-                
+
                 {/* Additional fields based on rule type */}
                 {newRule.type === VerificationRuleType.RANGE_CHECK && (
                   <>
@@ -1518,9 +1512,9 @@ const FieldDataVerificationScreen: React.FC = () => {
                       <Text style={styles.formLabel}>Minimum Value</Text>
                       <TextInput
                         style={styles.formInput}
-                        value={String(newRule.parameters?.min || '')}
+                        value={String(newRule.parameters?.min || "")}
                         onChangeText={(text) =>
-                          setNewRule(prev => ({
+                          setNewRule((prev) => ({
                             ...prev,
                             parameters: {
                               ...prev.parameters,
@@ -1532,14 +1526,14 @@ const FieldDataVerificationScreen: React.FC = () => {
                         placeholder="Enter minimum value"
                       />
                     </View>
-                    
+
                     <View style={styles.formField}>
                       <Text style={styles.formLabel}>Maximum Value</Text>
                       <TextInput
                         style={styles.formInput}
-                        value={String(newRule.parameters?.max || '')}
+                        value={String(newRule.parameters?.max || "")}
                         onChangeText={(text) =>
-                          setNewRule(prev => ({
+                          setNewRule((prev) => ({
                             ...prev,
                             parameters: {
                               ...prev.parameters,
@@ -1553,15 +1547,15 @@ const FieldDataVerificationScreen: React.FC = () => {
                     </View>
                   </>
                 )}
-                
+
                 {newRule.type === VerificationRuleType.FORMAT_CHECK && (
                   <View style={styles.formField}>
                     <Text style={styles.formLabel}>Regex Pattern</Text>
                     <TextInput
                       style={styles.formInput}
-                      value={newRule.parameters?.pattern || ''}
+                      value={newRule.parameters?.pattern || ""}
                       onChangeText={(text) =>
-                        setNewRule(prev => ({
+                        setNewRule((prev) => ({
                           ...prev,
                           parameters: { ...prev.parameters, pattern: text },
                         }))
@@ -1570,7 +1564,7 @@ const FieldDataVerificationScreen: React.FC = () => {
                     />
                   </View>
                 )}
-                
+
                 {newRule.type === VerificationRuleType.CROSS_REFERENCE ||
                 newRule.type === VerificationRuleType.ANOMALY_DETECTION ||
                 newRule.type === VerificationRuleType.LOGICAL_VALIDATION ? (
@@ -1578,20 +1572,22 @@ const FieldDataVerificationScreen: React.FC = () => {
                     <Text style={styles.formLabel}>Validation Function</Text>
                     <TextInput
                       style={[styles.formInput, styles.formTextarea]}
-                      value={newRule.validationFunction || ''}
-                      onChangeText={(text) => setNewRule(prev => ({ ...prev, validationFunction: text }))}
+                      value={newRule.validationFunction || ""}
+                      onChangeText={(text) =>
+                        setNewRule((prev) => ({ ...prev, validationFunction: text }))
+                      }
                       placeholder="Enter validation function (e.g., return entity.value > 0;)"
                       multiline
                       numberOfLines={4}
                     />
                     <Text style={styles.formHelperText}>
-                      Function should return true if validation passes, false otherwise.
-                      Available variables: entity, params
+                      Function should return true if validation passes, false otherwise. Available
+                      variables: entity, params
                     </Text>
                   </View>
                 ) : null}
               </ScrollView>
-              
+
               <View style={styles.formActions}>
                 <TouchableOpacity
                   style={styles.cancelButton}
@@ -1599,11 +1595,8 @@ const FieldDataVerificationScreen: React.FC = () => {
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
                 </TouchableOpacity>
-                
-                <TouchableOpacity
-                  style={styles.createButton}
-                  onPress={handleUpdateRule}
-                >
+
+                <TouchableOpacity style={styles.createButton} onPress={handleUpdateRule}>
                   <Text style={styles.createButtonText}>Update Rule</Text>
                 </TouchableOpacity>
               </View>
@@ -1613,7 +1606,7 @@ const FieldDataVerificationScreen: React.FC = () => {
       </Modal>
     );
   };
-  
+
   // Render loading state
   if (isLoading) {
     return (
@@ -1623,22 +1616,22 @@ const FieldDataVerificationScreen: React.FC = () => {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
       {/* Header */}
       {renderHeader()}
-      
+
       {/* Content */}
       <ScrollView style={styles.content}>
         {renderPropertySection()}
         {renderRulesSection()}
         {renderResultsSection()}
       </ScrollView>
-      
+
       {/* Verification button */}
       {renderVerificationButton()}
-      
+
       {/* Modals */}
       {renderRulesModal()}
       {renderOptionsModal()}
@@ -1652,22 +1645,22 @@ const FieldDataVerificationScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3498db",
     paddingVertical: 12,
     paddingHorizontal: 16,
   },
@@ -1677,8 +1670,8 @@ const styles = StyleSheet.create({
   headerTitle: {
     flex: 1,
     fontSize: 18,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginLeft: 16,
   },
   optionsButton: {
@@ -1689,46 +1682,46 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   section: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 16,
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   propertyInfo: {
     marginTop: 8,
   },
   propertyAddress: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 4,
   },
   propertyLocation: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 12,
   },
   propertySpecs: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 8,
   },
   propertySpec: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 16,
   },
   propertySpecText: {
@@ -1736,49 +1729,49 @@ const styles = StyleSheet.create({
     marginLeft: 6,
   },
   ruleActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   viewRulesButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 8,
   },
   viewRulesText: {
-    color: '#3498db',
+    color: "#3498db",
     marginLeft: 4,
   },
   createRuleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3498db",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
   },
   createRuleText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 4,
   },
   ruleSummary: {
     marginBottom: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   ruleCategoriesContainer: {
     marginTop: 8,
   },
   ruleCategoriesTitle: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
   },
   ruleCategories: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   ruleCategory: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1787,48 +1780,48 @@ const styles = StyleSheet.create({
   },
   ruleCategoryText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   verifyButton: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 16,
     left: 16,
     right: 16,
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
     borderRadius: 8,
     paddingVertical: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 3,
   },
   verifyButtonDisabled: {
-    backgroundColor: '#bdc3c7',
+    backgroundColor: "#bdc3c7",
   },
   verifyButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
   },
   emptyResultsContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     padding: 24,
   },
   emptyResultsText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 16,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   emptyResultsSubtext: {
     fontSize: 14,
-    color: '#95a5a6',
-    textAlign: 'center',
+    color: "#95a5a6",
+    textAlign: "center",
     marginTop: 8,
   },
   resultsList: {
@@ -1838,17 +1831,17 @@ const styles = StyleSheet.create({
     paddingBottom: 8,
   },
   resultItem: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     borderRadius: 8,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   resultHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   resultStatusBadge: {
@@ -1858,68 +1851,68 @@ const styles = StyleSheet.create({
   },
   resultStatusText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   resultTimestamp: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   resultSummary: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 8,
   },
   resultSummaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   resultSummaryLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 4,
   },
   resultSummaryValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   resultIssues: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f0f0f0',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f0f0f0",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 4,
   },
   resultIssuesText: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   modalOverlay: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
     padding: 16,
   },
   modalContent: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
-    width: '100%',
-    maxHeight: '80%',
-    overflow: 'hidden',
+    width: "100%",
+    maxHeight: "80%",
+    overflow: "hidden",
   },
   modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   rulesList: {
     maxHeight: 500,
@@ -1928,38 +1921,38 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   ruleItem: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     borderRadius: 8,
     padding: 12,
     marginBottom: 16,
   },
   ruleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   ruleName: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     flex: 1,
     marginRight: 8,
   },
   ruleDescription: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 12,
   },
   ruleDetails: {
     marginBottom: 8,
   },
   ruleDetail: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 4,
   },
   ruleDetailLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     width: 60,
   },
   ruleDetailValue: {
@@ -1972,15 +1965,15 @@ const styles = StyleSheet.create({
   },
   ruleSeverityText: {
     fontSize: 12,
-    color: '#fff',
+    color: "#fff",
   },
   ruleTags: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 12,
   },
   ruleTag: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 12,
@@ -1989,61 +1982,61 @@ const styles = StyleSheet.create({
   },
   ruleTagText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   ruleActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
   },
   editRuleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3498db",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
     marginRight: 8,
   },
   editRuleText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 4,
   },
   deleteRuleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#e74c3c',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e74c3c",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
   },
   deleteRuleText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 4,
   },
   modalButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   modalButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   optionsScrollView: {
     maxHeight: 400,
     padding: 16,
   },
   optionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
+    borderBottomColor: "#f0f0f0",
   },
   optionLabel: {
     fontSize: 16,
@@ -2053,17 +2046,17 @@ const styles = StyleSheet.create({
   },
   optionSectionTitle: {
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 12,
   },
   severityOptions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
   },
   severityOption: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f8f9fa',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f8f9fa",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 4,
@@ -2071,7 +2064,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   selectedSeverity: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
   },
   severityIndicator: {
     width: 12,
@@ -2083,22 +2076,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
   },
   selectedSeverityText: {
-    color: '#fff',
+    color: "#fff",
   },
   resultDetailModal: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
-    width: '100%',
-    maxHeight: '90%',
-    overflow: 'hidden',
+    width: "100%",
+    maxHeight: "90%",
+    overflow: "hidden",
   },
   resultDetailHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   resultDetailStatus: {
     paddingHorizontal: 8,
@@ -2107,38 +2100,38 @@ const styles = StyleSheet.create({
   },
   resultDetailStatusText: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   resultDetailTimestamp: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   resultDetailSummary: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   resultDetailSummaryItem: {
     flex: 1,
-    alignItems: 'center',
+    alignItems: "center",
   },
   resultDetailSummaryLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 4,
   },
   resultDetailSummaryValue: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   resultDetailIssuesTitle: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   issuesList: {
     maxHeight: 300,
@@ -2146,12 +2139,12 @@ const styles = StyleSheet.create({
   issueItem: {
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   issueHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   issueSeverity: {
@@ -2161,19 +2154,19 @@ const styles = StyleSheet.create({
   },
   issueSeverityText: {
     fontSize: 12,
-    color: '#fff',
+    color: "#fff",
   },
   acknowledgedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#2ecc71',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2ecc71",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   acknowledgedText: {
     fontSize: 10,
-    color: '#fff',
+    color: "#fff",
     marginLeft: 2,
   },
   issueMessage: {
@@ -2181,18 +2174,18 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   issueDetails: {
-    backgroundColor: '#f8f9fa',
+    backgroundColor: "#f8f9fa",
     borderRadius: 4,
     padding: 8,
     marginBottom: 12,
   },
   issueDetail: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 4,
   },
   issueDetailLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     width: 50,
   },
   issueDetailValue: {
@@ -2200,90 +2193,90 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   acknowledgmentNotes: {
-    backgroundColor: '#ebf5fb',
+    backgroundColor: "#ebf5fb",
     borderRadius: 4,
     padding: 8,
     marginBottom: 12,
   },
   acknowledgmentNotesLabel: {
     fontSize: 12,
-    color: '#3498db',
+    color: "#3498db",
     marginBottom: 4,
   },
   acknowledgmentNotesText: {
     fontSize: 12,
   },
   acknowledgeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3498db",
     paddingVertical: 8,
     borderRadius: 4,
   },
   acknowledgeButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 4,
   },
   emptyIssuesContainer: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 24,
   },
   emptyIssuesText: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginTop: 16,
-    color: '#2ecc71',
+    color: "#2ecc71",
   },
   emptyIssuesSubtext: {
     fontSize: 14,
-    color: '#7f8c8d',
-    textAlign: 'center',
+    color: "#7f8c8d",
+    textAlign: "center",
     marginTop: 8,
   },
   resultDetailActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
     padding: 16,
   },
   deleteResultButton: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#e74c3c',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#e74c3c",
     paddingVertical: 10,
     borderRadius: 4,
     marginRight: 8,
   },
   deleteResultText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
     marginLeft: 4,
   },
   closeResultButton: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3498db',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3498db",
     paddingVertical: 10,
     borderRadius: 4,
   },
   closeResultText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
   ruleFormModal: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
-    width: '100%',
-    maxHeight: '90%',
-    overflow: 'hidden',
+    width: "100%",
+    maxHeight: "90%",
+    overflow: "hidden",
   },
   ruleFormScrollView: {
     maxHeight: 500,
@@ -2294,12 +2287,12 @@ const styles = StyleSheet.create({
   },
   formLabel: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
     marginBottom: 8,
   },
   formInput: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
     paddingHorizontal: 12,
     paddingVertical: 8,
@@ -2307,55 +2300,55 @@ const styles = StyleSheet.create({
   },
   formTextarea: {
     minHeight: 100,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   formHelperText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 4,
   },
   formSelect: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   formSelectAndroid: {
-    width: '100%',
+    width: "100%",
   },
   formSelectIOS: {
-    width: '100%',
+    width: "100%",
   },
   formActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
     padding: 16,
   },
   cancelButton: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 12,
     marginRight: 8,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
   },
   cancelButtonText: {
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   createButton: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3498db',
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3498db",
     paddingVertical: 12,
     borderRadius: 4,
   },
   createButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
   },
 });
 

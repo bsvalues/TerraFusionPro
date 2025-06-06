@@ -1,11 +1,15 @@
-import React, { useState } from 'react';
-import { UADFormSection as UADFormSectionType, getFieldsBySection, getFieldsBySubsection } from './constants';
-import { UADFormField } from './UADFormField';
-import { useUADForm } from '@/contexts/UADFormContext';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
-import { ChevronDown, ChevronUp, Check, AlertCircle } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState } from "react";
+import {
+  UADFormSection as UADFormSectionType,
+  getFieldsBySection,
+  getFieldsBySubsection,
+} from "./constants";
+import { UADFormField } from "./UADFormField";
+import { useUADForm } from "@/contexts/UADFormContext";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { ChevronDown, ChevronUp, Check, AlertCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UADFormSectionProps {
   title: string;
@@ -29,17 +33,17 @@ export const UADFormSection: React.FC<UADFormSectionProps> = ({
   className,
 }) => {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
-  
+
   // Check if the section has any fields
   const sectionFields = getFieldsBySection(section);
   const hasFields = sectionFields.length > 0;
-  
+
   const toggleExpanded = () => {
     if (isCollapsible) {
       setIsExpanded(!isExpanded);
     }
   };
-  
+
   // Render section content based on whether it has subsections
   const renderContent = () => {
     if (!hasFields) {
@@ -49,14 +53,14 @@ export const UADFormSection: React.FC<UADFormSectionProps> = ({
         </div>
       );
     }
-    
+
     if (subsections && subsections.length > 0) {
       // Render with subsections
       return subsections.map((subsection) => {
         const subsectionFields = getFieldsBySubsection(section, subsection.id);
-        
+
         if (subsectionFields.length === 0) return null;
-        
+
         return (
           <div key={subsection.id} className="mb-6 last:mb-0">
             <h4 className="text-lg font-medium mb-3">{subsection.title}</h4>
@@ -80,13 +84,15 @@ export const UADFormSection: React.FC<UADFormSectionProps> = ({
       );
     }
   };
-  
+
   // Status indicator for the section
   const SectionStatusIndicator = () => {
     // Simple status display
     // This is a simplified version without the form data usage
-    const requiredFieldsCount = getFieldsBySection(section).filter(field => field.required).length;
-    
+    const requiredFieldsCount = getFieldsBySection(section).filter(
+      (field) => field.required
+    ).length;
+
     return (
       <div className="ml-auto flex items-center">
         {requiredFieldsCount === 0 ? (
@@ -103,24 +109,21 @@ export const UADFormSection: React.FC<UADFormSectionProps> = ({
       </div>
     );
   };
-  
+
   return (
     <Card className={cn("mb-6", className)}>
-      <CardHeader 
-        className={cn(
-          "flex flex-row items-center", 
-          isCollapsible && "cursor-pointer",
-        )}
+      <CardHeader
+        className={cn("flex flex-row items-center", isCollapsible && "cursor-pointer")}
         onClick={toggleExpanded}
       >
         <div>
           <CardTitle className="text-xl">{title}</CardTitle>
           {description && <CardDescription>{description}</CardDescription>}
         </div>
-        
+
         <div className="ml-auto flex items-center space-x-4">
           <SectionStatusIndicator />
-          
+
           {isCollapsible && (
             <div className="text-muted-foreground">
               {isExpanded ? <ChevronUp size={20} /> : <ChevronDown size={20} />}
@@ -128,12 +131,8 @@ export const UADFormSection: React.FC<UADFormSectionProps> = ({
           )}
         </div>
       </CardHeader>
-      
-      {isExpanded && (
-        <CardContent>
-          {renderContent()}
-        </CardContent>
-      )}
+
+      {isExpanded && <CardContent>{renderContent()}</CardContent>}
     </Card>
   );
 };

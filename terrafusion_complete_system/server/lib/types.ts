@@ -2,7 +2,13 @@
  * Type definitions for the file import and parser modules
  */
 
-import { InsertProperty, InsertComparable, InsertAppraisalReport, InsertAdjustment, Json } from "@shared/schema";
+import {
+  InsertProperty,
+  InsertComparable,
+  InsertAppraisalReport,
+  InsertAdjustment,
+  Json,
+} from "@shared/schema";
 
 /**
  * Represents the result of a file parsing operation
@@ -44,7 +50,7 @@ export interface ImportResult {
   fileId: string;
   fileName: string;
   format: string;
-  status: 'success' | 'partial' | 'failed';
+  status: "success" | "partial" | "failed";
   dateProcessed: Date;
   importedEntities: {
     properties: number[];

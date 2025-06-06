@@ -1,10 +1,10 @@
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs';
-import { v4 as uuidv4 } from 'uuid';
+import multer from "multer";
+import path from "path";
+import fs from "fs";
+import { v4 as uuidv4 } from "uuid";
 
 // Ensure upload directory exists
-const uploadDir = path.join(process.cwd(), 'uploads');
+const uploadDir = path.join(process.cwd(), "uploads");
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
 }
@@ -20,16 +20,16 @@ const storage = multer.diskStorage({
     const fileExtension = path.extname(file.originalname);
     const newFilename = `order_${uniqueId}${fileExtension}`;
     cb(null, newFilename);
-  }
+  },
 });
 
 // File filter to only allow PDFs and specific image types
 const fileFilter = (req, file, cb) => {
-  const allowedTypes = ['application/pdf', 'image/jpeg', 'image/png'];
+  const allowedTypes = ["application/pdf", "image/jpeg", "image/png"];
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error('Invalid file type. Only PDF, JPEG, and PNG files are allowed.'), false);
+    cb(new Error("Invalid file type. Only PDF, JPEG, and PNG files are allowed."), false);
   }
 };
 
@@ -39,7 +39,7 @@ export const upload = multer({
   fileFilter,
   limits: {
     fileSize: 10 * 1024 * 1024, // 10MB max file size
-  }
+  },
 });
 
 // Utility function to parse order details from filename (if needed)
@@ -55,7 +55,7 @@ export function parseOrderDetails(filename: string) {
     }
     return null;
   } catch (error) {
-    console.error('Error parsing order details from filename:', error);
+    console.error("Error parsing order details from filename:", error);
     return null;
   }
 }

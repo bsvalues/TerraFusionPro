@@ -1,11 +1,11 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  ShoppingCart, 
-  Search, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  ShoppingCart,
+  Search,
   Plus,
   Calendar,
   DollarSign,
@@ -13,8 +13,8 @@ import {
   Building2,
   User,
   Filter,
-  MoreVertical
-} from 'lucide-react';
+  MoreVertical,
+} from "lucide-react";
 
 export default function Orders() {
   return (
@@ -84,7 +84,10 @@ export default function Orders() {
           <div className="flex gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input placeholder="Search orders by property, client, or order ID..." className="pl-10" />
+              <Input
+                placeholder="Search orders by property, client, or order ID..."
+                className="pl-10"
+              />
             </div>
             <Button variant="outline">
               <Filter className="h-4 w-4 mr-2" />
@@ -216,7 +219,9 @@ export default function Orders() {
                   <div className="font-semibold text-lg">$525</div>
                   <div className="text-sm text-slate-500">75% Complete</div>
                 </div>
-                <Button size="sm" variant="outline">Continue</Button>
+                <Button size="sm" variant="outline">
+                  Continue
+                </Button>
                 <Button variant="outline" size="sm">
                   <MoreVertical className="h-4 w-4" />
                 </Button>

@@ -1,6 +1,6 @@
-import { useState, useEffect } from 'react';
-import { AlertTriangle, CheckCircle, Info, Loader2 } from 'lucide-react';
-import { TerraFusionComp } from '../../../server/services/rust-importer-bridge';
+import { useState, useEffect } from "react";
+import { AlertTriangle, CheckCircle, Info, Loader2 } from "lucide-react";
+import { TerraFusionComp } from "../../../server/services/rust-importer-bridge";
 
 interface LLMFeedback {
   corrections: {
@@ -17,7 +17,7 @@ interface AnomalyAlert {
   field: string;
   current: any;
   prior: any;
-  severity: 'low' | 'medium' | 'high';
+  severity: "low" | "medium" | "high";
 }
 
 interface LLMFeedbackOverlayProps {
@@ -37,12 +37,12 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
     const fetchFeedback = async () => {
       setLoading(true);
       setError(null);
-      
+
       try {
-        const response = await fetch('/api/import/validate/rag', {
-          method: 'POST',
+        const response = await fetch("/api/import/validate/rag", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify({ comp }),
         });
@@ -53,12 +53,11 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
 
         const result = await response.json();
         setFeedback(result);
-        
+
         // Check for anomalies (simplified fraud detection)
         checkForAnomalies(comp);
-        
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Validation failed');
+        setError(err instanceof Error ? err.message : "Validation failed");
       } finally {
         setLoading(false);
       }
@@ -70,16 +69,16 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
   const checkForAnomalies = (currentComp: TerraFusionComp) => {
     // Simulate anomaly detection based on unusual patterns
     const detectedAnomalies: AnomalyAlert[] = [];
-    
+
     // Price anomaly detection
     if (currentComp.sale_price_usd && currentComp.gla_sqft) {
       const pricePerSqft = currentComp.sale_price_usd / currentComp.gla_sqft;
       if (pricePerSqft > 1000 || pricePerSqft < 50) {
         detectedAnomalies.push({
-          field: 'sale_price_usd',
+          field: "sale_price_usd",
           current: currentComp.sale_price_usd,
-          prior: 'Expected range',
-          severity: 'high'
+          prior: "Expected range",
+          severity: "high",
         });
       }
     }
@@ -90,10 +89,10 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
       const now = new Date();
       if (saleDate > now) {
         detectedAnomalies.push({
-          field: 'sale_date',
+          field: "sale_date",
           current: currentComp.sale_date,
-          prior: 'Future date detected',
-          severity: 'medium'
+          prior: "Future date detected",
+          severity: "medium",
         });
       }
     }
@@ -105,7 +104,7 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
     if (!feedback || !onCorrectionApply) return;
 
     const correctedComp = { ...comp };
-    feedback.corrections.forEach(correction => {
+    feedback.corrections.forEach((correction) => {
       if (correction.confidence > 0.7) {
         (correctedComp as any)[correction.field] = correction.correctedValue;
       }
@@ -115,16 +114,19 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
   };
 
   const getConfidenceColor = (confidence: number) => {
-    if (confidence >= 0.8) return 'text-green-600 bg-green-50';
-    if (confidence >= 0.6) return 'text-yellow-600 bg-yellow-50';
-    return 'text-red-600 bg-red-50';
+    if (confidence >= 0.8) return "text-green-600 bg-green-50";
+    if (confidence >= 0.6) return "text-yellow-600 bg-yellow-50";
+    return "text-red-600 bg-red-50";
   };
 
   const getSeverityColor = (severity: string) => {
     switch (severity) {
-      case 'high': return 'text-red-600 bg-red-50 border-red-200';
-      case 'medium': return 'text-yellow-600 bg-yellow-50 border-yellow-200';
-      default: return 'text-blue-600 bg-blue-50 border-blue-200';
+      case "high":
+        return "text-red-600 bg-red-50 border-red-200";
+      case "medium":
+        return "text-yellow-600 bg-yellow-50 border-yellow-200";
+      default:
+        return "text-blue-600 bg-blue-50 border-blue-200";
     }
   };
 
@@ -160,11 +162,13 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
               <Info className="h-4 w-4 text-blue-600" />
               <span className="text-sm font-medium text-blue-900">AI Validation Feedback</span>
             </div>
-            <span className={`text-xs px-2 py-1 rounded ${getConfidenceColor(feedback.overallConfidence)}`}>
+            <span
+              className={`text-xs px-2 py-1 rounded ${getConfidenceColor(feedback.overallConfidence)}`}
+            >
               {Math.round(feedback.overallConfidence * 100)}% confidence
             </span>
           </div>
-          
+
           <div className="space-y-1">
             {feedback.corrections.map((correction, index) => (
               <div key={index} className="text-xs text-blue-800">
@@ -176,7 +180,7 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
             ))}
           </div>
 
-          {feedback.corrections.some(c => c.confidence > 0.7) && onCorrectionApply && (
+          {feedback.corrections.some((c) => c.confidence > 0.7) && onCorrectionApply && (
             <button
               onClick={applyCorrectionSuggestions}
               className="mt-2 text-xs bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 transition-colors"
@@ -191,7 +195,10 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
       {anomalies.length > 0 && (
         <div className="space-y-1">
           {anomalies.map((anomaly, index) => (
-            <div key={index} className={`p-2 text-xs rounded border ${getSeverityColor(anomaly.severity)}`}>
+            <div
+              key={index}
+              className={`p-2 text-xs rounded border ${getSeverityColor(anomaly.severity)}`}
+            >
               <div className="flex items-center gap-2">
                 <AlertTriangle className="h-3 w-3" />
                 <span className="font-medium">Potential fraud detected</span>
@@ -208,7 +215,10 @@ export default function LLMFeedbackOverlay({ comp, onCorrectionApply }: LLMFeedb
       {feedback && feedback.corrections.length === 0 && anomalies.length === 0 && (
         <div className="flex items-center gap-2 text-sm text-green-600 p-2 bg-green-50 rounded border border-green-200">
           <CheckCircle className="h-4 w-4" />
-          <span>Record passed AI validation (Confidence: {Math.round(feedback.overallConfidence * 100)}%)</span>
+          <span>
+            Record passed AI validation (Confidence: {Math.round(feedback.overallConfidence * 100)}
+            %)
+          </span>
         </div>
       )}
     </div>

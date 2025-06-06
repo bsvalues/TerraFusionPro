@@ -1,26 +1,26 @@
-import React from 'react';
-import { useParams } from 'wouter';
-import { AppraisalWorkflow, AppraisalStep } from '@/components/workflow/AppraisalWorkflow';
-import { PageHeader } from '../components/ui/page-header';
-import { Clipboard, ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
+import React from "react";
+import { useParams } from "wouter";
+import { AppraisalWorkflow, AppraisalStep } from "@/components/workflow/AppraisalWorkflow";
+import { PageHeader } from "../components/ui/page-header";
+import { Clipboard, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 
 export function WorkflowPage() {
   const { reportId, step } = useParams<{ reportId?: string; step?: string }>();
-  
+
   // Convert URL parameter to enum if provided
-  const currentStep = step ? 
-    (Object.values(AppraisalStep).find(s => s === step) || AppraisalStep.ORDER_INTAKE) : 
-    AppraisalStep.ORDER_INTAKE;
-  
+  const currentStep = step
+    ? Object.values(AppraisalStep).find((s) => s === step) || AppraisalStep.ORDER_INTAKE
+    : AppraisalStep.ORDER_INTAKE;
+
   // For demo purposes: show some completed steps
   const completedSteps = [
     AppraisalStep.ORDER_INTAKE,
     AppraisalStep.PROPERTY_DATA,
-    AppraisalStep.SUBJECT_PHOTOS
+    AppraisalStep.SUBJECT_PHOTOS,
   ];
-  
+
   return (
     <div className="container mx-auto py-6 max-w-screen-xl">
       <PageHeader
@@ -35,10 +35,10 @@ export function WorkflowPage() {
           </a>
         </Button>
       </PageHeader>
-      
+
       <Card className="mt-6">
         <CardContent className="p-6">
-          <AppraisalWorkflow 
+          <AppraisalWorkflow
             currentReportId={reportId}
             currentStep={currentStep}
             completedSteps={completedSteps}

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -10,15 +10,15 @@ import {
   SafeAreaView,
   StatusBar,
   Image,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation, useRoute } from '@react-navigation/native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import CollaborativeFieldNotes from '../components/CollaborativeFieldNotes';
-import { useAuth } from '../hooks/useAuth';
-import { ApiService } from '../services/ApiService';
-import { NotificationService } from '../services/NotificationService';
-import * as Colors from '../constants/Colors';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation, useRoute } from "@react-navigation/native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import CollaborativeFieldNotes from "../components/CollaborativeFieldNotes";
+import { useAuth } from "../hooks/useAuth";
+import { ApiService } from "../services/ApiService";
+import { NotificationService } from "../services/NotificationService";
+import * as Colors from "../constants/Colors";
 
 // Define the route params type
 interface FieldNotesRouteParams {
@@ -32,44 +32,45 @@ const FieldNotesScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute();
   const { user } = useAuth();
-  
+
   // Get route params
-  const { propertyId, parcelId, propertyAddress, propertyType } = route.params as FieldNotesRouteParams;
-  
+  const { propertyId, parcelId, propertyAddress, propertyType } =
+    route.params as FieldNotesRouteParams;
+
   // State
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
   const [propertyDetails, setPropertyDetails] = useState<any>(null);
   const [isOffline, setIsOffline] = useState(false);
   const [syncCount, setSyncCount] = useState(0);
-  
+
   // Services
   const apiService = ApiService.getInstance();
   const notificationService = NotificationService.getInstance();
-  
+
   // Load property details
   useEffect(() => {
     const loadPropertyDetails = async () => {
       setIsLoading(true);
-      
+
       try {
         // Check if we are online
         const online = apiService.isConnected();
         setIsOffline(!online);
-        
+
         // If we're online, try to load from API
         if (online) {
           try {
             const details = await apiService.get(`/api/properties/${propertyId}`);
             setPropertyDetails(details);
-            
+
             // Cache property details for offline use
             await AsyncStorage.setItem(
               `terrafield_property_${propertyId}`,
               JSON.stringify(details)
             );
           } catch (apiError) {
-            console.error('Error fetching property details from API:', apiError);
+            console.error("Error fetching property details from API:", apiError);
             await loadFromCache();
           }
         } else {
@@ -77,23 +78,18 @@ const FieldNotesScreen = () => {
           await loadFromCache();
         }
       } catch (error) {
-        console.error('Error loading property details:', error);
-        Alert.alert(
-          'Error',
-          'Failed to load property details. Please try again.'
-        );
+        console.error("Error loading property details:", error);
+        Alert.alert("Error", "Failed to load property details. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
-    
+
     // Load property details from cache
     const loadFromCache = async () => {
       try {
-        const cachedDetailsJson = await AsyncStorage.getItem(
-          `terrafield_property_${propertyId}`
-        );
-        
+        const cachedDetailsJson = await AsyncStorage.getItem(`terrafield_property_${propertyId}`);
+
         if (cachedDetailsJson) {
           const cachedDetails = JSON.parse(cachedDetailsJson);
           setPropertyDetails(cachedDetails);
@@ -102,63 +98,63 @@ const FieldNotesScreen = () => {
           setPropertyDetails({
             id: propertyId,
             parcelId: parcelId,
-            address: propertyAddress || 'Unknown Address',
-            propertyType: propertyType || 'Unknown Type',
+            address: propertyAddress || "Unknown Address",
+            propertyType: propertyType || "Unknown Type",
           });
         }
       } catch (cacheError) {
-        console.error('Error loading from cache:', cacheError);
-        
+        console.error("Error loading from cache:", cacheError);
+
         // Create a minimal property object with the info we have
         setPropertyDetails({
           id: propertyId,
           parcelId: parcelId,
-          address: propertyAddress || 'Unknown Address',
-          propertyType: propertyType || 'Unknown Type',
+          address: propertyAddress || "Unknown Address",
+          propertyType: propertyType || "Unknown Type",
         });
       }
     };
-    
+
     loadPropertyDetails();
-    
+
     // Set up connection status change listener
     const connectionStatusListener = () => {
       const isConnected = apiService.isConnected();
       setIsOffline(!isConnected);
     };
-    
+
     // Check connection status periodically
     const interval = setInterval(connectionStatusListener, 10000);
-    
+
     return () => {
       clearInterval(interval);
     };
   }, [propertyId, parcelId, propertyAddress, propertyType]);
-  
+
   // Handle sync status change
   const handleSyncStatusChange = (isSyncing: boolean) => {
     setIsSyncing(isSyncing);
     if (!isSyncing) {
       // Update sync count when sync completes
-      setSyncCount(prev => prev + 1);
+      setSyncCount((prev) => prev + 1);
     }
   };
-  
+
   // Handle back button press
   const handleBackPress = () => {
     navigation.goBack();
   };
-  
+
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
     });
   };
-  
+
   // Render loading state
   if (isLoading) {
     return (
@@ -169,11 +165,11 @@ const FieldNotesScreen = () => {
       </SafeAreaView>
     );
   }
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton} onPress={handleBackPress}>
@@ -192,20 +188,20 @@ const FieldNotesScreen = () => {
           </View>
         )}
       </View>
-      
+
       {/* Property details card */}
       <View style={styles.propertyCard}>
         <View style={styles.propertyHeader}>
           <View style={styles.propertyIconContainer}>
             <Ionicons
               name={
-                propertyDetails?.propertyType?.toLowerCase().includes('residential')
-                  ? 'home'
-                  : propertyDetails?.propertyType?.toLowerCase().includes('commercial')
-                  ? 'business'
-                  : propertyDetails?.propertyType?.toLowerCase().includes('land')
-                  ? 'leaf'
-                  : 'location'
+                propertyDetails?.propertyType?.toLowerCase().includes("residential")
+                  ? "home"
+                  : propertyDetails?.propertyType?.toLowerCase().includes("commercial")
+                    ? "business"
+                    : propertyDetails?.propertyType?.toLowerCase().includes("land")
+                      ? "leaf"
+                      : "location"
               }
               size={28}
               color={Colors.white}
@@ -213,10 +209,10 @@ const FieldNotesScreen = () => {
           </View>
           <View style={styles.propertyInfo}>
             <Text style={styles.propertyAddress} numberOfLines={1}>
-              {propertyDetails?.address || 'Unknown Address'}
+              {propertyDetails?.address || "Unknown Address"}
             </Text>
             <Text style={styles.propertyType}>
-              {propertyDetails?.propertyType || 'Unknown Type'}
+              {propertyDetails?.propertyType || "Unknown Type"}
             </Text>
           </View>
         </View>
@@ -240,7 +236,7 @@ const FieldNotesScreen = () => {
           )}
         </View>
       </View>
-      
+
       {/* Collaborative field notes */}
       <View style={styles.notesContainer}>
         {user && (
@@ -264,8 +260,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.background,
   },
   loadingText: {
@@ -274,8 +270,8 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: Colors.white,
@@ -291,7 +287,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.text,
   },
   offlineIndicator: {
@@ -317,7 +313,7 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   propertyHeader: {
-    flexDirection: 'row',
+    flexDirection: "row",
     padding: 16,
   },
   propertyIconContainer: {
@@ -325,17 +321,17 @@ const styles = StyleSheet.create({
     height: 50,
     borderRadius: 25,
     backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 16,
   },
   propertyInfo: {
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   propertyAddress: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.text,
     marginBottom: 4,
   },
@@ -352,8 +348,8 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   propertyDetailItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 8,
   },
   propertyDetailLabel: {
@@ -363,7 +359,7 @@ const styles = StyleSheet.create({
   propertyDetailValue: {
     fontSize: 14,
     color: Colors.text,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   notesContainer: {
     flex: 1,

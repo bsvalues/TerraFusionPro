@@ -5,12 +5,34 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Progress } from "@/components/ui/progress";
 import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
-import { Table, TableHead, TableBody, TableRow, TableCell, TableHeader } from "@/components/ui/table";
+import {
+  Table,
+  TableHead,
+  TableBody,
+  TableRow,
+  TableCell,
+  TableHeader,
+} from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Upload, Download, FileText, Bot, Clock, CheckCircle, AlertTriangle, ArrowRight } from "lucide-react";
+import {
+  Upload,
+  Download,
+  FileText,
+  Bot,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  ArrowRight,
+} from "lucide-react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 interface ConversionMapping {
@@ -57,65 +79,66 @@ export default function ConversionCenter() {
 
   // Fetch conversion history
   const { data: conversionHistory = [] } = useQuery<ConversionHistoryItem[]>({
-    queryKey: ['/api/conversion/history'],
+    queryKey: ["/api/conversion/history"],
     enabled: true,
   });
 
   // Fetch available templates
   const { data: templates = [] } = useQuery<any[]>({
-    queryKey: ['/api/conversion/templates'],
+    queryKey: ["/api/conversion/templates"],
     enabled: true,
   });
 
   // Conversion mutation
   const conversionMutation = useMutation({
     mutationFn: async (formData: FormData) => {
-      const response = await fetch('/api/conversion/convert', {
-        method: 'POST',
+      const response = await fetch("/api/conversion/convert", {
+        method: "POST",
         body: formData,
       });
-      
+
       if (!response.ok) {
-        throw new Error('Conversion failed');
+        throw new Error("Conversion failed");
       }
-      
+
       return response.json();
     },
     onSuccess: (data: ConversionResult) => {
       setConversionResult(data);
       setMapping(data.mapping || []);
       setJsonOutput(data.result ? JSON.stringify(data.result, null, 2) : "");
-      
+
       toast({
         title: "Conversion Completed",
         description: `Successfully processed ${data.outputRecords || 0} records in ${data.executionTimeMs || 0}ms`,
       });
-      
+
       // Invalidate history to refresh
-      queryClient.invalidateQueries({ queryKey: ['/api/conversion/history'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/conversion/history"] });
     },
     onError: (error: Error) => {
       toast({
-        title: "Conversion Failed", 
+        title: "Conversion Failed",
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
   const handleFileUpload = (type: "csv" | "xml", file: File | null) => {
     if (!file) return;
-    
+
     if (type === "csv") {
       setCsvFile(file);
       // Parse CSV preview
       const reader = new FileReader();
       reader.onload = (e) => {
         const text = e.target?.result as string;
-        const rows = text.split('\n').slice(0, 8).map((row) => 
-          row.split(',').map(cell => cell.trim().replace(/"/g, ''))
-        );
-        setCsvPreview(rows.filter(row => row.some(cell => cell.length > 0)));
+        const rows = text
+          .split("\n")
+          .slice(0, 8)
+          .map((row) => row.split(",").map((cell) => cell.trim().replace(/"/g, "")));
+        setCsvPreview(rows.filter((row) => row.some((cell) => cell.length > 0)));
       };
       reader.readAsText(file);
     } else {
@@ -134,14 +157,14 @@ export default function ConversionCenter() {
     }
 
     const formData = new FormData();
-    formData.append('csvFile', csvFile);
-    
+    formData.append("csvFile", csvFile);
+
     if (xmlFile) {
-      formData.append('xmlFile', xmlFile);
+      formData.append("xmlFile", xmlFile);
     }
-    
+
     if (selectedTemplate) {
-      formData.append('templateName', selectedTemplate);
+      formData.append("templateName", selectedTemplate);
     }
 
     conversionMutation.mutate(formData);
@@ -149,10 +172,10 @@ export default function ConversionCenter() {
 
   const downloadResult = () => {
     if (!jsonOutput) return;
-    
-    const blob = new Blob([jsonOutput], { type: 'application/json' });
+
+    const blob = new Blob([jsonOutput], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `converted_${Date.now()}.json`;
     document.body.appendChild(a);
@@ -191,7 +214,7 @@ export default function ConversionCenter() {
             <div className="space-y-3">
               <div>
                 <label className="text-sm font-medium mb-2 block">CSV Data File</label>
-                <div 
+                <div
                   className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors"
                   onClick={() => csvInputRef.current?.click()}
                 >
@@ -211,7 +234,7 @@ export default function ConversionCenter() {
 
               <div>
                 <label className="text-sm font-medium mb-2 block">XML Template (Optional)</label>
-                <div 
+                <div
                   className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-4 text-center cursor-pointer hover:border-gray-400 transition-colors"
                   onClick={() => xmlInputRef.current?.click()}
                 >
@@ -269,7 +292,7 @@ export default function ConversionCenter() {
                         <TableRow key={i}>
                           {row.map((cell, j) => (
                             <TableCell key={j} className="text-xs">
-                              {cell || '-'}
+                              {cell || "-"}
                             </TableCell>
                           ))}
                         </TableRow>
@@ -286,7 +309,7 @@ export default function ConversionCenter() {
             )}
 
             {/* Convert Button */}
-            <Button 
+            <Button
               onClick={handleConvert}
               disabled={conversionMutation.isPending || !csvFile}
               className="w-full"
@@ -305,9 +328,7 @@ export default function ConversionCenter() {
             </Button>
 
             {/* Progress */}
-            {conversionMutation.isPending && (
-              <Progress value={undefined} className="w-full" />
-            )}
+            {conversionMutation.isPending && <Progress value={undefined} className="w-full" />}
           </CardContent>
         </Card>
 
@@ -343,15 +364,11 @@ export default function ConversionCenter() {
                           <TableBody>
                             {mapping.map((map, idx) => (
                               <TableRow key={idx}>
-                                <TableCell className="text-xs font-mono">
-                                  {map.source}
-                                </TableCell>
+                                <TableCell className="text-xs font-mono">{map.source}</TableCell>
                                 <TableCell className="text-center">
                                   <ArrowRight className="h-3 w-3 text-gray-400" />
                                 </TableCell>
-                                <TableCell className="text-xs font-mono">
-                                  {map.target}
-                                </TableCell>
+                                <TableCell className="text-xs font-mono">{map.target}</TableCell>
                               </TableRow>
                             ))}
                           </TableBody>
@@ -371,11 +388,7 @@ export default function ConversionCenter() {
                     <div className="space-y-2">
                       <div className="flex items-center justify-between">
                         <h4 className="text-sm font-medium">Converted Data</h4>
-                        <Button
-                          onClick={downloadResult}
-                          variant="outline"
-                          size="sm"
-                        >
+                        <Button onClick={downloadResult} variant="outline" size="sm">
                           <Download className="h-4 w-4 mr-1" />
                           Download
                         </Button>
@@ -405,7 +418,9 @@ export default function ConversionCenter() {
                 <AlertDescription>
                   <ul className="list-disc list-inside space-y-1">
                     {conversionResult.warnings.map((warning, idx) => (
-                      <li key={idx} className="text-sm">{warning}</li>
+                      <li key={idx} className="text-sm">
+                        {warning}
+                      </li>
                     ))}
                   </ul>
                 </AlertDescription>
@@ -441,7 +456,7 @@ export default function ConversionCenter() {
                 <Clock className="h-4 w-4" />
                 Recent Conversions
               </h4>
-              
+
               {conversionHistory.length > 0 ? (
                 <div className="space-y-2 max-h-64 overflow-auto">
                   {conversionHistory.slice(0, 10).map((item) => (
@@ -450,11 +465,9 @@ export default function ConversionCenter() {
                       className="p-3 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                     >
                       <div className="flex items-center justify-between mb-1">
-                        <span className="text-sm font-medium truncate">
-                          {item.inputFileName}
-                        </span>
-                        <Badge 
-                          variant={item.status === 'completed' ? 'default' : 'destructive'}
+                        <span className="text-sm font-medium truncate">{item.inputFileName}</span>
+                        <Badge
+                          variant={item.status === "completed" ? "default" : "destructive"}
                           className="text-xs"
                         >
                           {item.status}
@@ -462,7 +475,9 @@ export default function ConversionCenter() {
                       </div>
                       <div className="text-xs text-gray-600 dark:text-gray-400 space-y-1">
                         <div>Template: {item.templateName}</div>
-                        <div>{item.inputRecords} → {item.outputRecords} records</div>
+                        <div>
+                          {item.inputRecords} → {item.outputRecords} records
+                        </div>
                         <div>{formatDate(item.createdAt)}</div>
                       </div>
                     </div>

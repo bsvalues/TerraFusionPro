@@ -5,6 +5,7 @@ Next-generation AI-powered real estate appraisal platform with comprehensive age
 ## 🚀 Features
 
 ### Core Agent Ecosystem
+
 - **Valuation Agent**: AI-powered property valuations with confidence scoring
 - **RAG Agent**: Knowledge retrieval and question-answering capabilities
 - **Compliance Agent**: USPAP and UAD compliance verification
@@ -12,6 +13,7 @@ Next-generation AI-powered real estate appraisal platform with comprehensive age
 - **Data Processing Agent**: Multi-format data processing and validation
 
 ### Legacy System Integration
+
 - **UAD Adapter**: XML parsing and generation for industry standards
 - **ENV Adapter**: MISMO, FNC, and TOTAL format support
 - **TOTAL Sidecar**: Real-time TOTAL software enhancement
@@ -20,6 +22,7 @@ Next-generation AI-powered real estate appraisal platform with comprehensive age
 - **SFREP Sidecar**: Quality control and review automation
 
 ### Platform Capabilities
+
 - **Multi-Agent Orchestration**: Coordinated agent swarm with message routing
 - **Real-time Communication**: MCP protocol with advanced message handling
 - **Cloud API**: RESTful API for external integrations
@@ -29,6 +32,7 @@ Next-generation AI-powered real estate appraisal platform with comprehensive age
 ## 🛠️ Quick Start
 
 ### Prerequisites
+
 - Rust 1.77+
 - Docker & Docker Compose
 - PostgreSQL (optional, included in Docker setup)
@@ -36,17 +40,20 @@ Next-generation AI-powered real estate appraisal platform with comprehensive age
 ### Development Setup
 
 1. **Clone and Setup**
+
 ```bash
 cd terrafusion_rust
 cargo build
 ```
 
 2. **Run with Docker Compose**
+
 ```bash
 docker-compose up -d
 ```
 
 3. **Run Locally**
+
 ```bash
 # Bootstrap the system
 cargo run -- bootstrap
@@ -71,6 +78,7 @@ cargo run -- acidev
 ## 🤖 Agent Commands
 
 ### Valuation Agent
+
 ```bash
 # Property valuation request
 {
@@ -86,6 +94,7 @@ cargo run -- acidev
 ```
 
 ### Compliance Agent
+
 ```bash
 # Compliance check request
 {
@@ -99,6 +108,7 @@ cargo run -- acidev
 ```
 
 ### Sketch Agent
+
 ```bash
 # Sketch analysis request
 {
@@ -113,39 +123,49 @@ cargo run -- acidev
 ## 🔧 Configuration
 
 ### Environment Variables
+
 - `RUST_LOG`: Logging level (default: info)
 - `RUST_BACKTRACE`: Error backtrace (default: 1)
 
 ### Agent Configuration
+
 Each agent can be configured through the message protocol or direct initialization parameters.
 
 ## 📊 Monitoring
 
 ### Health Checks
+
 - Application: `http://localhost:8080/api/health`
 - Agents: `http://localhost:8080/api/agents`
 
 ### Logging
+
 Structured logging with tracing support. Logs are output to stdout and can be configured for file output.
 
 ## 🏗️ Architecture
 
 ### Agent Swarm Orchestrator
+
 Central coordination of all agents with:
+
 - Message routing via MCP protocol
 - Health monitoring
 - Load balancing
 - Error handling and recovery
 
 ### MCP Protocol
+
 Advanced message communication protocol with:
+
 - Priority-based routing
 - Message expiration
 - Response tracking
 - Broadcast capabilities
 
 ### Data Processing Pipeline
+
 Multi-stage processing with:
+
 - Format detection and parsing
 - Validation and quality scoring
 - Transformation and enrichment
@@ -154,12 +174,14 @@ Multi-stage processing with:
 ## 🔌 Integrations
 
 ### Legacy Software Support
+
 - **TOTAL**: File monitoring and AI enhancement
 - **ACI**: Workflow automation and quality review
 - **ClickForms**: Auto-population and compliance checking
 - **SFREP**: Automated quality control
 
 ### External APIs
+
 - AI providers for valuation and analysis
 - MLS systems for property data
 - Mapping services for geospatial data
@@ -168,16 +190,19 @@ Multi-stage processing with:
 ## 🚀 Deployment
 
 ### Docker Production
+
 ```bash
 docker-compose -f docker-compose.prod.yml up -d
 ```
 
 ### Kubernetes
+
 ```bash
 kubectl apply -f k8s/
 ```
 
 ### Native Binary
+
 ```bash
 cargo build --release
 ./target/release/terrafusion run

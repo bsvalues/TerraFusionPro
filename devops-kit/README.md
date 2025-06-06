@@ -5,6 +5,7 @@
 **TerraFusion Platform** is an enterprise-grade AI-powered property assessment ecosystem that provides intelligent, data-driven property insights through cutting-edge technology and innovative user experience design.
 
 ### Core Architecture
+
 - **Frontend**: React + TypeScript with shadcn/ui components, Tailwind CSS
 - **Backend**: Node.js/Express with comprehensive API routes
 - **Database**: PostgreSQL with Drizzle ORM for type-safe operations
@@ -15,6 +16,7 @@
 ## 🏗️ Deployment Architecture
 
 ### Production Stack
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Load Balancer │────│  Frontend (CDN) │    │   Monitoring    │
@@ -37,6 +39,7 @@
 ## 📦 Quick Start Deployment
 
 ### Prerequisites
+
 - Docker & Docker Compose
 - Node.js 20+ & npm
 - Python 3.11+
@@ -44,6 +47,7 @@
 - Git
 
 ### 1. Environment Setup
+
 ```bash
 # Clone repository
 git clone https://github.com/your-org/terrafusion-platform.git
@@ -59,6 +63,7 @@ pip install -r requirements.txt
 ```
 
 ### 2. Database Setup
+
 ```bash
 # Start PostgreSQL
 docker-compose up -d postgres
@@ -71,6 +76,7 @@ npm run db:seed
 ```
 
 ### 3. Development Server
+
 ```bash
 # Start all services
 npm run dev
@@ -82,6 +88,7 @@ npm run dev:ai        # Python AI services on :8000
 ```
 
 ### 4. Production Deployment
+
 ```bash
 # Build production images
 docker-compose -f docker-compose.prod.yml build
@@ -96,19 +103,21 @@ kubectl apply -f k8s/
 ## 🛠️ Configuration Management
 
 ### Environment Variables
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | - | ✅ |
-| `NODE_ENV` | Environment mode | development | ✅ |
-| `PORT` | Application port | 5000 | ❌ |
-| `OPENAI_API_KEY` | OpenAI API key for AI features | - | ✅ |
-| `ANTHROPIC_API_KEY` | Anthropic API key (alternative) | - | ❌ |
-| `REDIS_URL` | Redis connection for caching | - | ❌ |
-| `S3_BUCKET_NAME` | AWS S3 bucket for file storage | - | ❌ |
-| `SMTP_HOST` | Email server configuration | - | ❌ |
-| `MLS_API_KEY` | MLS integration credentials | - | ❌ |
+
+| Variable            | Description                     | Default     | Required |
+| ------------------- | ------------------------------- | ----------- | -------- |
+| `DATABASE_URL`      | PostgreSQL connection string    | -           | ✅       |
+| `NODE_ENV`          | Environment mode                | development | ✅       |
+| `PORT`              | Application port                | 5000        | ❌       |
+| `OPENAI_API_KEY`    | OpenAI API key for AI features  | -           | ✅       |
+| `ANTHROPIC_API_KEY` | Anthropic API key (alternative) | -           | ❌       |
+| `REDIS_URL`         | Redis connection for caching    | -           | ❌       |
+| `S3_BUCKET_NAME`    | AWS S3 bucket for file storage  | -           | ❌       |
+| `SMTP_HOST`         | Email server configuration      | -           | ❌       |
+| `MLS_API_KEY`       | MLS integration credentials     | -           | ❌       |
 
 ### Feature Flags
+
 ```json
 {
   "ai_valuations": true,
@@ -122,6 +131,7 @@ kubectl apply -f k8s/
 ## 🔧 Infrastructure as Code
 
 ### Docker Compose Services
+
 - **frontend**: React application with Nginx
 - **backend**: Node.js Express API server
 - **ai-engine**: Python FastAPI ML services
@@ -131,6 +141,7 @@ kubectl apply -f k8s/
 - **monitoring**: Prometheus + Grafana stack
 
 ### Kubernetes Resources
+
 - Deployments for each microservice
 - Services for internal communication
 - Ingress for external access
@@ -141,18 +152,21 @@ kubectl apply -f k8s/
 ## 📊 Monitoring & Observability
 
 ### Health Checks
+
 - Application health endpoints
 - Database connection monitoring
 - AI service availability checks
 - Real-time connection status
 
 ### Metrics Collection
+
 - Application performance metrics
 - Business metrics (valuations, reports)
 - Infrastructure metrics (CPU, memory, disk)
 - User behavior analytics
 
 ### Logging Strategy
+
 - Structured JSON logging
 - Centralized log aggregation
 - Error tracking and alerting
@@ -161,18 +175,21 @@ kubectl apply -f k8s/
 ## 🔒 Security Configuration
 
 ### Authentication & Authorization
+
 - JWT-based authentication
 - Role-based access control (RBAC)
 - Multi-factor authentication support
 - OAuth2 integration ready
 
 ### Data Protection
+
 - Encryption at rest and in transit
 - PII data anonymization
 - Secure API key management
 - Regular security audits
 
 ### Compliance
+
 - GDPR compliance features
 - SOC 2 Type II controls
 - Data retention policies
@@ -181,6 +198,7 @@ kubectl apply -f k8s/
 ## 🚢 CI/CD Pipeline
 
 ### GitHub Actions Workflow
+
 1. **Code Quality**: Linting, type checking, security scans
 2. **Testing**: Unit tests, integration tests, E2E tests
 3. **Build**: Multi-stage Docker builds with optimization
@@ -188,6 +206,7 @@ kubectl apply -f k8s/
 5. **Monitor**: Post-deployment health checks
 
 ### Deployment Strategies
+
 - **Blue-Green**: Zero-downtime deployments
 - **Canary**: Gradual rollout for risk mitigation
 - **Feature Flags**: Runtime feature toggling
@@ -196,12 +215,14 @@ kubectl apply -f k8s/
 ## 📈 Scaling Configuration
 
 ### Horizontal Scaling
+
 - Load balancer configuration
 - Auto-scaling policies
 - Database read replicas
 - CDN for static assets
 
 ### Performance Optimization
+
 - Database query optimization
 - Redis caching strategy
 - Asset bundling and compression
@@ -210,17 +231,20 @@ kubectl apply -f k8s/
 ## 🎯 Support & Maintenance
 
 ### Documentation Links
+
 - [API Documentation](./docs/api.md)
 - [Database Schema](./docs/database.md)
 - [Deployment Guide](./docs/deployment.md)
 - [Troubleshooting](./docs/troubleshooting.md)
 
 ### Support Channels
+
 - Technical Support: tech@terrafusion.com
 - DevOps Issues: devops@terrafusion.com
 - Emergency Hotline: +1-800-TERRA-HELP
 
 ### Maintenance Windows
+
 - **Weekly**: Security updates (Sundays 2-4 AM EST)
 - **Monthly**: Feature deployments (First Saturday)
 - **Quarterly**: Major infrastructure updates

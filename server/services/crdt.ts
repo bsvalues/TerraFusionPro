@@ -1,10 +1,10 @@
 /**
  * CRDT Service
- * 
+ *
  * Handles Conflict-free Replicated Data Types (CRDT) for collaborative editing
  */
-import * as Y from 'yjs';
-import { encodeStateAsUpdate, encodeStateVector, mergeUpdates } from 'yjs';
+import * as Y from "yjs";
+import { encodeStateAsUpdate, encodeStateVector, mergeUpdates } from "yjs";
 
 // Store for CRDT documents
 const docStore = new Map<string, Y.Doc>();
@@ -18,7 +18,7 @@ export const getOrCreateDoc = (docId: string): Y.Doc => {
     docStore.set(docId, doc);
     return doc;
   }
-  
+
   return docStore.get(docId)!;
 };
 
@@ -27,7 +27,7 @@ export const getOrCreateDoc = (docId: string): Y.Doc => {
  */
 export const getDocData = (docId: string): object => {
   const doc = getOrCreateDoc(docId);
-  return doc.getMap('content').toJSON();
+  return doc.getMap("content").toJSON();
 };
 
 /**
@@ -36,7 +36,7 @@ export const getDocData = (docId: string): object => {
 export const updateDoc = (docId: string, update: Uint8Array): object => {
   const doc = getOrCreateDoc(docId);
   Y.applyUpdate(doc, update);
-  return doc.getMap('content').toJSON();
+  return doc.getMap("content").toJSON();
 };
 
 /**
@@ -44,12 +44,12 @@ export const updateDoc = (docId: string, update: Uint8Array): object => {
  */
 export const setDocValues = (docId: string, values: Record<string, any>): object => {
   const doc = getOrCreateDoc(docId);
-  const content = doc.getMap('content');
-  
+  const content = doc.getMap("content");
+
   Object.entries(values).forEach(([key, value]) => {
     content.set(key, value);
   });
-  
+
   return content.toJSON();
 };
 

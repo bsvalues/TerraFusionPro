@@ -1,45 +1,49 @@
-import React from 'react';
-import { useParams } from 'wouter';
-import { ReportGeneration, ReportFormat, ReportOutputFormat } from '@/components/workflow/report-generation';
-import { PageHeader } from '../components/ui/page-header';
-import { FileText, ChevronLeft } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { useQueryClient } from '@tanstack/react-query';
-import { enhancedToast } from '@/components/ui/enhanced-toast';
+import React from "react";
+import { useParams } from "wouter";
+import {
+  ReportGeneration,
+  ReportFormat,
+  ReportOutputFormat,
+} from "@/components/workflow/report-generation";
+import { PageHeader } from "../components/ui/page-header";
+import { FileText, ChevronLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useQueryClient } from "@tanstack/react-query";
+import { enhancedToast } from "@/components/ui/enhanced-toast";
 
 export function ReportGenerationPage() {
   const { reportId } = useParams<{ reportId: string }>();
   const queryClient = useQueryClient();
-  
+
   const handleGenerateReport = async (
-    reportId: string, 
-    format: ReportFormat, 
-    outputFormats: ReportOutputFormat[], 
+    reportId: string,
+    format: ReportFormat,
+    outputFormats: ReportOutputFormat[],
     options: any
   ) => {
     // In a real implementation, we'd make an API call here
-    console.log('Generating report with options:', { reportId, format, outputFormats, options });
-    
+    console.log("Generating report with options:", { reportId, format, outputFormats, options });
+
     // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
     // Example error handling
     if (Math.random() > 0.9) {
-      throw new Error('Failed to connect to report generation service');
+      throw new Error("Failed to connect to report generation service");
     }
-    
+
     // Successfully generated
     enhancedToast.success({
-      title: 'Report Generated',
-      description: `Generated ${outputFormats.length} format(s) for report #${reportId}`
+      title: "Report Generated",
+      description: `Generated ${outputFormats.length} format(s) for report #${reportId}`,
     });
-    
+
     // Invalidate report cache queries if needed
     queryClient.invalidateQueries({ queryKey: [`/api/reports/${reportId}`] });
-    
+
     return Promise.resolve();
   };
-  
+
   return (
     <div className="container mx-auto py-6 max-w-screen-xl">
       <PageHeader
@@ -54,10 +58,10 @@ export function ReportGenerationPage() {
           </a>
         </Button>
       </PageHeader>
-      
+
       <div className="mt-6">
-        <ReportGeneration 
-          reportId={reportId} 
+        <ReportGeneration
+          reportId={reportId}
           onGenerate={handleGenerateReport}
           defaultFormat={ReportFormat.UAD_GPAR}
         />

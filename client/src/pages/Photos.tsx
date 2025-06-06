@@ -1,10 +1,10 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Camera, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Camera,
   Upload,
   Search,
   Filter,
@@ -17,8 +17,8 @@ import {
   Plus,
   MapPin,
   Calendar,
-  MoreHorizontal
-} from 'lucide-react';
+  MoreHorizontal,
+} from "lucide-react";
 
 export default function Photos() {
   return (

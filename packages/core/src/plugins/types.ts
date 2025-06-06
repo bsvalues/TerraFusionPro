@@ -1,4 +1,4 @@
-import { Request, Response, NextFunction, Router } from 'express';
+import { Request, Response, NextFunction, Router } from "express";
 
 /**
  * Base plugin interface that all plugins must implement
@@ -100,19 +100,19 @@ export interface PluginLifecycle {
  * Extension point types
  */
 export enum ExtensionPointType {
-  API = 'api',
-  UI = 'ui',
-  WORKFLOW = 'workflow',
-  SCHEMA = 'schema',
-  VALIDATOR = 'validator',
-  FORMATTER = 'formatter',
-  PARSER = 'parser',
-  EXPORTER = 'exporter',
-  IMPORTER = 'importer',
-  REPORT = 'report',
-  DASHBOARD = 'dashboard',
-  SERVICE = 'service',
-  MIDDLEWARE = 'middleware',
+  API = "api",
+  UI = "ui",
+  WORKFLOW = "workflow",
+  SCHEMA = "schema",
+  VALIDATOR = "validator",
+  FORMATTER = "formatter",
+  PARSER = "parser",
+  EXPORTER = "exporter",
+  IMPORTER = "importer",
+  REPORT = "report",
+  DASHBOARD = "dashboard",
+  SERVICE = "service",
+  MIDDLEWARE = "middleware",
 }
 
 /**

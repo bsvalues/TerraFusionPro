@@ -5,23 +5,23 @@
  * Automates the deployment process to development, staging, and production environments
  */
 
-const { execSync } = require('child_process');
-const path = require('path');
-const fs = require('fs');
+const { execSync } = require("child_process");
+const path = require("path");
+const fs = require("fs");
 
 // Configuration
 const CONFIG = {
   development: {
-    url: process.env.DEV_DEPLOY_URL || 'dev-environment-url',
-    postDeployScript: 'post-deploy-dev.js',
+    url: process.env.DEV_DEPLOY_URL || "dev-environment-url",
+    postDeployScript: "post-deploy-dev.js",
   },
   staging: {
-    url: process.env.STAGING_DEPLOY_URL || 'staging-environment-url',
-    postDeployScript: 'post-deploy-staging.js',
+    url: process.env.STAGING_DEPLOY_URL || "staging-environment-url",
+    postDeployScript: "post-deploy-staging.js",
   },
   production: {
-    url: process.env.PROD_DEPLOY_URL || 'production-environment-url',
-    postDeployScript: 'post-deploy-prod.js',
+    url: process.env.PROD_DEPLOY_URL || "production-environment-url",
+    postDeployScript: "post-deploy-prod.js",
   },
 };
 
@@ -44,7 +44,7 @@ console.log(`Starting deployment to ${environment} environment...`);
 function runCommand(command, errorMessage) {
   try {
     console.log(`Running: ${command}`);
-    const output = execSync(command, { encoding: 'utf-8' });
+    const output = execSync(command, { encoding: "utf-8" });
     console.log(output);
     return output;
   } catch (error) {
@@ -58,52 +58,51 @@ function runCommand(command, errorMessage) {
 async function deploy() {
   try {
     // Step 1: Build the application
-    console.log('Building application...');
-    runCommand('npm run build', 'Failed to build application');
+    console.log("Building application...");
+    runCommand("npm run build", "Failed to build application");
 
     // Step 2: Run tests to make sure everything is working
-    if (environment === 'production' || environment === 'staging') {
-      console.log('Running tests...');
-      runCommand('npm test', 'Tests failed');
+    if (environment === "production" || environment === "staging") {
+      console.log("Running tests...");
+      runCommand("npm test", "Tests failed");
     }
 
     // Step 3: Run database migrations if needed
-    console.log('Running database migrations...');
-    runCommand('npm run db:push', 'Database migration failed');
+    console.log("Running database migrations...");
+    runCommand("npm run db:push", "Database migration failed");
 
     // Step 4: Deploy to specified environment
     console.log(`Deploying to ${environment}...`);
-    
+
     // This is where you would add your actual deployment commands
     // For example, using rsync, git commands, or cloud deployment tools
-    runCommand(`echo "Deploying to ${config.url}"`, 'Deployment failed');
-    
+    runCommand(`echo "Deploying to ${config.url}"`, "Deployment failed");
+
     // Step 5: Run post-deployment scripts if they exist
     const postDeployPath = path.join(__dirname, config.postDeployScript);
     if (fs.existsSync(postDeployPath)) {
-      console.log('Running post-deployment script...');
-      runCommand(`node ${postDeployPath}`, 'Post-deployment script failed');
+      console.log("Running post-deployment script...");
+      runCommand(`node ${postDeployPath}`, "Post-deployment script failed");
     }
 
     // Step 6: Verify deployment
-    console.log('Verifying deployment...');
+    console.log("Verifying deployment...");
     // Add verification logic here
-    
+
     console.log(`Deployment to ${environment} completed successfully!`);
-    
+
     // Log completion time
     console.log(`Deployment completed at: ${new Date().toISOString()}`);
-    
   } catch (error) {
-    console.error('Deployment failed:');
+    console.error("Deployment failed:");
     console.error(error);
     process.exit(1);
   }
 }
 
 // Run the deployment process
-deploy().catch(error => {
-  console.error('Unhandled error during deployment:');
+deploy().catch((error) => {
+  console.error("Unhandled error during deployment:");
   console.error(error);
   process.exit(1);
 });

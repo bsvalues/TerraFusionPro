@@ -1,20 +1,41 @@
-import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
-import { useToast } from '@/hooks/use-toast';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useLocation } from 'wouter';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Separator } from '@/components/ui/separator';
+import { useState, useEffect } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { useToast } from "@/hooks/use-toast";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useLocation } from "wouter";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Separator } from "@/components/ui/separator";
 
 // Define form schema based on our database schema
 const propertyFormSchema = z.object({
@@ -27,7 +48,10 @@ const propertyFormSchema = z.object({
   legalDescription: z.string().optional(),
   taxParcelId: z.string().optional(),
   propertyType: z.string().min(1, "Property type is required"),
-  yearBuilt: z.coerce.number().min(1800, "Year built must be after 1800").max(new Date().getFullYear(), "Year built cannot be in the future"),
+  yearBuilt: z.coerce
+    .number()
+    .min(1800, "Year built must be after 1800")
+    .max(new Date().getFullYear(), "Year built cannot be in the future"),
   effectiveAge: z.coerce.number().optional(),
   grossLivingArea: z.coerce.number().min(100, "Gross living area must be at least 100 sq ft"),
   lotSize: z.coerce.number().min(100, "Lot size must be at least 100 sq ft"),
@@ -61,7 +85,7 @@ type PropertyFormValues = z.infer<typeof propertyFormSchema>;
 type ReportFormValues = z.infer<typeof reportFormSchema>;
 
 export default function FormPage() {
-  const [activeTab, setActiveTab] = useState('property');
+  const [activeTab, setActiveTab] = useState("property");
   const [propertyId, setPropertyId] = useState<number | null>(null);
   const [reportId, setReportId] = useState<number | null>(null);
   const [location, navigate] = useLocation();
@@ -76,23 +100,23 @@ export default function FormPage() {
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
       userId,
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      county: '',
-      legalDescription: '',
-      taxParcelId: '',
-      propertyType: 'Single Family',
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      county: "",
+      legalDescription: "",
+      taxParcelId: "",
+      propertyType: "Single Family",
       yearBuilt: new Date().getFullYear() - 20,
       effectiveAge: 0,
       grossLivingArea: 2000,
       lotSize: 5000,
       bedrooms: 3,
       bathrooms: 2,
-      basement: 'None',
-      garage: 'Attached'
-    }
+      basement: "None",
+      garage: "Attached",
+    },
   });
 
   // Report form
@@ -101,26 +125,26 @@ export default function FormPage() {
     defaultValues: {
       userId,
       propertyId: undefined,
-      reportType: 'Appraisal Report',
-      formType: 'URAR',
-      status: 'draft',
-      purpose: 'Purchase Mortgage',
-      effectiveDate: new Date().toISOString().split('T')[0],
-      reportDate: new Date().toISOString().split('T')[0],
-      clientName: '',
-      clientAddress: '',
-      lenderName: '',
-      lenderAddress: '',
-      borrowerName: '',
-      occupancy: 'Owner Occupied',
+      reportType: "Appraisal Report",
+      formType: "URAR",
+      status: "draft",
+      purpose: "Purchase Mortgage",
+      effectiveDate: new Date().toISOString().split("T")[0],
+      reportDate: new Date().toISOString().split("T")[0],
+      clientName: "",
+      clientAddress: "",
+      lenderName: "",
+      lenderAddress: "",
+      borrowerName: "",
+      occupancy: "Owner Occupied",
       salesPrice: undefined,
       marketValue: undefined,
-    }
+    },
   });
 
   // Fetch property if ID is in the URL
-  const propertyIdFromUrl = new URLSearchParams(location.split('?')[1]).get('id');
-  
+  const propertyIdFromUrl = new URLSearchParams(location.split("?")[1]).get("id");
+
   useEffect(() => {
     if (propertyIdFromUrl) {
       setPropertyId(Number(propertyIdFromUrl));
@@ -129,31 +153,31 @@ export default function FormPage() {
 
   // Property query
   const propertyQuery = useQuery({
-    queryKey: ['/api/properties', propertyId],
+    queryKey: ["/api/properties", propertyId],
     enabled: !!propertyId,
     queryFn: async () => {
       return apiRequest<PropertyFormValues>(`/api/properties/${propertyId}`, {
-        method: 'GET',
+        method: "GET",
       });
-    }
+    },
   });
 
   // Report query
   const reportQuery = useQuery({
-    queryKey: ['/api/reports', reportId],
+    queryKey: ["/api/reports", reportId],
     enabled: !!reportId,
     queryFn: async () => {
       return apiRequest<ReportFormValues>(`/api/reports/${reportId}`, {
-        method: 'GET',
+        method: "GET",
       });
-    }
+    },
   });
 
   // Update forms when data is loaded
   useEffect(() => {
     if (propertyQuery.data) {
       propertyForm.reset(propertyQuery.data);
-      
+
       // If we have a property ID but no report ID, try to load the most recent report
       if (propertyId && !reportId) {
         fetchReportsForProperty(propertyId);
@@ -170,10 +194,13 @@ export default function FormPage() {
   // Fetch reports for a property
   const fetchReportsForProperty = async (propertyId: number) => {
     try {
-      const reports = await apiRequest<ReportFormValues[]>(`/api/reports?propertyId=${propertyId}`, {
-        method: 'GET',
-      });
-      
+      const reports = await apiRequest<ReportFormValues[]>(
+        `/api/reports?propertyId=${propertyId}`,
+        {
+          method: "GET",
+        }
+      );
+
       if (reports && reports.length > 0) {
         // Set the most recent report as active
         const reportWithId = reports[0] as ReportFormValues & { id: number };
@@ -189,30 +216,30 @@ export default function FormPage() {
     mutationFn: async (data: PropertyFormValues) => {
       if (propertyId) {
         return apiRequest<PropertyFormValues & { id: number }>(`/api/properties/${propertyId}`, {
-          method: 'PUT',
+          method: "PUT",
           data,
         });
       } else {
-        return apiRequest<PropertyFormValues & { id: number }>('/api/properties', {
-          method: 'POST',
+        return apiRequest<PropertyFormValues & { id: number }>("/api/properties", {
+          method: "POST",
           data,
         });
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
       setPropertyId(data.id);
-      
+
       // Update report form with property ID
-      reportForm.setValue('propertyId', data.id);
-      
+      reportForm.setValue("propertyId", data.id);
+
       toast({
         title: propertyId ? "Property updated" : "Property created",
         description: "Property information has been saved successfully.",
       });
-      
+
       // Move to the report tab
-      setActiveTab('report');
+      setActiveTab("report");
     },
     onError: (error) => {
       toast({
@@ -220,7 +247,7 @@ export default function FormPage() {
         description: "Failed to save property information. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Create/update report mutation
@@ -228,27 +255,27 @@ export default function FormPage() {
     mutationFn: async (data: ReportFormValues) => {
       if (reportId) {
         return apiRequest<ReportFormValues & { id: number }>(`/api/reports/${reportId}`, {
-          method: 'PUT',
+          method: "PUT",
           data,
         });
       } else {
-        return apiRequest<ReportFormValues & { id: number }>('/api/reports', {
-          method: 'POST',
+        return apiRequest<ReportFormValues & { id: number }>("/api/reports", {
+          method: "POST",
           data,
         });
       }
     },
     onSuccess: (data) => {
-      queryClient.invalidateQueries({ queryKey: ['/api/reports'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reports"] });
       setReportId(data.id);
-      
+
       toast({
         title: reportId ? "Report updated" : "Report created",
         description: "Report information has been saved successfully.",
       });
-      
+
       // Redirect to comparables page
-      navigate('/comps');
+      navigate("/comps");
     },
     onError: (error) => {
       toast({
@@ -256,7 +283,7 @@ export default function FormPage() {
         description: "Failed to save report information. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Form submission handlers
@@ -273,91 +300,114 @@ export default function FormPage() {
 
   // Property types and states for dropdowns
   const propertyTypes = [
-    'Single Family', 
-    'Condominium', 
-    'Townhouse', 
-    'Multi-Family', 
-    'PUD', 
-    'Cooperative',
-    'Manufactured Home'
+    "Single Family",
+    "Condominium",
+    "Townhouse",
+    "Multi-Family",
+    "PUD",
+    "Cooperative",
+    "Manufactured Home",
   ];
-  
+
   const states = [
-    'AL', 'AK', 'AZ', 'AR', 'CA', 'CO', 'CT', 'DE', 'FL', 'GA', 
-    'HI', 'ID', 'IL', 'IN', 'IA', 'KS', 'KY', 'LA', 'ME', 'MD', 
-    'MA', 'MI', 'MN', 'MS', 'MO', 'MT', 'NE', 'NV', 'NH', 'NJ', 
-    'NM', 'NY', 'NC', 'ND', 'OH', 'OK', 'OR', 'PA', 'RI', 'SC', 
-    'SD', 'TN', 'TX', 'UT', 'VT', 'VA', 'WA', 'WV', 'WI', 'WY',
-    'DC', 'PR', 'VI'
+    "AL",
+    "AK",
+    "AZ",
+    "AR",
+    "CA",
+    "CO",
+    "CT",
+    "DE",
+    "FL",
+    "GA",
+    "HI",
+    "ID",
+    "IL",
+    "IN",
+    "IA",
+    "KS",
+    "KY",
+    "LA",
+    "ME",
+    "MD",
+    "MA",
+    "MI",
+    "MN",
+    "MS",
+    "MO",
+    "MT",
+    "NE",
+    "NV",
+    "NH",
+    "NJ",
+    "NM",
+    "NY",
+    "NC",
+    "ND",
+    "OH",
+    "OK",
+    "OR",
+    "PA",
+    "RI",
+    "SC",
+    "SD",
+    "TN",
+    "TX",
+    "UT",
+    "VT",
+    "VA",
+    "WA",
+    "WV",
+    "WI",
+    "WY",
+    "DC",
+    "PR",
+    "VI",
   ];
-  
+
   const reportTypes = [
-    'Appraisal Report',
-    'Limited Appraisal Report',
-    'Restricted Appraisal Report'
+    "Appraisal Report",
+    "Limited Appraisal Report",
+    "Restricted Appraisal Report",
   ];
-  
+
   const formTypes = [
-    'URAR', 
-    'Form 1004', 
-    'Form 1073', 
-    'Form 1025', 
-    'Form 1004C',
-    'Narrative Report'
+    "URAR",
+    "Form 1004",
+    "Form 1073",
+    "Form 1025",
+    "Form 1004C",
+    "Narrative Report",
   ];
-  
-  const occupancyTypes = [
-    'Owner Occupied',
-    'Tenant Occupied',
-    'Vacant'
-  ];
-  
+
+  const occupancyTypes = ["Owner Occupied", "Tenant Occupied", "Vacant"];
+
   const purposeTypes = [
-    'Purchase Mortgage',
-    'Refinance Mortgage',
-    'Home Equity Loan',
-    'Private Mortgage Insurance Removal',
-    'Estate Planning',
-    'Divorce Settlement',
-    'Market Analysis'
+    "Purchase Mortgage",
+    "Refinance Mortgage",
+    "Home Equity Loan",
+    "Private Mortgage Insurance Removal",
+    "Estate Planning",
+    "Divorce Settlement",
+    "Market Analysis",
   ];
-  
-  const basementTypes = [
-    'None',
-    'Full',
-    'Partial',
-    'Walkout',
-    'Finished',
-    'Unfinished'
-  ];
-  
-  const garageTypes = [
-    'None',
-    'Attached',
-    'Detached',
-    '1-Car',
-    '2-Car',
-    '3-Car',
-    'Carport'
-  ];
+
+  const basementTypes = ["None", "Full", "Partial", "Walkout", "Finished", "Unfinished"];
+
+  const garageTypes = ["None", "Attached", "Detached", "1-Car", "2-Car", "3-Car", "Carport"];
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-2xl font-bold">
-          {propertyId ? 'Edit Property' : 'New Property'}
-        </h1>
+        <h1 className="text-2xl font-bold">{propertyId ? "Edit Property" : "New Property"}</h1>
         <div className="space-x-2">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate('/')}
-          >
+          <Button variant="outline" onClick={() => navigate("/")}>
             Cancel
           </Button>
           {propertyId && (
-            <Button 
+            <Button
               variant="secondary"
-              onClick={() => window.open(`/reports?propertyId=${propertyId}`, '_blank')}
+              onClick={() => window.open(`/reports?propertyId=${propertyId}`, "_blank")}
             >
               View Reports
             </Button>
@@ -371,9 +421,11 @@ export default function FormPage() {
       <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
         <TabsList>
           <TabsTrigger value="property">Property Information</TabsTrigger>
-          <TabsTrigger value="report" disabled={!propertyId}>Appraisal Assignment</TabsTrigger>
+          <TabsTrigger value="report" disabled={!propertyId}>
+            Appraisal Assignment
+          </TabsTrigger>
         </TabsList>
-        
+
         {/* Property Information Tab */}
         <TabsContent value="property">
           <Form {...propertyForm}>
@@ -397,7 +449,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="city"
@@ -411,7 +463,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="state"
@@ -424,8 +476,10 @@ export default function FormPage() {
                               <SelectValue placeholder="Select State" />
                             </SelectTrigger>
                             <SelectContent>
-                              {states.map(state => (
-                                <SelectItem key={state} value={state}>{state}</SelectItem>
+                              {states.map((state) => (
+                                <SelectItem key={state} value={state}>
+                                  {state}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -434,7 +488,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="zipCode"
@@ -448,7 +502,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="county"
@@ -462,7 +516,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="taxParcelId"
@@ -476,7 +530,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <div className="md:col-span-2">
                     <FormField
                       control={propertyForm.control}
@@ -494,11 +548,13 @@ export default function FormPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Property Characteristics</CardTitle>
-                  <CardDescription>Enter the physical characteristics of the property</CardDescription>
+                  <CardDescription>
+                    Enter the physical characteristics of the property
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-3">
                   <FormField
@@ -513,8 +569,10 @@ export default function FormPage() {
                               <SelectValue placeholder="Select Property Type" />
                             </SelectTrigger>
                             <SelectContent>
-                              {propertyTypes.map(type => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              {propertyTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -523,7 +581,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="yearBuilt"
@@ -537,7 +595,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="effectiveAge"
@@ -551,7 +609,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="grossLivingArea"
@@ -565,7 +623,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="lotSize"
@@ -579,7 +637,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="bedrooms"
@@ -593,7 +651,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="bathrooms"
@@ -607,7 +665,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="basement"
@@ -620,8 +678,10 @@ export default function FormPage() {
                               <SelectValue placeholder="Select Basement Type" />
                             </SelectTrigger>
                             <SelectContent>
-                              {basementTypes.map(type => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              {basementTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -630,7 +690,7 @@ export default function FormPage() {
                       </FormItem>
                     )}
                   />
-                  
+
                   <FormField
                     control={propertyForm.control}
                     name="garage"
@@ -643,8 +703,10 @@ export default function FormPage() {
                               <SelectValue placeholder="Select Garage Type" />
                             </SelectTrigger>
                             <SelectContent>
-                              {garageTypes.map(type => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              {garageTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -655,13 +717,10 @@ export default function FormPage() {
                   />
                 </CardContent>
                 <CardFooter className="flex justify-between border-t p-4">
-                  <Button variant="outline" onClick={() => navigate('/')}>
+                  <Button variant="outline" onClick={() => navigate("/")}>
                     Cancel
                   </Button>
-                  <Button 
-                    type="submit"
-                    disabled={propertyMutation.isPending}
-                  >
+                  <Button type="submit" disabled={propertyMutation.isPending}>
                     {propertyMutation.isPending ? "Saving..." : "Save & Continue"}
                   </Button>
                 </CardFooter>
@@ -669,14 +728,15 @@ export default function FormPage() {
             </form>
           </Form>
         </TabsContent>
-        
+
         {/* Report Information Tab */}
         <TabsContent value="report">
           {!propertyId ? (
             <Alert>
               <AlertTitle>Property information required</AlertTitle>
               <AlertDescription>
-                Please save the property information first before proceeding to the appraisal assignment.
+                Please save the property information first before proceeding to the appraisal
+                assignment.
               </AlertDescription>
             </Alert>
           ) : (
@@ -700,8 +760,10 @@ export default function FormPage() {
                                 <SelectValue placeholder="Select Report Type" />
                               </SelectTrigger>
                               <SelectContent>
-                                {reportTypes.map(type => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                {reportTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -710,7 +772,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="formType"
@@ -723,8 +785,10 @@ export default function FormPage() {
                                 <SelectValue placeholder="Select Form Type" />
                               </SelectTrigger>
                               <SelectContent>
-                                {formTypes.map(type => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                {formTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -733,7 +797,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="purpose"
@@ -746,8 +810,10 @@ export default function FormPage() {
                                 <SelectValue placeholder="Select Purpose" />
                               </SelectTrigger>
                               <SelectContent>
-                                {purposeTypes.map(type => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                {purposeTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -756,7 +822,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="effectiveDate"
@@ -770,7 +836,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="reportDate"
@@ -784,7 +850,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="occupancy"
@@ -797,8 +863,10 @@ export default function FormPage() {
                                 <SelectValue placeholder="Select Occupancy" />
                               </SelectTrigger>
                               <SelectContent>
-                                {occupancyTypes.map(type => (
-                                  <SelectItem key={type} value={type}>{type}</SelectItem>
+                                {occupancyTypes.map((type) => (
+                                  <SelectItem key={type} value={type}>
+                                    {type}
+                                  </SelectItem>
                                 ))}
                               </SelectContent>
                             </Select>
@@ -809,7 +877,7 @@ export default function FormPage() {
                     />
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Client Information</CardTitle>
@@ -829,7 +897,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="clientAddress"
@@ -843,7 +911,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="lenderName"
@@ -857,7 +925,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="lenderAddress"
@@ -871,7 +939,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="borrowerName"
@@ -887,7 +955,7 @@ export default function FormPage() {
                     />
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Valuation Information</CardTitle>
@@ -907,7 +975,7 @@ export default function FormPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={reportForm.control}
                       name="marketValue"
@@ -923,16 +991,10 @@ export default function FormPage() {
                     />
                   </CardContent>
                   <CardFooter className="flex justify-between border-t p-4">
-                    <Button 
-                      variant="outline" 
-                      onClick={() => setActiveTab('property')}
-                    >
+                    <Button variant="outline" onClick={() => setActiveTab("property")}>
                       Back to Property
                     </Button>
-                    <Button 
-                      type="submit"
-                      disabled={reportMutation.isPending}
-                    >
+                    <Button type="submit" disabled={reportMutation.isPending}>
                       {reportMutation.isPending ? "Saving..." : "Save & Continue"}
                     </Button>
                   </CardFooter>

@@ -26,32 +26,36 @@ class WebSocketClient {
     try {
       // Determine the correct protocol (ws: or wss:) based on the current page
       const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-      
+
       // Extract server port - we'll connect directly to avoid Vite interference
-      const hostParts = window.location.host.split(':');
+      const hostParts = window.location.host.split(":");
       const baseHost = hostParts[0];
       // Default to port 5000 which is our Express server port
       const serverPort = "5000";
-      
+
       // In Replit, we need to use the same hostname without specifying a custom port
       // This ensures the request goes through Replit's proxy correctly
       // Adding a timestamp query parameter to prevent caching issues
       const timestamp = Date.now();
       const wsUrl = `${protocol}//${window.location.host}/ws?t=${timestamp}`;
       const wsAltUrl = `${protocol}//${window.location.host}/ws-alt?t=${timestamp}`;
-      
+
       console.log(`[WebSocketClient] Connecting to ${wsUrl} (Replit proxy)`);
-      
+
       try {
         this.socket = new WebSocket(wsUrl);
       } catch (error) {
-        console.warn(`[WebSocketClient] Failed to connect to primary WebSocket endpoint, trying alternative...`);
+        console.warn(
+          `[WebSocketClient] Failed to connect to primary WebSocket endpoint, trying alternative...`
+        );
         try {
           // Try the alternative WebSocket endpoint
           console.log(`[WebSocketClient] Connecting to alternative endpoint ${wsAltUrl}`);
           this.socket = new WebSocket(wsAltUrl);
         } catch (altError) {
-          console.error(`[WebSocketClient] Failed to connect to alternative WebSocket endpoint: ${altError}`);
+          console.error(
+            `[WebSocketClient] Failed to connect to alternative WebSocket endpoint: ${altError}`
+          );
           throw error; // Rethrow the original error to trigger reconnect logic
         }
       }
@@ -72,7 +76,7 @@ class WebSocketClient {
     this.isConnected = true;
     this.reconnectAttempts = 0;
     this.notifyConnectionStateChange(true);
-    
+
     // Send any pending messages that were queued while disconnected
     this.sendPendingMessages();
   }
@@ -81,20 +85,20 @@ class WebSocketClient {
   private handleMessage(event: MessageEvent) {
     try {
       const message = JSON.parse(event.data);
-      
+
       if (message && message.type) {
         console.log(`[WebSocketClient] Received message of type: ${message.type}`);
-        
+
         // Find all handlers registered for this message type
         const handlers = this.messageHandlers.get(message.type);
         if (handlers) {
-          handlers.forEach(handler => handler(message.data));
+          handlers.forEach((handler) => handler(message.data));
         }
-        
+
         // Also trigger any handlers registered for 'all' messages
-        const allHandlers = this.messageHandlers.get('all');
+        const allHandlers = this.messageHandlers.get("all");
         if (allHandlers) {
-          allHandlers.forEach(handler => handler(message));
+          allHandlers.forEach((handler) => handler(message));
         }
       }
     } catch (error) {
@@ -115,7 +119,7 @@ class WebSocketClient {
     console.error("[WebSocketClient] WebSocket error:", event);
     this.isConnected = false;
     this.notifyConnectionStateChange(false);
-    
+
     // Automatically attempt to reconnect after an error
     this.attemptReconnect();
   }
@@ -124,10 +128,10 @@ class WebSocketClient {
   private attemptReconnect() {
     if (this.reconnectAttempts >= this.maxReconnectAttempts) {
       console.log("[WebSocketClient] Maximum reconnection attempts reached");
-      
+
       // Notify the UI that we're falling back to long-polling
       this.notifyConnectionStateChange(false);
-      
+
       // We could implement a long-polling fallback here if needed
       console.log("[WebSocketClient] Switching to long-polling fallback");
       return;
@@ -136,15 +140,17 @@ class WebSocketClient {
     // Calculate delay with exponential backoff and jitter
     const baseDelay = this.minReconnectDelay * Math.pow(this.backoffFactor, this.reconnectAttempts);
     // Add jitter (±20%) to prevent all clients reconnecting at once
-    const jitter = 0.8 + (Math.random() * 0.4);
+    const jitter = 0.8 + Math.random() * 0.4;
     const delay = Math.min(baseDelay * jitter, this.maxReconnectDelay);
-    
-    console.log(`[WebSocketClient] Attempting to reconnect in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts + 1} of ${this.maxReconnectAttempts})`);
-    
+
+    console.log(
+      `[WebSocketClient] Attempting to reconnect in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts + 1} of ${this.maxReconnectAttempts})`
+    );
+
     if (this.reconnectTimeout) {
       clearTimeout(this.reconnectTimeout);
     }
-    
+
     this.reconnectTimeout = setTimeout(() => {
       this.reconnectAttempts++;
       this.connect();
@@ -153,18 +159,18 @@ class WebSocketClient {
 
   // Notify all registered handlers of connection state changes
   private notifyConnectionStateChange(connected: boolean) {
-    this.connectionStateHandlers.forEach(handler => handler(connected));
+    this.connectionStateHandlers.forEach((handler) => handler(connected));
   }
 
   // Send pending messages after reconnection
   private sendPendingMessages() {
     if (this.pendingMessages.length > 0 && this.isConnected) {
       console.log(`[WebSocketClient] Sending ${this.pendingMessages.length} pending messages`);
-      
-      this.pendingMessages.forEach(message => {
+
+      this.pendingMessages.forEach((message) => {
         this.send(message.type, message.data);
       });
-      
+
       this.pendingMessages = [];
     }
   }
@@ -174,10 +180,10 @@ class WebSocketClient {
     if (!this.messageHandlers.has(messageType)) {
       this.messageHandlers.set(messageType, new Set());
     }
-    
+
     const handlers = this.messageHandlers.get(messageType)!;
     handlers.add(handler);
-    
+
     // Return an unsubscribe function
     return () => {
       handlers.delete(handler);
@@ -190,10 +196,10 @@ class WebSocketClient {
   // Register a handler for connection state changes
   onConnectionStateChange(handler: ConnectionStateChangeHandler): () => void {
     this.connectionStateHandlers.add(handler);
-    
+
     // Immediately notify with current state
     handler(this.isConnected);
-    
+
     // Return an unsubscribe function
     return () => {
       this.connectionStateHandlers.delete(handler);
@@ -225,21 +231,23 @@ class WebSocketClient {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
-    
+
     if (this.socket) {
       this.socket.onopen = null;
       this.socket.onmessage = null;
       this.socket.onclose = null;
       this.socket.onerror = null;
-      
-      if (this.socket.readyState === WebSocket.OPEN || 
-          this.socket.readyState === WebSocket.CONNECTING) {
+
+      if (
+        this.socket.readyState === WebSocket.OPEN ||
+        this.socket.readyState === WebSocket.CONNECTING
+      ) {
         this.socket.close();
       }
-      
+
       this.socket = null;
     }
-    
+
     this.isConnected = false;
     this.notifyConnectionStateChange(false);
   }
@@ -248,12 +256,12 @@ class WebSocketClient {
   isSocketConnected(): boolean {
     return this.isConnected;
   }
-  
+
   // Get current reconnect attempts
   getReconnectAttempts(): number {
     return this.reconnectAttempts;
   }
-  
+
   // Get max reconnect attempts
   getMaxReconnectAttempts(): number {
     return this.maxReconnectAttempts;

@@ -3,19 +3,19 @@
  * Form-first architecture with real-time agent validation
  */
 
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Badge } from '@/components/ui/badge';
-import { AlertTriangle, CheckCircle, Brain, FileCheck, Shield, Zap } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Badge } from "@/components/ui/badge";
+import { AlertTriangle, CheckCircle, Brain, FileCheck, Shield, Zap } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface FormField {
   id: string;
-  type: 'text' | 'number' | 'select' | 'textarea' | 'comp' | 'address';
+  type: "text" | "number" | "select" | "textarea" | "comp" | "address";
   label: string;
   value: any;
   required: boolean;
@@ -45,7 +45,7 @@ interface ValidationResult {
 interface AgentFeedback {
   agentId: string;
   fieldId?: string;
-  type: 'validation' | 'suggestion' | 'narrative' | 'comp' | 'risk';
+  type: "validation" | "suggestion" | "narrative" | "comp" | "risk";
   content: any;
   confidence: number;
 }
@@ -58,157 +58,156 @@ export default function FormEnginePage() {
   const [isValidating, setIsValidating] = useState(false);
   const [formSections] = useState<FormSection[]>([
     {
-      id: 'subject-property',
-      title: 'Subject Property Information',
+      id: "subject-property",
+      title: "Subject Property Information",
       order: 1,
       fields: [
         {
-          id: 'property_address',
-          type: 'address',
-          label: 'Property Address',
-          value: '',
+          id: "property_address",
+          type: "address",
+          label: "Property Address",
+          value: "",
           required: true,
-          agentHints: ['address-validation', 'geo-lookup'],
+          agentHints: ["address-validation", "geo-lookup"],
           validation: {
-            pattern: '^[0-9]+\\s+[A-Za-z0-9\\s,.-]+$'
-          }
+            pattern: "^[0-9]+\\s+[A-Za-z0-9\\s,.-]+$",
+          },
         },
         {
-          id: 'legal_description',
-          type: 'textarea',
-          label: 'Legal Description',
-          value: '',
+          id: "legal_description",
+          type: "textarea",
+          label: "Legal Description",
+          value: "",
           required: true,
-          agentHints: ['legal-validation']
+          agentHints: ["legal-validation"],
         },
         {
-          id: 'sale_price',
-          type: 'number',
-          label: 'Sale Price',
-          value: '',
+          id: "sale_price",
+          type: "number",
+          label: "Sale Price",
+          value: "",
           required: true,
-          agentHints: ['market-validation', 'price-analysis'],
+          agentHints: ["market-validation", "price-analysis"],
           validation: {
             min: 0,
-            max: 50000000
-          }
+            max: 50000000,
+          },
         },
         {
-          id: 'gla',
-          type: 'number',
-          label: 'Gross Living Area (sq ft)',
-          value: '',
+          id: "gla",
+          type: "number",
+          label: "Gross Living Area (sq ft)",
+          value: "",
           required: true,
-          agentHints: ['gla-validation', 'measurement-check'],
+          agentHints: ["gla-validation", "measurement-check"],
           validation: {
             min: 100,
-            max: 50000
-          }
-        }
-      ]
+            max: 50000,
+          },
+        },
+      ],
     },
     {
-      id: 'comparables',
-      title: 'Comparable Sales',
+      id: "comparables",
+      title: "Comparable Sales",
       order: 2,
       fields: [
         {
-          id: 'comp_1_address',
-          type: 'address',
-          label: 'Comparable 1 Address',
-          value: '',
+          id: "comp_1_address",
+          type: "address",
+          label: "Comparable 1 Address",
+          value: "",
           required: true,
-          agentHints: ['comp-validation', 'distance-check']
+          agentHints: ["comp-validation", "distance-check"],
         },
         {
-          id: 'comp_1_sale_price',
-          type: 'number',
-          label: 'Comparable 1 Sale Price',
-          value: '',
+          id: "comp_1_sale_price",
+          type: "number",
+          label: "Comparable 1 Sale Price",
+          value: "",
           required: true,
-          agentHints: ['comp-analysis', 'adjustment-calculation']
+          agentHints: ["comp-analysis", "adjustment-calculation"],
         },
         {
-          id: 'comp_1_gla',
-          type: 'number',
-          label: 'Comparable 1 GLA',
-          value: '',
+          id: "comp_1_gla",
+          type: "number",
+          label: "Comparable 1 GLA",
+          value: "",
           required: true,
-          agentHints: ['gla-comparison']
-        }
-      ]
-    }
+          agentHints: ["gla-comparison"],
+        },
+      ],
+    },
   ]);
 
   const handleFieldChange = async (fieldId: string, value: any) => {
-    setFormData(prev => ({ ...prev, [fieldId]: value }));
-    
+    setFormData((prev) => ({ ...prev, [fieldId]: value }));
+
     // Trigger real-time validation
     setIsValidating(true);
-    
+
     try {
       // Simulate agent validation
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
       // Mock validation response
       const mockValidation: ValidationResult = {
         fieldId,
         valid: value && String(value).length > 0,
-        errors: !value ? ['Field is required'] : [],
+        errors: !value ? ["Field is required"] : [],
         warnings: [],
-        suggestions: []
+        suggestions: [],
       };
 
-      setValidationResults(prev => {
-        const filtered = prev.filter(r => r.fieldId !== fieldId);
+      setValidationResults((prev) => {
+        const filtered = prev.filter((r) => r.fieldId !== fieldId);
         return [...filtered, mockValidation];
       });
 
       // Mock agent feedback
-      if (fieldId.includes('price')) {
+      if (fieldId.includes("price")) {
         const mockFeedback: AgentFeedback = {
-          agentId: 'comp-model',
+          agentId: "comp-model",
           fieldId,
-          type: 'suggestion',
+          type: "suggestion",
           content: {
-            message: 'Price appears within market range for this area',
+            message: "Price appears within market range for this area",
             marketRange: { min: 400000, max: 500000 },
-            confidence: 0.85
+            confidence: 0.85,
           },
-          confidence: 0.85
+          confidence: 0.85,
         };
 
-        setAgentFeedback(prev => {
-          const filtered = prev.filter(f => f.fieldId !== fieldId);
+        setAgentFeedback((prev) => {
+          const filtered = prev.filter((f) => f.fieldId !== fieldId);
           return [...filtered, mockFeedback];
         });
       }
 
-      if (fieldId.includes('address')) {
+      if (fieldId.includes("address")) {
         const mockFeedback: AgentFeedback = {
-          agentId: 'risk-validator',
+          agentId: "risk-validator",
           fieldId,
-          type: 'validation',
+          type: "validation",
           content: {
-            message: 'Address validated successfully',
-            coordinates: { lat: 40.7128, lng: -74.0060 },
-            neighborhood: 'Downtown'
+            message: "Address validated successfully",
+            coordinates: { lat: 40.7128, lng: -74.006 },
+            neighborhood: "Downtown",
           },
-          confidence: 0.92
+          confidence: 0.92,
         };
 
-        setAgentFeedback(prev => {
-          const filtered = prev.filter(f => f.fieldId !== fieldId);
+        setAgentFeedback((prev) => {
+          const filtered = prev.filter((f) => f.fieldId !== fieldId);
           return [...filtered, mockFeedback];
         });
       }
-
     } catch (error) {
-      console.error('Validation error:', error);
+      console.error("Validation error:", error);
       toast({
         title: "Validation Error",
         description: "Failed to validate field",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsValidating(false);
@@ -216,11 +215,11 @@ export default function FormEnginePage() {
   };
 
   const getFieldValidation = (fieldId: string): ValidationResult | undefined => {
-    return validationResults.find(r => r.fieldId === fieldId);
+    return validationResults.find((r) => r.fieldId === fieldId);
   };
 
   const getFieldFeedback = (fieldId: string): AgentFeedback[] => {
-    return agentFeedback.filter(f => f.fieldId === fieldId);
+    return agentFeedback.filter((f) => f.fieldId === fieldId);
   };
 
   const renderField = (field: FormField) => {
@@ -236,16 +235,16 @@ export default function FormEnginePage() {
             {field.label}
             {field.required && <span className="text-red-500 ml-1">*</span>}
           </Label>
-          
+
           {field.agentHints && field.agentHints.length > 0 && (
             <div className="flex gap-1">
-              {field.agentHints.includes('address-validation') && (
+              {field.agentHints.includes("address-validation") && (
                 <Badge variant="outline" className="text-xs">
                   <Brain className="w-3 h-3 mr-1" />
                   AI Validate
                 </Badge>
               )}
-              {field.agentHints.includes('market-validation') && (
+              {field.agentHints.includes("market-validation") && (
                 <Badge variant="outline" className="text-xs">
                   <Zap className="w-3 h-3 mr-1" />
                   Market AI
@@ -255,21 +254,21 @@ export default function FormEnginePage() {
           )}
         </div>
 
-        {field.type === 'textarea' ? (
+        {field.type === "textarea" ? (
           <Textarea
             id={field.id}
-            value={formData[field.id] || ''}
+            value={formData[field.id] || ""}
             onChange={(e) => handleFieldChange(field.id, e.target.value)}
-            className={hasErrors ? 'border-red-500' : hasWarnings ? 'border-yellow-500' : ''}
+            className={hasErrors ? "border-red-500" : hasWarnings ? "border-yellow-500" : ""}
             placeholder={`Enter ${field.label.toLowerCase()}`}
           />
         ) : (
           <Input
             id={field.id}
-            type={field.type === 'number' ? 'number' : 'text'}
-            value={formData[field.id] || ''}
+            type={field.type === "number" ? "number" : "text"}
+            value={formData[field.id] || ""}
             onChange={(e) => handleFieldChange(field.id, e.target.value)}
-            className={hasErrors ? 'border-red-500' : hasWarnings ? 'border-yellow-500' : ''}
+            className={hasErrors ? "border-red-500" : hasWarnings ? "border-yellow-500" : ""}
             placeholder={`Enter ${field.label.toLowerCase()}`}
             min={field.validation?.min}
             max={field.validation?.max}
@@ -305,9 +304,9 @@ export default function FormEnginePage() {
           <div key={idx} className="p-3 bg-blue-50 border border-blue-200 rounded-md">
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-medium text-blue-800">
-                {fb.agentId === 'comp-model' && 'Comparable Analysis'}
-                {fb.agentId === 'risk-validator' && 'Risk Assessment'}
-                {fb.agentId === 'narrative-synth' && 'Narrative Assistant'}
+                {fb.agentId === "comp-model" && "Comparable Analysis"}
+                {fb.agentId === "risk-validator" && "Risk Assessment"}
+                {fb.agentId === "narrative-synth" && "Narrative Assistant"}
               </span>
               <Badge variant="secondary" className="text-xs">
                 {Math.round(fb.confidence * 100)}% confident
@@ -316,7 +315,8 @@ export default function FormEnginePage() {
             <p className="text-sm text-blue-700">{fb.content.message}</p>
             {fb.content.marketRange && (
               <p className="text-xs text-blue-600 mt-1">
-                Market Range: ${fb.content.marketRange.min.toLocaleString()} - ${fb.content.marketRange.max.toLocaleString()}
+                Market Range: ${fb.content.marketRange.min.toLocaleString()} - $
+                {fb.content.marketRange.max.toLocaleString()}
               </p>
             )}
           </div>
@@ -328,10 +328,10 @@ export default function FormEnginePage() {
   const handleSubmit = async () => {
     try {
       setIsValidating(true);
-      
+
       // Final validation
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
       toast({
         title: "Form Submitted",
         description: "Appraisal form submitted successfully with blockchain verification",
@@ -339,13 +339,12 @@ export default function FormEnginePage() {
 
       // Mock hash generation
       const hash = `0x${Math.random().toString(16).substring(2, 42)}`;
-      console.log('Form hash:', hash);
-      
+      console.log("Form hash:", hash);
     } catch (error) {
       toast({
         title: "Submission Error",
         description: "Failed to submit form",
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsValidating(false);
@@ -359,7 +358,7 @@ export default function FormEnginePage() {
         <p className="text-muted-foreground">
           AI-powered appraisal forms with real-time validation and blockchain verification
         </p>
-        
+
         {/* Agent Status */}
         <div className="flex gap-2 mt-4">
           <Badge variant="default" className="flex items-center gap-1">
@@ -388,16 +387,14 @@ export default function FormEnginePage() {
                 )}
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-6">
-              {section.fields.map(renderField)}
-            </CardContent>
+            <CardContent className="space-y-6">{section.fields.map(renderField)}</CardContent>
           </Card>
         ))}
 
         <div className="flex justify-end gap-4">
           <Button variant="outline">Save Draft</Button>
           <Button onClick={handleSubmit} disabled={isValidating}>
-            {isValidating ? 'Processing...' : 'Submit & Sign'}
+            {isValidating ? "Processing..." : "Submit & Sign"}
           </Button>
         </div>
       </div>

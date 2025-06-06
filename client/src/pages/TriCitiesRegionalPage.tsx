@@ -1,15 +1,26 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { MapPin, Users, Activity, Wheat, Droplets, TreePine, Building, CheckCircle, Settings, Database } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import {
+  MapPin,
+  Users,
+  Activity,
+  Wheat,
+  Droplets,
+  TreePine,
+  Building,
+  CheckCircle,
+  Settings,
+  Database,
+} from "lucide-react";
 
 interface TriCitiesCounty {
   name: string;
-  nodeType: 'Master' | 'Sync';
-  status: 'Active' | 'Staging' | 'Queued';
+  nodeType: "Master" | "Sync";
+  status: "Active" | "Staging" | "Queued";
   appraisers: number;
   agProperties: number;
   mixedZoneProperties: number;
@@ -28,144 +39,158 @@ interface AgricultureConfig {
 }
 
 export default function TriCitiesRegionalPage() {
-  const [selectedCounty, setSelectedCounty] = useState('Benton');
+  const [selectedCounty, setSelectedCounty] = useState("Benton");
   const [agConfig, setAgConfig] = useState<AgricultureConfig>({
     waterRightsEnabled: true,
     soilTypeMapping: true,
     parcelOverlays: true,
     cropYieldFactors: true,
     irrigationAdjustments: true,
-    farmResidentialSplits: true
+    farmResidentialSplits: true,
   });
 
   const triCitiesCounties: TriCitiesCounty[] = [
     {
-      name: 'Benton',
-      nodeType: 'Master',
-      status: 'Active',
+      name: "Benton",
+      nodeType: "Master",
+      status: "Active",
       appraisers: 28,
       agProperties: 1847,
       mixedZoneProperties: 892,
       waterRightsTracked: 456,
       soilTypesIntegrated: 23,
-      compliance: 96.3
+      compliance: 96.3,
     },
     {
-      name: 'Franklin',
-      nodeType: 'Master',
-      status: 'Active',
+      name: "Franklin",
+      nodeType: "Master",
+      status: "Active",
       appraisers: 15,
       agProperties: 1234,
       mixedZoneProperties: 567,
       waterRightsTracked: 298,
       soilTypesIntegrated: 18,
-      compliance: 95.8
+      compliance: 95.8,
     },
     {
-      name: 'Walla Walla',
-      nodeType: 'Sync',
-      status: 'Staging',
+      name: "Walla Walla",
+      nodeType: "Sync",
+      status: "Staging",
       appraisers: 12,
       agProperties: 987,
       mixedZoneProperties: 234,
       waterRightsTracked: 187,
       soilTypesIntegrated: 15,
-      compliance: 94.2
+      compliance: 94.2,
     },
     {
-      name: 'Yakima',
-      nodeType: 'Sync',
-      status: 'Staging',
+      name: "Yakima",
+      nodeType: "Sync",
+      status: "Staging",
       appraisers: 34,
       agProperties: 2156,
       mixedZoneProperties: 1089,
       waterRightsTracked: 567,
       soilTypesIntegrated: 31,
-      compliance: 93.7
+      compliance: 93.7,
     },
     {
-      name: 'Columbia',
-      nodeType: 'Sync',
-      status: 'Staging',
+      name: "Columbia",
+      nodeType: "Sync",
+      status: "Staging",
       appraisers: 6,
       agProperties: 423,
       mixedZoneProperties: 89,
       waterRightsTracked: 76,
       soilTypesIntegrated: 8,
-      compliance: 92.1
+      compliance: 92.1,
     },
     {
-      name: 'Asotin',
-      nodeType: 'Sync',
-      status: 'Queued',
+      name: "Asotin",
+      nodeType: "Sync",
+      status: "Queued",
       appraisers: 4,
       agProperties: 298,
       mixedZoneProperties: 67,
       waterRightsTracked: 45,
       soilTypesIntegrated: 6,
-      compliance: 91.8
+      compliance: 91.8,
     },
     {
-      name: 'Garfield',
-      nodeType: 'Sync',
-      status: 'Queued',
+      name: "Garfield",
+      nodeType: "Sync",
+      status: "Queued",
       appraisers: 3,
       agProperties: 189,
       mixedZoneProperties: 34,
       waterRightsTracked: 28,
       soilTypesIntegrated: 4,
-      compliance: 90.9
+      compliance: 90.9,
     },
     {
-      name: 'Whitman',
-      nodeType: 'Sync',
-      status: 'Queued',
+      name: "Whitman",
+      nodeType: "Sync",
+      status: "Queued",
       appraisers: 8,
       agProperties: 567,
       mixedZoneProperties: 123,
       waterRightsTracked: 89,
       soilTypesIntegrated: 12,
-      compliance: 93.4
-    }
+      compliance: 93.4,
+    },
   ];
 
   const zoneBotData = {
-    trainingStatus: 'Fine-tuning on regional planning data',
-    dataIngested: '12,847 appraisals',
-    narrativeStyles: ['ag-res hybrid', 'rural outbuilding usage', 'multi-parcel comp linking'],
+    trainingStatus: "Fine-tuning on regional planning data",
+    dataIngested: "12,847 appraisals",
+    narrativeStyles: ["ag-res hybrid", "rural outbuilding usage", "multi-parcel comp linking"],
     zoningMapsIntegrated: 4,
-    completionPercentage: 78
+    completionPercentage: 78,
   };
 
   const deploymentObjectives = [
-    { task: 'Establish Benton & Franklin as dual master nodes', status: 'Active', progress: 95 },
-    { task: 'Enable multi-county cross-boundary comp sharing', status: 'Active', progress: 88 },
-    { task: 'Integrate Yakima & Walla Walla via lightweight sync nodes', status: 'In Progress', progress: 67 },
-    { task: 'Train LLM agents on rural narrative styles', status: 'Active', progress: 92 },
-    { task: 'Deploy farm/residential split valuation logic', status: 'Complete', progress: 100 },
-    { task: 'Configure Columbia/Asotin/Garfield lightweight nodes', status: 'In Progress', progress: 23 },
-    { task: 'Deploy Whitman/Lincoln/Adams predictive nodes', status: 'Queued', progress: 8 }
+    { task: "Establish Benton & Franklin as dual master nodes", status: "Active", progress: 95 },
+    { task: "Enable multi-county cross-boundary comp sharing", status: "Active", progress: 88 },
+    {
+      task: "Integrate Yakima & Walla Walla via lightweight sync nodes",
+      status: "In Progress",
+      progress: 67,
+    },
+    { task: "Train LLM agents on rural narrative styles", status: "Active", progress: 92 },
+    { task: "Deploy farm/residential split valuation logic", status: "Complete", progress: 100 },
+    {
+      task: "Configure Columbia/Asotin/Garfield lightweight nodes",
+      status: "In Progress",
+      progress: 23,
+    },
+    { task: "Deploy Whitman/Lincoln/Adams predictive nodes", status: "Queued", progress: 8 },
   ];
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800';
-      case 'Staging': return 'bg-yellow-100 text-yellow-800';
-      case 'Queued': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Active":
+        return "bg-green-100 text-green-800";
+      case "Staging":
+        return "bg-yellow-100 text-yellow-800";
+      case "Queued":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getNodeTypeColor = (nodeType: string) => {
-    return nodeType === 'Master' ? 'bg-blue-100 text-blue-800' : 'bg-purple-100 text-purple-800';
+    return nodeType === "Master" ? "bg-blue-100 text-blue-800" : "bg-purple-100 text-purple-800";
   };
 
-  const selectedCountyData = triCitiesCounties.find(c => c.name === selectedCounty);
+  const selectedCountyData = triCitiesCounties.find((c) => c.name === selectedCounty);
 
   return (
     <div className="space-y-6 p-6">
       <div className="border-b pb-4">
-        <h1 className="text-3xl font-bold text-gray-900">TerraFusion Tri-Cities Regional Control</h1>
+        <h1 className="text-3xl font-bold text-gray-900">
+          TerraFusion Tri-Cities Regional Control
+        </h1>
         <p className="text-gray-600 mt-2">
           Agricultural + Mixed-Zone Modeling for South-Eastern Washington
         </p>
@@ -179,19 +204,17 @@ export default function TriCitiesRegionalPage() {
       {/* County Selection */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {triCitiesCounties.map((county) => (
-          <Card 
+          <Card
             key={county.name}
             className={`cursor-pointer transition-all hover:shadow-md ${
-              selectedCounty === county.name ? 'ring-2 ring-blue-500' : ''
+              selectedCounty === county.name ? "ring-2 ring-blue-500" : ""
             }`}
             onClick={() => setSelectedCounty(county.name)}
           >
             <CardContent className="p-4">
               <div className="flex justify-between items-start mb-2">
                 <h3 className="font-semibold">{county.name} County</h3>
-                <Badge className={getNodeTypeColor(county.nodeType)}>
-                  {county.nodeType}
-                </Badge>
+                <Badge className={getNodeTypeColor(county.nodeType)}>{county.nodeType}</Badge>
               </div>
               <Badge className={getStatusColor(county.status)} size="sm">
                 {county.status}
@@ -234,7 +257,7 @@ export default function TriCitiesRegionalPage() {
                 <span className="text-sm text-gray-600">{zoneBotData.completionPercentage}%</span>
               </div>
               <Progress value={zoneBotData.completionPercentage} className="mb-4" />
-              
+
               <div className="space-y-2">
                 <div className="flex items-center text-sm">
                   <Database className="w-4 h-4 mr-2 text-blue-500" />
@@ -249,11 +272,13 @@ export default function TriCitiesRegionalPage() {
                 <div className="flex items-center text-sm">
                   <MapPin className="w-4 h-4 mr-2 text-purple-500" />
                   <span className="font-medium">Zoning Maps:</span>
-                  <span className="ml-2 text-gray-600">{zoneBotData.zoningMapsIntegrated} integrated</span>
+                  <span className="ml-2 text-gray-600">
+                    {zoneBotData.zoningMapsIntegrated} integrated
+                  </span>
                 </div>
               </div>
             </div>
-            
+
             <div>
               <h4 className="font-medium mb-3">Specialized Narrative Styles</h4>
               <div className="space-y-2">
@@ -284,25 +309,34 @@ export default function TriCitiesRegionalPage() {
               <CardHeader>
                 <CardTitle>{selectedCountyData.name} County Status</CardTitle>
                 <CardDescription>
-                  {selectedCountyData.nodeType} node configuration for agricultural and mixed-zone properties
+                  {selectedCountyData.nodeType} node configuration for agricultural and mixed-zone
+                  properties
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{selectedCountyData.agProperties}</div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {selectedCountyData.agProperties}
+                    </div>
                     <div className="text-sm text-gray-600">Agricultural Properties</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-green-600">{selectedCountyData.mixedZoneProperties}</div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {selectedCountyData.mixedZoneProperties}
+                    </div>
                     <div className="text-sm text-gray-600">Mixed-Zone Properties</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-cyan-600">{selectedCountyData.waterRightsTracked}</div>
+                    <div className="text-2xl font-bold text-cyan-600">
+                      {selectedCountyData.waterRightsTracked}
+                    </div>
                     <div className="text-sm text-gray-600">Water Rights Tracked</div>
                   </div>
                   <div className="text-center">
-                    <div className="text-2xl font-bold text-purple-600">{selectedCountyData.soilTypesIntegrated}</div>
+                    <div className="text-2xl font-bold text-purple-600">
+                      {selectedCountyData.soilTypesIntegrated}
+                    </div>
                     <div className="text-sm text-gray-600">Soil Types Integrated</div>
                   </div>
                 </div>
@@ -324,30 +358,52 @@ export default function TriCitiesRegionalPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {Object.entries(agConfig).map(([key, value]) => (
-                    <div key={key} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div
+                      key={key}
+                      className="flex items-center justify-between p-3 border rounded-lg"
+                    >
                       <div className="flex items-center space-x-3">
-                        {key === 'waterRightsEnabled' && <Droplets className="w-5 h-5 text-blue-500" />}
-                        {key === 'soilTypeMapping' && <TreePine className="w-5 h-5 text-green-500" />}
-                        {key === 'parcelOverlays' && <MapPin className="w-5 h-5 text-purple-500" />}
-                        {key === 'cropYieldFactors' && <Wheat className="w-5 h-5 text-yellow-500" />}
-                        {key === 'irrigationAdjustments' && <Activity className="w-5 h-5 text-cyan-500" />}
-                        {key === 'farmResidentialSplits' && <Building className="w-5 h-5 text-orange-500" />}
+                        {key === "waterRightsEnabled" && (
+                          <Droplets className="w-5 h-5 text-blue-500" />
+                        )}
+                        {key === "soilTypeMapping" && (
+                          <TreePine className="w-5 h-5 text-green-500" />
+                        )}
+                        {key === "parcelOverlays" && <MapPin className="w-5 h-5 text-purple-500" />}
+                        {key === "cropYieldFactors" && (
+                          <Wheat className="w-5 h-5 text-yellow-500" />
+                        )}
+                        {key === "irrigationAdjustments" && (
+                          <Activity className="w-5 h-5 text-cyan-500" />
+                        )}
+                        {key === "farmResidentialSplits" && (
+                          <Building className="w-5 h-5 text-orange-500" />
+                        )}
                         <div>
                           <div className="font-medium">
-                            {key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase())}
+                            {key
+                              .replace(/([A-Z])/g, " $1")
+                              .replace(/^./, (str) => str.toUpperCase())}
                           </div>
                           <div className="text-sm text-gray-600">
-                            {key === 'waterRightsEnabled' && 'Track and factor water rights into valuations'}
-                            {key === 'soilTypeMapping' && 'Integrate soil quality and type data'}
-                            {key === 'parcelOverlays' && 'Visual parcel boundary overlays'}
-                            {key === 'cropYieldFactors' && 'Historical crop yield impact analysis'}
-                            {key === 'irrigationAdjustments' && 'Irrigation system value adjustments'}
-                            {key === 'farmResidentialSplits' && 'Handle mixed farm/residential properties'}
+                            {key === "waterRightsEnabled" &&
+                              "Track and factor water rights into valuations"}
+                            {key === "soilTypeMapping" && "Integrate soil quality and type data"}
+                            {key === "parcelOverlays" && "Visual parcel boundary overlays"}
+                            {key === "cropYieldFactors" && "Historical crop yield impact analysis"}
+                            {key === "irrigationAdjustments" &&
+                              "Irrigation system value adjustments"}
+                            {key === "farmResidentialSplits" &&
+                              "Handle mixed farm/residential properties"}
                           </div>
                         </div>
                       </div>
-                      <Badge className={value ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}>
-                        {value ? 'Enabled' : 'Disabled'}
+                      <Badge
+                        className={
+                          value ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                        }
+                      >
+                        {value ? "Enabled" : "Disabled"}
                       </Badge>
                     </div>
                   ))}
@@ -433,7 +489,7 @@ export default function TriCitiesRegionalPage() {
             <Button variant="outline">Initiate WA Statewide Mesh Expansion</Button>
             <Button variant="outline">Deploy TFFormEngine WA-EAST Mode</Button>
           </div>
-          
+
           {/* Eastern Washington Grid Status */}
           <div className="mt-6 p-4 bg-orange-50 border border-orange-200 rounded-lg">
             <div className="flex items-start space-x-3">
@@ -441,8 +497,9 @@ export default function TriCitiesRegionalPage() {
               <div>
                 <h4 className="font-medium text-orange-900">Eastern Washington Grid Active</h4>
                 <p className="text-sm text-orange-700 mt-1">
-                  Comprehensive agricultural intelligence deployment across 8 Eastern WA counties. 
-                  Dual master nodes (Benton/Franklin) coordinating with 6 sync nodes for regional mesh coverage.
+                  Comprehensive agricultural intelligence deployment across 8 Eastern WA counties.
+                  Dual master nodes (Benton/Franklin) coordinating with 6 sync nodes for regional
+                  mesh coverage.
                 </p>
                 <div className="mt-2 flex items-center space-x-4 text-xs text-orange-600">
                   <span>• 110 active appraisers</span>

@@ -2,7 +2,14 @@ import { useState } from "react";
 import { AdjustmentModel } from "@shared/schema";
 import { useAdjustmentModels } from "@/hooks/useAdjustmentModels";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { AlertCircle, PlusCircle, RefreshCw, Brain } from "lucide-react";
@@ -20,47 +27,46 @@ export function AdjustmentModelSelector({
   reportId,
   propertyId,
   selectedModelId,
-  onSelectModel
+  onSelectModel,
 }: AdjustmentModelSelectorProps) {
   const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<string>("manual");
-  
-  const {
-    models,
-    isLoadingModels,
-    generateAIModel,
-    isGeneratingAIModel
-  } = useAdjustmentModels(reportId);
 
-  const manualModels = models.filter(model => model.modelType === "manual");
-  const aiModels = models.filter(model => model.modelType === "ai_generated");
-  const marketModels = models.filter(model => model.modelType === "market_derived");
-  const hybridModels = models.filter(model => model.modelType === "hybrid");
+  const { models, isLoadingModels, generateAIModel, isGeneratingAIModel } =
+    useAdjustmentModels(reportId);
+
+  const manualModels = models.filter((model) => model.modelType === "manual");
+  const aiModels = models.filter((model) => model.modelType === "ai_generated");
+  const marketModels = models.filter((model) => model.modelType === "market_derived");
+  const hybridModels = models.filter((model) => model.modelType === "hybrid");
 
   const handleGenerateAIModel = async () => {
     try {
-      await generateAIModel({
-        reportId,
-        propertyId,
-        aiProvider: "auto"
-      }, {
-        onSuccess: (newModel) => {
-          toast({
-            title: "AI Model Generated",
-            description: "New adjustment model has been created based on AI analysis",
-          });
-          onSelectModel(newModel.model);
-          setActiveTab("ai");
+      await generateAIModel(
+        {
+          reportId,
+          propertyId,
+          aiProvider: "auto",
         },
-        onError: (error) => {
-          toast({
-            title: "Failed to Generate Model",
-            description: "There was an error generating the AI model. Please try again.",
-            variant: "destructive"
-          });
-          console.error("Error generating model:", error);
+        {
+          onSuccess: (newModel) => {
+            toast({
+              title: "AI Model Generated",
+              description: "New adjustment model has been created based on AI analysis",
+            });
+            onSelectModel(newModel.model);
+            setActiveTab("ai");
+          },
+          onError: (error) => {
+            toast({
+              title: "Failed to Generate Model",
+              description: "There was an error generating the AI model. Please try again.",
+              variant: "destructive",
+            });
+            console.error("Error generating model:", error);
+          },
         }
-      });
+      );
     } catch (error) {
       console.error("Error generating AI model:", error);
     }
@@ -76,22 +82,27 @@ export function AdjustmentModelSelector({
       );
     }
 
-    return models.map(model => (
-      <Card 
-        key={model.id} 
-        className={`mb-4 cursor-pointer transition-all ${selectedModelId === model.id ? 'border-2 border-primary' : 'hover:border-primary/50'}`}
+    return models.map((model) => (
+      <Card
+        key={model.id}
+        className={`mb-4 cursor-pointer transition-all ${selectedModelId === model.id ? "border-2 border-primary" : "hover:border-primary/50"}`}
         onClick={() => onSelectModel(model)}
       >
         <CardHeader className="pb-2">
           <div className="flex justify-between items-start">
             <CardTitle className="text-lg">{model.name}</CardTitle>
-            <Badge variant={
-              model.modelType === "manual" ? "outline" :
-              model.modelType === "ai_generated" ? "secondary" :
-              model.modelType === "market_derived" ? "default" : 
-              "destructive"
-            }>
-              {model.modelType.replace('_', ' ')}
+            <Badge
+              variant={
+                model.modelType === "manual"
+                  ? "outline"
+                  : model.modelType === "ai_generated"
+                    ? "secondary"
+                    : model.modelType === "market_derived"
+                      ? "default"
+                      : "destructive"
+              }
+            >
+              {model.modelType.replace("_", " ")}
             </Badge>
           </div>
           <CardDescription>{model.description || "No description provided"}</CardDescription>
@@ -100,9 +111,10 @@ export function AdjustmentModelSelector({
           {model.metadata && model.metadata.confidence && (
             <div className="flex items-center mt-2">
               <span className="font-semibold mr-2">Confidence:</span>
-              <span>{typeof model.metadata.confidence === 'number' 
-                ? `${(model.metadata.confidence * 100).toFixed(1)}%` 
-                : model.metadata.confidence}
+              <span>
+                {typeof model.metadata.confidence === "number"
+                  ? `${(model.metadata.confidence * 100).toFixed(1)}%`
+                  : model.metadata.confidence}
               </span>
             </div>
           )}
@@ -147,10 +159,7 @@ export function AdjustmentModelSelector({
               </>
             )}
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-          >
+          <Button variant="outline" size="sm">
             <PlusCircle className="mr-2 h-4 w-4" />
             New Model
           </Button>
@@ -164,19 +173,19 @@ export function AdjustmentModelSelector({
           <TabsTrigger value="market">Market Derived</TabsTrigger>
           <TabsTrigger value="hybrid">Hybrid</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="manual" className="mt-0">
           {renderModelCards(manualModels)}
         </TabsContent>
-        
+
         <TabsContent value="ai" className="mt-0">
           {renderModelCards(aiModels)}
         </TabsContent>
-        
+
         <TabsContent value="market" className="mt-0">
           {renderModelCards(marketModels)}
         </TabsContent>
-        
+
         <TabsContent value="hybrid" className="mt-0">
           {renderModelCards(hybridModels)}
         </TabsContent>

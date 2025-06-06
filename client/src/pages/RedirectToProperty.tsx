@@ -1,5 +1,5 @@
-import { useEffect } from 'react';
-import { useLocation } from 'wouter';
+import { useEffect } from "react";
+import { useLocation } from "wouter";
 
 /**
  * Simple component that redirects to the property analysis page
@@ -7,12 +7,12 @@ import { useLocation } from 'wouter';
  */
 const RedirectToProperty = () => {
   const [, setLocation] = useLocation();
-  
+
   useEffect(() => {
     // Redirect to the property analysis page
-    setLocation('/property-analysis');
+    setLocation("/property-analysis");
   }, [setLocation]);
-  
+
   return (
     <div className="flex h-screen items-center justify-center">
       <div className="text-center">

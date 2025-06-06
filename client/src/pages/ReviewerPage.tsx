@@ -1,18 +1,25 @@
-import { useState, useEffect } from 'react';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { useToast } from '@/hooks/use-toast';
-import { apiRequest } from '@/lib/queryClient';
-import websocketClient from '@/lib/websocketClient';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
-} from '@/components/ui/select';
+import { useState, useEffect } from "react";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useToast } from "@/hooks/use-toast";
+import { apiRequest } from "@/lib/queryClient";
+import websocketClient from "@/lib/websocketClient";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -22,15 +29,26 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Skeleton } from '@/components/ui/skeleton';
-import { 
-  ClipboardList, Users, MessageSquare, PencilLine, 
-  CheckCircle, Clock, XCircle, RefreshCw, AlertCircle, 
-  Plus, Filter, Eye, Trash2, Edit
-} from 'lucide-react';
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  ClipboardList,
+  Users,
+  MessageSquare,
+  PencilLine,
+  CheckCircle,
+  Clock,
+  XCircle,
+  RefreshCw,
+  AlertCircle,
+  Plus,
+  Filter,
+  Eye,
+  Trash2,
+  Edit,
+} from "lucide-react";
 
 // Import mock data and types
 import {
@@ -42,8 +60,8 @@ import {
   getCommentsByObject,
   getAnnotationsByObject,
   getRevisionHistoryByObject,
-  updateReviewRequestStatus
-} from '@/lib/mockReviewerData';
+  updateReviewRequestStatus,
+} from "@/lib/mockReviewerData";
 
 type User = {
   id: number;
@@ -51,11 +69,11 @@ type User = {
   fullName: string;
 };
 
-const ReviewRequestItem = ({ 
-  request, 
-  onViewDetails, 
-  onUpdateStatus 
-}: { 
+const ReviewRequestItem = ({
+  request,
+  onViewDetails,
+  onUpdateStatus,
+}: {
   request: ReviewRequest;
   onViewDetails: (request: ReviewRequest) => void;
   onUpdateStatus: (id: number, status: string) => void;
@@ -64,19 +82,19 @@ const ReviewRequestItem = ({
   let statusIcon = null;
 
   switch (request.status) {
-    case 'pending':
+    case "pending":
       statusColor = "bg-yellow-100 text-yellow-800";
       statusIcon = <Clock className="w-4 h-4" />;
       break;
-    case 'in_progress':
+    case "in_progress":
       statusColor = "bg-blue-100 text-blue-800";
       statusIcon = <RefreshCw className="w-4 h-4" />;
       break;
-    case 'completed':
+    case "completed":
       statusColor = "bg-green-100 text-green-800";
       statusIcon = <CheckCircle className="w-4 h-4" />;
       break;
-    case 'rejected':
+    case "rejected":
       statusColor = "bg-red-100 text-red-800";
       statusIcon = <XCircle className="w-4 h-4" />;
       break;
@@ -84,13 +102,13 @@ const ReviewRequestItem = ({
 
   let priorityColor = "";
   switch (request.priority) {
-    case 'low':
+    case "low":
       priorityColor = "bg-slate-100 text-slate-800";
       break;
-    case 'medium':
+    case "medium":
       priorityColor = "bg-amber-100 text-amber-800";
       break;
-    case 'high':
+    case "high":
       priorityColor = "bg-red-100 text-red-800";
       break;
   }
@@ -104,7 +122,8 @@ const ReviewRequestItem = ({
               {request.objectType} Review #{request.id}
             </CardTitle>
             <CardDescription>
-              Object ID: {request.objectId} • Requested: {new Date(request.requestedAt).toLocaleDateString()}
+              Object ID: {request.objectId} • Requested:{" "}
+              {new Date(request.requestedAt).toLocaleDateString()}
             </CardDescription>
           </div>
           <div className="flex gap-2">
@@ -113,7 +132,8 @@ const ReviewRequestItem = ({
             </Badge>
             <Badge className={statusColor + " flex items-center gap-1"}>
               {statusIcon}
-              {request.status.replace('_', ' ').charAt(0).toUpperCase() + request.status.replace('_', ' ').slice(1)}
+              {request.status.replace("_", " ").charAt(0).toUpperCase() +
+                request.status.replace("_", " ").slice(1)}
             </Badge>
           </div>
         </div>
@@ -128,18 +148,22 @@ const ReviewRequestItem = ({
           <Eye className="w-4 h-4 mr-1" /> View Details
         </Button>
         <div className="flex gap-2">
-          {request.status === 'pending' && (
-            <Button size="sm" onClick={() => onUpdateStatus(request.id, 'in_progress')}>
+          {request.status === "pending" && (
+            <Button size="sm" onClick={() => onUpdateStatus(request.id, "in_progress")}>
               Start Review
             </Button>
           )}
-          {request.status === 'in_progress' && (
-            <Button size="sm" onClick={() => onUpdateStatus(request.id, 'completed')}>
+          {request.status === "in_progress" && (
+            <Button size="sm" onClick={() => onUpdateStatus(request.id, "completed")}>
               Complete Review
             </Button>
           )}
-          {(request.status === 'pending' || request.status === 'in_progress') && (
-            <Button variant="destructive" size="sm" onClick={() => onUpdateStatus(request.id, 'rejected')}>
+          {(request.status === "pending" || request.status === "in_progress") && (
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={() => onUpdateStatus(request.id, "rejected")}
+            >
               Reject
             </Button>
           )}
@@ -149,22 +173,20 @@ const ReviewRequestItem = ({
   );
 };
 
-const CommentItem = ({ 
-  comment, 
-  onEdit, 
-  onDelete 
-}: { 
-  comment: Comment; 
-  onEdit: (comment: Comment) => void; 
-  onDelete: (id: number) => void; 
+const CommentItem = ({
+  comment,
+  onEdit,
+  onDelete,
+}: {
+  comment: Comment;
+  onEdit: (comment: Comment) => void;
+  onDelete: (id: number) => void;
 }) => {
   return (
     <Card className="mb-3 border shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-medium">
-            User #{comment.userId}
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">User #{comment.userId}</CardTitle>
           <CardDescription className="text-xs">
             {new Date(comment.createdAt).toLocaleString()}
           </CardDescription>
@@ -177,7 +199,12 @@ const CommentItem = ({
         <Button variant="outline" size="sm" onClick={() => onEdit(comment)}>
           <Edit className="w-3 h-3 mr-1" /> Edit
         </Button>
-        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => onDelete(comment.id)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-red-600 hover:text-red-700"
+          onClick={() => onDelete(comment.id)}
+        >
           <Trash2 className="w-3 h-3 mr-1" /> Delete
         </Button>
       </CardFooter>
@@ -185,22 +212,20 @@ const CommentItem = ({
   );
 };
 
-const AnnotationItem = ({ 
-  annotation, 
-  onEdit, 
-  onDelete 
-}: { 
-  annotation: Annotation; 
-  onEdit: (annotation: Annotation) => void; 
-  onDelete: (id: number) => void; 
+const AnnotationItem = ({
+  annotation,
+  onEdit,
+  onDelete,
+}: {
+  annotation: Annotation;
+  onEdit: (annotation: Annotation) => void;
+  onDelete: (id: number) => void;
 }) => {
   return (
     <Card className="mb-3 border shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-medium">
-            {annotation.annotationType}
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">{annotation.annotationType}</CardTitle>
           <CardDescription className="text-xs">
             {new Date(annotation.createdAt).toLocaleString()}
           </CardDescription>
@@ -214,7 +239,12 @@ const AnnotationItem = ({
         <Button variant="outline" size="sm" onClick={() => onEdit(annotation)}>
           <Edit className="w-3 h-3 mr-1" /> Edit
         </Button>
-        <Button variant="outline" size="sm" className="text-red-600 hover:text-red-700" onClick={() => onDelete(annotation.id)}>
+        <Button
+          variant="outline"
+          size="sm"
+          className="text-red-600 hover:text-red-700"
+          onClick={() => onDelete(annotation.id)}
+        >
           <Trash2 className="w-3 h-3 mr-1" /> Delete
         </Button>
       </CardFooter>
@@ -227,9 +257,7 @@ const RevisionHistoryItem = ({ revision }: { revision: RevisionHistory }) => {
     <Card className="mb-3 border shadow-sm">
       <CardHeader className="pb-2">
         <div className="flex justify-between items-center">
-          <CardTitle className="text-sm font-medium">
-            {revision.revisionType}
-          </CardTitle>
+          <CardTitle className="text-sm font-medium">{revision.revisionType}</CardTitle>
           <CardDescription className="text-xs">
             {new Date(revision.createdAt).toLocaleString()}
           </CardDescription>
@@ -238,7 +266,9 @@ const RevisionHistoryItem = ({ revision }: { revision: RevisionHistory }) => {
       <CardContent>
         <p className="text-sm">{revision.revisionContent}</p>
         {revision.previousVersionId && (
-          <p className="text-xs text-muted-foreground mt-1">Previous Version: #{revision.previousVersionId}</p>
+          <p className="text-xs text-muted-foreground mt-1">
+            Previous Version: #{revision.previousVersionId}
+          </p>
         )}
       </CardContent>
     </Card>
@@ -253,10 +283,10 @@ export default function ReviewerPage() {
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
   const [isWebSocketConnected, setIsWebSocketConnected] = useState(false);
   const [fallbackActive, setFallbackActive] = useState(false);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  
+
   // Connect to WebSocket and set up listeners
   useEffect(() => {
     // Don't attempt to connect if fallback mode is already active
@@ -264,12 +294,14 @@ export default function ReviewerPage() {
       // Connect to the WebSocket server
       websocketClient.connect();
     }
-    
+
     // Listen for connection state changes
     const unsubscribeConnectionState = websocketClient.onConnectionStateChange((connected) => {
-      console.log(`[ReviewerPage] WebSocket connection state: ${connected ? 'connected' : 'disconnected'}`);
+      console.log(
+        `[ReviewerPage] WebSocket connection state: ${connected ? "connected" : "disconnected"}`
+      );
       setIsWebSocketConnected(connected);
-      
+
       if (connected) {
         // Connection successful, disable fallback mode
         setFallbackActive(false);
@@ -285,94 +317,120 @@ export default function ReviewerPage() {
           description: "Connection to update server lost. Retrying...",
           variant: "destructive",
         });
-        
+
         // If we've received a maximum reconnection attempts notification,
         // activate fallback mode
-        if (websocketClient.getReconnectAttempts() >= websocketClient.getMaxReconnectAttempts() - 5) {
-          console.log("[ReviewerPage] Maximum reconnection attempts nearly reached, activating fallback mode");
+        if (
+          websocketClient.getReconnectAttempts() >=
+          websocketClient.getMaxReconnectAttempts() - 5
+        ) {
+          console.log(
+            "[ReviewerPage] Maximum reconnection attempts nearly reached, activating fallback mode"
+          );
           setFallbackActive(true);
         }
       }
     });
-    
+
     // Subscribe to new review request notifications
-    const unsubscribeNewRequest = websocketClient.subscribe('new_review_request', (data) => {
-      console.log('[ReviewerPage] New review request received:', data);
+    const unsubscribeNewRequest = websocketClient.subscribe("new_review_request", (data) => {
+      console.log("[ReviewerPage] New review request received:", data);
       // Add the new review request to the cache or refetch
-      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/review-requests'] });
-      
+      queryClient.invalidateQueries({ queryKey: ["/api/reviewer/review-requests"] });
+
       toast({
         title: "New Review Request",
         description: `A new ${data.objectType} review request has been created`,
       });
     });
-    
+
     // Subscribe to updated review request notifications
-    const unsubscribeUpdatedRequest = websocketClient.subscribe('updated_review_request', (data) => {
-      console.log('[ReviewerPage] Updated review request received:', data);
-      // Update the cached review request
-      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/review-requests'] });
-      
-      toast({
-        title: "Review Request Updated",
-        description: `Review request #${data.id} has been updated`,
-      });
-    });
-    
-    // Subscribe to new comment notifications
-    const unsubscribeNewComment = websocketClient.subscribe('new_comment', (data) => {
-      console.log('[ReviewerPage] New comment received:', data);
-      // If the comment is for the currently selected request, update the UI
-      if (selectedRequest && 
-          data.objectType === selectedRequest.objectType && 
-          data.objectId === selectedRequest.objectId) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/reviewer/comments', selectedRequest.objectType, selectedRequest.objectId] 
+    const unsubscribeUpdatedRequest = websocketClient.subscribe(
+      "updated_review_request",
+      (data) => {
+        console.log("[ReviewerPage] Updated review request received:", data);
+        // Update the cached review request
+        queryClient.invalidateQueries({ queryKey: ["/api/reviewer/review-requests"] });
+
+        toast({
+          title: "Review Request Updated",
+          description: `Review request #${data.id} has been updated`,
         });
-        
+      }
+    );
+
+    // Subscribe to new comment notifications
+    const unsubscribeNewComment = websocketClient.subscribe("new_comment", (data) => {
+      console.log("[ReviewerPage] New comment received:", data);
+      // If the comment is for the currently selected request, update the UI
+      if (
+        selectedRequest &&
+        data.objectType === selectedRequest.objectType &&
+        data.objectId === selectedRequest.objectId
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "/api/reviewer/comments",
+            selectedRequest.objectType,
+            selectedRequest.objectId,
+          ],
+        });
+
         toast({
           title: "New Comment",
           description: "A new comment has been added to this request",
         });
       }
     });
-    
+
     // Subscribe to new annotation notifications
-    const unsubscribeNewAnnotation = websocketClient.subscribe('new_annotation', (data) => {
-      console.log('[ReviewerPage] New annotation received:', data);
+    const unsubscribeNewAnnotation = websocketClient.subscribe("new_annotation", (data) => {
+      console.log("[ReviewerPage] New annotation received:", data);
       // If the annotation is for the currently selected request, update the UI
-      if (selectedRequest && 
-          data.objectType === selectedRequest.objectType && 
-          data.objectId === selectedRequest.objectId) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/reviewer/annotations', selectedRequest.objectType, selectedRequest.objectId] 
+      if (
+        selectedRequest &&
+        data.objectType === selectedRequest.objectType &&
+        data.objectId === selectedRequest.objectId
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "/api/reviewer/annotations",
+            selectedRequest.objectType,
+            selectedRequest.objectId,
+          ],
         });
-        
+
         toast({
           title: "New Annotation",
           description: "A new annotation has been added to this request",
         });
       }
     });
-    
+
     // Subscribe to new revision history notifications
-    const unsubscribeNewRevision = websocketClient.subscribe('new_revision', (data) => {
-      console.log('[ReviewerPage] New revision received:', data);
+    const unsubscribeNewRevision = websocketClient.subscribe("new_revision", (data) => {
+      console.log("[ReviewerPage] New revision received:", data);
       // If the revision is for the currently selected request, update the UI
-      if (selectedRequest && 
-          data.objectType === selectedRequest.objectType && 
-          data.objectId === selectedRequest.objectId) {
-        queryClient.invalidateQueries({ 
-          queryKey: ['/api/reviewer/revision-history', selectedRequest.objectType, selectedRequest.objectId] 
+      if (
+        selectedRequest &&
+        data.objectType === selectedRequest.objectType &&
+        data.objectId === selectedRequest.objectId
+      ) {
+        queryClient.invalidateQueries({
+          queryKey: [
+            "/api/reviewer/revision-history",
+            selectedRequest.objectType,
+            selectedRequest.objectId,
+          ],
         });
-        
+
         toast({
           title: "Document Updated",
           description: `A new revision has been saved: ${data.revisionType}`,
         });
       }
     });
-    
+
     // Clean up subscriptions when component unmounts
     return () => {
       unsubscribeConnectionState();
@@ -386,18 +444,18 @@ export default function ReviewerPage() {
   }, [queryClient, selectedRequest, toast, fallbackActive]);
 
   // Fetch review requests
-  const { 
-    data: reviewRequests, 
+  const {
+    data: reviewRequests,
     isLoading: isLoadingRequests,
     isError: isRequestsError,
-    error: requestsError
+    error: requestsError,
   } = useQuery({
-    queryKey: ['/api/reviewer/review-requests'],
+    queryKey: ["/api/reviewer/review-requests"],
     // Using proper API request with a fallback to mock data
     queryFn: async () => {
       try {
         // Try the real API endpoint first
-        return await apiRequest('/api/reviewer/review-requests');
+        return await apiRequest("/api/reviewer/review-requests");
       } catch (error) {
         console.log("Falling back to mock data for review requests");
         // Fall back to mock data if the API fails
@@ -408,17 +466,16 @@ export default function ReviewerPage() {
   });
 
   // Fetch comments for selected request
-  const { 
-    data: comments, 
-    isLoading: isLoadingComments 
-  } = useQuery({
-    queryKey: ['/api/reviewer/comments', selectedRequest?.objectType, selectedRequest?.objectId],
+  const { data: comments, isLoading: isLoadingComments } = useQuery({
+    queryKey: ["/api/reviewer/comments", selectedRequest?.objectType, selectedRequest?.objectId],
     queryFn: async () => {
       if (!selectedRequest) return [];
-      
+
       try {
         // Try the real API endpoint first
-        return await apiRequest(`/api/reviewer/comments?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`);
+        return await apiRequest(
+          `/api/reviewer/comments?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`
+        );
       } catch (error) {
         console.log("Falling back to mock data for comments");
         // Fall back to mock data if the API fails
@@ -430,17 +487,16 @@ export default function ReviewerPage() {
   });
 
   // Fetch annotations for selected request
-  const { 
-    data: annotations, 
-    isLoading: isLoadingAnnotations 
-  } = useQuery({
-    queryKey: ['/api/reviewer/annotations', selectedRequest?.objectType, selectedRequest?.objectId],
+  const { data: annotations, isLoading: isLoadingAnnotations } = useQuery({
+    queryKey: ["/api/reviewer/annotations", selectedRequest?.objectType, selectedRequest?.objectId],
     queryFn: async () => {
       if (!selectedRequest) return [];
-      
+
       try {
         // Try the real API endpoint first
-        return await apiRequest(`/api/reviewer/annotations?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`);
+        return await apiRequest(
+          `/api/reviewer/annotations?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`
+        );
       } catch (error) {
         console.log("Falling back to mock data for annotations");
         // Fall back to mock data if the API fails
@@ -452,17 +508,20 @@ export default function ReviewerPage() {
   });
 
   // Fetch revision history for selected request
-  const { 
-    data: revisionHistory, 
-    isLoading: isLoadingRevisions 
-  } = useQuery({
-    queryKey: ['/api/reviewer/revision-history', selectedRequest?.objectType, selectedRequest?.objectId],
+  const { data: revisionHistory, isLoading: isLoadingRevisions } = useQuery({
+    queryKey: [
+      "/api/reviewer/revision-history",
+      selectedRequest?.objectType,
+      selectedRequest?.objectId,
+    ],
     queryFn: async () => {
       if (!selectedRequest) return [];
-      
+
       try {
         // Try the real API endpoint first
-        return await apiRequest(`/api/reviewer/revision-history?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`);
+        return await apiRequest(
+          `/api/reviewer/revision-history?objectType=${selectedRequest.objectType}&objectId=${selectedRequest.objectId}`
+        );
       } catch (error) {
         console.log("Falling back to mock data for revision history");
         // Fall back to mock data if the API fails
@@ -475,12 +534,12 @@ export default function ReviewerPage() {
 
   // Update review request status mutation
   const updateReviewStatus = useMutation({
-    mutationFn: async (data: { id: number, status: string }) => {
+    mutationFn: async (data: { id: number; status: string }) => {
       try {
         // Try the real API endpoint first
         return await apiRequest(`/api/reviewer/review-requests/${data.id}`, {
-          method: 'PUT',
-          data: { status: data.status }
+          method: "PUT",
+          data: { status: data.status },
         });
       } catch (error) {
         console.log("Falling back to mock data for updating review status");
@@ -493,7 +552,7 @@ export default function ReviewerPage() {
         title: "Status updated",
         description: "Review request status has been updated successfully",
       });
-      queryClient.invalidateQueries({ queryKey: ['/api/reviewer/review-requests'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/reviewer/review-requests"] });
     },
     onError: (error) => {
       toast({
@@ -502,7 +561,7 @@ export default function ReviewerPage() {
         variant: "destructive",
       });
       console.error("Failed to update review request status:", error);
-    }
+    },
   });
 
   const handleViewDetails = (request: ReviewRequest) => {
@@ -535,16 +594,14 @@ export default function ReviewerPage() {
   };
 
   // Filter review requests based on selected filters
-  const filteredRequests = reviewRequests?.filter(request => {
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesType = objectTypeFilter === 'all' || request.objectType === objectTypeFilter;
+  const filteredRequests = reviewRequests?.filter((request) => {
+    const matchesStatus = statusFilter === "all" || request.status === statusFilter;
+    const matchesType = objectTypeFilter === "all" || request.objectType === objectTypeFilter;
     return matchesStatus && matchesType;
   });
 
   // Extract unique object types for filter dropdown
-  const objectTypes = reviewRequests 
-    ? [...new Set(reviewRequests.map(r => r.objectType))]
-    : [];
+  const objectTypes = reviewRequests ? [...new Set(reviewRequests.map((r) => r.objectType))] : [];
 
   if (isRequestsError) {
     return (
@@ -573,19 +630,21 @@ export default function ReviewerPage() {
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
             <div className="flex items-center text-sm">
-              <div className={`w-2 h-2 rounded-full mr-2 ${isWebSocketConnected ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <div
+                className={`w-2 h-2 rounded-full mr-2 ${isWebSocketConnected ? "bg-green-500" : "bg-red-500"}`}
+              ></div>
               <span className="text-muted-foreground">
-                {isWebSocketConnected 
-                  ? 'Real-time updates enabled' 
-                  : fallbackActive 
-                    ? 'Using poll-based updates' 
-                    : 'Connecting...'}
+                {isWebSocketConnected
+                  ? "Real-time updates enabled"
+                  : fallbackActive
+                    ? "Using poll-based updates"
+                    : "Connecting..."}
               </span>
             </div>
             {!isWebSocketConnected && (
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => {
                   setFallbackActive(false);
                   websocketClient.disconnect();
@@ -603,9 +662,9 @@ export default function ReviewerPage() {
         </div>
       </div>
 
-      <Tabs 
-        defaultValue="review-requests" 
-        value={activeTab} 
+      <Tabs
+        defaultValue="review-requests"
+        value={activeTab}
         onValueChange={setActiveTab}
         className="w-full"
       >
@@ -651,8 +710,10 @@ export default function ReviewerPage() {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Types</SelectItem>
-                  {objectTypes.map(type => (
-                    <SelectItem key={type} value={type}>{type}</SelectItem>
+                  {objectTypes.map((type) => (
+                    <SelectItem key={type} value={type}>
+                      {type}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -683,10 +744,10 @@ export default function ReviewerPage() {
           ) : (
             <>
               {filteredRequests && filteredRequests.length > 0 ? (
-                filteredRequests.map(request => (
-                  <ReviewRequestItem 
-                    key={request.id} 
-                    request={request} 
+                filteredRequests.map((request) => (
+                  <ReviewRequestItem
+                    key={request.id}
+                    request={request}
                     onViewDetails={handleViewDetails}
                     onUpdateStatus={handleUpdateStatus}
                   />
@@ -696,8 +757,8 @@ export default function ReviewerPage() {
                   <ClipboardList className="h-10 w-10 mx-auto text-muted-foreground" />
                   <h3 className="mt-2 font-medium">No review requests found</h3>
                   <p className="text-sm text-muted-foreground mt-1">
-                    {reviewRequests?.length 
-                      ? "Try changing your filters to see more results" 
+                    {reviewRequests?.length
+                      ? "Try changing your filters to see more results"
                       : "Create your first review request to get started"}
                   </p>
                 </div>
@@ -744,9 +805,7 @@ export default function ReviewerPage() {
             <DialogTitle className="text-xl">
               {selectedRequest?.objectType} Review #{selectedRequest?.id}
             </DialogTitle>
-            <DialogDescription>
-              View and manage details for this review request
-            </DialogDescription>
+            <DialogDescription>View and manage details for this review request</DialogDescription>
           </DialogHeader>
 
           {selectedRequest && (
@@ -759,11 +818,15 @@ export default function ReviewerPage() {
                 </div>
                 <div>
                   <h4 className="text-sm font-medium text-muted-foreground">Request Information</h4>
-                  <p className="text-sm mt-1">Status: {selectedRequest.status.replace('_', ' ')}</p>
+                  <p className="text-sm mt-1">Status: {selectedRequest.status.replace("_", " ")}</p>
                   <p className="text-sm mt-1">Priority: {selectedRequest.priority}</p>
-                  <p className="text-sm mt-1">Requested: {new Date(selectedRequest.requestedAt).toLocaleString()}</p>
+                  <p className="text-sm mt-1">
+                    Requested: {new Date(selectedRequest.requestedAt).toLocaleString()}
+                  </p>
                   {selectedRequest.completedAt && (
-                    <p className="text-sm mt-1">Completed: {new Date(selectedRequest.completedAt).toLocaleString()}</p>
+                    <p className="text-sm mt-1">
+                      Completed: {new Date(selectedRequest.completedAt).toLocaleString()}
+                    </p>
                   )}
                 </div>
               </div>
@@ -818,10 +881,10 @@ export default function ReviewerPage() {
                     ) : (
                       <>
                         {comments && comments.length > 0 ? (
-                          comments.map(comment => (
-                            <CommentItem 
-                              key={comment.id} 
-                              comment={comment} 
+                          comments.map((comment) => (
+                            <CommentItem
+                              key={comment.id}
+                              comment={comment}
                               onEdit={handleEditComment}
                               onDelete={handleDeleteComment}
                             />
@@ -865,10 +928,10 @@ export default function ReviewerPage() {
                     ) : (
                       <>
                         {annotations && annotations.length > 0 ? (
-                          annotations.map(annotation => (
-                            <AnnotationItem 
-                              key={annotation.id} 
-                              annotation={annotation} 
+                          annotations.map((annotation) => (
+                            <AnnotationItem
+                              key={annotation.id}
+                              annotation={annotation}
                               onEdit={handleEditAnnotation}
                               onDelete={handleDeleteAnnotation}
                             />
@@ -905,11 +968,8 @@ export default function ReviewerPage() {
                     ) : (
                       <>
                         {revisionHistory && revisionHistory.length > 0 ? (
-                          revisionHistory.map(revision => (
-                            <RevisionHistoryItem 
-                              key={revision.id} 
-                              revision={revision} 
-                            />
+                          revisionHistory.map((revision) => (
+                            <RevisionHistoryItem key={revision.id} revision={revision} />
                           ))
                         ) : (
                           <div className="text-center p-6">
@@ -928,8 +988,8 @@ export default function ReviewerPage() {
             <Button variant="outline" onClick={() => setIsDetailsOpen(false)}>
               Close
             </Button>
-            {selectedRequest && selectedRequest.status === 'in_progress' && (
-              <Button onClick={() => handleUpdateStatus(selectedRequest.id, 'completed')}>
+            {selectedRequest && selectedRequest.status === "in_progress" && (
+              <Button onClick={() => handleUpdateStatus(selectedRequest.id, "completed")}>
                 Complete Review
               </Button>
             )}

@@ -1,9 +1,9 @@
 /**
  * Network Health Monitor
- * 
+ *
  * This utility helps monitor network health in Replit's environment,
  * which is known to have intermittent connectivity issues.
- * 
+ *
  * It can detect:
  * - General internet connectivity
  * - Database connectivity issues
@@ -11,15 +11,15 @@
  * - Latency spikes
  */
 
-import { exec } from 'child_process';
-import { promisify } from 'util';
-import { Logger } from './logger';
-import { pool } from '../db';
-import * as http from 'http';
-import * as https from 'https';
+import { exec } from "child_process";
+import { promisify } from "util";
+import { Logger } from "./logger";
+import { pool } from "../db";
+import * as http from "http";
+import * as https from "https";
 
 const execAsync = promisify(exec);
-const logger = new Logger('NetworkHealth');
+const logger = new Logger("NetworkHealth");
 
 // Constants
 const PING_TIMEOUT = 3000; // 3 seconds
@@ -28,14 +28,14 @@ const HTTP_REQUEST_TIMEOUT = 5000; // 5 seconds
 
 // Define health check endpoints
 const HEALTH_CHECK_ENDPOINTS = [
-  'https://www.google.com',
-  'https://www.cloudflare.com',
-  'https://api.github.com/zen', // Simple endpoint that returns a short message
+  "https://www.google.com",
+  "https://www.cloudflare.com",
+  "https://api.github.com/zen", // Simple endpoint that returns a short message
 ];
 
 // Interface for health check results
 export interface HealthCheckResult {
-  status: 'healthy' | 'degraded' | 'unhealthy';
+  status: "healthy" | "degraded" | "unhealthy";
   internetConnectivity: boolean;
   databaseConnectivity: boolean;
   averageLatency: number;
@@ -50,7 +50,7 @@ export interface HealthCheckResult {
 
 /**
  * Network Health Monitor class
- * 
+ *
  * Monitors various aspects of network health in the Replit environment
  */
 export class NetworkHealthMonitor {
@@ -92,7 +92,7 @@ export class NetworkHealthMonitor {
     if (this.checkInterval) {
       clearInterval(this.checkInterval);
       this.checkInterval = null;
-      logger.info('Automatic health checks stopped');
+      logger.info("Automatic health checks stopped");
     }
   }
 
@@ -103,10 +103,10 @@ export class NetworkHealthMonitor {
    */
   subscribe(listener: (result: HealthCheckResult) => void): () => void {
     this.listeners.push(listener);
-    
+
     // Return unsubscribe function
     return () => {
-      this.listeners = this.listeners.filter(l => l !== listener);
+      this.listeners = this.listeners.filter((l) => l !== listener);
     };
   }
 
@@ -115,11 +115,11 @@ export class NetworkHealthMonitor {
    * @param result Health check result
    */
   private notifyListeners(result: HealthCheckResult): void {
-    this.listeners.forEach(listener => {
+    this.listeners.forEach((listener) => {
       try {
         listener(result);
       } catch (error) {
-        logger.error('Error in health check listener:', error);
+        logger.error("Error in health check listener:", error);
       }
     });
   }
@@ -138,25 +138,28 @@ export class NetworkHealthMonitor {
    */
   async checkHealth(): Promise<HealthCheckResult> {
     if (this.checkInProgress) {
-      logger.info('Health check already in progress, returning last result');
-      return this.lastCheck || {
-        status: 'unknown',
-        internetConnectivity: false,
-        databaseConnectivity: false,
-        averageLatency: -1,
-        timestamp: new Date().toISOString(),
-        details: {
-          errors: ['Health check in progress']
-        }
-      } as any;
+      logger.info("Health check already in progress, returning last result");
+      return (
+        this.lastCheck ||
+        ({
+          status: "unknown",
+          internetConnectivity: false,
+          databaseConnectivity: false,
+          averageLatency: -1,
+          timestamp: new Date().toISOString(),
+          details: {
+            errors: ["Health check in progress"],
+          },
+        } as any)
+      );
     }
 
     this.checkInProgress = true;
-    logger.info('Starting network health check');
+    logger.info("Starting network health check");
 
     // Initialize result object
     const result: HealthCheckResult = {
-      status: 'healthy',
+      status: "healthy",
       internetConnectivity: false,
       databaseConnectivity: false,
       averageLatency: 0,
@@ -164,8 +167,8 @@ export class NetworkHealthMonitor {
       details: {
         pingResults: {},
         httpResults: {},
-        errors: []
-      }
+        errors: [],
+      },
     };
 
     try {
@@ -181,12 +184,12 @@ export class NetworkHealthMonitor {
       // Calculate average latency and determine overall status
       this.calculateHealthStatus(result);
     } catch (error) {
-      logger.error('Error during health check:', error);
-      result.status = 'unhealthy';
+      logger.error("Error during health check:", error);
+      result.status = "unhealthy";
       if (error instanceof Error) {
         result.details.errors!.push(error.message);
       } else {
-        result.details.errors!.push('Unknown error during health check');
+        result.details.errors!.push("Unknown error during health check");
       }
     } finally {
       this.checkInProgress = false;
@@ -202,14 +205,14 @@ export class NetworkHealthMonitor {
    * @param result Health check result to update
    */
   private async checkPingConnectivity(result: HealthCheckResult): Promise<void> {
-    const hosts = ['1.1.1.1', '8.8.8.8']; // Cloudflare and Google DNS
+    const hosts = ["1.1.1.1", "8.8.8.8"]; // Cloudflare and Google DNS
     const pingResults: { [host: string]: number | null } = {};
-    
+
     for (const host of hosts) {
       try {
         // Run ping with a timeout and limited number of packets
         const { stdout } = await execAsync(`ping -c 2 -W 2 ${host}`, { timeout: PING_TIMEOUT });
-        
+
         // Parse time from ping output
         const timeMatch = stdout.match(/time=(\d+(\.\d+)?)/);
         if (timeMatch && timeMatch[1]) {
@@ -223,16 +226,16 @@ export class NetworkHealthMonitor {
         pingResults[host] = null;
       }
     }
-    
+
     result.details.pingResults = pingResults;
-    
+
     // Check if any ping was successful
-    const successfulPings = Object.values(pingResults).filter(time => time !== null);
+    const successfulPings = Object.values(pingResults).filter((time) => time !== null);
     result.internetConnectivity = successfulPings.length > 0;
-    
+
     if (!result.internetConnectivity) {
-      result.status = 'unhealthy';
-      result.details.errors!.push('No ping targets reachable');
+      result.status = "unhealthy";
+      result.details.errors!.push("No ping targets reachable");
     }
   }
 
@@ -242,7 +245,7 @@ export class NetworkHealthMonitor {
    */
   private async checkHttpConnectivity(result: HealthCheckResult): Promise<void> {
     const httpResults: { [url: string]: number | null } = {};
-    
+
     for (const url of HEALTH_CHECK_ENDPOINTS) {
       try {
         const startTime = Date.now();
@@ -257,14 +260,14 @@ export class NetworkHealthMonitor {
         }
       }
     }
-    
+
     result.details.httpResults = httpResults;
-    
+
     // Already determined by ping, but let's also consider HTTP connectivity
-    const successfulRequests = Object.values(httpResults).filter(time => time !== null);
+    const successfulRequests = Object.values(httpResults).filter((time) => time !== null);
     if (successfulRequests.length === 0 && result.internetConnectivity) {
-      result.status = 'degraded';
-      result.details.errors!.push('HTTP requests failed but ping successful');
+      result.status = "degraded";
+      result.details.errors!.push("HTTP requests failed but ping successful");
     }
   }
 
@@ -275,8 +278,8 @@ export class NetworkHealthMonitor {
    */
   private makeHttpRequest(url: string): Promise<void> {
     return new Promise((resolve, reject) => {
-      const requestModule = url.startsWith('https') ? https : http;
-      
+      const requestModule = url.startsWith("https") ? https : http;
+
       const req = requestModule.get(url, { timeout: HTTP_REQUEST_TIMEOUT }, (res) => {
         // Consider any 2xx status code as successful
         if (res.statusCode && res.statusCode >= 200 && res.statusCode < 300) {
@@ -284,15 +287,15 @@ export class NetworkHealthMonitor {
         } else {
           reject(new Error(`HTTP request failed with status ${res.statusCode}`));
         }
-        
+
         // Consume the data to free up memory
         res.resume();
       });
-      
-      req.on('error', reject);
-      req.on('timeout', () => {
+
+      req.on("error", reject);
+      req.on("timeout", () => {
         req.destroy();
-        reject(new Error('HTTP request timed out'));
+        reject(new Error("HTTP request timed out"));
       });
     });
   }
@@ -304,36 +307,36 @@ export class NetworkHealthMonitor {
   private async checkDatabaseConnectivity(result: HealthCheckResult): Promise<void> {
     try {
       const startTime = Date.now();
-      
+
       // Set timeout
       const timeoutPromise = new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error('Database query timed out')), DB_QUERY_TIMEOUT);
+        setTimeout(() => reject(new Error("Database query timed out")), DB_QUERY_TIMEOUT);
       });
-      
+
       // Run a simple query
-      const queryPromise = pool.query('SELECT NOW()');
-      
+      const queryPromise = pool.query("SELECT NOW()");
+
       // Race the query against the timeout
       await Promise.race([queryPromise, timeoutPromise]);
-      
+
       const latency = Date.now() - startTime;
       result.databaseConnectivity = true;
       result.details.databaseLatency = latency;
-      
+
       // Database is responsive but slow
       if (latency > 1000) {
-        result.status = result.status === 'unhealthy' ? 'unhealthy' : 'degraded';
+        result.status = result.status === "unhealthy" ? "unhealthy" : "degraded";
         result.details.errors!.push(`Database latency high (${latency}ms)`);
       }
     } catch (error) {
       result.databaseConnectivity = false;
       result.details.databaseLatency = null;
-      result.status = 'unhealthy';
-      
+      result.status = "unhealthy";
+
       if (error instanceof Error) {
         result.details.errors!.push(`Database connectivity failed: ${error.message}`);
       } else {
-        result.details.errors!.push('Database connectivity failed');
+        result.details.errors!.push("Database connectivity failed");
       }
     }
   }
@@ -345,39 +348,40 @@ export class NetworkHealthMonitor {
   private calculateHealthStatus(result: HealthCheckResult): void {
     // Calculate average latency across all measurements
     const latencies: number[] = [];
-    
+
     // Add ping latencies
     if (result.details.pingResults) {
       Object.values(result.details.pingResults)
         .filter((val): val is number => val !== null)
-        .forEach(latency => latencies.push(latency));
+        .forEach((latency) => latencies.push(latency));
     }
-    
+
     // Add HTTP latencies
     if (result.details.httpResults) {
       Object.values(result.details.httpResults)
         .filter((val): val is number => val !== null)
-        .forEach(latency => latencies.push(latency));
+        .forEach((latency) => latencies.push(latency));
     }
-    
+
     // Add database latency
     if (result.details.databaseLatency !== null && result.details.databaseLatency !== undefined) {
       latencies.push(result.details.databaseLatency);
     }
-    
+
     // Calculate average latency
     if (latencies.length > 0) {
-      result.averageLatency = latencies.reduce((sum, latency) => sum + latency, 0) / latencies.length;
+      result.averageLatency =
+        latencies.reduce((sum, latency) => sum + latency, 0) / latencies.length;
     }
-    
+
     // Determine overall status (if not already set to unhealthy)
-    if (result.status !== 'unhealthy') {
+    if (result.status !== "unhealthy") {
       if (result.averageLatency > 500) {
-        result.status = 'degraded';
+        result.status = "degraded";
       } else if (!result.internetConnectivity || !result.databaseConnectivity) {
-        result.status = 'unhealthy';
+        result.status = "unhealthy";
       } else {
-        result.status = 'healthy';
+        result.status = "healthy";
       }
     }
   }
@@ -392,14 +396,14 @@ export class NetworkHealthMonitor {
     if (!this.lastCheck) {
       return true;
     }
-    
+
     // If network is completely down, don't try
     if (!this.lastCheck.internetConnectivity) {
       return false;
     }
-    
+
     // If status is healthy or degraded, attempt reconnection
-    return this.lastCheck.status !== 'unhealthy';
+    return this.lastCheck.status !== "unhealthy";
   }
 
   /**
@@ -411,12 +415,12 @@ export class NetworkHealthMonitor {
     if (!this.lastCheck) {
       return true;
     }
-    
+
     // Need internet and database connectivity
     if (!this.lastCheck.internetConnectivity || !this.lastCheck.databaseConnectivity) {
       return false;
     }
-    
+
     // Check latency - high latency makes real-time communication unreliable
     return this.lastCheck.averageLatency < 300; // 300ms threshold
   }

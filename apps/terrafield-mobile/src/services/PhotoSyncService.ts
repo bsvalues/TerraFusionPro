@@ -1,16 +1,16 @@
-import { 
-  createPhotoStore, 
-  PhotoMetadata, 
-  encodeDocUpdate, 
+import {
+  createPhotoStore,
+  PhotoMetadata,
+  encodeDocUpdate,
   applyEncodedUpdate,
   addPhoto,
   updatePhotoMetadata,
   removePhoto,
   getAllPhotos,
-  getPendingPhotos
-} from '@terrafield/crdt';
-import { v4 as uuidv4 } from 'uuid';
-import { ApiService } from './ApiService';
+  getPendingPhotos,
+} from "@terrafield/crdt";
+import { v4 as uuidv4 } from "uuid";
+import { ApiService } from "./ApiService";
 
 /**
  * Service responsible for managing photo synchronization between
@@ -21,7 +21,7 @@ export class PhotoSyncService {
   private syncInProgress: boolean = false;
   private serverUrl: string;
   private photoStores: Map<string, ReturnType<typeof createPhotoStore>> = new Map();
-  
+
   private constructor(serverUrl: string) {
     this.serverUrl = serverUrl;
   }
@@ -51,20 +51,20 @@ export class PhotoSyncService {
    * Add a new photo to the local store
    * @param photo The photo metadata to add
    */
-  public addPhoto(photo: Omit<PhotoMetadata, 'id' | 'status'>): string {
+  public addPhoto(photo: Omit<PhotoMetadata, "id" | "status">): string {
     const { reportId } = photo;
     const { store } = this.getPhotoStore(reportId);
-    
+
     const photoId = uuidv4();
     const photoMetadata: PhotoMetadata = {
       ...photo,
       id: photoId,
-      status: 'pending'
+      status: "pending",
     };
-    
+
     addPhoto(store, photoMetadata);
     this.scheduleSyncForReport(reportId);
-    
+
     return photoId;
   }
 
@@ -116,7 +116,7 @@ export class PhotoSyncService {
   private scheduleSyncForReport(reportId: string): void {
     // Debounce sync operations
     setTimeout(() => {
-      this.syncReport(reportId).catch(err => {
+      this.syncReport(reportId).catch((err) => {
         console.error(`Error syncing report ${reportId}:`, err);
       });
     }, 500);
@@ -130,47 +130,47 @@ export class PhotoSyncService {
     if (this.syncInProgress) {
       return;
     }
-    
+
     this.syncInProgress = true;
     const apiService = ApiService.getInstance();
-    
+
     try {
       const { store, doc } = this.getPhotoStore(reportId);
-      
+
       // Encode the current state for transmission
       const encodedUpdate = encodeDocUpdate(doc);
-      
+
       // Send the encoded update to the server using ApiService
       const { mergedUpdate } = await apiService.syncReportPhotos(reportId, encodedUpdate);
-      
+
       // Apply the merged update to our local document
       applyEncodedUpdate(doc, mergedUpdate);
-      
+
       // Update status of any pending photos that were successfully synced
       const photos = getAllPhotos(store);
       for (const photo of photos) {
-        if (photo.status === 'pending' || photo.status === 'syncing') {
-          updatePhotoMetadata(store, photo.id, { 
-            status: 'synced',
-            isOffline: false
+        if (photo.status === "pending" || photo.status === "syncing") {
+          updatePhotoMetadata(store, photo.id, {
+            status: "synced",
+            isOffline: false,
           });
         }
       }
-      
+
       console.log(`Successfully synced ${photos.length} photos for report ${reportId}`);
     } catch (error) {
-      console.error('Error syncing photos:', error);
-      
+      console.error("Error syncing photos:", error);
+
       // Mark photos as error if sync failed
       const { store } = this.getPhotoStore(reportId);
       const pendingPhotos = getPendingPhotos(store);
-      
+
       for (const photo of pendingPhotos) {
-        if (photo.status === 'syncing') {
-          updatePhotoMetadata(store, photo.id, { 
-            status: 'error',
-            errorMessage: 'Failed to sync with server',
-            lastSyncAttempt: new Date().toISOString()
+        if (photo.status === "syncing") {
+          updatePhotoMetadata(store, photo.id, {
+            status: "error",
+            errorMessage: "Failed to sync with server",
+            lastSyncAttempt: new Date().toISOString(),
           });
         }
       }
@@ -185,18 +185,18 @@ export class PhotoSyncService {
    */
   public async initializeFromServer(reportId: string): Promise<void> {
     const apiService = ApiService.getInstance();
-    
+
     try {
       // Fetch the current state from the server using ApiService
       const { update } = await apiService.getReportPhotos(reportId);
-      
+
       if (update) {
         const { doc } = this.getPhotoStore(reportId);
         applyEncodedUpdate(doc, update);
         console.log(`Initialized photos for report ${reportId} from server`);
       }
     } catch (error) {
-      console.error('Error initializing from server:', error);
+      console.error("Error initializing from server:", error);
       throw error;
     }
   }

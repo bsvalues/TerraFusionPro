@@ -1,27 +1,44 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Bot, Play, Pause, RefreshCw, Activity, Clock, CheckCircle, AlertTriangle, Target, Zap } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Bot,
+  Play,
+  Pause,
+  RefreshCw,
+  Activity,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
+  Target,
+  Zap,
+} from "lucide-react";
 
 interface AppraiserSession {
   id: string;
   appraiserName: string;
   license: string;
-  sessionType: 'Simulation' | 'Training' | 'Live' | 'Validation';
+  sessionType: "Simulation" | "Training" | "Live" | "Validation";
   propertyAddress: string;
   startTime: string;
   duration: number;
-  status: 'Active' | 'Completed' | 'Paused' | 'Error';
+  status: "Active" | "Completed" | "Paused" | "Error";
   progressPercentage: number;
   currentStep: string;
   overridesDetected: number;
   complianceScore: number;
   aiAcceptanceRate: number;
-  zoneValidation: 'Passed' | 'Failed' | 'Pending';
+  zoneValidation: "Passed" | "Failed" | "Pending";
   nftMinted: boolean;
 }
 
@@ -35,96 +52,96 @@ interface SessionMetrics {
 }
 
 export default function AgentSessionsPage() {
-  const [selectedFilter, setSelectedFilter] = useState<string>('all');
+  const [selectedFilter, setSelectedFilter] = useState<string>("all");
   const [autoRefresh, setAutoRefresh] = useState(true);
   const [lastUpdate, setLastUpdate] = useState(new Date());
 
   const sessions: AppraiserSession[] = [
     {
-      id: 'SIM-001',
-      appraiserName: 'Sarah Chen',
-      license: 'WA-CG-4829',
-      sessionType: 'Simulation',
-      propertyAddress: '406 Stardust Ct, Grandview, WA',
-      startTime: '2025-05-30T00:15:00Z',
+      id: "SIM-001",
+      appraiserName: "Sarah Chen",
+      license: "WA-CG-4829",
+      sessionType: "Simulation",
+      propertyAddress: "406 Stardust Ct, Grandview, WA",
+      startTime: "2025-05-30T00:15:00Z",
       duration: 23,
-      status: 'Active',
+      status: "Active",
       progressPercentage: 67,
-      currentStep: 'Comparable Analysis',
+      currentStep: "Comparable Analysis",
       overridesDetected: 2,
       complianceScore: 94,
       aiAcceptanceRate: 92,
-      zoneValidation: 'Passed',
-      nftMinted: true
+      zoneValidation: "Passed",
+      nftMinted: true,
     },
     {
-      id: 'TRN-002',
-      appraiserName: 'Michael Rodriguez',
-      license: 'WA-CR-7231',
-      sessionType: 'Training',
-      propertyAddress: '1247 Vineyard Ave, Walla Walla, WA',
-      startTime: '2025-05-30T00:08:00Z',
+      id: "TRN-002",
+      appraiserName: "Michael Rodriguez",
+      license: "WA-CR-7231",
+      sessionType: "Training",
+      propertyAddress: "1247 Vineyard Ave, Walla Walla, WA",
+      startTime: "2025-05-30T00:08:00Z",
       duration: 31,
-      status: 'Active',
+      status: "Active",
       progressPercentage: 89,
-      currentStep: 'UAD Field Validation',
+      currentStep: "UAD Field Validation",
       overridesDetected: 1,
       complianceScore: 97,
       aiAcceptanceRate: 96,
-      zoneValidation: 'Passed',
-      nftMinted: true
+      zoneValidation: "Passed",
+      nftMinted: true,
     },
     {
-      id: 'VAL-003',
-      appraiserName: 'Jennifer Wilson',
-      license: 'WA-CG-1847',
-      sessionType: 'Validation',
-      propertyAddress: '892 Orchard St, Yakima, WA',
-      startTime: '2025-05-29T23:42:00Z',
+      id: "VAL-003",
+      appraiserName: "Jennifer Wilson",
+      license: "WA-CG-1847",
+      sessionType: "Validation",
+      propertyAddress: "892 Orchard St, Yakima, WA",
+      startTime: "2025-05-29T23:42:00Z",
       duration: 47,
-      status: 'Completed',
+      status: "Completed",
       progressPercentage: 100,
-      currentStep: 'Report Finalized',
+      currentStep: "Report Finalized",
       overridesDetected: 3,
       complianceScore: 91,
       aiAcceptanceRate: 88,
-      zoneValidation: 'Passed',
-      nftMinted: true
+      zoneValidation: "Passed",
+      nftMinted: true,
     },
     {
-      id: 'SIM-004',
-      appraiserName: 'David Park',
-      license: 'WA-TR-5294',
-      sessionType: 'Simulation',
-      propertyAddress: '3451 Hillside Dr, Spokane, WA',
-      startTime: '2025-05-30T00:18:00Z',
+      id: "SIM-004",
+      appraiserName: "David Park",
+      license: "WA-TR-5294",
+      sessionType: "Simulation",
+      propertyAddress: "3451 Hillside Dr, Spokane, WA",
+      startTime: "2025-05-30T00:18:00Z",
       duration: 19,
-      status: 'Active',
+      status: "Active",
       progressPercentage: 34,
-      currentStep: 'Property Inspection Data',
+      currentStep: "Property Inspection Data",
       overridesDetected: 0,
       complianceScore: 98,
       aiAcceptanceRate: 99,
-      zoneValidation: 'Pending',
-      nftMinted: false
+      zoneValidation: "Pending",
+      nftMinted: false,
     },
     {
-      id: 'LIV-005',
-      appraiserName: 'Amanda Foster',
-      license: 'WA-CG-9182',
-      sessionType: 'Live',
-      propertyAddress: '567 Maple Ave, Bellingham, WA',
-      startTime: '2025-05-30T00:05:00Z',
+      id: "LIV-005",
+      appraiserName: "Amanda Foster",
+      license: "WA-CG-9182",
+      sessionType: "Live",
+      propertyAddress: "567 Maple Ave, Bellingham, WA",
+      startTime: "2025-05-30T00:05:00Z",
       duration: 35,
-      status: 'Paused',
+      status: "Paused",
       progressPercentage: 78,
-      currentStep: 'Override Justification',
+      currentStep: "Override Justification",
       overridesDetected: 4,
       complianceScore: 86,
       aiAcceptanceRate: 84,
-      zoneValidation: 'Failed',
-      nftMinted: false
-    }
+      zoneValidation: "Failed",
+      nftMinted: false,
+    },
   ];
 
   const sessionMetrics: SessionMetrics = {
@@ -133,35 +150,49 @@ export default function AgentSessionsPage() {
     completedToday: 89,
     avgComplianceScore: 92.6,
     overrideAcceptanceRate: 91.4,
-    avgSessionDuration: 42.3
+    avgSessionDuration: 42.3,
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': return 'bg-green-100 text-green-800';
-      case 'Completed': return 'bg-blue-100 text-blue-800';
-      case 'Paused': return 'bg-yellow-100 text-yellow-800';
-      case 'Error': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Active":
+        return "bg-green-100 text-green-800";
+      case "Completed":
+        return "bg-blue-100 text-blue-800";
+      case "Paused":
+        return "bg-yellow-100 text-yellow-800";
+      case "Error":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getSessionTypeColor = (type: string) => {
     switch (type) {
-      case 'Simulation': return 'bg-purple-100 text-purple-800';
-      case 'Training': return 'bg-blue-100 text-blue-800';
-      case 'Live': return 'bg-green-100 text-green-800';
-      case 'Validation': return 'bg-orange-100 text-orange-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Simulation":
+        return "bg-purple-100 text-purple-800";
+      case "Training":
+        return "bg-blue-100 text-blue-800";
+      case "Live":
+        return "bg-green-100 text-green-800";
+      case "Validation":
+        return "bg-orange-100 text-orange-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getZoneValidationColor = (validation: string) => {
     switch (validation) {
-      case 'Passed': return 'text-green-600';
-      case 'Failed': return 'text-red-600';
-      case 'Pending': return 'text-yellow-600';
-      default: return 'text-gray-600';
+      case "Passed":
+        return "text-green-600";
+      case "Failed":
+        return "text-red-600";
+      case "Pending":
+        return "text-yellow-600";
+      default:
+        return "text-gray-600";
     }
   };
 
@@ -174,8 +205,8 @@ export default function AgentSessionsPage() {
     }
   }, [autoRefresh]);
 
-  const filteredSessions = sessions.filter(session => {
-    if (selectedFilter === 'all') return true;
+  const filteredSessions = sessions.filter((session) => {
+    if (selectedFilter === "all") return true;
     return session.sessionType.toLowerCase() === selectedFilter;
   });
 
@@ -195,7 +226,7 @@ export default function AgentSessionsPage() {
             onClick={() => setAutoRefresh(!autoRefresh)}
             className="flex items-center space-x-2"
           >
-            <RefreshCw className={`w-4 h-4 ${autoRefresh ? 'animate-spin' : ''}`} />
+            <RefreshCw className={`w-4 h-4 ${autoRefresh ? "animate-spin" : ""}`} />
             <span>Auto Refresh</span>
           </Button>
           <div className="text-sm text-gray-500">
@@ -234,7 +265,9 @@ export default function AgentSessionsPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{sessionMetrics.completedToday}</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {sessionMetrics.completedToday}
+            </div>
             <p className="text-xs text-muted-foreground">Sessions</p>
           </CardContent>
         </Card>
@@ -245,7 +278,9 @@ export default function AgentSessionsPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{sessionMetrics.avgComplianceScore}%</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {sessionMetrics.avgComplianceScore}%
+            </div>
             <p className="text-xs text-muted-foreground">Score</p>
           </CardContent>
         </Card>
@@ -256,7 +291,9 @@ export default function AgentSessionsPage() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{sessionMetrics.overrideAcceptanceRate}%</div>
+            <div className="text-2xl font-bold text-indigo-600">
+              {sessionMetrics.overrideAcceptanceRate}%
+            </div>
             <p className="text-xs text-muted-foreground">Accepted</p>
           </CardContent>
         </Card>
@@ -267,7 +304,9 @@ export default function AgentSessionsPage() {
             <Clock className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{sessionMetrics.avgSessionDuration}m</div>
+            <div className="text-2xl font-bold text-red-600">
+              {sessionMetrics.avgSessionDuration}m
+            </div>
             <p className="text-xs text-muted-foreground">Minutes</p>
           </CardContent>
         </Card>
@@ -303,7 +342,9 @@ export default function AgentSessionsPage() {
       <Card>
         <CardHeader>
           <CardTitle>Active Agent Sessions</CardTitle>
-          <CardDescription>Real-time monitoring of appraiser simulation and training sessions</CardDescription>
+          <CardDescription>
+            Real-time monitoring of appraiser simulation and training sessions
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -321,11 +362,9 @@ export default function AgentSessionsPage() {
                       <Badge className={getSessionTypeColor(session.sessionType)}>
                         {session.sessionType}
                       </Badge>
-                      <Badge className={getStatusColor(session.status)}>
-                        {session.status}
-                      </Badge>
+                      <Badge className={getStatusColor(session.status)}>{session.status}</Badge>
                     </div>
-                    
+
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
                         <div className="text-sm text-gray-600">Property</div>
@@ -336,7 +375,7 @@ export default function AgentSessionsPage() {
                         <div className="font-medium">{session.currentStep}</div>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                       <div>
                         <div className="text-gray-600">Duration</div>
@@ -355,7 +394,7 @@ export default function AgentSessionsPage() {
                         <div className="font-medium">{session.aiAcceptanceRate}%</div>
                       </div>
                     </div>
-                    
+
                     <div className="space-y-2">
                       <div className="flex justify-between text-sm">
                         <span>Session Progress</span>
@@ -363,24 +402,28 @@ export default function AgentSessionsPage() {
                       </div>
                       <Progress value={session.progressPercentage} className="h-2" />
                     </div>
-                    
+
                     <div className="flex items-center justify-between">
                       <div className="flex items-center space-x-4">
-                        <div className={`text-sm ${getZoneValidationColor(session.zoneValidation)}`}>
+                        <div
+                          className={`text-sm ${getZoneValidationColor(session.zoneValidation)}`}
+                        >
                           Zone: {session.zoneValidation}
                         </div>
-                        <div className={`text-sm ${session.nftMinted ? 'text-green-600' : 'text-gray-400'}`}>
-                          NFT: {session.nftMinted ? 'Minted' : 'Pending'}
+                        <div
+                          className={`text-sm ${session.nftMinted ? "text-green-600" : "text-gray-400"}`}
+                        >
+                          NFT: {session.nftMinted ? "Minted" : "Pending"}
                         </div>
                       </div>
                       <div className="flex space-x-2">
-                        {session.status === 'Active' && (
+                        {session.status === "Active" && (
                           <Button size="sm" variant="outline">
                             <Pause className="w-4 h-4 mr-1" />
                             Pause
                           </Button>
                         )}
-                        {session.status === 'Paused' && (
+                        {session.status === "Paused" && (
                           <Button size="sm" variant="outline">
                             <Play className="w-4 h-4 mr-1" />
                             Resume

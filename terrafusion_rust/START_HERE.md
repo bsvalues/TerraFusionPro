@@ -27,18 +27,21 @@ MLS_API_KEY=your-mls-key
 ## 🎯 **What You'll Get Instantly**
 
 ✅ **11 AI Agents** working together:
+
 - Property valuation with confidence scoring
-- USPAP compliance verification  
+- USPAP compliance verification
 - 3D sketch analysis
 - Market data processing
 - Legacy tool integration
 
 ✅ **Production APIs** at:
+
 - http://localhost:8080/api/health
 - http://localhost:8080/api/valuation
 - http://localhost:8080/api/agents
 
 ✅ **Legacy Tool Enhancement**:
+
 - TOTAL files automatically improved
 - ClickForms auto-populated
 - ACI workflows automated

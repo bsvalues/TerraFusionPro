@@ -1,48 +1,48 @@
-import * as FileSystem from 'expo-file-system';
-import { Platform, Alert } from 'react-native';
-import * as Sharing from 'expo-sharing';
-import { PropertyData } from './types';
-import { OfflineQueueService, OperationType } from './OfflineQueueService';
-import { AuthService } from './AuthService';
-import { SecureStorageService, SecurityLevel } from './SecureStorageService';
+import * as FileSystem from "expo-file-system";
+import { Platform, Alert } from "react-native";
+import * as Sharing from "expo-sharing";
+import { PropertyData } from "./types";
+import { OfflineQueueService, OperationType } from "./OfflineQueueService";
+import { AuthService } from "./AuthService";
+import { SecureStorageService, SecurityLevel } from "./SecureStorageService";
 
 /**
  * Document template type
  */
 export enum DocumentTemplateType {
-  URAR = 'urar',                    // Uniform Residential Appraisal Report
-  LAND = 'land',                    // Land Appraisal Report
-  CONDO = 'condo',                  // Individual Condominium Unit Appraisal Report
-  MULTI_FAMILY = 'multi_family',    // Small Residential Income Property Appraisal Report
-  MANUFACTURED = 'manufactured',    // Manufactured Home Appraisal Report
-  FHA = 'fha',                      // FHA Single Family Appraisal
-  VA = 'va',                        // VA Loan Guaranty Appraisal
-  FNMA = 'fnma',                    // Fannie Mae Form 1004
-  FHLMC = 'fhlmc',                  // Freddie Mac Form 70
-  CUSTOM = 'custom',                // Custom template
+  URAR = "urar", // Uniform Residential Appraisal Report
+  LAND = "land", // Land Appraisal Report
+  CONDO = "condo", // Individual Condominium Unit Appraisal Report
+  MULTI_FAMILY = "multi_family", // Small Residential Income Property Appraisal Report
+  MANUFACTURED = "manufactured", // Manufactured Home Appraisal Report
+  FHA = "fha", // FHA Single Family Appraisal
+  VA = "va", // VA Loan Guaranty Appraisal
+  FNMA = "fnma", // Fannie Mae Form 1004
+  FHLMC = "fhlmc", // Freddie Mac Form 70
+  CUSTOM = "custom", // Custom template
 }
 
 /**
  * Document format type
  */
 export enum DocumentFormatType {
-  PDF = 'pdf',
-  DOCX = 'docx',
-  XML = 'xml',
-  JSON = 'json',
+  PDF = "pdf",
+  DOCX = "docx",
+  XML = "xml",
+  JSON = "json",
 }
 
 /**
  * Compliance organization
  */
 export enum ComplianceOrganization {
-  FHA = 'fha',        // Federal Housing Administration
-  VA = 'va',          // Veterans Affairs
-  FNMA = 'fnma',      // Fannie Mae
-  FHLMC = 'fhlmc',    // Freddie Mac
-  USPAP = 'uspap',    // Uniform Standards of Professional Appraisal Practice
-  STATE = 'state',    // State-specific requirements
-  CUSTOM = 'custom',  // Custom compliance requirements
+  FHA = "fha", // Federal Housing Administration
+  VA = "va", // Veterans Affairs
+  FNMA = "fnma", // Fannie Mae
+  FHLMC = "fhlmc", // Freddie Mac
+  USPAP = "uspap", // Uniform Standards of Professional Appraisal Practice
+  STATE = "state", // State-specific requirements
+  CUSTOM = "custom", // Custom compliance requirements
 }
 
 /**
@@ -53,57 +53,57 @@ export interface DocumentGenerationOptions {
    * Template type to use
    */
   templateType: DocumentTemplateType;
-  
+
   /**
    * Document format to generate
    */
   formatType: DocumentFormatType;
-  
+
   /**
    * Compliance organizations to include
    */
   complianceOrganizations: ComplianceOrganization[];
-  
+
   /**
    * Whether to include property photos
    */
   includePhotos: boolean;
-  
+
   /**
    * Whether to include property sketches
    */
   includeSketches: boolean;
-  
+
   /**
    * Whether to include maps and location data
    */
   includeMaps: boolean;
-  
+
   /**
    * Whether to include comparable properties
    */
   includeComparables: boolean;
-  
+
   /**
    * Whether to include market analysis
    */
   includeMarketAnalysis: boolean;
-  
+
   /**
    * Whether to include digital signature
    */
   includeDigitalSignature: boolean;
-  
+
   /**
    * Custom template URL or ID (for CUSTOM template type)
    */
   customTemplateId?: string;
-  
+
   /**
    * Custom compliance requirements (for CUSTOM compliance organization)
    */
   customComplianceRequirements?: Record<string, any>;
-  
+
   /**
    * Additional metadata to include in the document
    */
@@ -133,37 +133,37 @@ export interface DocumentGenerationResult {
    * Success status
    */
   success: boolean;
-  
+
   /**
    * Error message, if any
    */
   error?: string;
-  
+
   /**
    * URI to the generated document
    */
   documentUri?: string;
-  
+
   /**
    * File name of the generated document
    */
   fileName?: string;
-  
+
   /**
    * File size in bytes
    */
   fileSize?: number;
-  
+
   /**
    * Document format
    */
   format?: DocumentFormatType;
-  
+
   /**
    * Generation timestamp
    */
   timestamp: number;
-  
+
   /**
    * Whether the document was generated offline
    */
@@ -172,7 +172,7 @@ export interface DocumentGenerationResult {
 
 /**
  * ComplianceDocumentService
- * 
+ *
  * Provides functionality for generating compliance documents
  * from property data according to various standards.
  */
@@ -181,22 +181,22 @@ export class ComplianceDocumentService {
   private offlineQueueService: OfflineQueueService;
   private authService: AuthService;
   private secureStorageService: SecureStorageService;
-  
+
   /**
    * Document templates storage directory
    */
   private readonly TEMPLATES_DIRECTORY = `${FileSystem.documentDirectory}document_templates/`;
-  
+
   /**
    * Generated documents storage directory
    */
   private readonly DOCUMENTS_DIRECTORY = `${FileSystem.documentDirectory}generated_documents/`;
-  
+
   /**
    * Template cache storage key
    */
-  private readonly TEMPLATES_CACHE_KEY = 'terrafield:documents:templates_cache';
-  
+  private readonly TEMPLATES_CACHE_KEY = "terrafield:documents:templates_cache";
+
   /**
    * Private constructor for singleton pattern
    */
@@ -204,11 +204,11 @@ export class ComplianceDocumentService {
     this.offlineQueueService = OfflineQueueService.getInstance();
     this.authService = AuthService.getInstance();
     this.secureStorageService = SecureStorageService.getInstance();
-    
+
     // Ensure directories exist
     this.ensureDirectoriesExist();
   }
-  
+
   /**
    * Get the singleton instance
    */
@@ -218,7 +218,7 @@ export class ComplianceDocumentService {
     }
     return ComplianceDocumentService.instance;
   }
-  
+
   /**
    * Ensure required directories exist
    */
@@ -229,17 +229,17 @@ export class ComplianceDocumentService {
       if (!templatesInfo.exists) {
         await FileSystem.makeDirectoryAsync(this.TEMPLATES_DIRECTORY, { intermediates: true });
       }
-      
+
       // Ensure documents directory exists
       const documentsInfo = await FileSystem.getInfoAsync(this.DOCUMENTS_DIRECTORY);
       if (!documentsInfo.exists) {
         await FileSystem.makeDirectoryAsync(this.DOCUMENTS_DIRECTORY, { intermediates: true });
       }
     } catch (error) {
-      console.error('Error ensuring directories exist:', error);
+      console.error("Error ensuring directories exist:", error);
     }
   }
-  
+
   /**
    * Generate a compliance document for a property
    */
@@ -253,11 +253,11 @@ export class ComplianceDocumentService {
         ...DEFAULT_OPTIONS,
         ...options,
       };
-      
+
       // Check network connectivity
-      const networkInfo = await FileSystem.getInfoAsync('https://api.appraisalcore.replit.app');
+      const networkInfo = await FileSystem.getInfoAsync("https://api.appraisalcore.replit.app");
       const isOnline = networkInfo.exists;
-      
+
       if (isOnline) {
         // Online generation (server-side)
         return await this.generateDocumentOnline(property, mergedOptions);
@@ -266,16 +266,16 @@ export class ComplianceDocumentService {
         return await this.generateDocumentOffline(property, mergedOptions);
       }
     } catch (error) {
-      console.error('Error generating document:', error);
+      console.error("Error generating document:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        error: error instanceof Error ? error.message : "An unknown error occurred",
         timestamp: Date.now(),
         generatedOffline: true,
       };
     }
   }
-  
+
   /**
    * Generate a document online (server-side)
    */
@@ -286,47 +286,46 @@ export class ComplianceDocumentService {
     try {
       // Get access token
       const accessToken = await this.authService.getAccessToken();
-      
+
       if (!accessToken) {
-        throw new Error('Authentication required');
+        throw new Error("Authentication required");
       }
-      
+
       // Prepare request data
       const requestData = {
         property,
         options,
       };
-      
+
       // Make API request to generate document
-      const response = await fetch('https://api.appraisalcore.replit.app/api/documents/generate', {
-        method: 'POST',
+      const response = await fetch("https://api.appraisalcore.replit.app/api/documents/generate", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${accessToken}`,
         },
         body: JSON.stringify(requestData),
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to generate document');
+        throw new Error(errorData.message || "Failed to generate document");
       }
-      
+
       // Get document data
       const documentData = await response.json();
-      
+
       // Download the document
-      const fileName = documentData.fileName || `property_${property.id}_${Date.now()}.${options.formatType.toLowerCase()}`;
+      const fileName =
+        documentData.fileName ||
+        `property_${property.id}_${Date.now()}.${options.formatType.toLowerCase()}`;
       const documentUri = `${this.DOCUMENTS_DIRECTORY}${fileName}`;
-      
-      await FileSystem.downloadAsync(
-        documentData.documentUrl,
-        documentUri
-      );
-      
+
+      await FileSystem.downloadAsync(documentData.documentUrl, documentUri);
+
       // Get file info
       const fileInfo = await FileSystem.getInfoAsync(documentUri, { size: true });
-      
+
       return {
         success: true,
         documentUri,
@@ -337,13 +336,13 @@ export class ComplianceDocumentService {
         generatedOffline: false,
       };
     } catch (error) {
-      console.error('Error generating document online:', error);
-      
+      console.error("Error generating document online:", error);
+
       // Try offline generation as fallback
       return this.generateDocumentOffline(property, options);
     }
   }
-  
+
   /**
    * Generate a document offline (client-side)
    */
@@ -354,20 +353,20 @@ export class ComplianceDocumentService {
     try {
       // Load template
       const template = await this.loadTemplate(options.templateType);
-      
+
       if (!template) {
-        throw new Error('Template not found');
+        throw new Error("Template not found");
       }
-      
+
       // Generate file name
       const fileName = `property_${property.id}_${Date.now()}.${options.formatType.toLowerCase()}`;
       const documentUri = `${this.DOCUMENTS_DIRECTORY}${fileName}`;
-      
+
       // Get compliance requirements
       const complianceRequirements = await this.getComplianceRequirements(
         options.complianceOrganizations
       );
-      
+
       // Build document content
       const documentContent = await this.buildDocumentContent(
         property,
@@ -375,15 +374,15 @@ export class ComplianceDocumentService {
         complianceRequirements,
         options
       );
-      
+
       // Write document to file
       await FileSystem.writeAsStringAsync(documentUri, documentContent, {
         encoding: FileSystem.EncodingType.UTF8,
       });
-      
+
       // Get file info
       const fileInfo = await FileSystem.getInfoAsync(documentUri, { size: true });
-      
+
       // Queue for sync when online
       await this.offlineQueueService.enqueue(
         OperationType.SYNC_DOCUMENT,
@@ -395,7 +394,7 @@ export class ComplianceDocumentService {
         },
         2 // Medium priority
       );
-      
+
       return {
         success: true,
         documentUri,
@@ -406,16 +405,16 @@ export class ComplianceDocumentService {
         generatedOffline: true,
       };
     } catch (error) {
-      console.error('Error generating document offline:', error);
+      console.error("Error generating document offline:", error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'An unknown error occurred',
+        error: error instanceof Error ? error.message : "An unknown error occurred",
         timestamp: Date.now(),
         generatedOffline: true,
       };
     }
   }
-  
+
   /**
    * Load a document template
    */
@@ -426,18 +425,18 @@ export class ComplianceDocumentService {
         this.TEMPLATES_CACHE_KEY,
         {}
       );
-      
+
       if (templates && templates[templateType]) {
         return templates[templateType];
       }
-      
+
       // Try to load from file system
       const templatePath = `${this.TEMPLATES_DIRECTORY}${templateType}.template`;
       const templateInfo = await FileSystem.getInfoAsync(templatePath);
-      
+
       if (templateInfo.exists) {
         const template = await FileSystem.readAsStringAsync(templatePath);
-        
+
         // Update cache
         await this.secureStorageService.storeData(
           this.TEMPLATES_CACHE_KEY,
@@ -449,18 +448,18 @@ export class ComplianceDocumentService {
             securityLevel: SecurityLevel.NORMAL,
           }
         );
-        
+
         return template;
       }
-      
+
       // Template not found, use default template
       return this.getDefaultTemplate(templateType);
     } catch (error) {
-      console.error('Error loading template:', error);
+      console.error("Error loading template:", error);
       return this.getDefaultTemplate(templateType);
     }
   }
-  
+
   /**
    * Get compliance requirements
    */
@@ -469,13 +468,12 @@ export class ComplianceDocumentService {
   ): Promise<Record<ComplianceOrganization, any>> {
     try {
       // Try to load from cache
-      const cachedRequirements = await this.secureStorageService.getData<Record<ComplianceOrganization, any>>(
-        'terrafield:documents:compliance_requirements',
-        {}
-      );
-      
+      const cachedRequirements = await this.secureStorageService.getData<
+        Record<ComplianceOrganization, any>
+      >("terrafield:documents:compliance_requirements", {});
+
       const requirements: Record<ComplianceOrganization, any> = {};
-      
+
       // Build requirements object
       for (const org of organizations) {
         if (cachedRequirements[org]) {
@@ -485,22 +483,22 @@ export class ComplianceDocumentService {
           requirements[org] = this.getDefaultComplianceRequirements(org);
         }
       }
-      
+
       return requirements;
     } catch (error) {
-      console.error('Error getting compliance requirements:', error);
-      
+      console.error("Error getting compliance requirements:", error);
+
       // Return default requirements
       const requirements: Record<ComplianceOrganization, any> = {};
-      
+
       for (const org of organizations) {
         requirements[org] = this.getDefaultComplianceRequirements(org);
       }
-      
+
       return requirements;
     }
   }
-  
+
   /**
    * Build document content
    */
@@ -513,49 +511,49 @@ export class ComplianceDocumentService {
     try {
       // Basic content with property information
       let content = template;
-      
+
       // Replace variables in template
       content = content
-        .replace(/\${property\.id}/g, property.id || '')
-        .replace(/\${property\.address}/g, property.address || '')
-        .replace(/\${property\.city}/g, property.city || '')
-        .replace(/\${property\.state}/g, property.state || '')
-        .replace(/\${property\.zipCode}/g, property.zipCode || '')
-        .replace(/\${property\.propertyType}/g, property.propertyType || '')
-        .replace(/\${property\.yearBuilt}/g, property.yearBuilt?.toString() || '')
-        .replace(/\${property\.squareFeet}/g, property.squareFeet?.toString() || '')
-        .replace(/\${property\.bedrooms}/g, property.bedrooms?.toString() || '')
-        .replace(/\${property\.bathrooms}/g, property.bathrooms?.toString() || '')
-        .replace(/\${property\.lotSize}/g, property.lotSize?.toString() || '')
-        .replace(/\${property\.hasGarage}/g, property.hasGarage ? 'Yes' : 'No')
-        .replace(/\${property\.hasPool}/g, property.hasPool ? 'Yes' : 'No')
+        .replace(/\${property\.id}/g, property.id || "")
+        .replace(/\${property\.address}/g, property.address || "")
+        .replace(/\${property\.city}/g, property.city || "")
+        .replace(/\${property\.state}/g, property.state || "")
+        .replace(/\${property\.zipCode}/g, property.zipCode || "")
+        .replace(/\${property\.propertyType}/g, property.propertyType || "")
+        .replace(/\${property\.yearBuilt}/g, property.yearBuilt?.toString() || "")
+        .replace(/\${property\.squareFeet}/g, property.squareFeet?.toString() || "")
+        .replace(/\${property\.bedrooms}/g, property.bedrooms?.toString() || "")
+        .replace(/\${property\.bathrooms}/g, property.bathrooms?.toString() || "")
+        .replace(/\${property\.lotSize}/g, property.lotSize?.toString() || "")
+        .replace(/\${property\.hasGarage}/g, property.hasGarage ? "Yes" : "No")
+        .replace(/\${property\.hasPool}/g, property.hasPool ? "Yes" : "No")
         .replace(/\${date\.now}/g, new Date().toLocaleDateString())
-        .replace(/\${appraiser\.name}/g, this.authService.getCurrentUser()?.fullName || 'Appraiser')
-        .replace(/\${appraiser\.license}/g, 'License #');
-      
+        .replace(/\${appraiser\.name}/g, this.authService.getCurrentUser()?.fullName || "Appraiser")
+        .replace(/\${appraiser\.license}/g, "License #");
+
       // Include compliance requirements
       const complianceSection = Object.entries(complianceRequirements)
         .map(([org, requirements]) => {
           return `<h2>${this.getComplianceOrganizationName(org as ComplianceOrganization)} Requirements</h2>
 ${requirements}`;
         })
-        .join('\n\n');
-      
+        .join("\n\n");
+
       content = content.replace(/\${compliance\.requirements}/g, complianceSection);
-      
+
       // Convert to appropriate format
       switch (options.formatType) {
         case DocumentFormatType.XML:
           return this.convertToXML(content, property);
-        
+
         case DocumentFormatType.JSON:
           return this.convertToJSON(content, property);
-          
+
         case DocumentFormatType.DOCX:
           // For simplicity, we'll just use HTML for now
           // In a real app, this would convert to DOCX format
           return content;
-          
+
         case DocumentFormatType.PDF:
         default:
           // For simplicity, we'll just use HTML for now
@@ -563,11 +561,11 @@ ${requirements}`;
           return content;
       }
     } catch (error) {
-      console.error('Error building document content:', error);
+      console.error("Error building document content:", error);
       throw error;
     }
   }
-  
+
   /**
    * Convert content to XML format
    */
@@ -593,10 +591,10 @@ ${requirements}`;
   <content><![CDATA[${content}]]></content>
   <generated>${new Date().toISOString()}</generated>
 </appraisal>`;
-    
+
     return xmlContent;
   }
-  
+
   /**
    * Convert content to JSON format
    */
@@ -621,10 +619,10 @@ ${requirements}`;
       content: content,
       generated: new Date().toISOString(),
     };
-    
+
     return JSON.stringify(jsonContent, null, 2);
   }
-  
+
   /**
    * Get default template for a template type
    */
@@ -733,7 +731,7 @@ ${requirements}`;
   </div>
 </body>
 </html>`;
-      
+
       case DocumentTemplateType.LAND:
         return `<!DOCTYPE html>
 <html>
@@ -808,7 +806,7 @@ ${requirements}`;
   </div>
 </body>
 </html>`;
-      
+
       default:
         return `<!DOCTYPE html>
 <html>
@@ -885,7 +883,7 @@ ${requirements}`;
 </html>`;
     }
   }
-  
+
   /**
    * Get default compliance requirements for an organization
    */
@@ -898,7 +896,7 @@ ${requirements}`;
   <li>The appraiser has analyzed and reported the appropriate market data to support the opinion of value.</li>
   <li>The appraiser has no current or prospective interest in the subject property or parties involved.</li>
 </ul>`;
-      
+
       case ComplianceOrganization.FHA:
         return `<ul>
   <li>This appraisal report complies with FHA/HUD requirements.</li>
@@ -906,7 +904,7 @@ ${requirements}`;
   <li>Any observed health and safety issues have been reported and assessed.</li>
   <li>All utilities were operational at the time of inspection.</li>
 </ul>`;
-      
+
       case ComplianceOrganization.VA:
         return `<ul>
   <li>This appraisal report complies with Department of Veterans Affairs requirements.</li>
@@ -914,7 +912,7 @@ ${requirements}`;
   <li>The property meets VA's criteria for acceptable construction, general marketability, and sound value.</li>
   <li>The property is free of significant hazards, defects, deterioration, and deferred maintenance.</li>
 </ul>`;
-      
+
       case ComplianceOrganization.FNMA:
         return `<ul>
   <li>This appraisal report complies with Fannie Mae requirements.</li>
@@ -922,7 +920,7 @@ ${requirements}`;
   <li>The appraisal includes at least three comparable sales that closed within the past 12 months.</li>
   <li>The subject property conforms to the neighborhood in terms of age, size, and amenities.</li>
 </ul>`;
-      
+
       case ComplianceOrganization.FHLMC:
         return `<ul>
   <li>This appraisal report complies with Freddie Mac requirements.</li>
@@ -930,7 +928,7 @@ ${requirements}`;
   <li>The appraisal includes at least three comparable sales that closed within the past 12 months.</li>
   <li>The subject property conforms to the neighborhood in terms of age, size, and amenities.</li>
 </ul>`;
-      
+
       case ComplianceOrganization.STATE:
         return `<ul>
   <li>This appraisal report complies with state-specific requirements.</li>
@@ -938,39 +936,39 @@ ${requirements}`;
   <li>The appraisal meets all state-mandated disclosure requirements.</li>
   <li>State-specific property condition disclosures have been considered in the valuation.</li>
 </ul>`;
-      
+
       case ComplianceOrganization.CUSTOM:
         return `<p>Custom compliance requirements as specified by the client.</p>`;
-      
+
       default:
         return `<p>Standard compliance requirements apply to this appraisal report.</p>`;
     }
   }
-  
+
   /**
    * Get human-readable name for a compliance organization
    */
   private getComplianceOrganizationName(organization: ComplianceOrganization): string {
     switch (organization) {
       case ComplianceOrganization.USPAP:
-        return 'USPAP';
+        return "USPAP";
       case ComplianceOrganization.FHA:
-        return 'FHA';
+        return "FHA";
       case ComplianceOrganization.VA:
-        return 'VA';
+        return "VA";
       case ComplianceOrganization.FNMA:
-        return 'Fannie Mae';
+        return "Fannie Mae";
       case ComplianceOrganization.FHLMC:
-        return 'Freddie Mac';
+        return "Freddie Mac";
       case ComplianceOrganization.STATE:
-        return 'State';
+        return "State";
       case ComplianceOrganization.CUSTOM:
-        return 'Custom';
+        return "Custom";
       default:
         return organization;
     }
   }
-  
+
   /**
    * Share a generated document
    */
@@ -978,36 +976,33 @@ ${requirements}`;
     try {
       // Check if sharing is available
       const canShare = await Sharing.isAvailableAsync();
-      
+
       if (!canShare) {
-        Alert.alert(
-          'Sharing Not Available',
-          'Document sharing is not available on this device.'
-        );
+        Alert.alert("Sharing Not Available", "Document sharing is not available on this device.");
         return false;
       }
-      
+
       // Share the document
       await Sharing.shareAsync(documentUri, {
-        dialogTitle: 'Share Appraisal Document',
-        mimeType: 'application/pdf',
-        UTI: 'com.adobe.pdf',
-        filename: documentName || 'appraisal_document.pdf',
+        dialogTitle: "Share Appraisal Document",
+        mimeType: "application/pdf",
+        UTI: "com.adobe.pdf",
+        filename: documentName || "appraisal_document.pdf",
       });
-      
+
       return true;
     } catch (error) {
-      console.error('Error sharing document:', error);
-      
+      console.error("Error sharing document:", error);
+
       Alert.alert(
-        'Sharing Error',
-        'An error occurred while sharing the document. Please try again.'
+        "Sharing Error",
+        "An error occurred while sharing the document. Please try again."
       );
-      
+
       return false;
     }
   }
-  
+
   /**
    * Get all generated documents
    */
@@ -1015,30 +1010,30 @@ ${requirements}`;
     try {
       // Get all files in documents directory
       const files = await FileSystem.readDirectoryAsync(this.DOCUMENTS_DIRECTORY);
-      
+
       // Return full paths
-      return files.map(file => `${this.DOCUMENTS_DIRECTORY}${file}`);
+      return files.map((file) => `${this.DOCUMENTS_DIRECTORY}${file}`);
     } catch (error) {
-      console.error('Error getting generated documents:', error);
+      console.error("Error getting generated documents:", error);
       return [];
     }
   }
-  
+
   /**
    * Delete a generated document
    */
   public async deleteDocument(documentUri: string): Promise<boolean> {
     try {
       const fileInfo = await FileSystem.getInfoAsync(documentUri);
-      
+
       if (fileInfo.exists) {
         await FileSystem.deleteAsync(documentUri);
         return true;
       }
-      
+
       return false;
     } catch (error) {
-      console.error('Error deleting document:', error);
+      console.error("Error deleting document:", error);
       return false;
     }
   }

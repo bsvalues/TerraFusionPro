@@ -3,7 +3,7 @@ import OpenAI from "openai";
 // Define AIValuationResponse type locally to avoid circular dependency
 export interface AIValuationResponse {
   estimatedValue: number;
-  confidenceLevel: 'high' | 'medium' | 'low';
+  confidenceLevel: "high" | "medium" | "low";
   valueRange: {
     min: number;
     max: number;
@@ -21,7 +21,7 @@ export interface AIValuationResponse {
 
 // OpenAI client initialization
 const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY
+  apiKey: process.env.OPENAI_API_KEY,
 });
 
 // Property data types
@@ -57,7 +57,7 @@ export async function performAutomatedValuation(
 ): Promise<AIValuationResponse> {
   try {
     console.log("Using OpenAI for automated valuation");
-    
+
     // Construct a detailed prompt
     const prompt = `
 You are an expert real estate appraiser. You need to analyze a subject property and its comparable sales to determine a market value estimate.
@@ -78,7 +78,9 @@ Condition: ${subjectProperty.condition}
 Quality: ${subjectProperty.quality}
 
 COMPARABLE PROPERTIES:
-${comparableProperties.map((comp, index) => `
+${comparableProperties
+  .map(
+    (comp, index) => `
 COMPARABLE #${index + 1}:
 Address: ${comp.address}
 City: ${comp.city}
@@ -96,7 +98,9 @@ Quality: ${comp.quality}
 Sale Price: $${comp.salePrice}
 Sale Date: ${comp.saleDate}
 Distance from Subject: ${comp.distanceFromSubject} miles
-`).join("")}
+`
+  )
+  .join("")}
 
 Based on the subject property characteristics and comparable sales, please provide the following in JSON format:
 1. Estimated value (estimatedValue) - a numeric dollar amount representing the most probable value
@@ -118,32 +122,36 @@ Your response should be in valid JSON format.
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: "You are an expert real estate appraiser assistant that provides detailed property valuations." },
-        { role: "user", content: prompt }
+        {
+          role: "system",
+          content:
+            "You are an expert real estate appraiser assistant that provides detailed property valuations.",
+        },
+        { role: "user", content: prompt },
       ],
       temperature: 0.5,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     // Parse the JSON response
     const content = response.choices[0].message.content;
-    const result = JSON.parse(typeof content === 'string' ? content : '{}');
-    
+    const result = JSON.parse(typeof content === "string" ? content : "{}");
+
     // Ensure the response matches our expected format
     const valuation: AIValuationResponse = {
       estimatedValue: result.estimatedValue || 0,
-      confidenceLevel: result.confidenceLevel || 'medium',
+      confidenceLevel: result.confidenceLevel || "medium",
       valueRange: result.valueRange || { min: 0, max: 0 },
       adjustments: result.adjustments || [],
-      marketAnalysis: result.marketAnalysis || '',
-      comparableAnalysis: result.comparableAnalysis || '',
-      valuationMethodology: result.valuationMethodology || ''
+      marketAnalysis: result.marketAnalysis || "",
+      comparableAnalysis: result.comparableAnalysis || "",
+      valuationMethodology: result.valuationMethodology || "",
     };
-    
+
     return valuation;
   } catch (error: any) {
     console.error("Error in AI valuation:", error);
-    throw new Error(`AI valuation failed: ${error.message || 'Unknown error'}`);
+    throw new Error(`AI valuation failed: ${error.message || "Unknown error"}`);
   }
 }
 
@@ -156,7 +164,7 @@ export async function analyzeMarketTrends(
 ): Promise<{ analysis: string }> {
   try {
     console.log("Using OpenAI for market trends analysis");
-    
+
     const prompt = `
 You are an expert real estate market analyst. Please provide a detailed market analysis for:
 Location: ${location.city}, ${location.state} ${location.zipCode}
@@ -175,16 +183,20 @@ Format your response using Markdown syntax with appropriate headings and bullet 
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: "You are an expert real estate market analyst assistant that provides detailed market analyses." },
-        { role: "user", content: prompt }
+        {
+          role: "system",
+          content:
+            "You are an expert real estate market analyst assistant that provides detailed market analyses.",
+        },
+        { role: "user", content: prompt },
       ],
-      temperature: 0.5
+      temperature: 0.5,
     });
 
-    return { analysis: response.choices[0].message.content || '' };
+    return { analysis: response.choices[0].message.content || "" };
   } catch (error: any) {
     console.error("Error in market trends analysis:", error);
-    throw new Error(`Market trends analysis failed: ${error.message || 'Unknown error'}`);
+    throw new Error(`Market trends analysis failed: ${error.message || "Unknown error"}`);
   }
 }
 
@@ -197,7 +209,7 @@ export async function recommendAdjustments(
 ): Promise<{ adjustments: any[] }> {
   try {
     console.log("Using OpenAI for adjustment recommendations");
-    
+
     const prompt = `
 You are an expert real estate appraiser. Your task is to recommend adjustments for a comparable property relative to a subject property.
 
@@ -247,18 +259,22 @@ Provide your response as a JSON array.
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: "You are an expert real estate appraiser assistant that provides detailed adjustment recommendations." },
-        { role: "user", content: prompt }
+        {
+          role: "system",
+          content:
+            "You are an expert real estate appraiser assistant that provides detailed adjustment recommendations.",
+        },
+        { role: "user", content: prompt },
       ],
       temperature: 0.5,
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     const result = JSON.parse(response.choices[0].message.content || '{"adjustments":[]}');
     return { adjustments: result.adjustments || [] };
   } catch (error: any) {
     console.error("Error in adjustment recommendations:", error);
-    throw new Error(`Adjustment recommendations failed: ${error.message || 'Unknown error'}`);
+    throw new Error(`Adjustment recommendations failed: ${error.message || "Unknown error"}`);
   }
 }
 
@@ -271,7 +287,7 @@ export async function generateValuationNarrative(
 ): Promise<{ narrative: string }> {
   try {
     console.log("Using OpenAI for valuation narrative generation");
-    
+
     const prompt = `
 You are an expert real estate appraiser. Your task is to generate a professional valuation narrative for the following property:
 
@@ -314,15 +330,19 @@ Format your response using Markdown syntax with appropriate headings.
     const response = await openai.chat.completions.create({
       model: "gpt-4o", // the newest OpenAI model is "gpt-4o" which was released May 13, 2024. do not change this unless explicitly requested by the user
       messages: [
-        { role: "system", content: "You are an expert real estate appraiser assistant that provides professional valuation narratives." },
-        { role: "user", content: prompt }
+        {
+          role: "system",
+          content:
+            "You are an expert real estate appraiser assistant that provides professional valuation narratives.",
+        },
+        { role: "user", content: prompt },
       ],
-      temperature: 0.7
+      temperature: 0.7,
     });
 
-    return { narrative: response.choices[0].message.content || '' };
+    return { narrative: response.choices[0].message.content || "" };
   } catch (error: any) {
     console.error("Error in valuation narrative generation:", error);
-    throw new Error(`Valuation narrative generation failed: ${error.message || 'Unknown error'}`);
+    throw new Error(`Valuation narrative generation failed: ${error.message || "Unknown error"}`);
   }
 }

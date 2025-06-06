@@ -1,22 +1,22 @@
 /**
  * SHAP WebSocket Service
- * 
+ *
  * This service manages WebSocket connections for SHAP value explanations
  * It delivers real-time SHAP values to explain property condition scores
  */
 
-import fs from 'fs';
-import path from 'path';
-import { WebSocketServer, WebSocket } from 'ws';
-import { Server } from 'http';
+import fs from "fs";
+import path from "path";
+import { WebSocketServer, WebSocket } from "ws";
+import { Server } from "http";
 
 // Path to SHAP values directory
-const SHAP_VALUES_DIR = path.join(process.cwd(), 'models', 'shap_values');
-const SAMPLE_IMAGES_DIR = path.join(process.cwd(), 'data', 'sample_images');
+const SHAP_VALUES_DIR = path.join(process.cwd(), "models", "shap_values");
+const SAMPLE_IMAGES_DIR = path.join(process.cwd(), "data", "sample_images");
 
 // Define message types
 export type ShapMessage = {
-  type: 'request_shap' | 'shap_values' | 'error';
+  type: "request_shap" | "shap_values" | "error";
   condition?: string;
   propertyId?: number;
   data?: any;
@@ -31,48 +31,48 @@ const clients = new Map<WebSocket, { id: string }>();
  */
 export function initShapWebSocketService(server: Server): WebSocketServer {
   // Create WebSocket server
-  const wss = new WebSocketServer({ server, path: '/shap-ws' });
-  
-  console.log('[SHAP WebSocket] Setting up SHAP WebSocket server on path /shap-ws');
-  
-  wss.on('connection', (ws) => {
+  const wss = new WebSocketServer({ server, path: "/shap-ws" });
+
+  console.log("[SHAP WebSocket] Setting up SHAP WebSocket server on path /shap-ws");
+
+  wss.on("connection", (ws) => {
     const clientId = generateClientId();
     clients.set(ws, { id: clientId });
-    
+
     console.log(`[SHAP] Client connected: ${clientId}`);
-    
+
     // Handle messages from client
-    ws.on('message', (message) => {
+    ws.on("message", (message) => {
       try {
         const parsedMessage = JSON.parse(message.toString()) as ShapMessage;
         handleClientMessage(ws, parsedMessage);
       } catch (err) {
-        console.error('[SHAP] Error parsing message:', err);
-        sendErrorMessage(ws, 'Invalid message format');
+        console.error("[SHAP] Error parsing message:", err);
+        sendErrorMessage(ws, "Invalid message format");
       }
     });
-    
+
     // Handle disconnection
-    ws.on('close', () => {
+    ws.on("close", () => {
       console.log(`[SHAP] Client disconnected: ${clientId}`);
       clients.delete(ws);
     });
-    
+
     // Handle errors
-    ws.on('error', (error) => {
+    ws.on("error", (error) => {
       console.error(`[SHAP] WebSocket error for client ${clientId}:`, error);
       clients.delete(ws);
     });
-    
+
     // Send welcome message
     const welcomeMessage: ShapMessage = {
-      type: 'shap_values',
-      data: { message: 'Connected to SHAP WebSocket service' }
+      type: "shap_values",
+      data: { message: "Connected to SHAP WebSocket service" },
     };
     ws.send(JSON.stringify(welcomeMessage));
   });
-  
-  console.log('[SHAP WebSocket] SHAP WebSocket server initialized');
+
+  console.log("[SHAP WebSocket] SHAP WebSocket server initialized");
   return wss;
 }
 
@@ -88,7 +88,7 @@ function generateClientId(): string {
  */
 function handleClientMessage(ws: WebSocket, message: ShapMessage): void {
   switch (message.type) {
-    case 'request_shap':
+    case "request_shap":
       handleShapRequest(ws, message);
       break;
     default:
@@ -101,29 +101,31 @@ function handleClientMessage(ws: WebSocket, message: ShapMessage): void {
  */
 function handleShapRequest(ws: WebSocket, message: ShapMessage): void {
   const { condition, propertyId } = message;
-  
+
   // Validate condition
   if (!condition) {
-    return sendErrorMessage(ws, 'Missing condition parameter');
+    return sendErrorMessage(ws, "Missing condition parameter");
   }
-  
+
   // Get SHAP values for the specified condition
   try {
     const shapValues = getShapValues(condition);
     const sampleImagePath = getSampleImagePath(condition);
     const sampleImageExists = fs.existsSync(sampleImagePath);
-    
+
     // Send SHAP values to client
     const response: ShapMessage = {
-      type: 'shap_values',
+      type: "shap_values",
       condition,
       propertyId,
       data: {
         shapValues,
-        sampleImageUrl: sampleImageExists ? `/api/shap/sample-images/${condition}_condition.png` : null
-      }
+        sampleImageUrl: sampleImageExists
+          ? `/api/shap/sample-images/${condition}_condition.png`
+          : null,
+      },
     };
-    
+
     ws.send(JSON.stringify(response));
   } catch (error) {
     console.error(`[SHAP] Error handling SHAP request:`, error);
@@ -137,18 +139,18 @@ function handleShapRequest(ws: WebSocket, message: ShapMessage): void {
 function getShapValues(condition: string): any {
   const normalizedCondition = condition.toLowerCase();
   let filePath: string;
-  
-  if (normalizedCondition === 'all') {
-    filePath = path.join(SHAP_VALUES_DIR, 'all_shap_values.json');
+
+  if (normalizedCondition === "all") {
+    filePath = path.join(SHAP_VALUES_DIR, "all_shap_values.json");
   } else {
     filePath = path.join(SHAP_VALUES_DIR, `${normalizedCondition}_shap.json`);
   }
-  
+
   if (!fs.existsSync(filePath)) {
     throw new Error(`SHAP values file not found: ${filePath}`);
   }
-  
-  const fileContent = fs.readFileSync(filePath, 'utf-8');
+
+  const fileContent = fs.readFileSync(filePath, "utf-8");
   return JSON.parse(fileContent);
 }
 
@@ -165,14 +167,14 @@ function getSampleImagePath(condition: string): string {
  */
 function sendErrorMessage(ws: WebSocket, errorMessage: string): void {
   const errorResponse: ShapMessage = {
-    type: 'error',
-    error: errorMessage
+    type: "error",
+    error: errorMessage,
   };
-  
+
   try {
     ws.send(JSON.stringify(errorResponse));
   } catch (error) {
-    console.error('[SHAP] Error sending error message:', error);
+    console.error("[SHAP] Error sending error message:", error);
   }
 }
 

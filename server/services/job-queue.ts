@@ -1,7 +1,7 @@
-import { v4 as uuid } from 'uuid';
-import { spawn, ChildProcess } from 'child_process';
-import path from 'path';
-import fs from 'fs';
+import { v4 as uuid } from "uuid";
+import { spawn, ChildProcess } from "child_process";
+import path from "path";
+import fs from "fs";
 
 export interface ImportJob {
   id: string;
@@ -9,7 +9,7 @@ export interface ImportJob {
   fileName: string;
   filePath: string;
   format: string;
-  status: 'pending' | 'processing' | 'complete' | 'error';
+  status: "pending" | "processing" | "complete" | "error";
   progress: number;
   recordsProcessed: number;
   totalRecords: number;
@@ -32,13 +32,13 @@ class JobQueue {
       fileName,
       filePath,
       format,
-      status: 'pending',
+      status: "pending",
       progress: 0,
       recordsProcessed: 0,
       totalRecords: 0,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
-    
+
     this.jobs.set(id, job);
     this.processNextJob();
     return id;
@@ -49,7 +49,7 @@ class JobQueue {
   }
 
   getJobsByUser(userId: string): ImportJob[] {
-    return Array.from(this.jobs.values()).filter(job => job.userId === userId);
+    return Array.from(this.jobs.values()).filter((job) => job.userId === userId);
   }
 
   getAllJobs(): ImportJob[] {
@@ -61,8 +61,7 @@ class JobQueue {
       return;
     }
 
-    const pendingJob = Array.from(this.jobs.values())
-      .find(job => job.status === 'pending');
+    const pendingJob = Array.from(this.jobs.values()).find((job) => job.status === "pending");
 
     if (!pendingJob) {
       return;
@@ -72,61 +71,63 @@ class JobQueue {
   }
 
   private async processJob(job: ImportJob) {
-    job.status = 'processing';
+    job.status = "processing";
     job.startedAt = new Date();
-    
+
     try {
       // Check if Rust binary exists
-      const rustBinary = process.env.RUST_IMPORTER_BIN || './terrafusion_import/target/release/terrafusion_importer';
-      
+      const rustBinary =
+        process.env.RUST_IMPORTER_BIN || "./terrafusion_import/target/release/terrafusion_importer";
+
       if (!fs.existsSync(rustBinary)) {
         throw new Error(`Rust importer binary not found at ${rustBinary}`);
       }
 
       // Spawn Rust process
-      const rustProcess = spawn(rustBinary, [
-        '--input', job.filePath,
-        '--format', job.format,
-        '--output-stream'
-      ], {
-        stdio: ['pipe', 'pipe', 'pipe'],
-        cwd: process.cwd()
-      });
+      const rustProcess = spawn(
+        rustBinary,
+        ["--input", job.filePath, "--format", job.format, "--output-stream"],
+        {
+          stdio: ["pipe", "pipe", "pipe"],
+          cwd: process.cwd(),
+        }
+      );
 
       this.activeJobs.set(job.id, rustProcess);
 
       // Handle stdout data (streaming records)
-      rustProcess.stdout.on('data', (data) => {
-        const lines = data.toString().split('\n').filter(Boolean);
+      rustProcess.stdout.on("data", (data) => {
+        const lines = data.toString().split("\n").filter(Boolean);
         for (const line of lines) {
           try {
             const record = JSON.parse(line);
             job.recordsProcessed++;
-            job.progress = job.totalRecords > 0 ? (job.recordsProcessed / job.totalRecords) * 100 : 0;
-            
+            job.progress =
+              job.totalRecords > 0 ? (job.recordsProcessed / job.totalRecords) * 100 : 0;
+
             // Emit record via SSE (handled by stream endpoint)
             this.emitRecord(job.id, record);
           } catch (e) {
-            console.warn('Failed to parse record:', line);
+            console.warn("Failed to parse record:", line);
           }
         }
       });
 
       // Handle stderr
-      rustProcess.stderr.on('data', (data) => {
+      rustProcess.stderr.on("data", (data) => {
         console.error(`Rust importer error for job ${job.id}:`, data.toString());
       });
 
       // Handle process completion
-      rustProcess.on('close', (code) => {
+      rustProcess.on("close", (code) => {
         this.activeJobs.delete(job.id);
-        
+
         if (code === 0) {
-          job.status = 'complete';
+          job.status = "complete";
           job.progress = 100;
           job.completedAt = new Date();
         } else {
-          job.status = 'error';
+          job.status = "error";
           job.error = `Process exited with code ${code}`;
         }
 
@@ -134,16 +135,15 @@ class JobQueue {
         this.processNextJob();
       });
 
-      rustProcess.on('error', (error) => {
+      rustProcess.on("error", (error) => {
         this.activeJobs.delete(job.id);
-        job.status = 'error';
+        job.status = "error";
         job.error = error.message;
         this.processNextJob();
       });
-
     } catch (error) {
-      job.status = 'error';
-      job.error = error instanceof Error ? error.message : 'Unknown error';
+      job.status = "error";
+      job.error = error instanceof Error ? error.message : "Unknown error";
       this.processNextJob();
     }
   }
@@ -151,7 +151,7 @@ class JobQueue {
   private emitRecord(jobId: string, record: any) {
     // This will be handled by the SSE endpoint
     // For now, we just log it
-    console.log(`Job ${jobId} processed record:`, record.address || 'Unknown address');
+    console.log(`Job ${jobId} processed record:`, record.address || "Unknown address");
   }
 
   cancelJob(id: string): boolean {
@@ -164,8 +164,8 @@ class JobQueue {
       this.activeJobs.delete(id);
     }
 
-    job.status = 'error';
-    job.error = 'Cancelled by user';
+    job.status = "error";
+    job.error = "Cancelled by user";
     return true;
   }
 
@@ -175,14 +175,14 @@ class JobQueue {
 
     this.cancelJob(id);
     this.jobs.delete(id);
-    
+
     // Clean up file
     try {
       if (fs.existsSync(job.filePath)) {
         fs.unlinkSync(job.filePath);
       }
     } catch (e) {
-      console.warn('Failed to delete file:', job.filePath);
+      console.warn("Failed to delete file:", job.filePath);
     }
 
     return true;

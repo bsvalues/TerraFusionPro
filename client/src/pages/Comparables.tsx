@@ -1,10 +1,10 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Search, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Search,
   MapPin,
   Calendar,
   DollarSign,
@@ -16,8 +16,8 @@ import {
   BarChart3,
   Target,
   TrendingUp,
-  MoreVertical
-} from 'lucide-react';
+  MoreVertical,
+} from "lucide-react";
 
 export default function Comparables() {
   return (
@@ -189,7 +189,9 @@ export default function Comparables() {
                 Similarity Score: 98% • Same neighborhood, similar size and age
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline">View Details</Button>
+                <Button size="sm" variant="outline">
+                  View Details
+                </Button>
                 <Button size="sm" variant="outline">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -258,7 +260,9 @@ export default function Comparables() {
                 Similarity Score: 92% • Similar size, slightly newer
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline">View Details</Button>
+                <Button size="sm" variant="outline">
+                  View Details
+                </Button>
                 <Button size="sm" variant="outline">
                   <MoreVertical className="h-4 w-4" />
                 </Button>
@@ -327,7 +331,9 @@ export default function Comparables() {
                 Similarity Score: 85% • Different area, extra bedroom
               </div>
               <div className="flex gap-2">
-                <Button size="sm" variant="outline">View Details</Button>
+                <Button size="sm" variant="outline">
+                  View Details
+                </Button>
                 <Button size="sm" variant="outline">
                   <MoreVertical className="h-4 w-4" />
                 </Button>

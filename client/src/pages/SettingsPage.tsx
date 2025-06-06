@@ -1,121 +1,131 @@
-import React, { useState } from 'react';
-import { PageLayout } from '@/components/layout/page-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Save, 
-  User, 
-  Bell, 
-  Shield, 
-  Cloud, 
-  Database, 
-  Smartphone, 
-  PaintBucket, 
-  Keyboard, 
-  Mail, 
-  RefreshCw, 
+import React, { useState } from "react";
+import { PageLayout } from "@/components/layout/page-layout";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Save,
+  User,
+  Bell,
+  Shield,
+  Cloud,
+  Database,
+  Smartphone,
+  PaintBucket,
+  Keyboard,
+  Mail,
+  RefreshCw,
   Clock,
   LogOut,
   FileJson,
   Pin,
   Laptop,
   Home,
-  FileText
-} from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+  FileText,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 export default function SettingsPage() {
   const { toast } = useToast();
   const [profileForm, setProfileForm] = useState({
-    name: 'John Appraiser',
-    email: 'john@appraisalexperts.com',
-    title: 'Senior Real Estate Appraiser',
-    phone: '(555) 123-4567',
-    company: 'Appraisal Experts, LLC',
-    licenseNumber: 'RA12345678',
-    address: '123 Main Street, Suite 200',
-    city: 'Cityville',
-    state: 'CA',
-    zip: '90210'
+    name: "John Appraiser",
+    email: "john@appraisalexperts.com",
+    title: "Senior Real Estate Appraiser",
+    phone: "(555) 123-4567",
+    company: "Appraisal Experts, LLC",
+    licenseNumber: "RA12345678",
+    address: "123 Main Street, Suite 200",
+    city: "Cityville",
+    state: "CA",
+    zip: "90210",
   });
-  
+
   const [notificationSettings, setNotificationSettings] = useState({
     emailNotifications: true,
     pushNotifications: true,
     smsNotifications: false,
     reminderNotifications: true,
     updateNotifications: true,
-    inAppNotifications: true
+    inAppNotifications: true,
   });
-  
+
   const [appSettings, setAppSettings] = useState({
-    theme: 'system',
+    theme: "system",
     saveDataLocally: true,
-    autoSaveInterval: '5',
+    autoSaveInterval: "5",
     autoSyncEnabled: true,
-    defaultView: 'dashboard',
-    dateFormat: 'MM/DD/YYYY',
-    currencyFormat: 'USD',
+    defaultView: "dashboard",
+    dateFormat: "MM/DD/YYYY",
+    currencyFormat: "USD",
     showTips: true,
-    developerMode: false
+    developerMode: false,
   });
-  
+
   const [apiSettings, setApiSettings] = useState({
-    aiProvider: 'auto',
-    openAIKey: '',
-    anthropicKey: '',
+    aiProvider: "auto",
+    openAIKey: "",
+    anthropicKey: "",
     showAIFeatures: true,
     aiComplianceChecks: true,
     aiValuationAssistance: true,
   });
-  
+
   const handleProfileChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     setProfileForm({
       ...profileForm,
-      [e.target.name]: e.target.value
+      [e.target.name]: e.target.value,
     });
   };
-  
+
   const handleSaveProfile = () => {
     toast({
       title: "Profile updated",
       description: "Your profile information has been saved.",
     });
   };
-  
+
   const handleNotificationChange = (key: string, value: boolean) => {
     setNotificationSettings({
       ...notificationSettings,
-      [key]: value
+      [key]: value,
     });
   };
-  
+
   const handleAppSettingChange = (key: string, value: any) => {
     setAppSettings({
       ...appSettings,
-      [key]: value
+      [key]: value,
     });
   };
-  
+
   const handleApiSettingChange = (key: string, value: any) => {
     setApiSettings({
       ...apiSettings,
-      [key]: value
+      [key]: value,
     });
   };
-  
+
   return (
-    <PageLayout
-      title="Settings"
-      description="Configure your TerraFusion platform preferences"
-    >
+    <PageLayout title="Settings" description="Configure your TerraFusion platform preferences">
       <Tabs defaultValue="profile" className="w-full space-y-6">
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="profile">Profile</TabsTrigger>
@@ -123,15 +133,13 @@ export default function SettingsPage() {
           <TabsTrigger value="app">App Settings</TabsTrigger>
           <TabsTrigger value="integration">Integrations</TabsTrigger>
         </TabsList>
-        
+
         {/* Profile Tab */}
         <TabsContent value="profile">
           <Card>
             <CardHeader>
               <CardTitle>Profile Information</CardTitle>
-              <CardDescription>
-                Update your personal and professional information
-              </CardDescription>
+              <CardDescription>Update your personal and professional information</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="flex items-center gap-6">
@@ -141,106 +149,108 @@ export default function SettingsPage() {
                 <div>
                   <h3 className="font-medium text-lg mb-1">{profileForm.name}</h3>
                   <p className="text-muted-foreground text-sm mb-2">{profileForm.title}</p>
-                  <Button variant="outline" size="sm">Change Photo</Button>
+                  <Button variant="outline" size="sm">
+                    Change Photo
+                  </Button>
                 </div>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label htmlFor="name">Full Name</Label>
-                  <Input 
-                    id="name" 
-                    name="name" 
+                  <Input
+                    id="name"
+                    name="name"
                     value={profileForm.name}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="email">Email Address</Label>
-                  <Input 
-                    id="email" 
-                    name="email" 
-                    type="email" 
+                  <Input
+                    id="email"
+                    name="email"
+                    type="email"
                     value={profileForm.email}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="title">Job Title</Label>
-                  <Input 
-                    id="title" 
-                    name="title" 
+                  <Input
+                    id="title"
+                    name="title"
                     value={profileForm.title}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input 
-                    id="phone" 
-                    name="phone" 
+                  <Input
+                    id="phone"
+                    name="phone"
                     value={profileForm.phone}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="company">Company</Label>
-                  <Input 
-                    id="company" 
-                    name="company" 
+                  <Input
+                    id="company"
+                    name="company"
                     value={profileForm.company}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="licenseNumber">License Number</Label>
-                  <Input 
-                    id="licenseNumber" 
-                    name="licenseNumber" 
+                  <Input
+                    id="licenseNumber"
+                    name="licenseNumber"
                     value={profileForm.licenseNumber}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="address">Address</Label>
-                  <Input 
-                    id="address" 
-                    name="address" 
+                  <Input
+                    id="address"
+                    name="address"
                     value={profileForm.address}
                     onChange={handleProfileChange}
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-2">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
-                    <Input 
-                      id="city" 
-                      name="city" 
+                    <Input
+                      id="city"
+                      name="city"
                       value={profileForm.city}
                       onChange={handleProfileChange}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
-                    <Input 
-                      id="state" 
-                      name="state" 
+                    <Input
+                      id="state"
+                      name="state"
                       value={profileForm.state}
                       onChange={handleProfileChange}
                     />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="zip">ZIP Code</Label>
-                    <Input 
-                      id="zip" 
-                      name="zip" 
+                    <Input
+                      id="zip"
+                      name="zip"
                       value={profileForm.zip}
                       onChange={handleProfileChange}
                     />
@@ -256,13 +266,11 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Account Security</CardTitle>
-              <CardDescription>
-                Update your password and security settings
-              </CardDescription>
+              <CardDescription>Update your password and security settings</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
@@ -277,7 +285,7 @@ export default function SettingsPage() {
                 <Label htmlFor="confirm-password">Confirm New Password</Label>
                 <Input id="confirm-password" type="password" />
               </div>
-              
+
               <div className="mt-4 space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
@@ -288,7 +296,7 @@ export default function SettingsPage() {
                   </div>
                   <Switch id="two-factor" />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="session-timeout">Session Timeout</Label>
@@ -319,15 +327,13 @@ export default function SettingsPage() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
+
         {/* Notifications Tab */}
         <TabsContent value="notifications">
           <Card>
             <CardHeader>
               <CardTitle>Notification Preferences</CardTitle>
-              <CardDescription>
-                Customize how and when you receive notifications
-              </CardDescription>
+              <CardDescription>Customize how and when you receive notifications</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center justify-between py-2">
@@ -336,17 +342,15 @@ export default function SettingsPage() {
                     <Mail className="h-4 w-4 mr-2 text-muted-foreground" />
                     Email Notifications
                   </Label>
-                  <p className="text-sm text-muted-foreground">
-                    Receive notifications via email
-                  </p>
+                  <p className="text-sm text-muted-foreground">Receive notifications via email</p>
                 </div>
-                <Switch 
-                  id="emailNotifications" 
+                <Switch
+                  id="emailNotifications"
                   checked={notificationSettings.emailNotifications}
-                  onCheckedChange={(value) => handleNotificationChange('emailNotifications', value)}
+                  onCheckedChange={(value) => handleNotificationChange("emailNotifications", value)}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div className="flex flex-col">
                   <Label htmlFor="pushNotifications" className="flex items-center">
@@ -357,13 +361,13 @@ export default function SettingsPage() {
                     Receive push notifications in your browser and mobile app
                   </p>
                 </div>
-                <Switch 
-                  id="pushNotifications" 
+                <Switch
+                  id="pushNotifications"
                   checked={notificationSettings.pushNotifications}
-                  onCheckedChange={(value) => handleNotificationChange('pushNotifications', value)}
+                  onCheckedChange={(value) => handleNotificationChange("pushNotifications", value)}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div className="flex flex-col">
                   <Label htmlFor="smsNotifications" className="flex items-center">
@@ -374,13 +378,13 @@ export default function SettingsPage() {
                     Receive important alerts via text message
                   </p>
                 </div>
-                <Switch 
-                  id="smsNotifications" 
+                <Switch
+                  id="smsNotifications"
                   checked={notificationSettings.smsNotifications}
-                  onCheckedChange={(value) => handleNotificationChange('smsNotifications', value)}
+                  onCheckedChange={(value) => handleNotificationChange("smsNotifications", value)}
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div className="flex flex-col">
                   <Label htmlFor="reminderNotifications" className="flex items-center">
@@ -391,13 +395,15 @@ export default function SettingsPage() {
                     Receive reminders for deadlines and tasks
                   </p>
                 </div>
-                <Switch 
-                  id="reminderNotifications" 
+                <Switch
+                  id="reminderNotifications"
                   checked={notificationSettings.reminderNotifications}
-                  onCheckedChange={(value) => handleNotificationChange('reminderNotifications', value)}
+                  onCheckedChange={(value) =>
+                    handleNotificationChange("reminderNotifications", value)
+                  }
                 />
               </div>
-              
+
               <div className="flex items-center justify-between py-2">
                 <div className="flex flex-col">
                   <Label htmlFor="updateNotifications" className="flex items-center">
@@ -408,15 +414,17 @@ export default function SettingsPage() {
                     Receive updates about new features and platform news
                   </p>
                 </div>
-                <Switch 
-                  id="updateNotifications" 
+                <Switch
+                  id="updateNotifications"
                   checked={notificationSettings.updateNotifications}
-                  onCheckedChange={(value) => handleNotificationChange('updateNotifications', value)}
+                  onCheckedChange={(value) =>
+                    handleNotificationChange("updateNotifications", value)
+                  }
                 />
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
+              <Button
                 onClick={() => {
                   toast({
                     title: "Notification settings saved",
@@ -431,24 +439,22 @@ export default function SettingsPage() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
+
         {/* App Settings Tab */}
         <TabsContent value="app">
           <Card>
             <CardHeader>
               <CardTitle>App Settings</CardTitle>
-              <CardDescription>
-                Customize your TerraFusion experience
-              </CardDescription>
+              <CardDescription>Customize your TerraFusion experience</CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="theme">Theme</Label>
-                    <Select 
+                    <Select
                       value={appSettings.theme}
-                      onValueChange={(value) => handleAppSettingChange('theme', value)}
+                      onValueChange={(value) => handleAppSettingChange("theme", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select theme" />
@@ -460,12 +466,12 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="default-view">Default View</Label>
-                    <Select 
+                    <Select
                       value={appSettings.defaultView}
-                      onValueChange={(value) => handleAppSettingChange('defaultView', value)}
+                      onValueChange={(value) => handleAppSettingChange("defaultView", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select default view" />
@@ -478,12 +484,12 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="date-format">Date Format</Label>
-                    <Select 
+                    <Select
                       value={appSettings.dateFormat}
-                      onValueChange={(value) => handleAppSettingChange('dateFormat', value)}
+                      onValueChange={(value) => handleAppSettingChange("dateFormat", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select date format" />
@@ -495,12 +501,12 @@ export default function SettingsPage() {
                       </SelectContent>
                     </Select>
                   </div>
-                  
+
                   <div className="space-y-2">
                     <Label htmlFor="currency-format">Currency Format</Label>
-                    <Select 
+                    <Select
                       value={appSettings.currencyFormat}
-                      onValueChange={(value) => handleAppSettingChange('currencyFormat', value)}
+                      onValueChange={(value) => handleAppSettingChange("currencyFormat", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select currency format" />
@@ -515,7 +521,7 @@ export default function SettingsPage() {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div className="space-y-4">
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
@@ -524,13 +530,13 @@ export default function SettingsPage() {
                         Cache data locally for offline access
                       </p>
                     </div>
-                    <Switch 
-                      id="save-locally" 
+                    <Switch
+                      id="save-locally"
                       checked={appSettings.saveDataLocally}
-                      onCheckedChange={(value) => handleAppSettingChange('saveDataLocally', value)}
+                      onCheckedChange={(value) => handleAppSettingChange("saveDataLocally", value)}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
                       <Label htmlFor="auto-sync">Auto Sync</Label>
@@ -538,13 +544,13 @@ export default function SettingsPage() {
                         Automatically sync changes when online
                       </p>
                     </div>
-                    <Switch 
-                      id="auto-sync" 
+                    <Switch
+                      id="auto-sync"
                       checked={appSettings.autoSyncEnabled}
-                      onCheckedChange={(value) => handleAppSettingChange('autoSyncEnabled', value)}
+                      onCheckedChange={(value) => handleAppSettingChange("autoSyncEnabled", value)}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
                       <Label htmlFor="show-tips">Show Tips</Label>
@@ -552,13 +558,13 @@ export default function SettingsPage() {
                         Display helpful tips and tutorials
                       </p>
                     </div>
-                    <Switch 
-                      id="show-tips" 
+                    <Switch
+                      id="show-tips"
                       checked={appSettings.showTips}
-                      onCheckedChange={(value) => handleAppSettingChange('showTips', value)}
+                      onCheckedChange={(value) => handleAppSettingChange("showTips", value)}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between py-2">
                     <div className="space-y-0.5">
                       <Label htmlFor="dev-mode">Developer Mode</Label>
@@ -566,18 +572,18 @@ export default function SettingsPage() {
                         Enable advanced developer features
                       </p>
                     </div>
-                    <Switch 
-                      id="dev-mode" 
+                    <Switch
+                      id="dev-mode"
                       checked={appSettings.developerMode}
-                      onCheckedChange={(value) => handleAppSettingChange('developerMode', value)}
+                      onCheckedChange={(value) => handleAppSettingChange("developerMode", value)}
                     />
                   </div>
-                  
+
                   <div className="space-y-2 pt-2">
                     <Label htmlFor="save-interval">Auto Save Interval (minutes)</Label>
-                    <Select 
+                    <Select
                       value={appSettings.autoSaveInterval}
-                      onValueChange={(value) => handleAppSettingChange('autoSaveInterval', value)}
+                      onValueChange={(value) => handleAppSettingChange("autoSaveInterval", value)}
                     >
                       <SelectTrigger className="w-full">
                         <SelectValue placeholder="Select interval" />
@@ -593,7 +599,7 @@ export default function SettingsPage() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="pt-4 border-t">
                 <h3 className="font-medium mb-2">Data Management</h3>
                 <div className="flex flex-wrap gap-2">
@@ -616,7 +622,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
+              <Button
                 onClick={() => {
                   toast({
                     title: "App settings saved",
@@ -631,22 +637,20 @@ export default function SettingsPage() {
             </CardFooter>
           </Card>
         </TabsContent>
-        
+
         {/* Integrations Tab */}
         <TabsContent value="integration">
           <Card>
             <CardHeader>
               <CardTitle>AI Integration Settings</CardTitle>
-              <CardDescription>
-                Configure AI services and API keys
-              </CardDescription>
+              <CardDescription>Configure AI services and API keys</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="ai-provider">Default AI Provider</Label>
-                <Select 
+                <Select
                   value={apiSettings.aiProvider}
-                  onValueChange={(value) => handleApiSettingChange('aiProvider', value)}
+                  onValueChange={(value) => handleApiSettingChange("aiProvider", value)}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="Select AI provider" />
@@ -660,43 +664,45 @@ export default function SettingsPage() {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="openai-key">OpenAI API Key</Label>
-                <Input 
-                  id="openai-key" 
-                  type="password" 
-                  placeholder="sk-..." 
+                <Input
+                  id="openai-key"
+                  type="password"
+                  placeholder="sk-..."
                   value={apiSettings.openAIKey}
-                  onChange={(e) => handleApiSettingChange('openAIKey', e.target.value)}
+                  onChange={(e) => handleApiSettingChange("openAIKey", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
                   Used for AI valuation, market analysis, and report generation
                 </p>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="anthropic-key">Anthropic API Key (Claude)</Label>
-                <Input 
-                  id="anthropic-key" 
-                  type="password" 
-                  placeholder="sk-ant-..." 
+                <Input
+                  id="anthropic-key"
+                  type="password"
+                  placeholder="sk-ant-..."
                   value={apiSettings.anthropicKey}
-                  onChange={(e) => handleApiSettingChange('anthropicKey', e.target.value)}
+                  onChange={(e) => handleApiSettingChange("anthropicKey", e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
                   Used for narrative generation and document parsing
                 </p>
               </div>
-              
+
               <div className="flex flex-col space-y-4 mt-4">
                 <Label>AI Feature Settings</Label>
                 <div className="space-y-2">
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="show-ai-features" 
+                    <Checkbox
+                      id="show-ai-features"
                       checked={apiSettings.showAIFeatures}
-                      onCheckedChange={(value) => handleApiSettingChange('showAIFeatures', Boolean(value))}
+                      onCheckedChange={(value) =>
+                        handleApiSettingChange("showAIFeatures", Boolean(value))
+                      }
                     />
                     <label
                       htmlFor="show-ai-features"
@@ -706,10 +712,12 @@ export default function SettingsPage() {
                     </label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="ai-compliance" 
+                    <Checkbox
+                      id="ai-compliance"
                       checked={apiSettings.aiComplianceChecks}
-                      onCheckedChange={(value) => handleApiSettingChange('aiComplianceChecks', Boolean(value))}
+                      onCheckedChange={(value) =>
+                        handleApiSettingChange("aiComplianceChecks", Boolean(value))
+                      }
                     />
                     <label
                       htmlFor="ai-compliance"
@@ -719,10 +727,12 @@ export default function SettingsPage() {
                     </label>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <Checkbox 
-                      id="ai-valuation" 
+                    <Checkbox
+                      id="ai-valuation"
                       checked={apiSettings.aiValuationAssistance}
-                      onCheckedChange={(value) => handleApiSettingChange('aiValuationAssistance', Boolean(value))}
+                      onCheckedChange={(value) =>
+                        handleApiSettingChange("aiValuationAssistance", Boolean(value))
+                      }
                     />
                     <label
                       htmlFor="ai-valuation"
@@ -735,7 +745,7 @@ export default function SettingsPage() {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
+              <Button
                 onClick={() => {
                   toast({
                     title: "API settings saved",
@@ -749,7 +759,7 @@ export default function SettingsPage() {
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>External Systems Integration</CardTitle>
@@ -777,7 +787,7 @@ export default function SettingsPage() {
                     <Input id="mls-api" placeholder="https://api.countyrecords.com/v1" />
                   </div>
                 </div>
-                
+
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -796,7 +806,7 @@ export default function SettingsPage() {
                     <Input id="mls-api" type="password" placeholder="••••••••••••••••" />
                   </div>
                 </div>
-                
+
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -812,12 +822,16 @@ export default function SettingsPage() {
                   </div>
                   <div className="space-y-2">
                     <div className="flex gap-2">
-                      <Button variant="outline" size="sm" className="flex-1">Connect</Button>
-                      <Button variant="outline" size="sm" className="flex-1">Configure</Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        Connect
+                      </Button>
+                      <Button variant="outline" size="sm" className="flex-1">
+                        Configure
+                      </Button>
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center justify-between mb-4">
                     <div className="flex items-center">
@@ -834,7 +848,9 @@ export default function SettingsPage() {
                   <div className="space-y-2">
                     <Label>Paired Devices</Label>
                     <div className="text-sm">2 devices connected</div>
-                    <Button variant="outline" size="sm">Manage Devices</Button>
+                    <Button variant="outline" size="sm">
+                      Manage Devices
+                    </Button>
                   </div>
                 </div>
               </div>

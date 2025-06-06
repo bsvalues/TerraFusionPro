@@ -51,7 +51,7 @@ function App() {
     const timer = setTimeout(() => {
       setIsLoaded(true);
     }, 200);
-    
+
     return () => clearTimeout(timer);
   }, []);
 
@@ -60,8 +60,18 @@ function App() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="flex flex-col items-center gap-4">
-          <svg className="h-12 w-12 animate-pulse" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3" />
+          <svg
+            className="h-12 w-12 animate-pulse"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1h3"
+            />
           </svg>
           <p className="text-lg font-medium animate-pulse">Loading TerraFusionPlatform...</p>
         </div>
@@ -80,9 +90,7 @@ function App() {
                 <Route path="/" component={EnhancedHome} />
                 <Route path="/form" component={FormPage} />
                 <Route path="/comps" component={CompsPage} />
-                <Route path="/comps-search">
-                  {() => <CompsSearchPage />}
-                </Route>
+                <Route path="/comps-search">{() => <CompsSearchPage />}</Route>
                 <Route path="/photos" component={PhotosPage} />
                 <Route path="/sketches" component={SketchesPage} />
                 <Route path="/reports" component={ReportsPage} />
@@ -117,22 +125,18 @@ function App() {
                 <Route path="/system-status" component={SystemMonitorPage} />
                 <Route path="/shap-viewer" component={ShapViewerPage} />
                 {/* URAR + AI Assistant Pages - Multiple routes for compatibility */}
-                <Route path="/urar">
-                  {() => <UrarPage />}
-                </Route>
+                <Route path="/urar">{() => <UrarPage />}</Route>
                 <Route path="/urar/:propertyId">
                   {(params) => <UrarPage propertyId={Number(params.propertyId)} />}
                 </Route>
-                <Route path="/legal-urar">
-                  {() => <UrarPage />}
-                </Route>
+                <Route path="/legal-urar">{() => <UrarPage />}</Route>
                 <Route path="/legal-urar/:propertyId">
                   {(params) => <UrarPage propertyId={Number(params.propertyId)} />}
                 </Route>
                 <Route path="/debug/performance">
                   {() => {
                     // Only import PerformanceDebugger in development
-                    const { PerformanceDebugger } = require('./components/dev/PerformanceDebugger');
+                    const { PerformanceDebugger } = require("./components/dev/PerformanceDebugger");
                     return (
                       <div className="container mx-auto p-6 flex justify-center">
                         <PerformanceDebugger />

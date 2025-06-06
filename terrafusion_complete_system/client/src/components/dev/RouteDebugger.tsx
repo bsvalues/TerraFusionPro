@@ -1,32 +1,32 @@
-import { useEffect, useState } from 'react';
-import { useLocation } from 'wouter';
+import { useEffect, useState } from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { BookMarked, Braces, Code, Route } from 'lucide-react';
+import { BookMarked, Braces, Code, Route } from "lucide-react";
 
 export function RouteDebugger() {
   const [location, setLocation] = useLocation();
-  const [customRoute, setCustomRoute] = useState('');
+  const [customRoute, setCustomRoute] = useState("");
   const [routeHistory, setRouteHistory] = useState<string[]>([]);
   const [isExpanded, setIsExpanded] = useState(true);
 
   // Common routes to test
   const testRoutes = [
-    '/',
-    '/urar',
-    '/urar/1001',
-    '/legal-urar',
-    '/legal-urar/1001',
-    '/shap-viewer',
-    '/ws-test',
-    '/comps',
-    '/settings'
+    "/",
+    "/urar",
+    "/urar/1001",
+    "/legal-urar",
+    "/legal-urar/1001",
+    "/shap-viewer",
+    "/ws-test",
+    "/comps",
+    "/settings",
   ];
 
   // Add current location to history when it changes
   useEffect(() => {
-    setRouteHistory(prev => {
+    setRouteHistory((prev) => {
       // Don't add duplicates in sequence
       if (prev.length > 0 && prev[prev.length - 1] === location) {
         return prev;
@@ -48,23 +48,20 @@ export function RouteDebugger() {
     e.preventDefault();
     if (customRoute) {
       navigateTo(customRoute);
-      setCustomRoute('');
+      setCustomRoute("");
     }
   };
 
   return (
     <Card className="mt-8 border-dashed border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20">
-      <CardHeader 
-        className="pb-2 cursor-pointer" 
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
+      <CardHeader className="pb-2 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
         <CardTitle className="text-md font-medium flex items-center text-yellow-800 dark:text-yellow-200">
           <Route className="h-4 w-4 mr-2" />
           Route Debugger
-          <span className="ml-2 text-xs">(click to {isExpanded ? 'collapse' : 'expand'})</span>
+          <span className="ml-2 text-xs">(click to {isExpanded ? "collapse" : "expand"})</span>
         </CardTitle>
       </CardHeader>
-      
+
       {isExpanded && (
         <CardContent>
           <div className="space-y-4">
@@ -75,21 +72,21 @@ export function RouteDebugger() {
                 {location}
               </code>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-2 lg:grid-cols-4">
-              {testRoutes.map(route => (
-                <Button 
-                  key={route} 
+              {testRoutes.map((route) => (
+                <Button
+                  key={route}
                   variant="outline"
                   size="sm"
-                  className={`text-xs ${location === route ? 'border-yellow-500 bg-yellow-100 dark:bg-yellow-900/40' : ''}`}
+                  className={`text-xs ${location === route ? "border-yellow-500 bg-yellow-100 dark:bg-yellow-900/40" : ""}`}
                   onClick={() => navigateTo(route)}
                 >
                   {route}
                 </Button>
               ))}
             </div>
-            
+
             <form onSubmit={handleCustomRoute} className="flex gap-2">
               <Input
                 type="text"
@@ -98,9 +95,11 @@ export function RouteDebugger() {
                 onChange={(e) => setCustomRoute(e.target.value)}
                 className="text-xs"
               />
-              <Button type="submit" variant="default" size="sm">Go</Button>
+              <Button type="submit" variant="default" size="sm">
+                Go
+              </Button>
             </form>
-            
+
             <div className="space-y-2">
               <div className="flex items-center gap-2 text-sm">
                 <BookMarked className="h-4 w-4" />
@@ -110,7 +109,7 @@ export function RouteDebugger() {
                 {routeHistory.map((route, i) => (
                   <div key={i} className="flex items-center gap-2">
                     <span>{i + 1}.</span>
-                    <span 
+                    <span
                       className="cursor-pointer hover:underline"
                       onClick={() => navigateTo(route)}
                     >

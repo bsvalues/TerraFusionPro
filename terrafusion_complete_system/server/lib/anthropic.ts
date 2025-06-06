@@ -1,5 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { z } from 'zod';
+import Anthropic from "@anthropic-ai/sdk";
+import { z } from "zod";
 
 // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025
 const anthropic = new Anthropic({
@@ -38,20 +38,20 @@ export const DocumentAnalysisSchema = z.object({
   confidence: z.number(),
   extractedData: z.record(z.string(), z.any()),
   missingFields: z.array(z.string()),
-  potentialIssues: z.array(z.object({
-    issue: z.string(),
-    severity: z.enum(['low', 'medium', 'high']),
-    description: z.string()
-  })),
-  recommendations: z.array(z.string())
+  potentialIssues: z.array(
+    z.object({
+      issue: z.string(),
+      severity: z.enum(["low", "medium", "high"]),
+      description: z.string(),
+    })
+  ),
+  recommendations: z.array(z.string()),
 });
 
 export type DocumentAnalysis = z.infer<typeof DocumentAnalysisSchema>;
 
 // Extract structured property data from text
-export async function extractPropertyData(
-  text: string
-): Promise<PropertyExtraction> {
+export async function extractPropertyData(text: string): Promise<PropertyExtraction> {
   try {
     const message = await anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
@@ -61,8 +61,8 @@ export async function extractPropertyData(
           role: "user",
           content: `Extract structured property data from this appraisal order email or document. Return a valid JSON object with all the fields you can find in the document.
 
-${text}`
-        }
+${text}`,
+        },
       ],
       system: `You are an expert real estate data extraction assistant. Extract all property, client, and transaction details into a structured JSON format.
 Only return a clean, valid JSON object with the following fields (if available):
@@ -89,26 +89,26 @@ Only return a clean, valid JSON object with the following fields (if available):
   "dueDate": "due date",
   "comments": "any special instructions or comments"
 }
-Do not include fields you cannot find in the document. Do not include explanations, just return the JSON object.`
+Do not include fields you cannot find in the document. Do not include explanations, just return the JSON object.`,
     });
 
     // Parse the response text to JSON
     const content = message.content[0];
     // Check if content has text property
-    if (!('text' in content)) {
+    if (!("text" in content)) {
       throw new Error("Unexpected response format from Anthropic");
     }
     const responseText = content.text;
-    const jsonStartIndex = responseText.indexOf('{');
-    const jsonEndIndex = responseText.lastIndexOf('}') + 1;
-    
+    const jsonStartIndex = responseText.indexOf("{");
+    const jsonEndIndex = responseText.lastIndexOf("}") + 1;
+
     if (jsonStartIndex === -1 || jsonEndIndex === 0) {
       throw new Error("Failed to extract JSON from Anthropic response");
     }
-    
+
     const jsonString = responseText.substring(jsonStartIndex, jsonEndIndex);
     const extractedData = JSON.parse(jsonString);
-    
+
     // Validate the data against our schema
     const validatedData = PropertyExtractionSchema.parse(extractedData);
     return validatedData;
@@ -120,7 +120,7 @@ Do not include fields you cannot find in the document. Do not include explanatio
 
 // Analyze document for compliance and completeness
 export async function analyzeDocument(
-  documentText: string, 
+  documentText: string,
   documentType: string
 ): Promise<DocumentAnalysis> {
   try {
@@ -132,8 +132,8 @@ export async function analyzeDocument(
           role: "user",
           content: `Analyze this ${documentType} document for quality, compliance, and completeness. Identify any issues, missing information, or potential problems.
 
-${documentText}`
-        }
+${documentText}`,
+        },
       ],
       system: `You are an expert real estate appraiser and compliance specialist. Analyze appraisal documents for quality, compliance with USPAP standards, and completeness. 
 Return your analysis as a JSON object with the following structure:
@@ -150,26 +150,26 @@ Return your analysis as a JSON object with the following structure:
     },
   "recommendations": an array of recommendations for improving the document
 }
-Only return the JSON object with no additional text or explanation.`
+Only return the JSON object with no additional text or explanation.`,
     });
 
     // Parse the response text to JSON
     const content = message.content[0];
     // Check if content has text property
-    if (!('text' in content)) {
+    if (!("text" in content)) {
       throw new Error("Unexpected response format from Anthropic");
     }
     const responseText = content.text;
-    const jsonStartIndex = responseText.indexOf('{');
-    const jsonEndIndex = responseText.lastIndexOf('}') + 1;
-    
+    const jsonStartIndex = responseText.indexOf("{");
+    const jsonEndIndex = responseText.lastIndexOf("}") + 1;
+
     if (jsonStartIndex === -1 || jsonEndIndex === 0) {
       throw new Error("Failed to extract JSON from Anthropic response");
     }
-    
+
     const jsonString = responseText.substring(jsonStartIndex, jsonEndIndex);
     const analysisData = JSON.parse(jsonString);
-    
+
     // Validate the data against our schema
     const validatedData = DocumentAnalysisSchema.parse(analysisData);
     return validatedData;
@@ -187,13 +187,13 @@ export async function generatePropertyDescription(
   try {
     // Construct a prompt with the property data
     let propertyPrompt = "Generate a comprehensive property description for this property:\n\n";
-    
+
     Object.entries(propertyData).forEach(([key, value]) => {
       if (value) {
         propertyPrompt += `${key}: ${value}\n`;
       }
     });
-    
+
     if (additionalDetails) {
       propertyPrompt += `\nAdditional details:\n${additionalDetails}`;
     }
@@ -204,18 +204,18 @@ export async function generatePropertyDescription(
       messages: [
         {
           role: "user",
-          content: propertyPrompt
-        }
+          content: propertyPrompt,
+        },
       ],
       system: `You are an expert real estate appraiser. Generate a comprehensive, professional property description suitable for an appraisal report. 
 Include relevant details about the property location, physical characteristics, condition, and notable features. 
 Use objective, factual language appropriate for a formal appraisal report.
-The description should be 2-3 paragraphs long and well-organized.`
+The description should be 2-3 paragraphs long and well-organized.`,
     });
 
     const content = message.content[0];
     // Check if content has text property
-    if (!('text' in content)) {
+    if (!("text" in content)) {
       throw new Error("Unexpected response format from Anthropic");
     }
     return content.text;
@@ -227,7 +227,7 @@ The description should be 2-3 paragraphs long and well-organized.`
 
 // Analyze market conditions
 export async function analyzeMarketConditions(
-  location: string, 
+  location: string,
   propertyType: string
 ): Promise<string> {
   try {
@@ -245,18 +245,18 @@ export async function analyzeMarketConditions(
       messages: [
         {
           role: "user",
-          content: prompt
-        }
+          content: prompt,
+        },
       ],
       system: `You are an expert real estate market analyst. Generate a factual, comprehensive market conditions analysis suitable for an appraisal report.
 The analysis should be objective and data-focused, avoiding promotional language.
 Structure your response in 2-3 concise paragraphs that address supply/demand dynamics, price trends, inventory levels, and other relevant market factors.
-Your analysis should help establish the market context for the property being appraised.`
+Your analysis should help establish the market context for the property being appraised.`,
     });
 
     const content = message.content[0];
     // Check if content has text property
-    if (!('text' in content)) {
+    if (!("text" in content)) {
       throw new Error("Unexpected response format from Anthropic");
     }
     return content.text;
@@ -279,7 +279,7 @@ export async function analyzeComparables(
         prompt += `${key}: ${value}\n`;
       }
     });
-    
+
     // Format comparable properties
     prompt += "\nComparable properties:\n";
     comparableProperties.forEach((comp, index) => {
@@ -290,8 +290,9 @@ export async function analyzeComparables(
         }
       });
     });
-    
-    prompt += "\nPlease analyze these comparable properties in relation to the subject property. Identify strengths and weaknesses of each comparable and explain how they compare to the subject property.";
+
+    prompt +=
+      "\nPlease analyze these comparable properties in relation to the subject property. Identify strengths and weaknesses of each comparable and explain how they compare to the subject property.";
 
     const message = await anthropic.messages.create({
       model: "claude-3-7-sonnet-20250219",
@@ -299,19 +300,19 @@ export async function analyzeComparables(
       messages: [
         {
           role: "user",
-          content: prompt
-        }
+          content: prompt,
+        },
       ],
       system: `You are an expert real estate appraiser. Analyze comparable properties in relation to a subject property for an appraisal report.
 Focus on key factors that influence value: location, size, condition, age, amenities, and other relevant characteristics.
 Identify strengths and weaknesses of each comparable.
 Your analysis should be objective, factual, and suitable for inclusion in a formal appraisal report.
-Structure your response as a cohesive narrative that evaluates the comparability of each property.`
+Structure your response as a cohesive narrative that evaluates the comparability of each property.`,
     });
 
     const content = message.content[0];
     // Check if content has text property
-    if (!('text' in content)) {
+    if (!("text" in content)) {
       throw new Error("Unexpected response format from Anthropic");
     }
     return content.text;

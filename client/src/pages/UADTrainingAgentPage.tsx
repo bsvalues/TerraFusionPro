@@ -1,20 +1,37 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { GraduationCap, Users, BookOpen, CheckCircle, Clock, Target, Brain, FileText, Play, Pause } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  GraduationCap,
+  Users,
+  BookOpen,
+  CheckCircle,
+  Clock,
+  Target,
+  Brain,
+  FileText,
+  Play,
+  Pause,
+} from "lucide-react";
 
 interface TrainingModule {
   id: string;
   title: string;
   description: string;
   duration: string;
-  difficulty: 'Beginner' | 'Intermediate' | 'Advanced';
+  difficulty: "Beginner" | "Intermediate" | "Advanced";
   completion: number;
-  status: 'Available' | 'In Progress' | 'Completed' | 'Locked';
+  status: "Available" | "In Progress" | "Completed" | "Locked";
   prerequisites: string[];
 }
 
@@ -28,7 +45,7 @@ interface AppraiserProfile {
   progressPercentage: number;
   completedModules: number;
   totalModules: number;
-  status: 'Active' | 'Onboarding' | 'Certified' | 'Refresher';
+  status: "Active" | "Onboarding" | "Certified" | "Refresher";
 }
 
 interface TrainingMetrics {
@@ -41,121 +58,121 @@ interface TrainingMetrics {
 }
 
 export default function UADTrainingAgentPage() {
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
   const [trainingInProgress, setTrainingInProgress] = useState(false);
 
   const trainingModules: TrainingModule[] = [
     {
-      id: 'uad-basics',
-      title: 'UAD 3.6 Fundamentals',
-      description: 'Core concepts and field requirements for UAD 3.6 compliance',
-      duration: '45 minutes',
-      difficulty: 'Beginner',
+      id: "uad-basics",
+      title: "UAD 3.6 Fundamentals",
+      description: "Core concepts and field requirements for UAD 3.6 compliance",
+      duration: "45 minutes",
+      difficulty: "Beginner",
       completion: 100,
-      status: 'Available',
-      prerequisites: []
+      status: "Available",
+      prerequisites: [],
     },
     {
-      id: 'field-validation',
-      title: 'Field Validation & AI Assistance',
-      description: 'Using TerraFusion AI for intelligent field validation and error prevention',
-      duration: '60 minutes',
-      difficulty: 'Intermediate',
+      id: "field-validation",
+      title: "Field Validation & AI Assistance",
+      description: "Using TerraFusion AI for intelligent field validation and error prevention",
+      duration: "60 minutes",
+      difficulty: "Intermediate",
       completion: 87,
-      status: 'Available',
-      prerequisites: ['uad-basics']
+      status: "Available",
+      prerequisites: ["uad-basics"],
     },
     {
-      id: 'override-management',
-      title: 'Override Justification & Documentation',
-      description: 'Best practices for documenting comp overrides with AI narrative assistance',
-      duration: '40 minutes',
-      difficulty: 'Intermediate',
+      id: "override-management",
+      title: "Override Justification & Documentation",
+      description: "Best practices for documenting comp overrides with AI narrative assistance",
+      duration: "40 minutes",
+      difficulty: "Intermediate",
       completion: 73,
-      status: 'Available',
-      prerequisites: ['uad-basics', 'field-validation']
+      status: "Available",
+      prerequisites: ["uad-basics", "field-validation"],
     },
     {
-      id: 'zoning-integration',
-      title: 'Zoning AI Integration',
-      description: 'Leveraging ThinkLike zoning intelligence for enhanced valuations',
-      duration: '50 minutes',
-      difficulty: 'Advanced',
+      id: "zoning-integration",
+      title: "Zoning AI Integration",
+      description: "Leveraging ThinkLike zoning intelligence for enhanced valuations",
+      duration: "50 minutes",
+      difficulty: "Advanced",
       completion: 54,
-      status: 'Available',
-      prerequisites: ['field-validation']
+      status: "Available",
+      prerequisites: ["field-validation"],
     },
     {
-      id: 'blockchain-verification',
-      title: 'Blockchain Verification & NFT Comps',
-      description: 'Understanding cryptographic verification and NFT-based comparable properties',
-      duration: '35 minutes',
-      difficulty: 'Advanced',
+      id: "blockchain-verification",
+      title: "Blockchain Verification & NFT Comps",
+      description: "Understanding cryptographic verification and NFT-based comparable properties",
+      duration: "35 minutes",
+      difficulty: "Advanced",
       completion: 31,
-      status: 'Available',
-      prerequisites: ['override-management']
+      status: "Available",
+      prerequisites: ["override-management"],
     },
     {
-      id: 'regulator-compliance',
-      title: 'Regulator Export & Audit Trails',
-      description: 'Generating compliant exports and maintaining audit-ready documentation',
-      duration: '30 minutes',
-      difficulty: 'Advanced',
+      id: "regulator-compliance",
+      title: "Regulator Export & Audit Trails",
+      description: "Generating compliant exports and maintaining audit-ready documentation",
+      duration: "30 minutes",
+      difficulty: "Advanced",
       completion: 18,
-      status: 'Available',
-      prerequisites: ['blockchain-verification']
-    }
+      status: "Available",
+      prerequisites: ["blockchain-verification"],
+    },
   ];
 
   const appraiserProfiles: AppraiserProfile[] = [
     {
-      id: 'APP-001',
-      name: 'Sarah Chen',
-      license: 'WA-CG-4829',
-      experience: '8 years',
-      specialization: 'Residential',
-      currentModule: 'zoning-integration',
+      id: "APP-001",
+      name: "Sarah Chen",
+      license: "WA-CG-4829",
+      experience: "8 years",
+      specialization: "Residential",
+      currentModule: "zoning-integration",
       progressPercentage: 73,
       completedModules: 3,
       totalModules: 6,
-      status: 'Active'
+      status: "Active",
     },
     {
-      id: 'APP-002',
-      name: 'Michael Rodriguez',
-      license: 'WA-CR-7231',
-      experience: '12 years',
-      specialization: 'Commercial',
-      currentModule: 'blockchain-verification',
+      id: "APP-002",
+      name: "Michael Rodriguez",
+      license: "WA-CR-7231",
+      experience: "12 years",
+      specialization: "Commercial",
+      currentModule: "blockchain-verification",
       progressPercentage: 89,
       completedModules: 4,
       totalModules: 6,
-      status: 'Active'
+      status: "Active",
     },
     {
-      id: 'APP-003',
-      name: 'Jennifer Wilson',
-      license: 'WA-CG-1847',
-      experience: '15 years',
-      specialization: 'Rural/Agricultural',
-      currentModule: 'regulator-compliance',
+      id: "APP-003",
+      name: "Jennifer Wilson",
+      license: "WA-CG-1847",
+      experience: "15 years",
+      specialization: "Rural/Agricultural",
+      currentModule: "regulator-compliance",
       progressPercentage: 95,
       completedModules: 5,
       totalModules: 6,
-      status: 'Certified'
+      status: "Certified",
     },
     {
-      id: 'APP-004',
-      name: 'David Park',
-      license: 'WA-TR-5294',
-      experience: '3 years',
-      specialization: 'Residential',
-      currentModule: 'field-validation',
+      id: "APP-004",
+      name: "David Park",
+      license: "WA-TR-5294",
+      experience: "3 years",
+      specialization: "Residential",
+      currentModule: "field-validation",
       progressPercentage: 42,
       completedModules: 1,
       totalModules: 6,
-      status: 'Onboarding'
-    }
+      status: "Onboarding",
+    },
   ];
 
   const trainingMetrics: TrainingMetrics = {
@@ -164,25 +181,38 @@ export default function UADTrainingAgentPage() {
     certifiedUAD36: 284,
     averageCompletion: 67.8,
     successRate: 94.2,
-    moduleCompletions: 2847
+    moduleCompletions: 2847,
   };
 
   const getDifficultyColor = (difficulty: string) => {
     switch (difficulty) {
-      case 'Beginner': return 'bg-green-100 text-green-800';
-      case 'Intermediate': return 'bg-yellow-100 text-yellow-800';
-      case 'Advanced': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Beginner":
+        return "bg-green-100 text-green-800";
+      case "Intermediate":
+        return "bg-yellow-100 text-yellow-800";
+      case "Advanced":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Available': case 'Active': case 'Certified': return 'bg-green-100 text-green-800';
-      case 'In Progress': case 'Onboarding': return 'bg-blue-100 text-blue-800';
-      case 'Completed': return 'bg-purple-100 text-purple-800';
-      case 'Locked': case 'Refresher': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Available":
+      case "Active":
+      case "Certified":
+        return "bg-green-100 text-green-800";
+      case "In Progress":
+      case "Onboarding":
+        return "bg-blue-100 text-blue-800";
+      case "Completed":
+        return "bg-purple-100 text-purple-800";
+      case "Locked":
+      case "Refresher":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -197,7 +227,9 @@ export default function UADTrainingAgentPage() {
         <GraduationCap className="w-8 h-8 text-blue-600" />
         <div>
           <h1 className="text-3xl font-bold text-gray-900">UAD 3.6 Training Agent</h1>
-          <p className="text-gray-600">AI-powered training system for UAD 3.6 compliance and TerraFusion platform mastery</p>
+          <p className="text-gray-600">
+            AI-powered training system for UAD 3.6 compliance and TerraFusion platform mastery
+          </p>
         </div>
       </div>
 
@@ -209,7 +241,9 @@ export default function UADTrainingAgentPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{trainingMetrics.totalAppraisers}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {trainingMetrics.totalAppraisers}
+            </div>
             <p className="text-xs text-muted-foreground">Enrolled</p>
           </CardContent>
         </Card>
@@ -220,7 +254,9 @@ export default function UADTrainingAgentPage() {
             <BookOpen className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{trainingMetrics.activeTraining}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {trainingMetrics.activeTraining}
+            </div>
             <p className="text-xs text-muted-foreground">In progress</p>
           </CardContent>
         </Card>
@@ -231,7 +267,9 @@ export default function UADTrainingAgentPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{trainingMetrics.certifiedUAD36}</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {trainingMetrics.certifiedUAD36}
+            </div>
             <p className="text-xs text-muted-foreground">Completed</p>
           </CardContent>
         </Card>
@@ -242,7 +280,9 @@ export default function UADTrainingAgentPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{trainingMetrics.averageCompletion}%</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {trainingMetrics.averageCompletion}%
+            </div>
             <p className="text-xs text-muted-foreground">Progress</p>
           </CardContent>
         </Card>
@@ -264,7 +304,9 @@ export default function UADTrainingAgentPage() {
             <FileText className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{trainingMetrics.moduleCompletions}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {trainingMetrics.moduleCompletions}
+            </div>
             <p className="text-xs text-muted-foreground">Modules</p>
           </CardContent>
         </Card>
@@ -312,7 +354,9 @@ export default function UADTrainingAgentPage() {
           <Card>
             <CardHeader>
               <CardTitle>UAD 3.6 Training Curriculum</CardTitle>
-              <CardDescription>Comprehensive training modules for UAD 3.6 compliance and TerraFusion integration</CardDescription>
+              <CardDescription>
+                Comprehensive training modules for UAD 3.6 compliance and TerraFusion integration
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -324,11 +368,9 @@ export default function UADTrainingAgentPage() {
                           <div className="font-medium text-lg">{module.title}</div>
                           <div className="text-sm text-gray-600">{module.description}</div>
                         </div>
-                        <Badge className={getStatusColor(module.status)}>
-                          {module.status}
-                        </Badge>
+                        <Badge className={getStatusColor(module.status)}>{module.status}</Badge>
                       </div>
-                      
+
                       <div className="flex items-center space-x-4 text-sm">
                         <div className="flex items-center space-x-1">
                           <Clock className="w-4 h-4" />
@@ -338,7 +380,7 @@ export default function UADTrainingAgentPage() {
                           {module.difficulty}
                         </Badge>
                       </div>
-                      
+
                       <div className="space-y-2">
                         <div className="flex justify-between text-sm">
                           <span>Completion Rate</span>
@@ -346,10 +388,12 @@ export default function UADTrainingAgentPage() {
                         </div>
                         <Progress value={module.completion} className="h-2" />
                       </div>
-                      
+
                       {module.prerequisites.length > 0 && (
                         <div>
-                          <div className="text-sm font-medium text-gray-700 mb-1">Prerequisites:</div>
+                          <div className="text-sm font-medium text-gray-700 mb-1">
+                            Prerequisites:
+                          </div>
                           <div className="flex flex-wrap gap-1">
                             {module.prerequisites.map((prereq, index) => (
                               <Badge key={index} variant="outline" className="text-xs">
@@ -359,11 +403,18 @@ export default function UADTrainingAgentPage() {
                           </div>
                         </div>
                       )}
-                      
-                      <Button className="w-full" variant={module.status === 'Available' ? 'default' : 'outline'}>
-                        {module.status === 'Available' ? 'Start Module' : 
-                         module.status === 'In Progress' ? 'Continue' : 
-                         module.status === 'Completed' ? 'Review' : 'Locked'}
+
+                      <Button
+                        className="w-full"
+                        variant={module.status === "Available" ? "default" : "outline"}
+                      >
+                        {module.status === "Available"
+                          ? "Start Module"
+                          : module.status === "In Progress"
+                            ? "Continue"
+                            : module.status === "Completed"
+                              ? "Review"
+                              : "Locked"}
                       </Button>
                     </div>
                   </div>
@@ -377,7 +428,9 @@ export default function UADTrainingAgentPage() {
           <Card>
             <CardHeader>
               <CardTitle>Appraiser Training Progress</CardTitle>
-              <CardDescription>Individual progress tracking for UAD 3.6 certification</CardDescription>
+              <CardDescription>
+                Individual progress tracking for UAD 3.6 certification
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -389,14 +442,15 @@ export default function UADTrainingAgentPage() {
                           <div>
                             <div className="font-medium text-lg">{appraiser.name}</div>
                             <div className="text-sm text-gray-600">
-                              {appraiser.license} • {appraiser.experience} • {appraiser.specialization}
+                              {appraiser.license} • {appraiser.experience} •{" "}
+                              {appraiser.specialization}
                             </div>
                           </div>
                           <Badge className={getStatusColor(appraiser.status)}>
                             {appraiser.status}
                           </Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <div className="text-sm text-gray-600">Current Module</div>
@@ -404,14 +458,16 @@ export default function UADTrainingAgentPage() {
                           </div>
                           <div>
                             <div className="text-sm text-gray-600">Completed</div>
-                            <div className="font-medium">{appraiser.completedModules}/{appraiser.totalModules} modules</div>
+                            <div className="font-medium">
+                              {appraiser.completedModules}/{appraiser.totalModules} modules
+                            </div>
                           </div>
                           <div>
                             <div className="text-sm text-gray-600">Overall Progress</div>
                             <div className="font-medium">{appraiser.progressPercentage}%</div>
                           </div>
                         </div>
-                        
+
                         <div className="space-y-2">
                           <div className="flex justify-between text-sm">
                             <span>Training Progress</span>
@@ -519,7 +575,8 @@ export default function UADTrainingAgentPage() {
                 <div className="flex items-center space-x-3">
                   <Brain className="w-5 h-5 text-blue-600 animate-pulse" />
                   <div className="text-blue-800">
-                    Personalizing training content based on appraiser experience and specialization...
+                    Personalizing training content based on appraiser experience and
+                    specialization...
                   </div>
                 </div>
               </CardContent>

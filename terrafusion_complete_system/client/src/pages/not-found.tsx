@@ -1,5 +1,5 @@
-import { Button } from '../components/ui/button';
-import { Link } from 'wouter';
+import { Button } from "../components/ui/button";
+import { Link } from "wouter";
 
 // 404 Not Found page
 export default function NotFound() {

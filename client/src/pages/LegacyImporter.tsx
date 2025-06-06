@@ -17,7 +17,7 @@ interface TerraFusionComp {
 interface ImportJob {
   id: string;
   fileName: string;
-  status: 'pending' | 'processing' | 'complete' | 'error';
+  status: "pending" | "processing" | "complete" | "error";
   progress: number;
   recordsProcessed: number;
   totalRecords: number;
@@ -37,7 +37,7 @@ export default function LegacyImporter() {
 
   useEffect(() => {
     console.log("Legacy Importer Component Successfully Mounted");
-    
+
     return () => {
       // Cleanup event source on unmount
       if (eventSourceRef.current) {
@@ -58,20 +58,22 @@ export default function LegacyImporter() {
     setUploadStatus("Starting import of authentic SQLite appraisal data...");
 
     // Import the real converted SQLite data
-    fetch('/api/legacy/import', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' }
+    fetch("/api/legacy/import", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
     })
-    .then(response => response.json())
-    .then(result => {
-      setUploadStatus(`Import completed: ${result.importedProperties} properties imported from ${result.totalFiles} records`);
-      setIsStreaming(false);
-      setStreamConnected(true);
-    })
-    .catch(error => {
-      setUploadStatus(`Import failed: ${error.message}`);
-      setIsStreaming(false);
-    });
+      .then((response) => response.json())
+      .then((result) => {
+        setUploadStatus(
+          `Import completed: ${result.importedProperties} properties imported from ${result.totalFiles} records`
+        );
+        setIsStreaming(false);
+        setStreamConnected(true);
+      })
+      .catch((error) => {
+        setUploadStatus(`Import failed: ${error.message}`);
+        setIsStreaming(false);
+      });
 
     // Simulate the EventSource for now
     const eventSource = { close: () => {} } as EventSource;
@@ -85,16 +87,18 @@ export default function LegacyImporter() {
     eventSource.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
-        
-        if (message.type === 'record') {
-          setImportedComps(prev => [message.data, ...prev]);
-        } else if (message.type === 'end') {
+
+        if (message.type === "record") {
+          setImportedComps((prev) => [message.data, ...prev]);
+        } else if (message.type === "end") {
           setIsStreaming(false);
-          setUploadStatus(`Import ${message.result}: ${importedComps.length + 1} records processed`);
+          setUploadStatus(
+            `Import ${message.result}: ${importedComps.length + 1} records processed`
+          );
           eventSource.close();
         }
       } catch (error) {
-        console.error('Error parsing stream data:', error);
+        console.error("Error parsing stream data:", error);
       }
     };
 
@@ -117,26 +121,26 @@ export default function LegacyImporter() {
 
     try {
       const formData = new FormData();
-      Array.from(selectedFiles).forEach(file => {
-        formData.append('files', file);
+      Array.from(selectedFiles).forEach((file) => {
+        formData.append("files", file);
       });
-      
-      const response = await fetch('/api/legacy-import/upload', {
-        method: 'POST',
+
+      const response = await fetch("/api/legacy-import/upload", {
+        method: "POST",
         body: formData,
       });
-      
+
       if (response.ok) {
         setSelectedFiles(null);
         if (fileInputRef.current) {
-          fileInputRef.current.value = '';
+          fileInputRef.current.value = "";
         }
         setUploadStatus("Files uploaded successfully!");
       } else {
         setUploadStatus("Upload failed - please try again");
       }
     } catch (error) {
-      console.error('Upload failed:', error);
+      console.error("Upload failed:", error);
       setUploadStatus("Upload failed - network error");
     } finally {
       setIsUploading(false);
@@ -150,22 +154,33 @@ export default function LegacyImporter() {
         <div className="mb-8">
           <h1 className="text-3xl font-bold text-gray-900">TerraFusion Legacy Data Importer</h1>
           <p className="mt-2 text-gray-600">
-            Import data from legacy appraisal systems including SQLite databases, XML files, and various formats
+            Import data from legacy appraisal systems including SQLite databases, XML files, and
+            various formats
           </p>
         </div>
 
         {/* Main Upload Card */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div className="flex items-center gap-3 mb-4">
-            <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+            <svg
+              className="w-6 h-6 text-blue-600"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
             </svg>
             <h2 className="text-xl font-semibold text-gray-900">Upload Legacy Files</h2>
           </div>
-          
+
           <p className="text-gray-600 mb-6">
-            Select files from your legacy appraisal system. Supported formats include SQLite databases (.sqlite, .db), 
-            XML files, CSV files, and compressed archives (.zip).
+            Select files from your legacy appraisal system. Supported formats include SQLite
+            databases (.sqlite, .db), XML files, CSV files, and compressed archives (.zip).
           </p>
 
           {/* File Upload Area */}
@@ -178,11 +193,21 @@ export default function LegacyImporter() {
               className="hidden"
               accept=".sqlite,.db,.sqlite3,.xml,.csv,.zip,.sql,.xlsx,.xls,.pdf"
             />
-            
-            <svg className="w-12 h-12 text-gray-400 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+
+            <svg
+              className="w-12 h-12 text-gray-400 mx-auto mb-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+              />
             </svg>
-            
+
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
@@ -190,22 +215,35 @@ export default function LegacyImporter() {
             >
               Select Files
             </button>
-            
-            <p className="text-sm text-gray-500">
-              Or drag and drop files here
-            </p>
+
+            <p className="text-sm text-gray-500">Or drag and drop files here</p>
           </div>
 
           {/* Selected Files Display */}
           {selectedFiles && selectedFiles.length > 0 && (
             <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-              <h3 className="font-medium text-gray-900 mb-3">Selected Files ({selectedFiles.length}):</h3>
+              <h3 className="font-medium text-gray-900 mb-3">
+                Selected Files ({selectedFiles.length}):
+              </h3>
               <div className="space-y-2">
                 {Array.from(selectedFiles).map((file, index) => (
-                  <div key={index} className="flex items-center justify-between p-2 bg-white rounded border">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-2 bg-white rounded border"
+                  >
                     <div className="flex items-center gap-3">
-                      <svg className="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                      <svg
+                        className="w-4 h-4 text-gray-400"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
                       </svg>
                       <span className="text-sm font-medium text-gray-900">{file.name}</span>
                     </div>
@@ -215,30 +253,30 @@ export default function LegacyImporter() {
                   </div>
                 ))}
               </div>
-              
+
               <button
                 onClick={handleUpload}
                 disabled={isUploading}
                 className={`mt-4 w-full py-2 px-4 rounded-md text-white font-medium ${
-                  isUploading 
-                    ? 'bg-gray-400 cursor-not-allowed' 
-                    : 'bg-green-600 hover:bg-green-700'
+                  isUploading ? "bg-gray-400 cursor-not-allowed" : "bg-green-600 hover:bg-green-700"
                 } transition-colors`}
               >
-                {isUploading ? 'Uploading...' : 'Upload Files'}
+                {isUploading ? "Uploading..." : "Upload Files"}
               </button>
             </div>
           )}
 
           {/* Upload Status */}
           {uploadStatus && (
-            <div className={`mt-4 p-3 rounded-md ${
-              uploadStatus.includes('successfully') 
-                ? 'bg-green-100 text-green-800' 
-                : uploadStatus.includes('failed') || uploadStatus.includes('error')
-                ? 'bg-red-100 text-red-800'
-                : 'bg-blue-100 text-blue-800'
-            }`}>
+            <div
+              className={`mt-4 p-3 rounded-md ${
+                uploadStatus.includes("successfully")
+                  ? "bg-green-100 text-green-800"
+                  : uploadStatus.includes("failed") || uploadStatus.includes("error")
+                    ? "bg-red-100 text-red-800"
+                    : "bg-blue-100 text-blue-800"
+              }`}
+            >
               {uploadStatus}
             </div>
           )}
@@ -246,14 +284,24 @@ export default function LegacyImporter() {
           {/* Support Info */}
           <div className="mt-6 p-4 bg-blue-50 rounded-lg">
             <div className="flex items-start gap-3">
-              <svg className="w-5 h-5 text-blue-600 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm16 0c0-2.21-1.79-4-4-4H8c0 2.21 1.79 4 4 4h8c2.21 0 4 1.79 4 4z" />
+              <svg
+                className="w-5 h-5 text-blue-600 mt-0.5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 7v10c0 2.21 1.79 4 4 4h8c0-2.21-1.79-4-4-4H8c-2.21 0-4-1.79-4-4zm16 0c0-2.21-1.79-4-4-4H8c0 2.21 1.79 4 4 4h8c2.21 0 4 1.79 4 4z"
+                />
               </svg>
               <div>
                 <h3 className="font-medium text-blue-900 mb-1">Supported Systems</h3>
                 <p className="text-sm text-blue-800">
-                  TOTAL by a la mode, ClickForms, ACI DataMaster, CompsImporter backups, 
-                  and other legacy appraisal software databases.
+                  TOTAL by a la mode, ClickForms, ACI DataMaster, CompsImporter backups, and other
+                  legacy appraisal software databases.
                 </p>
               </div>
             </div>
@@ -272,25 +320,29 @@ export default function LegacyImporter() {
               </div>
               <div className="flex items-center gap-4">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${
-                    streamConnected ? 'bg-green-500' : 
-                    isStreaming ? 'bg-yellow-500' : 'bg-gray-300'
-                  }`}></div>
+                  <div
+                    className={`w-2 h-2 rounded-full ${
+                      streamConnected
+                        ? "bg-green-500"
+                        : isStreaming
+                          ? "bg-yellow-500"
+                          : "bg-gray-300"
+                    }`}
+                  ></div>
                   <span className="text-sm text-gray-600">
-                    {streamConnected ? 'Connected' : 
-                     isStreaming ? 'Connecting...' : 'Disconnected'}
+                    {streamConnected ? "Connected" : isStreaming ? "Connecting..." : "Disconnected"}
                   </span>
                 </div>
                 <button
                   onClick={startMockStream}
                   disabled={isStreaming}
                   className={`px-4 py-2 rounded-md text-sm font-medium ${
-                    isStreaming 
-                      ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                      : 'bg-blue-600 text-white hover:bg-blue-700'
+                    isStreaming
+                      ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      : "bg-blue-600 text-white hover:bg-blue-700"
                   }`}
                 >
-                  {isStreaming ? 'Processing...' : 'Import SQLite Data'}
+                  {isStreaming ? "Processing..." : "Import SQLite Data"}
                 </button>
               </div>
             </div>
@@ -300,8 +352,18 @@ export default function LegacyImporter() {
           <div className="max-h-96 overflow-y-auto">
             {importedComps.length === 0 && !isStreaming ? (
               <div className="text-center py-12 text-gray-500">
-                <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                <svg
+                  className="w-12 h-12 mx-auto mb-4 opacity-50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
                 </svg>
                 <p>No imported records yet. Start an import to see live data streaming.</p>
               </div>
@@ -346,30 +408,35 @@ export default function LegacyImporter() {
                 <div>
                   <span className="text-gray-500">Valid Records:</span>
                   <span className="ml-2 font-semibold text-green-600">
-                    {importedComps.filter(comp => {
-                      // This would use the actual validation function
-                      return comp.address && comp.sale_price_usd && comp.gla_sqft;
-                    }).length}
+                    {
+                      importedComps.filter((comp) => {
+                        // This would use the actual validation function
+                        return comp.address && comp.sale_price_usd && comp.gla_sqft;
+                      }).length
+                    }
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Issues Found:</span>
                   <span className="ml-2 font-semibold text-yellow-600">
-                    {importedComps.filter(comp => {
-                      // This would use the actual validation function  
-                      return !comp.address || !comp.sale_price_usd || !comp.gla_sqft;
-                    }).length}
+                    {
+                      importedComps.filter((comp) => {
+                        // This would use the actual validation function
+                        return !comp.address || !comp.sale_price_usd || !comp.gla_sqft;
+                      }).length
+                    }
                   </span>
                 </div>
                 <div>
                   <span className="text-gray-500">Avg Price/Sqft:</span>
                   <span className="ml-2 font-semibold">
-                    ${importedComps.reduce((sum, comp) => {
+                    $
+                    {importedComps.reduce((sum, comp) => {
                       if (comp.sale_price_usd && comp.gla_sqft) {
-                        return sum + (comp.sale_price_usd / comp.gla_sqft);
+                        return sum + comp.sale_price_usd / comp.gla_sqft;
                       }
                       return sum;
-                    }, 0) / importedComps.filter(c => c.sale_price_usd && c.gla_sqft).length || 0}
+                    }, 0) / importedComps.filter((c) => c.sale_price_usd && c.gla_sqft).length || 0}
                   </span>
                 </div>
               </div>

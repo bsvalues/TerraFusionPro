@@ -1,5 +1,5 @@
-import { WebSocketServer, WebSocket } from 'ws';
-import { Server } from 'http';
+import { WebSocketServer, WebSocket } from "ws";
+import { Server } from "http";
 
 // Define client interface
 interface ClientInfo {
@@ -15,38 +15,38 @@ interface ClientInfo {
 export function setupAltWebSocketServer(httpServer: Server) {
   // Log the server configuration for debugging
   console.log(`[WebSocket] Setting up alternative WebSocket server on path /ws-alt`);
-  
+
   // Create a WebSocket server with a different path
   // This provides an alternative endpoint that clients can try
   // if the main one is failing
-  const wss = new WebSocketServer({ 
+  const wss = new WebSocketServer({
     server: httpServer,
-    path: '/ws-alt'
+    path: "/ws-alt",
   });
-  
+
   // Track clients with additional metadata
   const clients = new Map<WebSocket, ClientInfo>();
-  
+
   // Set up server-side heartbeat check interval
   const heartbeatInterval = setInterval(() => {
     wss.clients.forEach((ws) => {
       const client = clients.get(ws);
-      
+
       if (!client) {
         return ws.terminate();
       }
-      
+
       // Check if client hasn't responded to ping
       if (!client.isAlive) {
         console.log(`Alt WS: Terminating inactive client: ${client.id}`);
         clients.delete(ws);
         return ws.terminate();
       }
-      
+
       // Mark as inactive until we receive a pong
       client.isAlive = false;
       clients.set(ws, client);
-      
+
       // Send ping
       try {
         ws.ping();
@@ -56,19 +56,19 @@ export function setupAltWebSocketServer(httpServer: Server) {
       }
     });
   }, 30000);
-  
+
   // Clean up interval when server closes
-  wss.on('close', () => {
+  wss.on("close", () => {
     clearInterval(heartbeatInterval);
   });
-  
+
   // Handle new connections
-  wss.on('connection', (ws, req) => {
+  wss.on("connection", (ws, req) => {
     // Generate client ID and set up metadata
     const clientId = Math.random().toString(36).substring(2, 15);
     const ipAddress = req.socket.remoteAddress;
-    const userAgent = req.headers['user-agent'];
-    
+    const userAgent = req.headers["user-agent"];
+
     // Initialize client info
     const clientInfo: ClientInfo = {
       id: clientId,
@@ -76,23 +76,23 @@ export function setupAltWebSocketServer(httpServer: Server) {
       lastActivity: Date.now(),
       sessionStartTime: Date.now(),
       ipAddress,
-      userAgent
+      userAgent,
     };
-    
+
     clients.set(ws, clientInfo);
     console.log(`Alt WS: Client connected: ${clientId} from ${ipAddress}`);
-    
+
     // Send welcome message
     sendToClient(ws, {
-      type: 'connection',
-      status: 'connected',
+      type: "connection",
+      status: "connected",
       clientId,
       serverTime: new Date().toISOString(),
-      source: 'alternative-endpoint'
+      source: "alternative-endpoint",
     });
-    
+
     // Handle pong messages (response to ping)
-    ws.on('pong', () => {
+    ws.on("pong", () => {
       const client = clients.get(ws);
       if (client) {
         client.isAlive = true;
@@ -100,9 +100,9 @@ export function setupAltWebSocketServer(httpServer: Server) {
         clients.set(ws, client);
       }
     });
-    
+
     // Handle messages
-    ws.on('message', (message) => {
+    ws.on("message", (message) => {
       try {
         // Update last activity time
         const client = clients.get(ws);
@@ -110,90 +110,90 @@ export function setupAltWebSocketServer(httpServer: Server) {
           client.lastActivity = Date.now();
           clients.set(ws, client);
         }
-        
+
         const data = JSON.parse(message.toString());
         console.log(`Alt WS: Message from ${clientId}:`, data);
-        
+
         // Handle message types
         switch (data.type) {
-          case 'heartbeat':
+          case "heartbeat":
             // Handle heartbeat ping message
-            if (data.action === 'ping') {
+            if (data.action === "ping") {
               // Respond with pong to keep connection alive
               sendToClient(ws, {
-                type: 'heartbeat',
-                action: 'pong',
+                type: "heartbeat",
+                action: "pong",
                 timestamp: data.timestamp,
                 serverTime: Date.now(),
-                source: 'alternative-endpoint'
+                source: "alternative-endpoint",
               });
             }
             break;
-          
-          case 'ping':
+
+          case "ping":
             // Client-initiated ping, respond with pong
             sendToClient(ws, {
-              type: 'pong',
+              type: "pong",
               timestamp: Date.now(),
               serverTime: new Date().toISOString(),
-              source: 'alternative-endpoint'
+              source: "alternative-endpoint",
             });
             break;
-            
-          case 'echo':
+
+          case "echo":
             sendToClient(ws, {
-              type: 'echo',
+              type: "echo",
               message: data.message,
               timestamp: Date.now(),
               serverTime: new Date().toISOString(),
-              source: 'alternative-endpoint'
+              source: "alternative-endpoint",
             });
             break;
-            
-          case 'broadcast':
+
+          case "broadcast":
             broadcastMessage(data, ws);
             break;
-            
+
           default:
             // Log unknown message type
             console.log(`Alt WS: Received unknown message type: ${data.type}`);
             break;
         }
       } catch (e) {
-        console.error('Alt WS: Error handling message:', e);
+        console.error("Alt WS: Error handling message:", e);
         sendToClient(ws, {
-          type: 'error',
-          message: 'Failed to process message',
-          details: e instanceof Error ? e.message : 'Unknown error',
-          source: 'alternative-endpoint'
+          type: "error",
+          message: "Failed to process message",
+          details: e instanceof Error ? e.message : "Unknown error",
+          source: "alternative-endpoint",
         });
       }
     });
-    
+
     // Handle close
-    ws.on('close', (code, reason) => {
+    ws.on("close", (code, reason) => {
       const client = clients.get(ws);
       if (client) {
         const sessionDuration = Math.round((Date.now() - client.sessionStartTime) / 1000);
         console.log(
           `Alt WS: Client disconnected: ${clientId}, ` +
-          `Code: ${code}, Reason: ${reason || 'No reason provided'}, ` +
-          `Session duration: ${sessionDuration} seconds`
+            `Code: ${code}, Reason: ${reason || "No reason provided"}, ` +
+            `Session duration: ${sessionDuration} seconds`
         );
         clients.delete(ws);
       }
     });
-    
+
     // Handle errors
-    ws.on('error', (error) => {
+    ws.on("error", (error) => {
       console.error(`Alt WS: Error for client ${clientId}:`, error);
-      
+
       try {
         sendToClient(ws, {
-          type: 'error',
-          message: 'Connection error occurred',
+          type: "error",
+          message: "Connection error occurred",
           details: error.message,
-          source: 'alternative-endpoint'
+          source: "alternative-endpoint",
         });
       } catch (e) {
         // Unable to send error message, connection might be already closed
@@ -201,7 +201,7 @@ export function setupAltWebSocketServer(httpServer: Server) {
       }
     });
   });
-  
+
   // Helper to safely send messages to clients
   function sendToClient(ws: WebSocket, data: any): boolean {
     if (ws.readyState === WebSocket.OPEN) {
@@ -209,13 +209,13 @@ export function setupAltWebSocketServer(httpServer: Server) {
         ws.send(JSON.stringify(data));
         return true;
       } catch (e) {
-        console.error('Alt WS: Error sending message to client:', e);
+        console.error("Alt WS: Error sending message to client:", e);
         return false;
       }
     }
     return false;
   }
-  
+
   // Broadcast message to all connected clients except sender
   function broadcastMessage(data: any, sender?: WebSocket) {
     wss.clients.forEach((client) => {
@@ -224,7 +224,7 @@ export function setupAltWebSocketServer(httpServer: Server) {
       }
     });
   }
-  
+
   // Return public interface
   return {
     broadcastToAll: (data: any) => {
@@ -232,6 +232,6 @@ export function setupAltWebSocketServer(httpServer: Server) {
     },
     getConnectionCount: () => {
       return wss.clients.size;
-    }
+    },
   };
 }

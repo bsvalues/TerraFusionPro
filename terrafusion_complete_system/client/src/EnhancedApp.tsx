@@ -1,15 +1,15 @@
-import { Route } from 'wouter';
-import { Toaster } from './components/ui/toaster';
-import Home from './pages/Home';
-import EnhancedAIValuationPage from './pages/AIValuationPage.enhanced';
-import EnhancedCompliancePage from './pages/CompliancePage.enhanced';
-import EnhancedPhotosPage from './pages/PhotosPage.enhanced';
-import EnhancedSketchesPage from './pages/SketchesPage.enhanced';
-import FormPage from './pages/FormPage';
-import ReportsPage from './pages/ReportsPage';
-import EmailOrderPage from './pages/EmailOrderPage';
-import CompsPage from './pages/CompsPage';
-import NotFoundPage from './pages/not-found';
+import { Route } from "wouter";
+import { Toaster } from "./components/ui/toaster";
+import Home from "./pages/Home";
+import EnhancedAIValuationPage from "./pages/AIValuationPage.enhanced";
+import EnhancedCompliancePage from "./pages/CompliancePage.enhanced";
+import EnhancedPhotosPage from "./pages/PhotosPage.enhanced";
+import EnhancedSketchesPage from "./pages/SketchesPage.enhanced";
+import FormPage from "./pages/FormPage";
+import ReportsPage from "./pages/ReportsPage";
+import EmailOrderPage from "./pages/EmailOrderPage";
+import CompsPage from "./pages/CompsPage";
+import NotFoundPage from "./pages/not-found";
 
 export default function EnhancedApp() {
   return (

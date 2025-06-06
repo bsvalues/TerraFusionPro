@@ -1,23 +1,23 @@
-import React, { useState, useEffect, createContext, useContext, useRef } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Modal, 
-  ScrollView, 
+import React, { useState, useEffect, createContext, useContext, useRef } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Modal,
+  ScrollView,
   TextInput,
   Alert,
   ActivityIndicator,
   Platform,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import * as FileSystem from 'expo-file-system';
-import NetInfo from '@react-native-community/netinfo';
-import * as Device from 'expo-device';
-import * as Battery from 'expo-battery';
-import { OfflineQueueService, OperationType } from '../services/OfflineQueueService';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as FileSystem from "expo-file-system";
+import NetInfo from "@react-native-community/netinfo";
+import * as Device from "expo-device";
+import * as Battery from "expo-battery";
+import { OfflineQueueService, OperationType } from "../services/OfflineQueueService";
 
 /**
  * Error severity levels
@@ -26,22 +26,22 @@ export enum ErrorSeverity {
   /**
    * Critical errors that prevent the app from functioning
    */
-  CRITICAL = 'critical',
-  
+  CRITICAL = "critical",
+
   /**
    * Errors that affect functionality but don't crash the app
    */
-  ERROR = 'error',
-  
+  ERROR = "error",
+
   /**
    * Warnings that indicate potential issues
    */
-  WARNING = 'warning',
-  
+  WARNING = "warning",
+
   /**
    * Informational messages about unexpected behavior
    */
-  INFO = 'info',
+  INFO = "info",
 }
 
 /**
@@ -52,37 +52,37 @@ export interface ErrorData {
    * Unique ID for the error
    */
   id: string;
-  
+
   /**
    * Error message
    */
   message: string;
-  
+
   /**
    * Error stack trace
    */
   stack?: string;
-  
+
   /**
    * Component where the error occurred
    */
   component?: string;
-  
+
   /**
    * Additional context about what happened
    */
   context?: Record<string, any>;
-  
+
   /**
    * Error severity level
    */
   severity: ErrorSeverity;
-  
+
   /**
    * Timestamp when the error occurred
    */
   timestamp: number;
-  
+
   /**
    * Device information
    */
@@ -94,7 +94,7 @@ export interface ErrorData {
     batteryLevel?: number;
     isCharging?: boolean;
   };
-  
+
   /**
    * Network information
    */
@@ -104,12 +104,12 @@ export interface ErrorData {
     isMetered?: boolean;
     details?: any;
   };
-  
+
   /**
    * Whether the error has been reported to the server
    */
   reported: boolean;
-  
+
   /**
    * User feedback about the error
    */
@@ -129,17 +129,17 @@ interface ErrorContextData {
     component?: string,
     context?: Record<string, any>
   ) => Promise<void>;
-  
+
   /**
    * Show the error console
    */
   showErrorConsole: () => void;
-  
+
   /**
    * Check if there are unreported errors
    */
   hasUnreportedErrors: boolean;
-  
+
   /**
    * Count of unreported errors
    */
@@ -158,52 +158,49 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   const [isErrorConsoleVisible, setIsErrorConsoleVisible] = useState<boolean>(false);
   const [hasUnreportedErrors, setHasUnreportedErrors] = useState<boolean>(false);
   const [unreportedErrorCount, setUnreportedErrorCount] = useState<number>(0);
-  
+
   // Services
   const offlineQueueService = useRef(OfflineQueueService.getInstance()).current;
-  
+
   // Error log file path
   const errorLogPath = `${FileSystem.documentDirectory}error_log.json`;
-  
+
   // Load errors on mount
   useEffect(() => {
     loadErrors();
   }, []);
-  
+
   // Update unreported error count when errors change
   useEffect(() => {
-    const unreportedCount = errors.filter(error => !error.reported).length;
+    const unreportedCount = errors.filter((error) => !error.reported).length;
     setHasUnreportedErrors(unreportedCount > 0);
     setUnreportedErrorCount(unreportedCount);
   }, [errors]);
-  
+
   // Load errors from file system
   const loadErrors = async () => {
     try {
       const fileInfo = await FileSystem.getInfoAsync(errorLogPath);
-      
+
       if (fileInfo.exists) {
         const content = await FileSystem.readAsStringAsync(errorLogPath);
         const loadedErrors = JSON.parse(content) as ErrorData[];
         setErrors(loadedErrors);
       }
     } catch (error) {
-      console.error('Error loading error log:', error);
+      console.error("Error loading error log:", error);
     }
   };
-  
+
   // Save errors to file system
   const saveErrors = async (errorsList: ErrorData[]) => {
     try {
-      await FileSystem.writeAsStringAsync(
-        errorLogPath,
-        JSON.stringify(errorsList)
-      );
+      await FileSystem.writeAsStringAsync(errorLogPath, JSON.stringify(errorsList));
     } catch (error) {
-      console.error('Error saving error log:', error);
+      console.error("Error saving error log:", error);
     }
   };
-  
+
   // Report an error
   const reportError = async (
     error: Error | string,
@@ -218,17 +215,17 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         osName: Platform.OS,
         osVersion: Platform.Version.toString(),
         batteryLevel: await Battery.getBatteryLevelAsync(),
-        isCharging: await Battery.getBatteryStateAsync() === Battery.BatteryState.CHARGING,
+        isCharging: (await Battery.getBatteryStateAsync()) === Battery.BatteryState.CHARGING,
       };
-      
+
       // Get network information
       const networkState = await NetInfo.fetch();
-      
+
       // Create error data object
       const errorData: ErrorData = {
         id: Date.now().toString(),
-        message: typeof error === 'string' ? error : error.message,
-        stack: typeof error === 'string' ? undefined : error.stack,
+        message: typeof error === "string" ? error : error.message,
+        stack: typeof error === "string" ? undefined : error.stack,
         component,
         context,
         severity,
@@ -242,19 +239,19 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         },
         reported: false,
       };
-      
+
       // Add error to list
       const updatedErrors = [...errors, errorData];
       setErrors(updatedErrors);
-      
+
       // Save errors to file system
       await saveErrors(updatedErrors);
-      
+
       // For critical errors, show the error console automatically
       if (severity === ErrorSeverity.CRITICAL) {
         setIsErrorConsoleVisible(true);
       }
-      
+
       // Queue error report for sync
       await offlineQueueService.enqueue(
         OperationType.REPORT_ERROR,
@@ -262,35 +259,35 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         3 // High priority
       );
     } catch (reportError) {
-      console.error('Error reporting error:', reportError);
+      console.error("Error reporting error:", reportError);
     }
   };
-  
+
   // Show error console
   const showErrorConsole = () => {
     setIsErrorConsoleVisible(true);
   };
-  
+
   // Hide error console
   const hideErrorConsole = () => {
     setIsErrorConsoleVisible(false);
   };
-  
+
   // Clear all errors
   const clearAllErrors = async () => {
     try {
       // Show confirmation
       Alert.alert(
-        'Clear All Errors',
-        'Are you sure you want to clear all errors? This cannot be undone.',
+        "Clear All Errors",
+        "Are you sure you want to clear all errors? This cannot be undone.",
         [
           {
-            text: 'Cancel',
-            style: 'cancel',
+            text: "Cancel",
+            style: "cancel",
           },
           {
-            text: 'Clear',
-            style: 'destructive',
+            text: "Clear",
+            style: "destructive",
             onPress: async () => {
               setErrors([]);
               await saveErrors([]);
@@ -299,96 +296,86 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
         ]
       );
     } catch (error) {
-      console.error('Error clearing errors:', error);
+      console.error("Error clearing errors:", error);
     }
   };
-  
+
   // Submit user feedback for an error
   const submitFeedback = async (errorId: string, feedback: string) => {
     try {
       // Find the error
-      const errorIndex = errors.findIndex(error => error.id === errorId);
-      
+      const errorIndex = errors.findIndex((error) => error.id === errorId);
+
       if (errorIndex === -1) {
         throw new Error(`Error with ID ${errorId} not found`);
       }
-      
+
       // Update the error with user feedback
       const updatedErrors = [...errors];
       updatedErrors[errorIndex] = {
         ...updatedErrors[errorIndex],
         userFeedback: feedback,
       };
-      
+
       // Update state
       setErrors(updatedErrors);
-      
+
       // Save to file system
       await saveErrors(updatedErrors);
-      
+
       // Queue error report for sync
       await offlineQueueService.enqueue(
         OperationType.REPORT_ERROR,
         updatedErrors[errorIndex],
         3 // High priority
       );
-      
+
       // Show success message
       Alert.alert(
-        'Feedback Submitted',
-        'Thank you for your feedback. It will help us improve the app.',
-        [{ text: 'OK' }]
+        "Feedback Submitted",
+        "Thank you for your feedback. It will help us improve the app.",
+        [{ text: "OK" }]
       );
     } catch (error) {
-      console.error('Error submitting feedback:', error);
-      Alert.alert('Error', 'Failed to submit feedback');
+      console.error("Error submitting feedback:", error);
+      Alert.alert("Error", "Failed to submit feedback");
     }
   };
-  
+
   // Render error console
   const renderErrorConsole = () => {
     // Group errors by day
     const groupedErrors: Record<string, ErrorData[]> = {};
-    
-    errors.forEach(error => {
+
+    errors.forEach((error) => {
       const date = new Date(error.timestamp);
       const dateString = date.toDateString();
-      
+
       if (!groupedErrors[dateString]) {
         groupedErrors[dateString] = [];
       }
-      
+
       groupedErrors[dateString].push(error);
     });
-    
+
     return (
-      <Modal
-        visible={isErrorConsoleVisible}
-        animationType="slide"
-        transparent={false}
-      >
+      <Modal visible={isErrorConsoleVisible} animationType="slide" transparent={false}>
         <View style={styles.errorConsole}>
           <View style={styles.errorConsoleHeader}>
             <Text style={styles.errorConsoleTitle}>Error Console</Text>
-            
+
             <View style={styles.errorConsoleActions}>
-              <TouchableOpacity
-                style={styles.clearButton}
-                onPress={clearAllErrors}
-              >
+              <TouchableOpacity style={styles.clearButton} onPress={clearAllErrors}>
                 <MaterialCommunityIcons name="delete" size={20} color="#e74c3c" />
                 <Text style={styles.clearButtonText}>Clear All</Text>
               </TouchableOpacity>
-              
-              <TouchableOpacity
-                style={styles.closeButton}
-                onPress={hideErrorConsole}
-              >
+
+              <TouchableOpacity style={styles.closeButton} onPress={hideErrorConsole}>
                 <MaterialCommunityIcons name="close" size={24} color="#333" />
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {errors.length === 0 ? (
             <View style={styles.noErrorsContainer}>
               <MaterialCommunityIcons name="check-circle" size={48} color="#2ecc71" />
@@ -401,27 +388,21 @@ export const ErrorProvider: React.FC<{ children: React.ReactNode }> = ({ childre
                 .map(([date, dateErrors]) => (
                   <View key={date} style={styles.errorGroup}>
                     <Text style={styles.errorGroupDate}>{date}</Text>
-                    
+
                     {dateErrors
                       .sort((a, b) => b.timestamp - a.timestamp)
-                      .map(error => (
-                        <ErrorItem 
-                          key={error.id} 
-                          error={error} 
-                          onSubmitFeedback={submitFeedback}
-                        />
-                      ))
-                    }
+                      .map((error) => (
+                        <ErrorItem key={error.id} error={error} onSubmitFeedback={submitFeedback} />
+                      ))}
                   </View>
-                ))
-              }
+                ))}
             </ScrollView>
           )}
         </View>
       </Modal>
     );
   };
-  
+
   return (
     <ErrorContext.Provider
       value={{
@@ -445,7 +426,7 @@ interface ErrorItemProps {
    * Error data
    */
   error: ErrorData;
-  
+
   /**
    * Callback for submitting feedback
    */
@@ -458,87 +439,79 @@ interface ErrorItemProps {
 const ErrorItem: React.FC<ErrorItemProps> = ({ error, onSubmitFeedback }) => {
   // State
   const [isExpanded, setIsExpanded] = useState<boolean>(false);
-  const [feedback, setFeedback] = useState<string>('');
+  const [feedback, setFeedback] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  
+
   // Get severity icon and color
   const getSeverityData = (severity: ErrorSeverity): { icon: string; color: string } => {
     switch (severity) {
       case ErrorSeverity.CRITICAL:
-        return { icon: 'alert-circle', color: '#e74c3c' };
+        return { icon: "alert-circle", color: "#e74c3c" };
       case ErrorSeverity.ERROR:
-        return { icon: 'alert', color: '#e67e22' };
+        return { icon: "alert", color: "#e67e22" };
       case ErrorSeverity.WARNING:
-        return { icon: 'alert-outline', color: '#f39c12' };
+        return { icon: "alert-outline", color: "#f39c12" };
       case ErrorSeverity.INFO:
-        return { icon: 'information', color: '#3498db' };
+        return { icon: "information", color: "#3498db" };
       default:
-        return { icon: 'alert-circle-outline', color: '#7f8c8d' };
+        return { icon: "alert-circle-outline", color: "#7f8c8d" };
     }
   };
-  
+
   // Format timestamp
   const formatTimestamp = (timestamp: number): string => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString();
   };
-  
+
   // Submit feedback
   const handleSubmitFeedback = async () => {
     if (!feedback.trim()) {
-      Alert.alert('Error', 'Please enter feedback before submitting');
+      Alert.alert("Error", "Please enter feedback before submitting");
       return;
     }
-    
+
     setIsSubmitting(true);
-    
+
     try {
       await onSubmitFeedback(error.id, feedback);
-      setFeedback('');
+      setFeedback("");
     } catch (error) {
-      console.error('Error submitting feedback:', error);
-      Alert.alert('Error', 'Failed to submit feedback');
+      console.error("Error submitting feedback:", error);
+      Alert.alert("Error", "Failed to submit feedback");
     } finally {
       setIsSubmitting(false);
     }
   };
-  
+
   // Get severity data
   const { icon, color } = getSeverityData(error.severity);
-  
+
   return (
     <View style={styles.errorItem}>
-      <TouchableOpacity
-        style={styles.errorHeader}
-        onPress={() => setIsExpanded(!isExpanded)}
-      >
+      <TouchableOpacity style={styles.errorHeader} onPress={() => setIsExpanded(!isExpanded)}>
         <View style={styles.errorHeaderLeft}>
-          <MaterialCommunityIcons
-            name={icon}
-            size={24}
-            color={color}
-            style={styles.errorIcon}
-          />
-          
+          <MaterialCommunityIcons name={icon} size={24} color={color} style={styles.errorIcon} />
+
           <View style={styles.errorInfo}>
             <Text style={styles.errorMessage} numberOfLines={isExpanded ? undefined : 1}>
               {error.message}
             </Text>
-            
+
             <Text style={styles.errorTimestamp}>
               {formatTimestamp(error.timestamp)}
               {error.component && ` • ${error.component}`}
             </Text>
           </View>
         </View>
-        
+
         <MaterialCommunityIcons
-          name={isExpanded ? 'chevron-up' : 'chevron-down'}
+          name={isExpanded ? "chevron-up" : "chevron-down"}
           size={20}
           color="#7f8c8d"
         />
       </TouchableOpacity>
-      
+
       {isExpanded && (
         <View style={styles.errorDetails}>
           {error.stack && (
@@ -553,7 +526,7 @@ const ErrorItem: React.FC<ErrorItemProps> = ({ error, onSubmitFeedback }) => {
               </ScrollView>
             </View>
           )}
-          
+
           {error.context && Object.keys(error.context).length > 0 && (
             <View style={styles.errorSection}>
               <Text style={styles.errorSectionTitle}>Context</Text>
@@ -562,16 +535,14 @@ const ErrorItem: React.FC<ErrorItemProps> = ({ error, onSubmitFeedback }) => {
                   <View key={key} style={styles.contextItem}>
                     <Text style={styles.contextKey}>{key}:</Text>
                     <Text style={styles.contextValue}>
-                      {typeof value === 'object'
-                        ? JSON.stringify(value)
-                        : String(value)}
+                      {typeof value === "object" ? JSON.stringify(value) : String(value)}
                     </Text>
                   </View>
                 ))}
               </ScrollView>
             </View>
           )}
-          
+
           {error.device && (
             <View style={styles.errorSection}>
               <Text style={styles.errorSectionTitle}>Device Info</Text>
@@ -580,35 +551,36 @@ const ErrorItem: React.FC<ErrorItemProps> = ({ error, onSubmitFeedback }) => {
                   {error.device.model} • {error.device.osName} {error.device.osVersion}
                 </Text>
                 <Text style={styles.deviceInfoText}>
-                  Battery: {error.device.batteryLevel !== undefined
+                  Battery:{" "}
+                  {error.device.batteryLevel !== undefined
                     ? `${Math.round(error.device.batteryLevel * 100)}%`
-                    : 'Unknown'}
+                    : "Unknown"}
                   {error.device.isCharging !== undefined
-                    ? error.device.isCharging ? ' (Charging)' : ' (Not Charging)'
-                    : ''}
+                    ? error.device.isCharging
+                      ? " (Charging)"
+                      : " (Not Charging)"
+                    : ""}
                 </Text>
               </View>
             </View>
           )}
-          
+
           {error.network && (
             <View style={styles.errorSection}>
               <Text style={styles.errorSectionTitle}>Network Info</Text>
               <View style={styles.networkInfo}>
                 <Text style={styles.networkInfoText}>
-                  {error.network.isConnected
-                    ? `Connected (${error.network.type})`
-                    : 'Disconnected'}
+                  {error.network.isConnected ? `Connected (${error.network.type})` : "Disconnected"}
                 </Text>
               </View>
             </View>
           )}
-          
+
           <View style={styles.errorSection}>
             <Text style={styles.errorSectionTitle}>
-              {error.userFeedback ? 'Your Feedback' : 'Provide Feedback'}
+              {error.userFeedback ? "Your Feedback" : "Provide Feedback"}
             </Text>
-            
+
             {error.userFeedback ? (
               <Text style={styles.feedbackText}>{error.userFeedback}</Text>
             ) : (
@@ -622,7 +594,7 @@ const ErrorItem: React.FC<ErrorItemProps> = ({ error, onSubmitFeedback }) => {
                   onChangeText={setFeedback}
                   editable={!isSubmitting}
                 />
-                
+
                 <TouchableOpacity
                   style={styles.submitButton}
                   onPress={handleSubmitFeedback}
@@ -648,11 +620,11 @@ const ErrorItem: React.FC<ErrorItemProps> = ({ error, onSubmitFeedback }) => {
  */
 export const useErrorReporting = (): ErrorContextData => {
   const context = useContext(ErrorContext);
-  
+
   if (!context) {
-    throw new Error('useErrorReporting must be used within an ErrorProvider');
+    throw new Error("useErrorReporting must be used within an ErrorProvider");
   }
-  
+
   return context;
 };
 
@@ -662,22 +634,19 @@ export const useErrorReporting = (): ErrorContextData => {
  */
 export const ErrorButton: React.FC = () => {
   const { showErrorConsole, hasUnreportedErrors, unreportedErrorCount } = useErrorReporting();
-  
+
   return (
-    <TouchableOpacity
-      style={styles.errorButton}
-      onPress={showErrorConsole}
-    >
+    <TouchableOpacity style={styles.errorButton} onPress={showErrorConsole}>
       <MaterialCommunityIcons
         name="bug"
         size={24}
-        color={hasUnreportedErrors ? '#e74c3c' : '#3498db'}
+        color={hasUnreportedErrors ? "#e74c3c" : "#3498db"}
       />
-      
+
       {hasUnreportedErrors && (
         <View style={styles.errorBadge}>
           <Text style={styles.errorBadgeText}>
-            {unreportedErrorCount > 99 ? '99+' : unreportedErrorCount}
+            {unreportedErrorCount > 99 ? "99+" : unreportedErrorCount}
           </Text>
         </View>
       )}
@@ -688,32 +657,32 @@ export const ErrorButton: React.FC = () => {
 const styles = StyleSheet.create({
   errorConsole: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
   },
   errorConsoleHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#fff",
     padding: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#ddd',
+    borderBottomColor: "#ddd",
   },
   errorConsoleTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   errorConsoleActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   clearButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginRight: 16,
   },
   clearButtonText: {
-    color: '#e74c3c',
+    color: "#e74c3c",
     marginLeft: 4,
   },
   closeButton: {
@@ -721,12 +690,12 @@ const styles = StyleSheet.create({
   },
   noErrorsContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   noErrorsText: {
     fontSize: 16,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 16,
   },
   errorList: {
@@ -737,25 +706,25 @@ const styles = StyleSheet.create({
   },
   errorGroupDate: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: '#ecf0f1',
+    backgroundColor: "#ecf0f1",
   },
   errorItem: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderBottomWidth: 1,
-    borderBottomColor: '#ecf0f1',
+    borderBottomColor: "#ecf0f1",
   },
   errorHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     padding: 12,
   },
   errorHeaderLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     flex: 1,
   },
   errorIcon: {
@@ -766,11 +735,11 @@ const styles = StyleSheet.create({
   },
   errorMessage: {
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   errorTimestamp: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 2,
   },
   errorDetails: {
@@ -782,41 +751,41 @@ const styles = StyleSheet.create({
   },
   errorSectionTitle: {
     fontSize: 12,
-    fontWeight: 'bold',
-    color: '#7f8c8d',
+    fontWeight: "bold",
+    color: "#7f8c8d",
     marginBottom: 4,
   },
   stackTrace: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 8,
     borderRadius: 4,
     maxHeight: 80,
   },
   stackTraceText: {
     fontSize: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Menlo' : 'monospace',
-    color: '#e74c3c',
+    fontFamily: Platform.OS === "ios" ? "Menlo" : "monospace",
+    color: "#e74c3c",
   },
   contextContainer: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 8,
     borderRadius: 4,
     maxHeight: 80,
   },
   contextItem: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 2,
   },
   contextKey: {
     fontSize: 12,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginRight: 4,
   },
   contextValue: {
     fontSize: 12,
   },
   deviceInfo: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 8,
     borderRadius: 4,
   },
@@ -824,7 +793,7 @@ const styles = StyleSheet.create({
     fontSize: 12,
   },
   networkInfo: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     padding: 8,
     borderRadius: 4,
   },
@@ -835,58 +804,58 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   feedbackInput: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     borderRadius: 4,
     padding: 8,
     fontSize: 14,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   submitButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
     borderRadius: 4,
     padding: 8,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 8,
   },
   submitButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   feedbackText: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     borderRadius: 4,
     padding: 8,
     fontSize: 14,
-    fontStyle: 'italic',
+    fontStyle: "italic",
   },
   errorButton: {
     height: 48,
     width: 48,
     borderRadius: 24,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    backgroundColor: "#fff",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
     elevation: 2,
   },
   errorBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     right: 0,
-    backgroundColor: '#e74c3c',
+    backgroundColor: "#e74c3c",
     borderRadius: 10,
     minWidth: 20,
     height: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   errorBadgeText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 10,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     paddingHorizontal: 4,
   },
 });

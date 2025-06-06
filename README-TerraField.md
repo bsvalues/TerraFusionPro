@@ -60,31 +60,31 @@ The core library providing Conflict-free Replicated Data Types functionality:
 
 ```typescript
 // Creating a photo store
-const photoStore = createPhotoStore('report123');
+const photoStore = createPhotoStore("report123");
 
 // Adding a photo
 const photoId = addPhoto(photoStore.store, {
-  id: 'photo1',
-  reportId: 'report123',
-  photoType: 'SUBJECT',
-  caption: 'Front view',
+  id: "photo1",
+  reportId: "report123",
+  photoType: "SUBJECT",
+  caption: "Front view",
   dateTaken: new Date().toISOString(),
   latitude: 37.7749,
   longitude: -122.4194,
   isOffline: true,
-  status: 'pending'
+  status: "pending",
 });
 
 // Updating photo metadata
 updatePhotoMetadata(photoStore.store, photoId, {
-  caption: 'Updated caption'
+  caption: "Updated caption",
 });
 
 // Syncing with server
 const encodedUpdate = encodeDocUpdate(photoStore.doc);
-const response = await fetch('/api/sync/reports/123/photos', {
-  method: 'POST',
-  body: JSON.stringify({ update: encodedUpdate })
+const response = await fetch("/api/sync/reports/123/photos", {
+  method: "POST",
+  body: JSON.stringify({ update: encodedUpdate }),
 });
 const { mergedUpdate } = await response.json();
 applyEncodedUpdate(photoStore.doc, mergedUpdate);
@@ -96,20 +96,20 @@ Real-time updates are handled via WebSocket connections:
 
 ```typescript
 // Server-side
-const wss = new WebSocketServer({ 
-  server: httpServer, 
-  path: '/ws' 
+const wss = new WebSocketServer({
+  server: httpServer,
+  path: "/ws",
 });
 
-wss.on('connection', (ws) => {
-  ws.on('message', (message) => {
+wss.on("connection", (ws) => {
+  ws.on("message", (message) => {
     const data = JSON.parse(message);
-    
+
     switch (data.type) {
-      case 'join':
+      case "join":
         // Join a specific document
         break;
-      case 'update':
+      case "update":
         // Apply and broadcast update
         break;
     }
@@ -117,13 +117,13 @@ wss.on('connection', (ws) => {
 });
 
 // Client-side
-const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
 const wsUrl = `${protocol}//${window.location.host}/ws`;
 const ws = new WebSocket(wsUrl);
 
 ws.onmessage = (event) => {
   const message = JSON.parse(event.data);
-  if (message.type === 'update') {
+  if (message.type === "update") {
     // Apply update to local doc
   }
 };
@@ -136,27 +136,28 @@ Integration with OpenAI and Anthropic for image processing:
 ```typescript
 // Enhance photo using OpenAI
 const response = await openai.images.edit({
-  model: 'dall-e-3',
-  image: Buffer.from(base64Image, 'base64'),
-  prompt: 'Enhance this real estate property photo, improve lighting, correct perspective distortion',
+  model: "dall-e-3",
+  image: Buffer.from(base64Image, "base64"),
+  prompt:
+    "Enhance this real estate property photo, improve lighting, correct perspective distortion",
   n: 1,
-  size: '1024x1024',
-  quality: 'standard',
-  response_format: 'b64_json',
+  size: "1024x1024",
+  quality: "standard",
+  response_format: "b64_json",
 });
 
 // Analyze photo using Anthropic
 const response = await anthropic.messages.create({
-  model: 'claude-3-7-sonnet-20250219',
+  model: "claude-3-7-sonnet-20250219",
   max_tokens: 1024,
   messages: [
     {
-      role: 'user',
+      role: "user",
       content: [
-        { type: 'text', text: 'Analyze this property photo and identify key features.' },
-        { type: 'image', source: { type: 'base64', media_type: 'image/jpeg', data: base64Image } }
-      ]
-    }
+        { type: "text", text: "Analyze this property photo and identify key features." },
+        { type: "image", source: { type: "base64", media_type: "image/jpeg", data: base64Image } },
+      ],
+    },
   ],
 });
 ```
@@ -184,6 +185,7 @@ Planned future enhancements for the TerraField mobile integration:
 1. Start the backend server: `npm run dev` in the root directory
 2. Access the web testing interface at `https://localhost:5000/photo-sync-test`
 3. For mobile app development, navigate to `apps/terrafield-mobile` and run:
+
    ```
    npm install
    npx expo start

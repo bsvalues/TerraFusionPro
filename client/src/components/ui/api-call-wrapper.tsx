@@ -1,7 +1,7 @@
-import React, { useState } from 'react';
-import { LoadingState } from '@/components/ui/loading-state';
-import { ErrorState } from '@/components/ui/error-state';
-import { SuccessState } from '@/components/ui/success-state';
+import React, { useState } from "react";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { SuccessState } from "@/components/ui/success-state";
 
 interface ApiCallWrapperProps<T> {
   onExecute: () => Promise<T>;
@@ -10,7 +10,7 @@ interface ApiCallWrapperProps<T> {
   successMessage?: string;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
-  loadingVariant?: 'overlay' | 'inline' | 'skeleton';
+  loadingVariant?: "overlay" | "inline" | "skeleton";
   showCard?: boolean;
   className?: string;
   hideLoadingState?: boolean;
@@ -20,14 +20,14 @@ interface ApiCallWrapperProps<T> {
 export function ApiCallWrapper<T>({
   onExecute,
   children,
-  loadingText = 'Processing...',
+  loadingText = "Processing...",
   successMessage,
   loadingComponent,
   errorComponent,
-  loadingVariant = 'overlay',
+  loadingVariant = "overlay",
   className,
   hideLoadingState = false,
-  executeOnMount = false
+  executeOnMount = false,
 }: ApiCallWrapperProps<T>) {
   const [isLoading, setIsLoading] = useState(false);
   const [isError, setIsError] = useState(false);
@@ -46,9 +46,9 @@ export function ApiCallWrapper<T>({
       setIsLoading(true);
       setIsError(false);
       setIsSuccess(false);
-      
+
       const result = await onExecute();
-      
+
       setData(result);
       setIsSuccess(true);
     } catch (err) {
@@ -74,7 +74,7 @@ export function ApiCallWrapper<T>({
     return (
       <ErrorState
         title="Error"
-        message={error?.message || 'An unexpected error occurred.'}
+        message={error?.message || "An unexpected error occurred."}
         onRetry={() => execute()}
         className={className}
       />
@@ -83,12 +83,7 @@ export function ApiCallWrapper<T>({
 
   // Show success message if specified
   if (isSuccess && successMessage) {
-    return (
-      <SuccessState
-        message={successMessage}
-        className="mb-4"
-      />
-    );
+    return <SuccessState message={successMessage} className="mb-4" />;
   }
 
   // Main content with optional loading state

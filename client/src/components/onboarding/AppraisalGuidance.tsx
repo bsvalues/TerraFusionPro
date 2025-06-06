@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState } from "react";
 import {
   Card,
   CardContent,
@@ -6,15 +6,10 @@ import {
   CardFooter,
   CardHeader,
   CardTitle,
-} from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useLocation } from 'wouter';
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from '@/components/ui/tooltip';
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   ChevronRight,
   HelpCircle,
@@ -24,17 +19,17 @@ import {
   FileText,
   BrainCircuit,
   ArrowRight,
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
+} from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 /**
  * AppraisalGuidance Component
- * 
+ *
  * A guided workflow component that helps appraisers understand how to use the
  * TerraFusion platform in their daily workflow, with practical recommendations
  * and guidance for common appraisal tasks.
  */
-type UserExperience = 'beginner' | 'intermediate' | 'expert';
+type UserExperience = "beginner" | "intermediate" | "expert";
 
 interface GuidedTask {
   title: string;
@@ -50,79 +45,79 @@ type GuidedTasks = {
 
 export function AppraisalGuidance() {
   const [location, setLocation] = useLocation();
-  const [userExperience, setUserExperience] = useState<UserExperience>('beginner');
-  
+  const [userExperience, setUserExperience] = useState<UserExperience>("beginner");
+
   // Sample tasks for guidance based on user experience level
   const guidedTasks: GuidedTasks = {
     beginner: [
       {
-        title: 'Create your first property report',
-        description: 'Learn the basic steps to create a complete property report',
-        path: '/property-entry',
+        title: "Create your first property report",
+        description: "Learn the basic steps to create a complete property report",
+        path: "/property-entry",
         icon: <FileText className="h-5 w-5" />,
-        duration: '10-15 minutes',
+        duration: "10-15 minutes",
       },
       {
-        title: 'Use AI to evaluate condition from photos',
-        description: 'Upload property photos and get objective condition scores',
-        path: '/photos',
+        title: "Use AI to evaluate condition from photos",
+        description: "Upload property photos and get objective condition scores",
+        path: "/photos",
         icon: <Camera className="h-5 w-5" />,
-        duration: '5-10 minutes',
+        duration: "5-10 minutes",
       },
       {
-        title: 'Generate a basic valuation',
-        description: 'Enter property details and receive an AI-assisted valuation',
-        path: '/ai-valuation',
+        title: "Generate a basic valuation",
+        description: "Enter property details and receive an AI-assisted valuation",
+        path: "/ai-valuation",
         icon: <BarChart3 className="h-5 w-5" />,
-        duration: '8-12 minutes',
-      }
+        duration: "8-12 minutes",
+      },
     ],
     intermediate: [
       {
-        title: 'Review AI-suggested adjustments',
-        description: 'Understand and modify the adjustments suggested by the AI',
-        path: '/ai-valuation',
+        title: "Review AI-suggested adjustments",
+        description: "Understand and modify the adjustments suggested by the AI",
+        path: "/ai-valuation",
         icon: <BrainCircuit className="h-5 w-5" />,
-        duration: '15-20 minutes',
+        duration: "15-20 minutes",
       },
       {
-        title: 'Analyze market trends for your subject area',
-        description: 'Use the market analytics tools to support your valuation',
-        path: '/market-analysis',
+        title: "Analyze market trends for your subject area",
+        description: "Use the market analytics tools to support your valuation",
+        path: "/market-analysis",
         icon: <BarChart3 className="h-5 w-5" />,
-        duration: '10-15 minutes',
+        duration: "10-15 minutes",
       },
       {
-        title: 'Customize your report templates',
-        description: 'Adapt report formats to your specific needs',
-        path: '/report-generation',
+        title: "Customize your report templates",
+        description: "Adapt report formats to your specific needs",
+        path: "/report-generation",
         icon: <FileText className="h-5 w-5" />,
-        duration: '15-20 minutes',
-      }
+        duration: "15-20 minutes",
+      },
     ],
     expert: [
       {
-        title: 'Review confidence scores in your valuations',
-        description: 'Understand what factors affect confidence levels and how to improve them',
-        path: '/ai-valuation',
+        title: "Review confidence scores in your valuations",
+        description: "Understand what factors affect confidence levels and how to improve them",
+        path: "/ai-valuation",
         icon: <BrainCircuit className="h-5 w-5" />,
-        duration: '12-15 minutes',
+        duration: "12-15 minutes",
       },
       {
-        title: 'Explore model performance trends',
-        description: 'View simplified model analytics to understand reliability',
-        path: '/model-performance',
+        title: "Explore model performance trends",
+        description: "View simplified model analytics to understand reliability",
+        path: "/model-performance",
         icon: <BarChart3 className="h-5 w-5" />,
-        duration: '8-10 minutes',
+        duration: "8-10 minutes",
       },
       {
-        title: 'Create batch adjustments for multiple properties',
-        description: 'Apply consistent valuation adjustments across your portfolio',
-        path: '/batch-adjustment',
+        title: "Create batch adjustments for multiple properties",
+        description: "Apply consistent valuation adjustments across your portfolio",
+        path: "/batch-adjustment",
         icon: <FileText className="h-5 w-5" />,
-        duration: '15-25 minutes',
-      }
-    ]
+        duration: "15-25 minutes",
+      },
+    ],
   };
 
   return (
@@ -137,24 +132,24 @@ export function AppraisalGuidance() {
           </div>
           <div>
             <div className="space-x-2">
-              <Button 
-                variant={userExperience === 'beginner' ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => setUserExperience('beginner')}
+              <Button
+                variant={userExperience === "beginner" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUserExperience("beginner")}
               >
                 New User
               </Button>
-              <Button 
-                variant={userExperience === 'intermediate' ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => setUserExperience('intermediate')}
+              <Button
+                variant={userExperience === "intermediate" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUserExperience("intermediate")}
               >
                 Intermediate
               </Button>
-              <Button 
-                variant={userExperience === 'expert' ? 'default' : 'outline'} 
-                size="sm" 
-                onClick={() => setUserExperience('expert')}
+              <Button
+                variant={userExperience === "expert" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setUserExperience("expert")}
               >
                 Expert
               </Button>
@@ -165,15 +160,13 @@ export function AppraisalGuidance() {
       <CardContent>
         <div className="space-y-4">
           {guidedTasks[userExperience].map((task: GuidedTask, index: number) => (
-            <div 
+            <div
               key={index}
               className="flex justify-between items-center p-4 border rounded-lg hover:bg-gray-50 dark:hover:bg-gray-900 cursor-pointer"
               onClick={() => setLocation(task.path)}
             >
               <div className="flex items-center">
-                <div className="bg-primary/10 p-2 rounded-full mr-4">
-                  {task.icon}
-                </div>
+                <div className="bg-primary/10 p-2 rounded-full mr-4">{task.icon}</div>
                 <div>
                   <h3 className="font-medium">{task.title}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400">{task.description}</p>
@@ -190,19 +183,17 @@ export function AppraisalGuidance() {
         </div>
       </CardContent>
       <CardFooter className="flex justify-between border-t p-4">
-        <Button variant="outline" onClick={() => setLocation('/')}>
+        <Button variant="outline" onClick={() => setLocation("/")}>
           <Home className="mr-2 h-4 w-4" /> Dashboard
         </Button>
         <TooltipProvider>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="link" size="sm" onClick={() => setLocation('/help-support')}>
+              <Button variant="link" size="sm" onClick={() => setLocation("/help-support")}>
                 <HelpCircle className="mr-2 h-4 w-4" /> Need more help?
               </Button>
             </TooltipTrigger>
-            <TooltipContent>
-              Visit our help center for tutorials and guides
-            </TooltipContent>
+            <TooltipContent>Visit our help center for tutorials and guides</TooltipContent>
           </Tooltip>
         </TooltipProvider>
       </CardFooter>

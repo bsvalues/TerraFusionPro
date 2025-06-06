@@ -29,11 +29,11 @@ tooltipRoutes.get("/terms/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const term = await storage.getRealEstateTerm(id);
-    
+
     if (!term) {
       return res.status(404).json({ error: "Term not found" });
     }
-    
+
     res.json(term);
   } catch (error) {
     console.error("Error getting real estate term:", error);
@@ -46,11 +46,11 @@ tooltipRoutes.get("/terms/name/:term", async (req: Request, res: Response) => {
   try {
     const termName = req.params.term;
     const term = await storage.getRealEstateTermByName(termName);
-    
+
     if (!term) {
       return res.status(404).json({ error: "Term not found" });
     }
-    
+
     res.json(term);
   } catch (error) {
     console.error("Error getting real estate term by name:", error);
@@ -92,7 +92,7 @@ tooltipRoutes.post("/terms", async (req: Request, res: Response) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const term = await storage.createRealEstateTerm(validationResult.data);
     res.status(201).json(term);
   } catch (error) {
@@ -112,13 +112,13 @@ tooltipRoutes.put("/terms/:id", async (req: Request, res: Response) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const updatedTerm = await storage.updateRealEstateTerm(id, validationResult.data);
-    
+
     if (!updatedTerm) {
       return res.status(404).json({ error: "Term not found" });
     }
-    
+
     res.json(updatedTerm);
   } catch (error) {
     console.error("Error updating real estate term:", error);
@@ -131,11 +131,11 @@ tooltipRoutes.delete("/terms/:id", async (req: Request, res: Response) => {
   try {
     const id = parseInt(req.params.id);
     const success = await storage.deleteRealEstateTerm(id);
-    
+
     if (!success) {
       return res.status(404).json({ error: "Term not found" });
     }
-    
+
     res.status(204).send();
   } catch (error) {
     console.error("Error deleting real estate term:", error);
@@ -159,18 +159,18 @@ tooltipRoutes.get("/terms/:id/related", async (req: Request, res: Response) => {
 tooltipRoutes.post("/explain", async (req: Request, res: Response) => {
   try {
     const { term, context } = req.body;
-    
+
     if (!term) {
       return res.status(400).json({ error: "Term is required" });
     }
-    
+
     // First try to get explanation from our database
     const explanation = await storage.getTermExplanation(term, context);
-    
+
     if (explanation) {
       return res.json(explanation);
     }
-    
+
     // If term not found in database and OpenAI API is available, try to generate explanation
     if (openai && context) {
       try {
@@ -189,7 +189,7 @@ Please provide the following in JSON format:
         const response = await openai.chat.completions.create({
           model: "gpt-4o",
           messages: [{ role: "user", content: prompt }],
-          response_format: { type: "json_object" }
+          response_format: { type: "json_object" },
         });
 
         const aiExplanation = JSON.parse(response.choices[0].message.content);
@@ -199,7 +199,7 @@ Please provide the following in JSON format:
         return res.status(500).json({ error: "Failed to generate AI explanation" });
       }
     }
-    
+
     // If we can't find or generate an explanation, return 404
     return res.status(404).json({ error: "Term not found and no AI explanation available" });
   } catch (error) {

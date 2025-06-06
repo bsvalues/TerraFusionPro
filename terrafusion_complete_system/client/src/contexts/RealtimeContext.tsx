@@ -1,5 +1,5 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { realtimeService } from '../lib/realtime-service';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import { realtimeService } from "../lib/realtime-service";
 
 // Define context type for TypeScript
 type RealtimeContextType = {
@@ -29,8 +29,8 @@ type RealtimeContextType = {
 
 // Create the context with default values
 const RealtimeContext = createContext<RealtimeContextType>({
-  connectionState: 'disconnected',
-  protocol: 'none',
+  connectionState: "disconnected",
+  protocol: "none",
   connected: false,
   connecting: false,
   send: () => false,
@@ -41,8 +41,8 @@ const RealtimeContext = createContext<RealtimeContextType>({
   propertyAnalysisLoading: false,
   propertyAnalysisError: null,
   // Additional methods for WebSocketTestPage
-  connectionStatus: 'disconnected',
-  connectionMethod: 'none',
+  connectionStatus: "disconnected",
+  connectionMethod: "none",
   isConnected: false,
   forceWebSockets: () => {},
   forcePolling: () => {},
@@ -55,8 +55,8 @@ const RealtimeContext = createContext<RealtimeContextType>({
 
 // Context provider component
 export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [connectionState, setConnectionState] = useState('disconnected');
-  const [protocol, setProtocol] = useState('none');
+  const [connectionState, setConnectionState] = useState("disconnected");
+  const [protocol, setProtocol] = useState("none");
   const [propertyAnalysisResult, setPropertyAnalysisResult] = useState<any | null>(null);
   const [propertyAnalysisLoading, setPropertyAnalysisLoading] = useState(false);
   const [propertyAnalysisError, setPropertyAnalysisError] = useState<string | null>(null);
@@ -65,36 +65,36 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
   useEffect(() => {
     // Handle connection state changes
     const handleConnected = () => {
-      setConnectionState('connected');
+      setConnectionState("connected");
       setProtocol(realtimeService.getProtocol());
     };
 
     const handleDisconnected = () => {
-      setConnectionState('disconnected');
-      setProtocol('none');
+      setConnectionState("disconnected");
+      setProtocol("none");
     };
 
     // Handle property analysis response
     const handlePropertyAnalysisResponse = (data: any) => {
-      console.log('Received property analysis response:', data);
+      console.log("Received property analysis response:", data);
       setPropertyAnalysisResult(data.data);
       setPropertyAnalysisLoading(false);
     };
 
     // Handle errors
     const handleError = (data: any) => {
-      console.error('Realtime error:', data);
+      console.error("Realtime error:", data);
       if (propertyAnalysisLoading) {
-        setPropertyAnalysisError(data.error || 'An error occurred during analysis');
+        setPropertyAnalysisError(data.error || "An error occurred during analysis");
         setPropertyAnalysisLoading(false);
       }
     };
 
     // Register event handlers
-    realtimeService.on('connected', handleConnected);
-    realtimeService.on('disconnected', handleDisconnected);
-    realtimeService.on('property_analysis_response', handlePropertyAnalysisResponse);
-    realtimeService.on('error', handleError);
+    realtimeService.on("connected", handleConnected);
+    realtimeService.on("disconnected", handleDisconnected);
+    realtimeService.on("property_analysis_response", handlePropertyAnalysisResponse);
+    realtimeService.on("error", handleError);
 
     // Initial state
     setConnectionState(realtimeService.getState());
@@ -105,10 +105,10 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
 
     // Cleanup on unmount
     return () => {
-      realtimeService.off('connected', handleConnected);
-      realtimeService.off('disconnected', handleDisconnected);
-      realtimeService.off('property_analysis_response', handlePropertyAnalysisResponse);
-      realtimeService.off('error', handleError);
+      realtimeService.off("connected", handleConnected);
+      realtimeService.off("disconnected", handleDisconnected);
+      realtimeService.off("property_analysis_response", handlePropertyAnalysisResponse);
+      realtimeService.off("error", handleError);
     };
   }, []);
 
@@ -133,31 +133,31 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     setPropertyAnalysisResult(null);
     setPropertyAnalysisError(null);
     setPropertyAnalysisLoading(true);
-    
-    console.log('Sending property analysis request for:', propertyData);
+
+    console.log("Sending property analysis request for:", propertyData);
 
     // Use direct API call instead of WebSockets due to connection issues
-    fetch('/api/realtime/propertyAnalysis', {
-      method: 'POST',
+    fetch("/api/realtime/propertyAnalysis", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
+        "Content-Type": "application/json",
       },
       body: JSON.stringify(propertyData),
     })
-      .then(response => {
+      .then((response) => {
         if (!response.ok) {
           throw new Error(`HTTP error! Status: ${response.status}`);
         }
         return response.json();
       })
-      .then(data => {
-        console.log('Property analysis response:', data);
+      .then((data) => {
+        console.log("Property analysis response:", data);
         setPropertyAnalysisResult(data);
         setPropertyAnalysisLoading(false);
       })
-      .catch(error => {
-        console.error('Error fetching property analysis:', error);
-        setPropertyAnalysisError(error.message || 'Failed to analyze property');
+      .catch((error) => {
+        console.error("Error fetching property analysis:", error);
+        setPropertyAnalysisError(error.message || "Failed to analyze property");
         setPropertyAnalysisLoading(false);
       });
 
@@ -168,14 +168,14 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
   // Implement WebSocketTestPage specific functions
   const forceWebSockets = () => {
     // This would normally force the protocol to WebSockets in the real implementation
-    console.log('Forcing WebSocket protocol');
+    console.log("Forcing WebSocket protocol");
     // For now, just try to connect using the regular protocol selection
     realtimeService.connect();
   };
 
   const forcePolling = () => {
     // This would normally force the protocol to Long Polling in the real implementation
-    console.log('Forcing Polling protocol');
+    console.log("Forcing Polling protocol");
     // Disconnect WebSockets first
     realtimeService.disconnectAll();
     // Simulate a delay before reconnecting
@@ -211,8 +211,8 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     // Original values
     connectionState,
     protocol,
-    connected: connectionState === 'connected',
-    connecting: connectionState === 'connecting',
+    connected: connectionState === "connected",
+    connecting: connectionState === "connecting",
     send,
     sendPropertyAnalysisRequest,
     connect,
@@ -220,26 +220,22 @@ export const RealtimeProvider: React.FC<{ children: ReactNode }> = ({ children }
     propertyAnalysisResult,
     propertyAnalysisLoading,
     propertyAnalysisError,
-    
+
     // WebSocketTestPage specific values
     connectionStatus: connectionState,
     connectionMethod: protocol,
-    isConnected: connectionState === 'connected',
+    isConnected: connectionState === "connected",
     forceWebSockets,
     forcePolling,
     subscribe,
     unsubscribe,
-    
+
     // Event handling
     on,
     off,
   };
 
-  return (
-    <RealtimeContext.Provider value={contextValue}>
-      {children}
-    </RealtimeContext.Provider>
-  );
+  return <RealtimeContext.Provider value={contextValue}>{children}</RealtimeContext.Provider>;
 };
 
 // Custom hook for consuming the context

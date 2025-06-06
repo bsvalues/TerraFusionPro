@@ -1,16 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { MapPin, Users, Activity, Shield, FileText, TrendingUp, CheckCircle, Clock, Server } from 'lucide-react';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  MapPin,
+  Users,
+  Activity,
+  Shield,
+  FileText,
+  TrendingUp,
+  CheckCircle,
+  Clock,
+  Server,
+} from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface CountyNode {
   name: string;
-  type: 'Type-1 Urban' | 'Type-2 Regional' | 'Type-3 Rural';
-  status: 'Live' | 'Staging' | 'Queued';
+  type: "Type-1 Urban" | "Type-2 Regional" | "Type-3 Rural";
+  status: "Live" | "Staging" | "Queued";
   appraisers: number;
   monthlyReports: number;
   averageValue: number;
@@ -26,144 +42,148 @@ interface CountyStats {
 }
 
 export default function WACountyPortalPage() {
-  const [selectedCounty, setSelectedCounty] = useState('King');
+  const [selectedCounty, setSelectedCounty] = useState("King");
   const [countyStats, setCountyStats] = useState<CountyStats | null>(null);
   const [isDeploying, setIsDeploying] = useState(false);
   const { toast } = useToast();
-  
+
   const waCounties: CountyNode[] = [
     {
-      name: 'King',
-      type: 'Type-1 Urban',
-      status: 'Live',
+      name: "King",
+      type: "Type-1 Urban",
+      status: "Live",
       appraisers: 187,
       monthlyReports: 2450,
       averageValue: 785000,
-      complianceScore: 98.2
+      complianceScore: 98.2,
     },
     {
-      name: 'Pierce',
-      type: 'Type-1 Urban', 
-      status: 'Live',
+      name: "Pierce",
+      type: "Type-1 Urban",
+      status: "Live",
       appraisers: 94,
       monthlyReports: 1320,
       averageValue: 485000,
-      complianceScore: 96.8
+      complianceScore: 96.8,
     },
     {
-      name: 'Snohomish',
-      type: 'Type-1 Urban',
-      status: 'Live',
+      name: "Snohomish",
+      type: "Type-1 Urban",
+      status: "Live",
       appraisers: 76,
       monthlyReports: 980,
       averageValue: 625000,
-      complianceScore: 97.4
+      complianceScore: 97.4,
     },
     // Phase 2 - PRIORITY: TRI-CITIES NEXUS (South-Eastern WA)
     {
-      name: 'Benton',
-      type: 'Type-2 Regional',
-      status: 'Staging',
+      name: "Benton",
+      type: "Type-2 Regional",
+      status: "Staging",
       appraisers: 28,
       monthlyReports: 420,
       averageValue: 325000,
-      complianceScore: 96.3
+      complianceScore: 96.3,
     },
     {
-      name: 'Franklin',
-      type: 'Type-2 Regional',
-      status: 'Staging',
+      name: "Franklin",
+      type: "Type-2 Regional",
+      status: "Staging",
       appraisers: 15,
       monthlyReports: 240,
       averageValue: 285000,
-      complianceScore: 95.8
+      complianceScore: 95.8,
     },
     {
-      name: 'Walla Walla',
-      type: 'Type-3 Rural',
-      status: 'Queued',
+      name: "Walla Walla",
+      type: "Type-3 Rural",
+      status: "Queued",
       appraisers: 12,
       monthlyReports: 180,
       averageValue: 245000,
-      complianceScore: 94.2
+      complianceScore: 94.2,
     },
     {
-      name: 'Yakima',
-      type: 'Type-3 Rural',
-      status: 'Queued',
+      name: "Yakima",
+      type: "Type-3 Rural",
+      status: "Queued",
       appraisers: 34,
       monthlyReports: 510,
       averageValue: 195000,
-      complianceScore: 93.7
+      complianceScore: 93.7,
     },
     // Phase 3 - Secondary Expansion
     {
-      name: 'Spokane',
-      type: 'Type-2 Regional',
-      status: 'Queued',
+      name: "Spokane",
+      type: "Type-2 Regional",
+      status: "Queued",
       appraisers: 45,
       monthlyReports: 560,
       averageValue: 285000,
-      complianceScore: 95.1
+      complianceScore: 95.1,
     },
     {
-      name: 'Clark',
-      type: 'Type-2 Regional',
-      status: 'Queued',
+      name: "Clark",
+      type: "Type-2 Regional",
+      status: "Queued",
       appraisers: 38,
       monthlyReports: 420,
       averageValue: 445000,
-      complianceScore: 94.7
+      complianceScore: 94.7,
     },
     {
-      name: 'Thurston',
-      type: 'Type-2 Regional',
-      status: 'Queued',
+      name: "Thurston",
+      type: "Type-2 Regional",
+      status: "Queued",
       appraisers: 32,
       monthlyReports: 380,
       averageValue: 375000,
-      complianceScore: 93.9
-    }
+      complianceScore: 93.9,
+    },
   ];
 
   useEffect(() => {
     // Simulate fetching county-specific stats
     const mockStats: CountyStats = {
-      totalProperties: selectedCounty === 'King' ? 875432 : selectedCounty === 'Pierce' ? 423891 : 298756,
-      totalValue: selectedCounty === 'King' ? 687000000000 : selectedCounty === 'Pierce' ? 205000000000 : 186000000000,
-      averageProcessingTime: '2.3 days',
+      totalProperties:
+        selectedCounty === "King" ? 875432 : selectedCounty === "Pierce" ? 423891 : 298756,
+      totalValue:
+        selectedCounty === "King"
+          ? 687000000000
+          : selectedCounty === "Pierce"
+            ? 205000000000
+            : 186000000000,
+      averageProcessingTime: "2.3 days",
       complianceRate: 98.2,
-      nftsMinted: selectedCounty === 'King' ? 24567 : selectedCounty === 'Pierce' ? 13298 : 9834
+      nftsMinted: selectedCounty === "King" ? 24567 : selectedCounty === "Pierce" ? 13298 : 9834,
     };
-    
+
     setCountyStats(mockStats);
   }, [selectedCounty]);
 
   const deployCountyNode = async (countyName: string) => {
     if (isDeploying) return;
-    
+
     setIsDeploying(true);
     try {
       const response = await fetch(`/api/wa-counties/${countyName}/deploy`, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
       });
-      
+
       const result = await response.json();
-      
+
       if (result.success) {
         toast({
           title: "County Node Deployed",
           description: `${countyName} County successfully deployed to production`,
         });
-        
+
         // Update the county status in the UI
-        const updatedCounties = waCounties.map(county => 
-          county.name === countyName 
-            ? { ...county, status: 'Live' as const }
-            : county
+        const updatedCounties = waCounties.map((county) =>
+          county.name === countyName ? { ...county, status: "Live" as const } : county
         );
         // You would typically refetch data here or update state
       } else {
@@ -174,7 +194,7 @@ export default function WACountyPortalPage() {
         });
       }
     } catch (error) {
-      console.error('Error deploying county:', error);
+      console.error("Error deploying county:", error);
       toast({
         title: "Deployment Error",
         description: "Network error occurred during deployment",
@@ -187,19 +207,27 @@ export default function WACountyPortalPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Live': return 'bg-green-100 text-green-800';
-      case 'Staging': return 'bg-yellow-100 text-yellow-800';
-      case 'Queued': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Live":
+        return "bg-green-100 text-green-800";
+      case "Staging":
+        return "bg-yellow-100 text-yellow-800";
+      case "Queued":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getNodeTypeColor = (type: string) => {
     switch (type) {
-      case 'Type-1 Urban': return 'bg-blue-100 text-blue-800';
-      case 'Type-2 Regional': return 'bg-purple-100 text-purple-800';
-      case 'Type-3 Rural': return 'bg-green-100 text-green-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Type-1 Urban":
+        return "bg-blue-100 text-blue-800";
+      case "Type-2 Regional":
+        return "bg-purple-100 text-purple-800";
+      case "Type-3 Rural":
+        return "bg-green-100 text-green-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -208,9 +236,7 @@ export default function WACountyPortalPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Washington State County Portal</h1>
-          <p className="text-muted-foreground">
-            Unified TerraFusion federation across 39 counties
-          </p>
+          <p className="text-muted-foreground">Unified TerraFusion federation across 39 counties</p>
         </div>
         <Badge variant="outline" className="px-3 py-1">
           <MapPin className="w-4 h-4 mr-2" />
@@ -245,7 +271,10 @@ export default function WACountyPortalPage() {
       {/* County Grid Overview */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {waCounties.map((county) => (
-          <Card key={county.name} className={`hover:shadow-lg transition-shadow ${selectedCounty === county.name ? 'ring-2 ring-blue-500' : ''}`}>
+          <Card
+            key={county.name}
+            className={`hover:shadow-lg transition-shadow ${selectedCounty === county.name ? "ring-2 ring-blue-500" : ""}`}
+          >
             <CardHeader>
               <div className="flex items-start justify-between">
                 <div>
@@ -253,9 +282,7 @@ export default function WACountyPortalPage() {
                   <CardDescription>{county.appraisers} active appraisers</CardDescription>
                 </div>
                 <div className="text-right">
-                  <Badge className={getStatusColor(county.status)}>
-                    {county.status}
-                  </Badge>
+                  <Badge className={getStatusColor(county.status)}>{county.status}</Badge>
                   <div className="mt-1">
                     <Badge variant="outline" className={getNodeTypeColor(county.type)}>
                       {county.type}
@@ -279,13 +306,13 @@ export default function WACountyPortalPage() {
                   <span className="font-medium text-green-600">{county.complianceScore}%</span>
                 </div>
               </div>
-              <Button 
-                variant={selectedCounty === county.name ? "default" : "outline"} 
-                size="sm" 
+              <Button
+                variant={selectedCounty === county.name ? "default" : "outline"}
+                size="sm"
                 className="w-full mt-3"
                 onClick={() => setSelectedCounty(county.name)}
               >
-                {selectedCounty === county.name ? 'Selected' : 'View Details'}
+                {selectedCounty === county.name ? "Selected" : "View Details"}
               </Button>
             </CardContent>
           </Card>
@@ -310,7 +337,9 @@ export default function WACountyPortalPage() {
                   <FileText className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{countyStats.totalProperties.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    {countyStats.totalProperties.toLocaleString()}
+                  </div>
                   <p className="text-xs text-muted-foreground">Active in system</p>
                 </CardContent>
               </Card>
@@ -321,7 +350,9 @@ export default function WACountyPortalPage() {
                   <TrendingUp className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">${(countyStats.totalValue / 1000000000).toFixed(1)}B</div>
+                  <div className="text-2xl font-bold">
+                    ${(countyStats.totalValue / 1000000000).toFixed(1)}B
+                  </div>
                   <p className="text-xs text-muted-foreground">Appraised value</p>
                 </CardContent>
               </Card>
@@ -343,7 +374,9 @@ export default function WACountyPortalPage() {
                   <Shield className="h-4 w-4 text-muted-foreground" />
                 </CardHeader>
                 <CardContent>
-                  <div className="text-2xl font-bold">{countyStats.nftsMinted.toLocaleString()}</div>
+                  <div className="text-2xl font-bold">
+                    {countyStats.nftsMinted.toLocaleString()}
+                  </div>
                   <p className="text-xs text-muted-foreground">Blockchain verified</p>
                 </CardContent>
               </Card>
@@ -354,16 +387,14 @@ export default function WACountyPortalPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Active Appraisers - {selectedCounty} County</CardTitle>
-                <CardDescription>
-                  Licensed professionals using TerraFusion platform
-                </CardDescription>
+                <CardDescription>Licensed professionals using TerraFusion platform</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
                   <div className="grid grid-cols-3 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-blue-600">
-                        {waCounties.find(c => c.name === selectedCounty)?.appraisers}
+                        {waCounties.find((c) => c.name === selectedCounty)?.appraisers}
                       </div>
                       <p className="text-sm text-muted-foreground">Total Active</p>
                     </div>
@@ -385,9 +416,7 @@ export default function WACountyPortalPage() {
             <Card>
               <CardHeader>
                 <CardTitle>USPAP & UCDP Compliance</CardTitle>
-                <CardDescription>
-                  Automated compliance monitoring and reporting
-                </CardDescription>
+                <CardDescription>Automated compliance monitoring and reporting</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -412,9 +441,7 @@ export default function WACountyPortalPage() {
             <Card>
               <CardHeader>
                 <CardTitle>County Federation Status</CardTitle>
-                <CardDescription>
-                  Real-time mesh synchronization across WA counties
-                </CardDescription>
+                <CardDescription>Real-time mesh synchronization across WA counties</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -447,9 +474,11 @@ export default function WACountyPortalPage() {
         </CardHeader>
         <CardContent>
           <div className="flex gap-4 flex-wrap">
-            <Button 
+            <Button
               onClick={() => deployCountyNode(selectedCounty)}
-              disabled={isDeploying || waCounties.find(c => c.name === selectedCounty)?.status === 'Live'}
+              disabled={
+                isDeploying || waCounties.find((c) => c.name === selectedCounty)?.status === "Live"
+              }
             >
               {isDeploying ? (
                 <>
@@ -476,7 +505,7 @@ export default function WACountyPortalPage() {
               DAO Governance
             </Button>
           </div>
-          
+
           {/* Phase 2 Deployment Status */}
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-start space-x-3">
@@ -484,7 +513,7 @@ export default function WACountyPortalPage() {
               <div>
                 <h4 className="font-medium text-green-900">Phase 2 Deployment Active</h4>
                 <p className="text-sm text-green-700 mt-1">
-                  King, Pierce, and Snohomish counties are live with unified TerraFusion platform. 
+                  King, Pierce, and Snohomish counties are live with unified TerraFusion platform.
                   Real-time mesh connectivity enabled for cross-county comparable sharing.
                 </p>
                 <div className="mt-2 flex items-center space-x-4 text-xs text-green-600">

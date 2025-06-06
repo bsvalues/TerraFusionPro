@@ -14,17 +14,29 @@ let ipcRenderer: IpcRenderer | null = null;
 // Check if we're running in Electron or web browser
 const isElectron = () => {
   // Renderer process
-  if (typeof window !== 'undefined' && typeof window.process === 'object' && window.process.type === 'renderer') {
+  if (
+    typeof window !== "undefined" &&
+    typeof window.process === "object" &&
+    window.process.type === "renderer"
+  ) {
     return true;
   }
 
   // Main process
-  if (typeof process !== 'undefined' && typeof process.versions === 'object' && !!process.versions.electron) {
+  if (
+    typeof process !== "undefined" &&
+    typeof process.versions === "object" &&
+    !!process.versions.electron
+  ) {
     return true;
   }
 
   // Detect the user agent when the `nodeIntegration` option is set to false
-  if (typeof navigator === 'object' && typeof navigator.userAgent === 'string' && navigator.userAgent.indexOf('Electron') >= 0) {
+  if (
+    typeof navigator === "object" &&
+    typeof navigator.userAgent === "string" &&
+    navigator.userAgent.indexOf("Electron") >= 0
+  ) {
     return true;
   }
 
@@ -36,13 +48,13 @@ if (isElectron()) {
   try {
     // In Electron, we'd use window.require to import electron modules
     // Note: In a real Electron app, you'd use contextBridge to expose these APIs safely
-    const electron = (window as any).require('electron');
+    const electron = (window as any).require("electron");
     ipcRenderer = electron.ipcRenderer;
   } catch (e) {
-    console.warn('Failed to initialize Electron IPC renderer:', e);
+    console.warn("Failed to initialize Electron IPC renderer:", e);
   }
 } else {
-  console.log('Running in web browser mode without Electron integration');
+  console.log("Running in web browser mode without Electron integration");
 }
 
 // Function to check if a panel can be detached to a new window
@@ -59,35 +71,40 @@ export function getDisplays(): Promise<any[]> {
       return;
     }
 
-    ipcRenderer.send('get-displays');
+    ipcRenderer.send("get-displays");
     const listener = (_: any, displays: any[]) => {
       resolve(displays);
-      ipcRenderer?.removeListener('get-displays-reply', listener);
+      ipcRenderer?.removeListener("get-displays-reply", listener);
     };
-    ipcRenderer.on('get-displays-reply', listener);
+    ipcRenderer.on("get-displays-reply", listener);
   });
 }
 
 // Handle saving window positions for persistence between sessions
-export function saveWindowState(windowId: string, bounds: { x: number, y: number, width: number, height: number }): void {
+export function saveWindowState(
+  windowId: string,
+  bounds: { x: number; y: number; width: number; height: number }
+): void {
   if (ipcRenderer) {
-    ipcRenderer.send('save-window-state', { windowId, bounds });
+    ipcRenderer.send("save-window-state", { windowId, bounds });
   }
 }
 
-export function getWindowState(windowId: string): Promise<{ x: number, y: number, width: number, height: number } | null> {
+export function getWindowState(
+  windowId: string
+): Promise<{ x: number; y: number; width: number; height: number } | null> {
   return new Promise((resolve) => {
     if (!ipcRenderer) {
       resolve(null);
       return;
     }
 
-    ipcRenderer.send('get-window-state', windowId);
+    ipcRenderer.send("get-window-state", windowId);
     const listener = (_: any, state: any) => {
       resolve(state);
-      ipcRenderer?.removeListener('get-window-state-reply', listener);
+      ipcRenderer?.removeListener("get-window-state-reply", listener);
     };
-    ipcRenderer.on('get-window-state-reply', listener);
+    ipcRenderer.on("get-window-state-reply", listener);
   });
 }
 
@@ -100,36 +117,41 @@ export const mockElectronFeatures = {
   detachPanel(panelId: string, title: string, content: any): void {
     console.log(`Mock: detaching panel ${panelId} with title "${title}" to new window`);
     // In browser mode, we could open a new browser tab or window, but that's not ideal
-    alert('This feature requires the Electron desktop app.');
+    alert("This feature requires the Electron desktop app.");
   },
 
   // Mock function for saving data to local file system
   saveFile(data: any, defaultPath?: string): Promise<string | null> {
-    console.log('Mock: saveFile called', { dataSize: typeof data === 'string' ? data.length : 'non-string', defaultPath });
-    
+    console.log("Mock: saveFile called", {
+      dataSize: typeof data === "string" ? data.length : "non-string",
+      defaultPath,
+    });
+
     // In browser mode, we can use the browser's download API
-    if (typeof data === 'string') {
-      const blob = new Blob([data], { type: 'text/plain' });
+    if (typeof data === "string") {
+      const blob = new Blob([data], { type: "text/plain" });
       const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = defaultPath?.split('/').pop() || 'download.txt';
+      a.download = defaultPath?.split("/").pop() || "download.txt";
       document.body.appendChild(a);
       a.click();
       setTimeout(() => {
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
       }, 0);
-      return Promise.resolve('browser-download');
+      return Promise.resolve("browser-download");
     }
-    
+
     return Promise.resolve(null);
   },
 
   // Mock function for opening a local file
-  openFile(filters?: { name: string, extensions: string[] }[]): Promise<{ filePath: string, data: string } | null> {
-    console.log('Mock: openFile called', { filters });
-    alert('This feature requires the Electron desktop app.');
+  openFile(
+    filters?: { name: string; extensions: string[] }[]
+  ): Promise<{ filePath: string; data: string } | null> {
+    console.log("Mock: openFile called", { filters });
+    alert("This feature requires the Electron desktop app.");
     return Promise.resolve(null);
-  }
+  },
 };

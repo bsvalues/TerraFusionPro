@@ -1,7 +1,7 @@
-import * as Y from 'yjs';
-import { IndexeddbPersistence } from 'y-indexeddb';
-import { WebsocketProvider } from 'y-websocket';
-import { v4 as uuidv4 } from 'uuid';
+import * as Y from "yjs";
+import { IndexeddbPersistence } from "y-indexeddb";
+import { WebsocketProvider } from "y-websocket";
+import { v4 as uuidv4 } from "uuid";
 
 export interface PhotoMetadata {
   id: string;
@@ -18,7 +18,7 @@ export interface PhotoMetadata {
   createdAt: Date;
   updatedAt: Date;
   pendingSync: boolean;
-  syncStatus: 'pending' | 'synced' | 'failed';
+  syncStatus: "pending" | "synced" | "failed";
   syncError?: string;
 }
 
@@ -40,17 +40,17 @@ export class PhotoSyncManager {
    * @param reportId - The ID of the appraisal report
    * @param apiBaseUrl - The base URL for API calls
    */
-  constructor(reportId: number, apiBaseUrl: string = '') {
+  constructor(reportId: number, apiBaseUrl: string = "") {
     this.reportId = reportId;
     this.apiBaseUrl = apiBaseUrl;
     this.doc = new Y.Doc();
-    
+
     // Get or create the photos array in the CRDT document
-    this.photos = this.doc.getArray<PhotoMetadata>('photos');
-    
+    this.photos = this.doc.getArray<PhotoMetadata>("photos");
+
     // Set up IndexedDB for local persistence
     this.indexeddbProvider = new IndexeddbPersistence(`terrafield-photos-${reportId}`, this.doc);
-    
+
     // Listen for local changes to trigger observers
     this.photos.observe(() => {
       this.notifyObservers();
@@ -58,7 +58,7 @@ export class PhotoSyncManager {
 
     // Set up initial connection when IndexedDB is ready
     this.indexeddbProvider.whenSynced.then(() => {
-      console.log('Photos loaded from local storage');
+      console.log("Photos loaded from local storage");
       this.notifyObservers();
       this.setupWebsocketSync();
     });
@@ -69,11 +69,11 @@ export class PhotoSyncManager {
    */
   private setupWebsocketSync() {
     // Check if we're in a browser environment with WebSocket support
-    if (typeof window !== 'undefined' && 'WebSocket' in window) {
+    if (typeof window !== "undefined" && "WebSocket" in window) {
       try {
-        const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+        const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
         const wsUrl = `${protocol}//${window.location.host}/ws`;
-        
+
         this.websocketProvider = new WebsocketProvider(
           wsUrl,
           `terrafield-photos-${this.reportId}`,
@@ -81,24 +81,24 @@ export class PhotoSyncManager {
           { connect: true }
         );
 
-        this.websocketProvider.on('status', (event: { status: string }) => {
-          if (event.status === 'connected') {
-            console.log('Connected to WebSocket server for photo sync');
+        this.websocketProvider.on("status", (event: { status: string }) => {
+          if (event.status === "connected") {
+            console.log("Connected to WebSocket server for photo sync");
             this.syncWithServer();
           }
         });
 
         // Set up reconnection logic
-        window.addEventListener('online', () => {
+        window.addEventListener("online", () => {
           this.websocketProvider?.connect();
         });
-        
-        window.addEventListener('offline', () => {
+
+        window.addEventListener("offline", () => {
           // When offline, we'll continue to work with local data
-          console.log('Device offline, continuing with local data');
+          console.log("Device offline, continuing with local data");
         });
       } catch (error) {
-        console.error('Error setting up WebSocket provider:', error);
+        console.error("Error setting up WebSocket provider:", error);
       }
     }
   }
@@ -112,7 +112,7 @@ export class PhotoSyncManager {
     this.observers.add(callback);
     // Immediately notify with current state
     callback(this.getAllPhotos());
-    
+
     return () => {
       this.observers.delete(callback);
     };
@@ -123,7 +123,7 @@ export class PhotoSyncManager {
    */
   private notifyObservers() {
     const photos = this.getAllPhotos();
-    this.observers.forEach(callback => callback(photos));
+    this.observers.forEach((callback) => callback(photos));
   }
 
   /**
@@ -138,7 +138,7 @@ export class PhotoSyncManager {
    * @param id - The photo ID
    */
   public getPhotoById(id: string): PhotoMetadata | undefined {
-    return this.getAllPhotos().find(photo => photo.id === id);
+    return this.getAllPhotos().find((photo) => photo.id === id);
   }
 
   /**
@@ -149,9 +149,9 @@ export class PhotoSyncManager {
     const newPhoto: PhotoMetadata = {
       id: uuidv4(),
       reportId: this.reportId,
-      originalUrl: photo.originalUrl || '',
+      originalUrl: photo.originalUrl || "",
       enhancedUrl: photo.enhancedUrl,
-      photoType: photo.photoType || 'property',
+      photoType: photo.photoType || "property",
       caption: photo.caption,
       dateTaken: photo.dateTaken || new Date(),
       latitude: photo.latitude,
@@ -161,7 +161,7 @@ export class PhotoSyncManager {
       createdAt: new Date(),
       updatedAt: new Date(),
       pendingSync: true,
-      syncStatus: 'pending'
+      syncStatus: "pending",
     };
 
     this.doc.transact(() => {
@@ -181,7 +181,7 @@ export class PhotoSyncManager {
    */
   public updatePhoto(id: string, updates: Partial<PhotoMetadata>): boolean {
     const photos = this.getAllPhotos();
-    const index = photos.findIndex(p => p.id === id);
+    const index = photos.findIndex((p) => p.id === id);
 
     if (index === -1) {
       return false;
@@ -193,9 +193,9 @@ export class PhotoSyncManager {
         ...updates,
         updatedAt: new Date(),
         pendingSync: true,
-        syncStatus: 'pending'
+        syncStatus: "pending",
       };
-      
+
       this.photos.delete(index);
       this.photos.insert(index, [updatedPhoto]);
     });
@@ -212,7 +212,7 @@ export class PhotoSyncManager {
    */
   public deletePhoto(id: string): boolean {
     const photos = this.getAllPhotos();
-    const index = photos.findIndex(p => p.id === id);
+    const index = photos.findIndex((p) => p.id === id);
 
     if (index === -1) {
       return false;
@@ -232,14 +232,14 @@ export class PhotoSyncManager {
    * Sync changes with the server
    */
   public async syncWithServer(): Promise<void> {
-    const pendingPhotos = this.getAllPhotos().filter(p => p.pendingSync);
-    
+    const pendingPhotos = this.getAllPhotos().filter((p) => p.pendingSync);
+
     if (pendingPhotos.length === 0) {
       return;
     }
 
     if (!navigator.onLine) {
-      console.log('Device offline, sync postponed');
+      console.log("Device offline, sync postponed");
       return;
     }
 
@@ -248,11 +248,11 @@ export class PhotoSyncManager {
       for (const photo of pendingPhotos) {
         try {
           const response = await fetch(`${this.apiBaseUrl}/api/photo-sync`, {
-            method: 'POST',
+            method: "POST",
             headers: {
-              'Content-Type': 'application/json'
+              "Content-Type": "application/json",
             },
-            body: JSON.stringify(photo)
+            body: JSON.stringify(photo),
           });
 
           if (!response.ok) {
@@ -260,25 +260,25 @@ export class PhotoSyncManager {
           }
 
           const result = await response.json();
-          
+
           // Update the local copy with server data (including server ID if needed)
           this.updatePhoto(photo.id, {
             pendingSync: false,
-            syncStatus: 'synced',
+            syncStatus: "synced",
             syncError: undefined,
             // Include any other fields the server might have updated
-            ...result
+            ...result,
           });
         } catch (error) {
           console.error(`Error syncing photo ${photo.id}:`, error);
           this.updatePhoto(photo.id, {
-            syncStatus: 'failed',
-            syncError: error instanceof Error ? error.message : 'Unknown error'
+            syncStatus: "failed",
+            syncError: error instanceof Error ? error.message : "Unknown error",
           });
         }
       }
     } catch (error) {
-      console.error('Error during photo sync:', error);
+      console.error("Error during photo sync:", error);
     }
   }
 
@@ -289,32 +289,34 @@ export class PhotoSyncManager {
   public async importFromServer(): Promise<void> {
     try {
       const response = await fetch(`${this.apiBaseUrl}/api/reports/${this.reportId}/photos`);
-      
+
       if (!response.ok) {
         throw new Error(`Server responded with ${response.status}`);
       }
 
       const serverPhotos = await response.json();
-      
+
       // Import photos that don't already exist locally
-      const localPhotoIds = new Set(this.getAllPhotos().map(p => p.id));
-      
+      const localPhotoIds = new Set(this.getAllPhotos().map((p) => p.id));
+
       this.doc.transact(() => {
         for (const serverPhoto of serverPhotos) {
           if (!localPhotoIds.has(serverPhoto.id)) {
             // Add server photo with pendingSync=false since it came from server
-            this.photos.push([{
-              ...serverPhoto,
-              pendingSync: false,
-              syncStatus: 'synced'
-            }]);
+            this.photos.push([
+              {
+                ...serverPhoto,
+                pendingSync: false,
+                syncStatus: "synced",
+              },
+            ]);
           }
         }
       });
-      
+
       this.notifyObservers();
     } catch (error) {
-      console.error('Error importing photos from server:', error);
+      console.error("Error importing photos from server:", error);
     }
   }
 
@@ -334,6 +336,9 @@ export class PhotoSyncManager {
  * @param reportId - The report ID
  * @param apiBaseUrl - Base URL for API calls
  */
-export function createPhotoSyncManager(reportId: number, apiBaseUrl: string = ''): PhotoSyncManager {
+export function createPhotoSyncManager(
+  reportId: number,
+  apiBaseUrl: string = ""
+): PhotoSyncManager {
   return new PhotoSyncManager(reportId, apiBaseUrl);
 }

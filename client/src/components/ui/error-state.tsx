@@ -1,29 +1,29 @@
-import React from 'react';
-import { AlertTriangle, RefreshCw } from 'lucide-react';
-import { Card, CardContent, CardFooter, CardHeader, CardTitle } from './card';
-import { Button } from './button';
+import React from "react";
+import { AlertTriangle, RefreshCw } from "lucide-react";
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "./card";
+import { Button } from "./button";
 
 interface ErrorStateProps {
   /**
    * Error to display
    */
   error: Error | string | null;
-  
+
   /**
    * Title for the error card
    */
   title?: string;
-  
+
   /**
    * Callback for retry action
    */
   onRetry?: () => void;
-  
+
   /**
    * Custom actions to render instead of the default retry button
    */
   actions?: React.ReactNode;
-  
+
   /**
    * Additional CSS classes
    */
@@ -35,14 +35,14 @@ interface ErrorStateProps {
  */
 export function ErrorState({
   error,
-  title = 'An error occurred',
+  title = "An error occurred",
   onRetry,
   actions,
-  className = ''
+  className = "",
 }: ErrorStateProps) {
   // Convert error to string if it's an Error object
   const errorMessage = error instanceof Error ? error.message : error;
-  
+
   return (
     <Card className={`border-red-200 ${className}`}>
       <CardHeader className="bg-red-50 border-b border-red-100">
@@ -53,15 +53,16 @@ export function ErrorState({
       </CardHeader>
       <CardContent className="py-6">
         <p className="text-gray-700">
-          {errorMessage || 'Something went wrong. Please try again or contact support if the problem persists.'}
+          {errorMessage ||
+            "Something went wrong. Please try again or contact support if the problem persists."}
         </p>
       </CardContent>
       {(onRetry || actions) && (
         <CardFooter className="border-t border-red-100 bg-red-50/50 flex justify-end py-3">
           {actions || (
-            <Button 
-              onClick={onRetry} 
-              variant="outline" 
+            <Button
+              onClick={onRetry}
+              variant="outline"
               className="gap-2 border-red-200 text-red-700 hover:bg-red-100 hover:text-red-800"
             >
               <RefreshCw className="h-4 w-4" />

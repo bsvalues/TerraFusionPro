@@ -1,6 +1,6 @@
 /**
  * File Parser Types
- * 
+ *
  * This module defines the common interfaces and types used by the file parsers.
  */
 
@@ -15,7 +15,7 @@ export interface FileParser {
 
   /**
    * Determines if this parser can parse the given content
-   * 
+   *
    * @param content The content to check
    * @returns True if this parser can parse the content, false otherwise
    */
@@ -23,7 +23,7 @@ export interface FileParser {
 
   /**
    * Parses the content and extracts the data entities
-   * 
+   *
    * @param content The content to parse
    * @returns The parsing results with the extracted entities and any warnings or errors
    */
@@ -34,7 +34,7 @@ export interface FileParser {
  * Represents a generic data entity
  */
 export interface DataEntity {
-  type: 'property' | 'report' | 'comparable' | 'adjustment' | 'photo' | 'sketch';
+  type: "property" | "report" | "comparable" | "adjustment" | "photo" | "sketch";
   data: PropertyData | ReportData | ComparableData | AdjustmentData | PhotoData | SketchData;
 }
 
@@ -46,17 +46,17 @@ export interface ParsingResult {
    * The entities extracted from the file
    */
   entities: DataEntity[];
-  
+
   /**
    * The number of entities found
    */
   length: number;
-  
+
   /**
    * Any warnings that occurred during parsing
    */
   warnings?: string[];
-  
+
   /**
    * Any errors that occurred during parsing
    */

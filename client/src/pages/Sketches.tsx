@@ -1,10 +1,10 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  PencilRuler, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  PencilRuler,
   Plus,
   Search,
   Grid3X3,
@@ -16,8 +16,8 @@ import {
   MoreHorizontal,
   Square,
   Home,
-  Calendar
-} from 'lucide-react';
+  Calendar,
+} from "lucide-react";
 
 export default function Sketches() {
   return (
@@ -46,7 +46,10 @@ export default function Sketches() {
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input placeholder="Search sketches by property address or name..." className="pl-10" />
+              <Input
+                placeholder="Search sketches by property address or name..."
+                className="pl-10"
+              />
             </div>
             <div className="flex gap-2">
               <Button variant="outline" size="sm">
@@ -316,7 +319,9 @@ export default function Sketches() {
             <CardContent className="p-4">
               <div className="text-center">
                 <h3 className="font-semibold mb-2">Start Fresh</h3>
-                <p className="text-sm text-slate-600 mb-3">Begin with a blank canvas or use a template</p>
+                <p className="text-sm text-slate-600 mb-3">
+                  Begin with a blank canvas or use a template
+                </p>
                 <Button size="sm" className="w-full">
                   <Plus className="h-4 w-4 mr-2" />
                   New Sketch

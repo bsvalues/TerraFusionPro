@@ -1,5 +1,5 @@
-import * as Y from 'yjs';
-import { syncedStore, getYjsDoc } from '@syncedstore/core';
+import * as Y from "yjs";
+import { syncedStore, getYjsDoc } from "@syncedstore/core";
 
 // Define the store interfaces for our application
 export interface ParcelStore {
@@ -31,7 +31,7 @@ export interface PhotoMetadata {
   longitude: number | null;
   isOffline: boolean;
   localPath?: string;
-  status: 'pending' | 'syncing' | 'synced' | 'error';
+  status: "pending" | "syncing" | "synced" | "error";
   errorMessage?: string;
   lastSyncAttempt?: string;
 }
@@ -43,14 +43,14 @@ export interface PhotoMetadata {
  */
 export function createParcelStore(parcelId: string) {
   // Create a synced store with a notes field
-  const store = syncedStore<ParcelStore>({ notes: '' });
-  
+  const store = syncedStore<ParcelStore>({ notes: "" });
+
   // Get the underlying Yjs document
   const doc = getYjsDoc(store);
-  
+
   // Set the clientID to ensure consistent merges
   doc.clientID = generateClientId(parcelId);
-  
+
   return {
     store,
     doc,
@@ -64,16 +64,16 @@ export function createParcelStore(parcelId: string) {
  */
 export function createPhotoStore(reportId: string) {
   // Create a synced store with a metadata map
-  const store = syncedStore<PhotoStore>({ 
-    metadata: {} 
+  const store = syncedStore<PhotoStore>({
+    metadata: {},
   });
-  
+
   // Get the underlying Yjs document
   const doc = getYjsDoc(store);
-  
+
   // Set the clientID to ensure consistent merges
   doc.clientID = generateClientId(reportId);
-  
+
   return {
     store,
     doc,
@@ -88,7 +88,7 @@ function generateClientId(id: string): number {
   let hash = 0;
   for (let i = 0; i < id.length; i++) {
     const char = id.charCodeAt(i);
-    hash = ((hash << 5) - hash) + char;
+    hash = (hash << 5) - hash + char;
     hash = hash & hash; // Convert to 32bit integer
   }
   return Math.abs(hash);
@@ -101,7 +101,7 @@ function generateClientId(id: string): number {
  */
 export function encodeDocUpdate(doc: Y.Doc): string {
   const update = Y.encodeStateAsUpdate(doc);
-  return Buffer.from(update).toString('base64');
+  return Buffer.from(update).toString("base64");
 }
 
 /**
@@ -110,7 +110,7 @@ export function encodeDocUpdate(doc: Y.Doc): string {
  * @param base64Update The Base64 encoded update
  */
 export function applyEncodedUpdate(doc: Y.Doc, base64Update: string): void {
-  const update = Buffer.from(base64Update, 'base64');
+  const update = Buffer.from(base64Update, "base64");
   Y.applyUpdate(doc, update);
 }
 
@@ -133,7 +133,7 @@ export function mergeUpdates(doc: Y.Doc, base64Update: string): string {
 export function addPhoto(store: PhotoStore, metadata: PhotoMetadata): void {
   store.metadata[metadata.id] = {
     ...metadata,
-    status: metadata.isOffline ? 'pending' : 'synced'
+    status: metadata.isOffline ? "pending" : "synced",
   };
 }
 
@@ -144,14 +144,14 @@ export function addPhoto(store: PhotoStore, metadata: PhotoMetadata): void {
  * @param updates Partial metadata updates
  */
 export function updatePhotoMetadata(
-  store: PhotoStore, 
-  id: string, 
+  store: PhotoStore,
+  id: string,
   updates: Partial<PhotoMetadata>
 ): void {
   if (store.metadata[id]) {
     store.metadata[id] = {
       ...store.metadata[id],
-      ...updates
+      ...updates,
     };
   }
 }
@@ -183,7 +183,7 @@ export function getAllPhotos(store: PhotoStore): PhotoMetadata[] {
  */
 export function getPendingPhotos(store: PhotoStore): PhotoMetadata[] {
   return Object.values(store.metadata).filter(
-    photo => photo.status === 'pending' || photo.status === 'error'
+    (photo) => photo.status === "pending" || photo.status === "error"
   );
 }
 
@@ -194,25 +194,25 @@ export function getPendingPhotos(store: PhotoStore): PhotoMetadata[] {
  */
 export function createParcelDoc(parcelId: string): Y.Doc {
   const doc = new Y.Doc();
-  
+
   // Set the clientID to ensure consistent merges
   doc.clientID = generateClientId(parcelId);
-  
+
   // Initialize with empty note data
   const noteData: ParcelNote = {
     parcelId,
-    text: '',
+    text: "",
     lastUpdated: new Date().toISOString(),
-    version: 1
+    version: 1,
   };
-  
+
   // Store the note data in the Y.Doc
-  const ymap = doc.getMap('note');
-  ymap.set('parcelId', parcelId);
-  ymap.set('text', '');
-  ymap.set('lastUpdated', new Date().toISOString());
-  ymap.set('version', 1);
-  
+  const ymap = doc.getMap("note");
+  ymap.set("parcelId", parcelId);
+  ymap.set("text", "");
+  ymap.set("lastUpdated", new Date().toISOString());
+  ymap.set("version", 1);
+
   return doc;
 }
 
@@ -222,13 +222,13 @@ export function createParcelDoc(parcelId: string): Y.Doc {
  * @returns The parcel note data
  */
 export function getParcelNoteData(doc: Y.Doc): ParcelNote {
-  const ymap = doc.getMap('note');
-  
+  const ymap = doc.getMap("note");
+
   return {
-    parcelId: ymap.get('parcelId') as string,
-    text: ymap.get('text') as string,
-    lastUpdated: ymap.get('lastUpdated') as string,
-    version: ymap.get('version') as number
+    parcelId: ymap.get("parcelId") as string,
+    text: ymap.get("text") as string,
+    lastUpdated: ymap.get("lastUpdated") as string,
+    version: ymap.get("version") as number,
   };
 }
 
@@ -238,14 +238,14 @@ export function getParcelNoteData(doc: Y.Doc): ParcelNote {
  * @param updates The updates to apply
  */
 export function updateParcelNoteData(doc: Y.Doc, updates: Partial<ParcelNote>): void {
-  const ymap = doc.getMap('note');
-  
+  const ymap = doc.getMap("note");
+
   // Apply updates
   if (updates.text !== undefined) {
-    ymap.set('text', updates.text);
+    ymap.set("text", updates.text);
   }
-  
+
   // Always update these fields
-  ymap.set('lastUpdated', new Date().toISOString());
-  ymap.set('version', (ymap.get('version') as number) + 1);
+  ymap.set("lastUpdated", new Date().toISOString());
+  ymap.set("version", (ymap.get("version") as number) + 1);
 }

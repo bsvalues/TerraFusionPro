@@ -1,44 +1,38 @@
-import React from 'react';
-import { useWebSocket } from '@/contexts/WebSocketContext';
-import { Badge } from '@/components/ui/badge';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { AlertCircle, Wifi, WifiOff, ArrowUpDown } from 'lucide-react';
+import React from "react";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { AlertCircle, Wifi, WifiOff, ArrowUpDown } from "lucide-react";
 
 /**
  * Connection Status Component
  * Shows the current connection status and type to users
  */
 export function ConnectionStatus() {
-  const { 
-    isConnected, 
-    connectionStatus, 
-    connectionType, 
-    usingFallback, 
-    lastPing 
-  } = useWebSocket();
-  
+  const { isConnected, connectionStatus, connectionType, usingFallback, lastPing } = useWebSocket();
+
   // Calculate time since last ping
   const lastPingAgo = lastPing ? Math.floor((Date.now() - lastPing) / 1000) : null;
-  
+
   // Determine badge color based on connection status
-  let variant: 'default' | 'secondary' | 'destructive' | 'outline' = 'default';
+  let variant: "default" | "secondary" | "destructive" | "outline" = "default";
   let icon = <Wifi className="h-3 w-3 mr-1" />;
-  let statusText = 'Connected';
-  
+  let statusText = "Connected";
+
   if (!isConnected) {
-    variant = 'destructive';
+    variant = "destructive";
     icon = <WifiOff className="h-3 w-3 mr-1" />;
-    statusText = connectionStatus === 'connecting' ? 'Connecting...' : 'Disconnected';
+    statusText = connectionStatus === "connecting" ? "Connecting..." : "Disconnected";
   } else if (usingFallback) {
-    variant = 'secondary';
+    variant = "secondary";
     icon = <ArrowUpDown className="h-3 w-3 mr-1" />;
-    statusText = 'Fallback';
+    statusText = "Fallback";
   } else if (lastPingAgo && lastPingAgo > 30) {
-    variant = 'outline';
+    variant = "outline";
     icon = <AlertCircle className="h-3 w-3 mr-1" />;
-    statusText = 'Unstable';
+    statusText = "Unstable";
   }
-  
+
   return (
     <TooltipProvider>
       <Tooltip>
@@ -49,12 +43,18 @@ export function ConnectionStatus() {
           </Badge>
         </TooltipTrigger>
         <TooltipContent>
-          <p><strong>Status:</strong> {connectionStatus}</p>
-          {connectionType !== 'none' && (
-            <p><strong>Using:</strong> {connectionType} {usingFallback ? '(fallback)' : ''}</p>
+          <p>
+            <strong>Status:</strong> {connectionStatus}
+          </p>
+          {connectionType !== "none" && (
+            <p>
+              <strong>Using:</strong> {connectionType} {usingFallback ? "(fallback)" : ""}
+            </p>
           )}
           {lastPing && (
-            <p><strong>Last activity:</strong> {lastPingAgo}s ago</p>
+            <p>
+              <strong>Last activity:</strong> {lastPingAgo}s ago
+            </p>
           )}
           {!isConnected && (
             <p className="text-xs text-muted-foreground mt-1">Attempting to reconnect...</p>

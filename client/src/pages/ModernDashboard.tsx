@@ -1,22 +1,22 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  FileText, 
-  Building2, 
-  TrendingUp, 
-  Clock, 
-  CheckCircle2, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  FileText,
+  Building2,
+  TrendingUp,
+  Clock,
+  CheckCircle2,
   AlertTriangle,
   Plus,
   ArrowRight,
   BarChart3,
   Camera,
   Search,
-  Brain
-} from 'lucide-react';
+  Brain,
+} from "lucide-react";
 
 export default function ModernDashboard() {
   return (
@@ -82,7 +82,6 @@ export default function ModernDashboard() {
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
         {/* Active Reports */}
         <div className="lg:col-span-2">
           <Card>
@@ -113,7 +112,7 @@ export default function ModernDashboard() {
                   <span>Client: First National Bank</span>
                 </div>
               </div>
-              
+
               <div className="p-4 border rounded-lg hover:bg-slate-50 transition-colors">
                 <div className="flex justify-between items-start mb-3">
                   <div>
@@ -197,11 +196,15 @@ export default function ModernDashboard() {
             <CardContent className="space-y-3">
               <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                 <p className="text-sm font-medium text-red-800">Compliance Review</p>
-                <p className="text-xs text-red-600">Oak Avenue property needs review before submission</p>
+                <p className="text-xs text-red-600">
+                  Oak Avenue property needs review before submission
+                </p>
               </div>
               <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <p className="text-sm font-medium text-yellow-800">AI Insight</p>
-                <p className="text-xs text-yellow-600">3.2% variance detected in comparable selection</p>
+                <p className="text-xs text-yellow-600">
+                  3.2% variance detected in comparable selection
+                </p>
               </div>
               <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                 <p className="text-sm font-medium text-blue-800">Photo Sync</p>

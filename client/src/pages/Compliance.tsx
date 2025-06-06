@@ -1,10 +1,10 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  CheckSquare, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  CheckSquare,
   AlertTriangle,
   CheckCircle2,
   XCircle,
@@ -14,8 +14,8 @@ import {
   Filter,
   Download,
   Plus,
-  Shield
-} from 'lucide-react';
+  Shield,
+} from "lucide-react";
 
 export default function Compliance() {
   return (
@@ -91,7 +91,10 @@ export default function Compliance() {
           <div className="flex gap-4">
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-              <Input placeholder="Search compliance checks by property or rule..." className="pl-10" />
+              <Input
+                placeholder="Search compliance checks by property or rule..."
+                className="pl-10"
+              />
             </div>
             <Button variant="outline">
               <Filter className="h-4 w-4 mr-2" />
@@ -139,14 +142,19 @@ export default function Compliance() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button size="sm" variant="destructive">Fix Issues</Button>
-                <Button variant="outline" size="sm">Details</Button>
+                <Button size="sm" variant="destructive">
+                  Fix Issues
+                </Button>
+                <Button variant="outline" size="sm">
+                  Details
+                </Button>
               </div>
             </div>
             <div className="mt-4 p-3 bg-white rounded border border-red-200">
               <div className="text-sm text-red-800 font-medium mb-1">Issue Details:</div>
               <div className="text-sm text-red-700">
-                Missing required comparable property analysis documentation. Three comparable sales must include detailed adjustment explanations.
+                Missing required comparable property analysis documentation. Three comparable sales
+                must include detailed adjustment explanations.
               </div>
             </div>
           </CardContent>
@@ -176,14 +184,19 @@ export default function Compliance() {
                 </div>
               </div>
               <div className="flex items-center gap-3">
-                <Button size="sm" variant="outline">Review</Button>
-                <Button variant="outline" size="sm">Details</Button>
+                <Button size="sm" variant="outline">
+                  Review
+                </Button>
+                <Button variant="outline" size="sm">
+                  Details
+                </Button>
               </div>
             </div>
             <div className="mt-4 p-3 bg-white rounded border border-yellow-200">
               <div className="text-sm text-yellow-800 font-medium mb-1">Warning Details:</div>
               <div className="text-sm text-yellow-700">
-                Comparable sale #2 is 6.2 months old, which exceeds the recommended 6-month threshold for this market area.
+                Comparable sale #2 is 6.2 months old, which exceeds the recommended 6-month
+                threshold for this market area.
               </div>
             </div>
           </CardContent>
@@ -217,12 +230,15 @@ export default function Compliance() {
                   <div className="font-semibold text-green-600">100%</div>
                   <div className="text-sm text-slate-500">Compliance</div>
                 </div>
-                <Button variant="outline" size="sm">Details</Button>
+                <Button variant="outline" size="sm">
+                  Details
+                </Button>
               </div>
             </div>
             <div className="mt-4 p-3 bg-green-50 rounded border border-green-200">
               <div className="text-sm text-green-800">
-                All FNMA guidelines satisfied. Report meets all formatting, content, and documentation requirements.
+                All FNMA guidelines satisfied. Report meets all formatting, content, and
+                documentation requirements.
               </div>
             </div>
           </CardContent>
@@ -256,12 +272,15 @@ export default function Compliance() {
                   <div className="font-semibold text-blue-600">75%</div>
                   <div className="text-sm text-slate-500">Complete</div>
                 </div>
-                <Button variant="outline" size="sm">Cancel</Button>
+                <Button variant="outline" size="sm">
+                  Cancel
+                </Button>
               </div>
             </div>
             <div className="mt-4 p-3 bg-blue-50 rounded border border-blue-200">
               <div className="text-sm text-blue-800">
-                Running automated checks against FHA property requirements and appraisal standards...
+                Running automated checks against FHA property requirements and appraisal
+                standards...
               </div>
             </div>
           </CardContent>

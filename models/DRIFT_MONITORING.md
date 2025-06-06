@@ -41,6 +41,7 @@ python scripts/generate_drift_report.py --days 30
 ```
 
 This creates:
+
 - A visualization image: `models/reports/drift_visualization_*.png`
 - An HTML report: `models/reports/drift_report_*.html`
 
@@ -56,6 +57,7 @@ This creates:
 The drift report provides specific recommendations, but generally:
 
 1. **Retrain When**:
+
    - Absolute drift exceeds 0.5 points consistently
    - Drift is increasing over time
    - Newer model versions show larger drift than older ones
@@ -78,6 +80,7 @@ The system comprises several components:
 ## Technical Implementation
 
 1. When users provide feedback, we log:
+
    - Original AI score
    - User corrected score
    - The difference (user - AI)
@@ -85,6 +88,7 @@ The system comprises several components:
    - Timestamp
 
 2. Daily aggregation calculates:
+
    - Mean drift by model version
    - Median drift
    - Standard deviation of drift

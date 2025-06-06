@@ -2,26 +2,25 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { 
-  Home, 
-  Building2, 
-  BarChart3, 
-  FileText, 
-  Camera, 
+import {
+  Home,
+  Building2,
+  BarChart3,
+  FileText,
+  Camera,
   MapPin,
   Clock,
   CheckCircle2,
   AlertTriangle,
   Plus,
   Search,
-  Upload
+  Upload,
 } from "lucide-react";
 
 export default function ForcedNewDashboard() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        
         {/* Header Section */}
         <div className="text-center py-8">
           <h1 className="text-5xl font-bold text-gray-900 mb-4">
@@ -54,7 +53,7 @@ export default function ForcedNewDashboard() {
               <p className="text-xs text-muted-foreground">+2 from last week</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white shadow-lg border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Completed This Month</CardTitle>
@@ -65,7 +64,7 @@ export default function ForcedNewDashboard() {
               <p className="text-xs text-muted-foreground">+12% from last month</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white shadow-lg border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">AI Accuracy</CardTitle>
@@ -76,7 +75,7 @@ export default function ForcedNewDashboard() {
               <p className="text-xs text-muted-foreground">Valuation precision</p>
             </CardContent>
           </Card>
-          
+
           <Card className="bg-white shadow-lg border-0">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Avg. Turnaround</CardTitle>
@@ -91,7 +90,6 @@ export default function ForcedNewDashboard() {
 
         {/* Main Content Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          
           {/* Active Appraisals */}
           <div className="lg:col-span-2">
             <Card className="bg-white shadow-lg border-0">
@@ -122,7 +120,7 @@ export default function ForcedNewDashboard() {
                     <span>Client: First National Bank</span>
                   </div>
                 </div>
-                
+
                 <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -143,7 +141,7 @@ export default function ForcedNewDashboard() {
                     <span>Client: Homeward Mortgage</span>
                   </div>
                 </div>
-                
+
                 <div className="p-4 border rounded-lg hover:bg-gray-50 transition-colors">
                   <div className="flex justify-between items-start mb-3">
                     <div>
@@ -204,15 +202,21 @@ export default function ForcedNewDashboard() {
               <CardContent className="space-y-3">
                 <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
                   <p className="text-sm font-medium text-red-800">Compliance Review</p>
-                  <p className="text-xs text-red-600">Oak Avenue property needs review before submission</p>
+                  <p className="text-xs text-red-600">
+                    Oak Avenue property needs review before submission
+                  </p>
                 </div>
                 <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                   <p className="text-sm font-medium text-yellow-800">AI Insight</p>
-                  <p className="text-xs text-yellow-600">3.2% variance detected in comparable selection</p>
+                  <p className="text-xs text-yellow-600">
+                    3.2% variance detected in comparable selection
+                  </p>
                 </div>
                 <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm font-medium text-blue-800">Photo Sync</p>
-                  <p className="text-xs text-blue-600">15 new photos synced from TerraField mobile</p>
+                  <p className="text-xs text-blue-600">
+                    15 new photos synced from TerraField mobile
+                  </p>
                 </div>
               </CardContent>
             </Card>

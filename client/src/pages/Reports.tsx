@@ -1,19 +1,19 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  FileText, 
-  Search, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  FileText,
+  Search,
   Download,
   Eye,
   Calendar,
   Building2,
   Filter,
   Plus,
-  MoreHorizontal
-} from 'lucide-react';
+  MoreHorizontal,
+} from "lucide-react";
 
 export default function Reports() {
   return (
@@ -84,12 +84,8 @@ export default function Reports() {
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-slate-600">
-                Last updated: 2 hours ago by John Doe
-              </div>
-              <div className="text-sm font-medium text-slate-900">
-                Progress: 65%
-              </div>
+              <div className="text-sm text-slate-600">Last updated: 2 hours ago by John Doe</div>
+              <div className="text-sm font-medium text-slate-900">Progress: 65%</div>
             </div>
           </CardContent>
         </Card>
@@ -126,12 +122,8 @@ export default function Reports() {
               </div>
             </div>
             <div className="mt-4 flex items-center justify-between">
-              <div className="text-sm text-slate-600">
-                Delivered: May 1, 2025
-              </div>
-              <div className="text-sm font-medium text-green-600">
-                $485,000 valuation
-              </div>
+              <div className="text-sm text-slate-600">Delivered: May 1, 2025</div>
+              <div className="text-sm font-medium text-green-600">$485,000 valuation</div>
             </div>
           </CardContent>
         </Card>
@@ -171,9 +163,7 @@ export default function Reports() {
               <div className="text-sm text-slate-600">
                 Needs attention: Compliance review required
               </div>
-              <div className="text-sm font-medium text-slate-900">
-                Progress: 92%
-              </div>
+              <div className="text-sm font-medium text-slate-900">Progress: 92%</div>
             </div>
           </CardContent>
         </Card>

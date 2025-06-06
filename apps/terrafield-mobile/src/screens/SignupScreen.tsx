@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -12,99 +12,99 @@ import {
   SafeAreaView,
   StatusBar,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { useNavigation } from '@react-navigation/native';
-import { useAuth } from '../hooks/useAuth';
-import * as Colors from '../constants/Colors';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
+import { useAuth } from "../hooks/useAuth";
+import * as Colors from "../constants/Colors";
 
 const SignupScreen = () => {
   const navigation = useNavigation<any>();
   const { register, isLoading, error } = useAuth();
-  
+
   // Form state
-  const [fullName, setFullName] = useState('');
-  const [email, setEmail] = useState('');
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
-  
+
   // Form validation
-  const [fullNameError, setFullNameError] = useState('');
-  const [emailError, setEmailError] = useState('');
-  const [usernameError, setUsernameError] = useState('');
-  const [passwordError, setPasswordError] = useState('');
-  const [confirmPasswordError, setConfirmPasswordError] = useState('');
-  
+  const [fullNameError, setFullNameError] = useState("");
+  const [emailError, setEmailError] = useState("");
+  const [usernameError, setUsernameError] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [confirmPasswordError, setConfirmPasswordError] = useState("");
+
   // Clear errors when inputs change
   useEffect(() => {
-    if (fullName) setFullNameError('');
-    if (email) setEmailError('');
-    if (username) setUsernameError('');
-    if (password) setPasswordError('');
-    if (confirmPassword) setConfirmPasswordError('');
+    if (fullName) setFullNameError("");
+    if (email) setEmailError("");
+    if (username) setUsernameError("");
+    if (password) setPasswordError("");
+    if (confirmPassword) setConfirmPasswordError("");
   }, [fullName, email, username, password, confirmPassword]);
-  
+
   // Validate form
   const validateForm = () => {
     let isValid = true;
-    
+
     // Validate full name
     if (!fullName.trim()) {
-      setFullNameError('Full name is required');
+      setFullNameError("Full name is required");
       isValid = false;
     }
-    
+
     // Validate email
     if (!email.trim()) {
-      setEmailError('Email is required');
+      setEmailError("Email is required");
       isValid = false;
     } else {
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
-        setEmailError('Invalid email format');
+        setEmailError("Invalid email format");
         isValid = false;
       }
     }
-    
+
     // Validate username
     if (!username.trim()) {
-      setUsernameError('Username is required');
+      setUsernameError("Username is required");
       isValid = false;
     } else if (username.length < 4) {
-      setUsernameError('Username must be at least 4 characters');
+      setUsernameError("Username must be at least 4 characters");
       isValid = false;
     }
-    
+
     // Validate password
     if (!password.trim()) {
-      setPasswordError('Password is required');
+      setPasswordError("Password is required");
       isValid = false;
     } else if (password.length < 6) {
-      setPasswordError('Password must be at least 6 characters');
+      setPasswordError("Password must be at least 6 characters");
       isValid = false;
     }
-    
+
     // Validate confirm password
     if (!confirmPassword.trim()) {
-      setConfirmPasswordError('Please confirm your password');
+      setConfirmPasswordError("Please confirm your password");
       isValid = false;
     } else if (password !== confirmPassword) {
-      setConfirmPasswordError('Passwords do not match');
+      setConfirmPasswordError("Passwords do not match");
       isValid = false;
     }
-    
+
     return isValid;
   };
-  
+
   // Handle registration
   const handleSignup = async () => {
     if (!validateForm()) {
       return;
     }
-    
+
     try {
       await register({
         fullName,
@@ -113,31 +113,31 @@ const SignupScreen = () => {
         password,
       });
     } catch (err) {
-      Alert.alert('Registration Error', 'Failed to register. Please try again.');
+      Alert.alert("Registration Error", "Failed to register. Please try again.");
     }
   };
-  
+
   // Navigate to login screen
   const handleNavigateToLogin = () => {
-    navigation.navigate('Login');
+    navigation.navigate("Login");
   };
-  
+
   // Toggle password visibility
   const togglePasswordVisibility = () => {
-    setPasswordVisible(prev => !prev);
+    setPasswordVisible((prev) => !prev);
   };
-  
+
   // Toggle confirm password visibility
   const toggleConfirmPasswordVisibility = () => {
-    setConfirmPasswordVisible(prev => !prev);
+    setConfirmPasswordVisible((prev) => !prev);
   };
-  
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
-      
+
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardAvoidingView}
       >
         <ScrollView
@@ -147,15 +147,12 @@ const SignupScreen = () => {
         >
           {/* Header */}
           <View style={styles.headerContainer}>
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleNavigateToLogin}
-            >
+            <TouchableOpacity style={styles.backButton} onPress={handleNavigateToLogin}>
               <Ionicons name="arrow-back" size={24} color={Colors.primary} />
             </TouchableOpacity>
             <Text style={styles.headerTitle}>Create Account</Text>
           </View>
-          
+
           {/* Error message */}
           {error && (
             <View style={styles.errorContainer}>
@@ -163,14 +160,19 @@ const SignupScreen = () => {
               <Text style={styles.errorText}>{error}</Text>
             </View>
           )}
-          
+
           {/* Signup form */}
           <View style={styles.formContainer}>
             {/* Full Name input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Full Name</Text>
               <View style={[styles.inputWrapper, fullNameError ? styles.inputWrapperError : null]}>
-                <Ionicons name="person" size={20} color={Colors.textLight} style={styles.inputIcon} />
+                <Ionicons
+                  name="person"
+                  size={20}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Enter your full name"
@@ -180,11 +182,9 @@ const SignupScreen = () => {
                   autoCorrect={false}
                 />
               </View>
-              {fullNameError ? (
-                <Text style={styles.errorMessage}>{fullNameError}</Text>
-              ) : null}
+              {fullNameError ? <Text style={styles.errorMessage}>{fullNameError}</Text> : null}
             </View>
-            
+
             {/* Email input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Email</Text>
@@ -201,11 +201,9 @@ const SignupScreen = () => {
                   keyboardType="email-address"
                 />
               </View>
-              {emailError ? (
-                <Text style={styles.errorMessage}>{emailError}</Text>
-              ) : null}
+              {emailError ? <Text style={styles.errorMessage}>{emailError}</Text> : null}
             </View>
-            
+
             {/* Username input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Username</Text>
@@ -221,16 +219,19 @@ const SignupScreen = () => {
                   autoCorrect={false}
                 />
               </View>
-              {usernameError ? (
-                <Text style={styles.errorMessage}>{usernameError}</Text>
-              ) : null}
+              {usernameError ? <Text style={styles.errorMessage}>{usernameError}</Text> : null}
             </View>
-            
+
             {/* Password input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Password</Text>
               <View style={[styles.inputWrapper, passwordError ? styles.inputWrapperError : null]}>
-                <Ionicons name="lock-closed" size={20} color={Colors.textLight} style={styles.inputIcon} />
+                <Ionicons
+                  name="lock-closed"
+                  size={20}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Create a password"
@@ -246,22 +247,30 @@ const SignupScreen = () => {
                   onPress={togglePasswordVisibility}
                 >
                   <Ionicons
-                    name={passwordVisible ? 'eye-off' : 'eye'}
+                    name={passwordVisible ? "eye-off" : "eye"}
                     size={20}
                     color={Colors.textLight}
                   />
                 </TouchableOpacity>
               </View>
-              {passwordError ? (
-                <Text style={styles.errorMessage}>{passwordError}</Text>
-              ) : null}
+              {passwordError ? <Text style={styles.errorMessage}>{passwordError}</Text> : null}
             </View>
-            
+
             {/* Confirm Password input */}
             <View style={styles.inputContainer}>
               <Text style={styles.inputLabel}>Confirm Password</Text>
-              <View style={[styles.inputWrapper, confirmPasswordError ? styles.inputWrapperError : null]}>
-                <Ionicons name="lock-closed" size={20} color={Colors.textLight} style={styles.inputIcon} />
+              <View
+                style={[
+                  styles.inputWrapper,
+                  confirmPasswordError ? styles.inputWrapperError : null,
+                ]}
+              >
+                <Ionicons
+                  name="lock-closed"
+                  size={20}
+                  color={Colors.textLight}
+                  style={styles.inputIcon}
+                />
                 <TextInput
                   style={styles.input}
                   placeholder="Confirm your password"
@@ -277,7 +286,7 @@ const SignupScreen = () => {
                   onPress={toggleConfirmPasswordVisibility}
                 >
                   <Ionicons
-                    name={confirmPasswordVisible ? 'eye-off' : 'eye'}
+                    name={confirmPasswordVisible ? "eye-off" : "eye"}
                     size={20}
                     color={Colors.textLight}
                   />
@@ -287,7 +296,7 @@ const SignupScreen = () => {
                 <Text style={styles.errorMessage}>{confirmPasswordError}</Text>
               ) : null}
             </View>
-            
+
             {/* Submit button */}
             <TouchableOpacity
               style={styles.signupButton}
@@ -300,7 +309,7 @@ const SignupScreen = () => {
                 <Text style={styles.signupButtonText}>Create Account</Text>
               )}
             </TouchableOpacity>
-            
+
             {/* Login link */}
             <View style={styles.loginContainer}>
               <Text style={styles.loginText}>Already have an account?</Text>
@@ -309,7 +318,7 @@ const SignupScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
-          
+
           {/* Terms and conditions */}
           <Text style={styles.termsText}>
             By signing up, you agree to our Terms of Service and Privacy Policy
@@ -333,24 +342,24 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   headerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 30,
-    position: 'relative',
+    position: "relative",
   },
   backButton: {
     padding: 5,
   },
   headerTitle: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     color: Colors.text,
-    textAlign: 'center',
+    textAlign: "center",
     flex: 1,
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.error,
     padding: 15,
     borderRadius: 8,
@@ -378,13 +387,13 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
     marginBottom: 8,
   },
   inputWrapper: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.backgroundDark,
     borderRadius: 8,
     borderWidth: 1,
@@ -416,7 +425,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.primary,
     borderRadius: 8,
     paddingVertical: 14,
-    alignItems: 'center',
+    alignItems: "center",
     marginTop: 10,
     shadowColor: Colors.shadowColor,
     shadowOffset: { width: 0, height: 2 },
@@ -427,11 +436,11 @@ const styles = StyleSheet.create({
   signupButtonText: {
     color: Colors.white,
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   loginContainer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
     marginTop: 20,
   },
   loginText: {
@@ -442,12 +451,12 @@ const styles = StyleSheet.create({
   loginLink: {
     color: Colors.primary,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   termsText: {
     color: Colors.textLight,
     fontSize: 12,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
     lineHeight: 18,
   },

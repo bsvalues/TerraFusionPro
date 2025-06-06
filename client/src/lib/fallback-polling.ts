@@ -4,7 +4,7 @@
  * Uses standard HTTP polling to provide real-time-like functionality
  */
 
-import { queryClient } from './queryClient';
+import { queryClient } from "./queryClient";
 
 // Polling intervals in milliseconds
 const DEFAULT_POLLING_INTERVAL = 10000; // 10 seconds
@@ -44,11 +44,11 @@ class FallbackPollingService implements FallbackPollingSingleton {
 
   constructor() {
     // Add unload event listener to clean up polling tasks
-    window.addEventListener('beforeunload', () => {
+    window.addEventListener("beforeunload", () => {
       this.stopAllPolling();
     });
 
-    console.log('[FallbackPolling] Service initialized as WebSocket alternative');
+    console.log("[FallbackPolling] Service initialized as WebSocket alternative");
   }
 
   /**
@@ -56,7 +56,7 @@ class FallbackPollingService implements FallbackPollingSingleton {
    */
   public startPolling(id: string, config: PollingConfig): void {
     if (!this.globalEnabled) {
-      console.warn('[FallbackPolling] Polling is globally disabled');
+      console.warn("[FallbackPolling] Polling is globally disabled");
       return;
     }
 
@@ -73,9 +73,9 @@ class FallbackPollingService implements FallbackPollingSingleton {
       id,
       config: {
         ...config,
-        intervalMs
+        intervalMs,
       },
-      isActive: true
+      isActive: true,
     };
 
     this.pollingTasks.set(id, task);
@@ -92,12 +92,12 @@ class FallbackPollingService implements FallbackPollingSingleton {
     const task = this.pollingTasks.get(id);
     if (task) {
       task.isActive = false;
-      
+
       if (task.timeoutId) {
         window.clearTimeout(task.timeoutId);
         task.timeoutId = undefined;
       }
-      
+
       this.pollingTasks.delete(id);
       console.log(`[FallbackPolling] Stopped polling for ${id}`);
     }
@@ -110,7 +110,7 @@ class FallbackPollingService implements FallbackPollingSingleton {
     for (const id of this.pollingTasks.keys()) {
       this.stopPolling(id);
     }
-    console.log('[FallbackPolling] Stopped all polling tasks');
+    console.log("[FallbackPolling] Stopped all polling tasks");
   }
 
   /**
@@ -123,10 +123,10 @@ class FallbackPollingService implements FallbackPollingSingleton {
         MIN_POLLING_INTERVAL,
         Math.min(intervalMs, MAX_POLLING_INTERVAL)
       );
-      
+
       task.config.intervalMs = newInterval;
       console.log(`[FallbackPolling] Updated polling interval for ${id} to ${newInterval}ms`);
-      
+
       // Restart polling with new interval
       if (task.timeoutId) {
         window.clearTimeout(task.timeoutId);
@@ -140,7 +140,7 @@ class FallbackPollingService implements FallbackPollingSingleton {
    */
   public setGlobalEnabled(enabled: boolean): void {
     this.globalEnabled = enabled;
-    
+
     if (!enabled) {
       this.stopAllPolling();
     }
@@ -169,15 +169,15 @@ class FallbackPollingService implements FallbackPollingSingleton {
 
     try {
       // Use React Query's fetch infrastructure for consistency
-      const queryKeyArray = Array.isArray(task.config.queryKey) 
-        ? task.config.queryKey 
+      const queryKeyArray = Array.isArray(task.config.queryKey)
+        ? task.config.queryKey
         : [task.config.queryKey];
-        
+
       // Force refetch the data
       await queryClient.fetchQuery({
         queryKey: queryKeyArray,
-        queryFn: () => fetch(task.config.endpoint).then(res => res.json()),
-        staleTime: 0
+        queryFn: () => fetch(task.config.endpoint).then((res) => res.json()),
+        staleTime: 0,
       });
 
       // Additional callback if provided
@@ -187,13 +187,13 @@ class FallbackPollingService implements FallbackPollingSingleton {
       }
     } catch (error) {
       console.error(`[FallbackPolling] Error polling ${id}:`, error);
-      
+
       if (task.config.onError) {
         task.config.onError(error);
       }
     } finally {
       task.lastPollTime = Date.now();
-      
+
       // Schedule next poll if still active
       if (task.isActive) {
         this.schedulePoll(id);

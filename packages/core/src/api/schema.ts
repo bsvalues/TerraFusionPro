@@ -1,6 +1,6 @@
-import { makeExecutableSchema } from '@graphql-tools/schema';
-import { ExtensionPointManager } from '../plugins/extension-point';
-import { ExtensionPointType } from '../plugins/types';
+import { makeExecutableSchema } from "@graphql-tools/schema";
+import { ExtensionPointManager } from "../plugins/extension-point";
+import { ExtensionPointType } from "../plugins/types";
 
 // Define the base schema
 const baseTypeDefs = `
@@ -33,10 +33,11 @@ interface SchemaExtension {
 export function generateSchema() {
   // Get the extension point manager
   const extensionPointManager = ExtensionPointManager.getInstance();
-  
+
   // Get all schema extensions
-  const schemaExtensionPoint = extensionPointManager.getExtensionPoint<SchemaExtension>('core.schema');
-  
+  const schemaExtensionPoint =
+    extensionPointManager.getExtensionPoint<SchemaExtension>("core.schema");
+
   if (!schemaExtensionPoint) {
     // If no schema extension point exists, return just the base schema
     return makeExecutableSchema({
@@ -54,16 +55,13 @@ export function generateSchema() {
       },
     });
   }
-  
+
   // Get all schema extensions
   const schemaExtensions = schemaExtensionPoint.getExtensions();
-  
+
   // Combine all type definitions
-  const typeDefs = [
-    baseTypeDefs,
-    ...schemaExtensions.map(extension => extension.typeDefs),
-  ];
-  
+  const typeDefs = [baseTypeDefs, ...schemaExtensions.map((extension) => extension.typeDefs)];
+
   // Combine all resolvers
   const resolvers = schemaExtensions.reduce(
     (acc, extension) => {
@@ -82,7 +80,7 @@ export function generateSchema() {
       },
     }
   );
-  
+
   // Create the executable schema
   return makeExecutableSchema({
     typeDefs,
@@ -99,14 +97,15 @@ export function generateSchema() {
 export function registerSchemaExtension(id: string, typeDefs: string, resolvers: any) {
   // Get the extension point manager
   const extensionPointManager = ExtensionPointManager.getInstance();
-  
+
   // Get the schema extension point
-  const schemaExtensionPoint = extensionPointManager.getExtensionPoint<SchemaExtension>('core.schema');
-  
+  const schemaExtensionPoint =
+    extensionPointManager.getExtensionPoint<SchemaExtension>("core.schema");
+
   if (!schemaExtensionPoint) {
-    throw new Error('Schema extension point not registered');
+    throw new Error("Schema extension point not registered");
   }
-  
+
   // Register the schema extension
   schemaExtensionPoint.register({
     id,
@@ -122,14 +121,14 @@ export function registerSchemaExtension(id: string, typeDefs: string, resolvers:
  */
 function mergeResolvers(target: any, source: any) {
   const result = { ...target };
-  
-  Object.keys(source).forEach(key => {
-    if (result[key] && typeof result[key] === 'object' && !Array.isArray(result[key])) {
+
+  Object.keys(source).forEach((key) => {
+    if (result[key] && typeof result[key] === "object" && !Array.isArray(result[key])) {
       result[key] = mergeResolvers(result[key], source[key]);
     } else {
       result[key] = source[key];
     }
   });
-  
+
   return result;
 }

@@ -7,11 +7,13 @@ This document describes the integration between the TerraField mobile app and th
 The integration consists of the following components:
 
 1. **Mobile App**:
+
    - React Native application with offline storage capabilities
    - Uses CRDT package to manage data synchronization
    - Provides offline photo capture and notes functionality
 
 2. **Backend Server**:
+
    - Express.js API with WebSocket support
    - CRDT synchronization endpoints
    - Database storage for synchronized data
@@ -191,23 +193,23 @@ The mobile app uses the `ApiService` class to communicate with the backend:
 ```typescript
 // Get singleton instance
 const api = ApiService.getInstance({
-  baseUrl: 'https://api.example.com',
-  wsBaseUrl: 'wss://api.example.com'
+  baseUrl: "https://api.example.com",
+  wsBaseUrl: "wss://api.example.com",
 });
 
 // Authentication
-api.setAuthToken('token');
+api.setAuthToken("token");
 const isAuthenticated = api.isAuthenticated();
 
 // CRDT Sync operations
-const notesResult = await api.getParcelNotes('parcel123');
-const syncResult = await api.syncParcelNotes('parcel123', encodedUpdate);
+const notesResult = await api.getParcelNotes("parcel123");
+const syncResult = await api.syncParcelNotes("parcel123", encodedUpdate);
 
-const photosResult = await api.getReportPhotos('report456');
-const photoSyncResult = await api.syncReportPhotos('report456', encodedUpdate);
+const photosResult = await api.getReportPhotos("report456");
+const photoSyncResult = await api.syncReportPhotos("report456", encodedUpdate);
 
 // WebSocket for real-time updates
-const ws = api.createWebSocket('/ws');
+const ws = api.createWebSocket("/ws");
 ```
 
 ## Photo Sync Service
@@ -216,40 +218,40 @@ The mobile app includes a `PhotoSyncService` for managing photo synchronization:
 
 ```typescript
 // Get singleton instance
-const photoSync = PhotoSyncService.getInstance('https://api.example.com');
+const photoSync = PhotoSyncService.getInstance("https://api.example.com");
 
 // Add new photo
 const photoId = photoSync.addPhoto({
-  reportId: 'report456',
-  photoType: 'SUBJECT',
-  url: '',
-  caption: 'Front view',
+  reportId: "report456",
+  photoType: "SUBJECT",
+  url: "",
+  caption: "Front view",
   dateTaken: new Date().toISOString(),
   latitude: 37.7749,
   longitude: -122.4194,
   isOffline: true,
-  localPath: '/path/to/local/photo.jpg'
+  localPath: "/path/to/local/photo.jpg",
 });
 
 // Update photo metadata
-photoSync.updatePhoto(photoId, 'report456', {
-  caption: 'Updated caption'
+photoSync.updatePhoto(photoId, "report456", {
+  caption: "Updated caption",
 });
 
 // Remove photo
-photoSync.removePhoto(photoId, 'report456');
+photoSync.removePhoto(photoId, "report456");
 
 // Get all photos for a report
-const photos = photoSync.getPhotos('report456');
+const photos = photoSync.getPhotos("report456");
 
 // Get pending photos (not yet synced)
-const pendingPhotos = photoSync.getPendingPhotos('report456');
+const pendingPhotos = photoSync.getPendingPhotos("report456");
 
 // Sync with server
-await photoSync.syncReport('report456');
+await photoSync.syncReport("report456");
 
 // Initialize from server
-await photoSync.initializeFromServer('report456');
+await photoSync.initializeFromServer("report456");
 ```
 
 ## AI-Powered Photo Enhancement

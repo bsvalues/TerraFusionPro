@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react';
-import { UADFormSection as UADFormSectionComponent } from './UADFormSection';
-import { UADFormSection, UADField } from './constants';
-import { useUADForm } from '@/contexts/UADFormContext';
-import { Button } from '@/components/ui/button';
-import { 
+import React, { useEffect, useState } from "react";
+import { UADFormSection as UADFormSectionComponent } from "./UADFormSection";
+import { UADFormSection, UADField } from "./constants";
+import { useUADForm } from "@/contexts/UADFormContext";
+import { Button } from "@/components/ui/button";
+import {
   AlertDialog,
   AlertDialogAction,
   AlertDialogCancel,
@@ -12,13 +12,21 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from '@/components/ui/alert-dialog';
-import { useToast } from '@/hooks/use-toast';
-import { Alert, AlertTitle, AlertDescription } from '@/components/ui/alert';
-import { 
-  Save, RotateCcw, AlertTriangle, Check, RefreshCw, ExternalLink, Printer, FileUp, FileDown
-} from 'lucide-react';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/alert-dialog";
+import { useToast } from "@/hooks/use-toast";
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
+import {
+  Save,
+  RotateCcw,
+  AlertTriangle,
+  Check,
+  RefreshCw,
+  ExternalLink,
+  Printer,
+  FileUp,
+  FileDown,
+} from "lucide-react";
+import { cn } from "@/lib/utils";
 
 interface UADFormProps {
   propertyId?: number;
@@ -35,7 +43,7 @@ export const UADForm: React.FC<UADFormProps> = ({
   const [showResetConfirm, setShowResetConfirm] = useState(false);
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
-  
+
   const {
     formData,
     updateField,
@@ -46,126 +54,126 @@ export const UADForm: React.FC<UADFormProps> = ({
     loadFormDataFromProperty,
     isLoading,
     currentPropertyId,
-    hasUnsavedChanges
+    hasUnsavedChanges,
   } = useUADForm();
-  
+
   // Load property data when the component mounts or propertyId changes
   useEffect(() => {
     if (propertyId && propertyId !== currentPropertyId) {
       loadFormDataFromProperty(propertyId);
     }
   }, [propertyId, currentPropertyId, loadFormDataFromProperty]);
-  
+
   // Handle save
   const handleSave = async () => {
     try {
       await saveChanges();
       toast({
-        title: 'Form saved successfully',
-        description: 'All changes have been saved.',
-        variant: 'default',
+        title: "Form saved successfully",
+        description: "All changes have been saved.",
+        variant: "default",
       });
     } catch (error) {
-      console.error('Error saving form:', error);
+      console.error("Error saving form:", error);
       toast({
-        title: 'Error saving form',
-        description: 'An error occurred while saving the form.',
-        variant: 'destructive',
+        title: "Error saving form",
+        description: "An error occurred while saving the form.",
+        variant: "destructive",
       });
     }
   };
-  
+
   // Handle reset
   const handleReset = () => {
     setShowResetConfirm(true);
   };
-  
+
   const confirmReset = () => {
     resetChanges();
     setShowResetConfirm(false);
     toast({
-      title: 'Form reset',
-      description: 'All changes have been reverted.',
-      variant: 'default',
+      title: "Form reset",
+      description: "All changes have been reverted.",
+      variant: "default",
     });
   };
-  
+
   // Sync data with property - refreshes data from the database
   const handleRefresh = async () => {
     if (!currentPropertyId) return;
-    
+
     if (hasUnsavedChanges) {
       const confirmed = window.confirm(
-        'You have unsaved changes that will be lost if you refresh. Continue?'
+        "You have unsaved changes that will be lost if you refresh. Continue?"
       );
       if (!confirmed) return;
     }
-    
+
     setLoading(true);
     try {
       await loadFormDataFromProperty(currentPropertyId);
       toast({
-        title: 'Form refreshed',
-        description: 'The form has been refreshed with the latest property data.',
-        variant: 'default',
+        title: "Form refreshed",
+        description: "The form has been refreshed with the latest property data.",
+        variant: "default",
       });
     } catch (error) {
-      console.error('Error refreshing form:', error);
+      console.error("Error refreshing form:", error);
       toast({
-        title: 'Error refreshing form',
-        description: 'An error occurred while refreshing the form.',
-        variant: 'destructive',
+        title: "Error refreshing form",
+        description: "An error occurred while refreshing the form.",
+        variant: "destructive",
       });
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Toggle between edit and view modes
   const toggleViewMode = () => {
     setViewMode(!viewMode);
   };
-  
+
   // Form sections configuration
   const formSections = [
     {
       id: UADFormSection.SUBJECT_PROPERTY,
-      title: 'Subject Property',
-      description: 'Basic information about the subject property'
+      title: "Subject Property",
+      description: "Basic information about the subject property",
     },
     {
       id: UADFormSection.IMPROVEMENTS,
-      title: 'Improvements',
-      description: 'Physical characteristics and condition of the improvements',
+      title: "Improvements",
+      description: "Physical characteristics and condition of the improvements",
       subsections: [
-        { id: 'general', title: 'General Characteristics' },
-        { id: 'rooms', title: 'Room Count' },
-        { id: 'basement', title: 'Basement & Finished Areas Below Grade' }
-      ]
+        { id: "general", title: "General Characteristics" },
+        { id: "rooms", title: "Room Count" },
+        { id: "basement", title: "Basement & Finished Areas Below Grade" },
+      ],
     },
     {
       id: UADFormSection.SITE,
-      title: 'Site',
-      description: 'Information about the site and land characteristics'
+      title: "Site",
+      description: "Information about the site and land characteristics",
     },
     {
       id: UADFormSection.SALES_COMPARISON,
-      title: 'Sales Comparison Approach',
-      description: 'Comparable sales analysis and adjustments',
+      title: "Sales Comparison Approach",
+      description: "Comparable sales analysis and adjustments",
       subsections: [
-        { id: 'subject', title: 'Subject' },
-        { id: 'comparable1', title: 'Comparable #1' },
-        { id: 'comparable2', title: 'Comparable #2' },
-        { id: 'comparable3', title: 'Comparable #3' }
-      ]
+        { id: "subject", title: "Subject" },
+        { id: "comparable1", title: "Comparable #1" },
+        { id: "comparable2", title: "Comparable #2" },
+        { id: "comparable3", title: "Comparable #3" },
+      ],
     },
     {
       id: UADFormSection.RECONCILIATION,
-      title: 'Reconciliation',
-      description: 'Final value reconciliation and conclusions'
-    }
+      title: "Reconciliation",
+      description: "Final value reconciliation and conclusions",
+    },
   ];
-  
+
   // Loading state
   if (isLoading) {
     return (
@@ -177,7 +185,7 @@ export const UADForm: React.FC<UADFormProps> = ({
       </div>
     );
   }
-  
+
   // No property selected state
   if (!currentPropertyId && !propertyId) {
     return (
@@ -190,22 +198,22 @@ export const UADForm: React.FC<UADFormProps> = ({
       </div>
     );
   }
-  
+
   return (
     <div className={className}>
       {/* Form Header and Controls */}
       <div className="mb-6 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight">Uniform Residential Appraisal Report</h1>
-          <p className="text-muted-foreground">Form 1004 UAD / Fannie Mae Form 1004 / Freddie Mac Form 70</p>
+          <h1 className="text-2xl font-bold tracking-tight">
+            Uniform Residential Appraisal Report
+          </h1>
+          <p className="text-muted-foreground">
+            Form 1004 UAD / Fannie Mae Form 1004 / Freddie Mac Form 70
+          </p>
         </div>
-        
+
         <div className="flex flex-wrap gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleViewMode}
-          >
+          <Button variant="outline" size="sm" onClick={toggleViewMode}>
             {viewMode ? (
               <>
                 <ExternalLink className="mr-2 h-4 w-4" />
@@ -218,43 +226,29 @@ export const UADForm: React.FC<UADFormProps> = ({
               </>
             )}
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-          >
+
+          <Button variant="outline" size="sm" onClick={handleRefresh} disabled={loading}>
             <RefreshCw className={cn("mr-2 h-4 w-4", loading && "animate-spin")} />
             Refresh
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-          >
+
+          <Button variant="outline" size="sm">
             <Printer className="mr-2 h-4 w-4" />
             Print
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-          >
+
+          <Button variant="outline" size="sm">
             <FileDown className="mr-2 h-4 w-4" />
             Export
           </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-          >
+
+          <Button variant="outline" size="sm">
             <FileUp className="mr-2 h-4 w-4" />
             Import
           </Button>
         </div>
       </div>
-      
+
       {/* Unsaved Changes Warning */}
       {hasUnsavedChanges && (
         <Alert className="mb-6 bg-amber-50 border-amber-500">
@@ -265,7 +259,7 @@ export const UADForm: React.FC<UADFormProps> = ({
           </AlertDescription>
         </Alert>
       )}
-      
+
       {/* Form Sections */}
       {formSections.map((section) => (
         <UADFormSectionComponent
@@ -278,22 +272,15 @@ export const UADForm: React.FC<UADFormProps> = ({
           defaultExpanded={section.id === UADFormSection.SUBJECT_PROPERTY}
         />
       ))}
-      
+
       {/* Form Controls */}
       <div className="sticky bottom-4 flex justify-end space-x-4 bg-background p-4 border rounded-lg shadow-md">
-        <Button
-          variant="outline"
-          onClick={handleReset}
-          disabled={!isDataChanged || isSaving}
-        >
+        <Button variant="outline" onClick={handleReset} disabled={!isDataChanged || isSaving}>
           <RotateCcw className="mr-2 h-4 w-4" />
           Reset Changes
         </Button>
-        
-        <Button
-          onClick={handleSave}
-          disabled={!isDataChanged || isSaving}
-        >
+
+        <Button onClick={handleSave} disabled={!isDataChanged || isSaving}>
           {isSaving ? (
             <>
               <div className="animate-spin mr-2 h-4 w-4 border-b-2 rounded-full border-background"></div>
@@ -307,7 +294,7 @@ export const UADForm: React.FC<UADFormProps> = ({
           )}
         </Button>
       </div>
-      
+
       {/* Reset Confirmation Dialog */}
       <AlertDialog open={showResetConfirm} onOpenChange={setShowResetConfirm}>
         <AlertDialogContent>

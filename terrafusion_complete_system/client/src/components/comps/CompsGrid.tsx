@@ -48,11 +48,11 @@ interface CompsGridProps {
   onPushToForm?: (comparable: ComparableRecord) => void;
 }
 
-type SortField = 
-  | "saleAmount" 
-  | "saleDate" 
-  | "squareFeet" 
-  | "distanceToSubject" 
+type SortField =
+  | "saleAmount"
+  | "saleDate"
+  | "squareFeet"
+  | "distanceToSubject"
   | "yearBuilt"
   | "acreage"
   | "bedrooms"
@@ -74,20 +74,21 @@ export function CompsGrid({
   const [sortDirection, setSortDirection] = useState<SortDirection>("desc");
   const [filterText, setFilterText] = useState("");
   const [detailRecord, setDetailRecord] = useState<ComparableRecord | null>(null);
-  
+
   // Sort and filter records
   const sortedRecords = React.useMemo(() => {
     // First filter
     let filtered = records;
     if (filterText) {
       const lowercaseFilter = filterText.toLowerCase();
-      filtered = records.filter(record => 
-        record.address.toLowerCase().includes(lowercaseFilter) ||
-        record.city.toLowerCase().includes(lowercaseFilter) ||
-        record.county.toLowerCase().includes(lowercaseFilter)
+      filtered = records.filter(
+        (record) =>
+          record.address.toLowerCase().includes(lowercaseFilter) ||
+          record.city.toLowerCase().includes(lowercaseFilter) ||
+          record.county.toLowerCase().includes(lowercaseFilter)
       );
     }
-    
+
     // Then sort
     return [...filtered].sort((a, b) => {
       // Special handling for dates
@@ -96,21 +97,23 @@ export function CompsGrid({
         const dateB = new Date(b.saleDate).getTime();
         return sortDirection === "asc" ? dateA - dateB : dateB - dateA;
       }
-      
+
       // Handle numeric fields
       const fieldA = a[sortField as keyof typeof a] as number | undefined;
       const fieldB = b[sortField as keyof typeof b] as number | undefined;
-      
+
       // Handle undefined values
       if (fieldA === undefined && fieldB === undefined) return 0;
       if (fieldA === undefined) return sortDirection === "asc" ? -1 : 1;
       if (fieldB === undefined) return sortDirection === "asc" ? 1 : -1;
-      
+
       // Normal numeric comparison
-      return sortDirection === "asc" ? Number(fieldA) - Number(fieldB) : Number(fieldB) - Number(fieldA);
+      return sortDirection === "asc"
+        ? Number(fieldA) - Number(fieldB)
+        : Number(fieldB) - Number(fieldA);
     });
   }, [records, sortField, sortDirection, filterText]);
-  
+
   const toggleSort = (field: SortField) => {
     if (sortField === field) {
       setSortDirection(sortDirection === "asc" ? "desc" : "asc");
@@ -119,7 +122,7 @@ export function CompsGrid({
       setSortDirection("desc"); // Default to descending when changing fields
     }
   };
-  
+
   const getSortIcon = (field: SortField) => {
     if (sortField !== field) return null;
     return sortDirection === "asc" ? (
@@ -128,20 +131,20 @@ export function CompsGrid({
       <ChevronDown className="h-4 w-4 ml-1" />
     );
   };
-  
+
   const handleRowClick = (comparable: ComparableRecord) => {
     if (onComparableClick) {
       onComparableClick(comparable);
     }
   };
-  
+
   const toggleSelection = (comparable: ComparableRecord) => {
     if (onComparableSelect) {
       const isSelected = selectedIds.includes(comparable.id);
       onComparableSelect(comparable, !isSelected);
     }
   };
-  
+
   // Render loading state
   if (isLoading) {
     return (
@@ -164,7 +167,7 @@ export function CompsGrid({
       </Card>
     );
   }
-  
+
   // Render error state
   if (error) {
     return (
@@ -178,7 +181,7 @@ export function CompsGrid({
       </Card>
     );
   }
-  
+
   return (
     <Card className="w-full">
       <CardHeader className="pb-3">
@@ -194,18 +197,14 @@ export function CompsGrid({
             />
           </div>
         </div>
-        <CardDescription>
-          {sortedRecords.length} comparable properties found
-        </CardDescription>
+        <CardDescription>{sortedRecords.length} comparable properties found</CardDescription>
       </CardHeader>
       <CardContent className="p-0">
         <div className="border rounded-md">
           <Table>
             <TableHeader>
               <TableRow>
-                {showSelectionColumn && (
-                  <TableHead className="w-12">Select</TableHead>
-                )}
+                {showSelectionColumn && <TableHead className="w-12">Select</TableHead>}
                 <TableHead>Address</TableHead>
                 <TableHead>
                   <button
@@ -261,10 +260,7 @@ export function CompsGrid({
             <TableBody>
               {sortedRecords.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={showSelectionColumn ? 9 : 8}
-                    className="h-24 text-center"
-                  >
+                  <TableCell colSpan={showSelectionColumn ? 9 : 8} className="h-24 text-center">
                     No comparable properties found.
                   </TableCell>
                 </TableRow>
@@ -287,25 +283,32 @@ export function CompsGrid({
                     )}
                     <TableCell className="font-medium">
                       <div>{record.address}</div>
-                      <div className="text-xs text-muted-foreground">{record.city}, {record.state}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {record.city}, {record.state}
+                      </div>
                     </TableCell>
                     <TableCell>
                       <div className="font-semibold">${record.saleAmount.toLocaleString()}</div>
-                      {record.adjustedSaleAmount && record.adjustedSaleAmount !== record.saleAmount && (
-                        <div className="text-xs text-muted-foreground">Adj: ${record.adjustedSaleAmount.toLocaleString()}</div>
-                      )}
+                      {record.adjustedSaleAmount &&
+                        record.adjustedSaleAmount !== record.saleAmount && (
+                          <div className="text-xs text-muted-foreground">
+                            Adj: ${record.adjustedSaleAmount.toLocaleString()}
+                          </div>
+                        )}
                     </TableCell>
                     <TableCell>
-                      {record.saleDate
-                        ? new Date(record.saleDate).toLocaleDateString()
-                        : "N/A"}
+                      {record.saleDate ? new Date(record.saleDate).toLocaleDateString() : "N/A"}
                     </TableCell>
                     <TableCell>
                       {record.squareFeet ? `${record.squareFeet.toLocaleString()} sqft` : "N/A"}
                     </TableCell>
                     <TableCell>{record.yearBuilt || "N/A"}</TableCell>
-                    <TableCell className="hidden md:table-cell">{record.bedrooms || "N/A"}</TableCell>
-                    <TableCell className="hidden md:table-cell">{record.bathrooms || "N/A"}</TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {record.bedrooms || "N/A"}
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">
+                      {record.bathrooms || "N/A"}
+                    </TableCell>
                     <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                       <div className="flex justify-end gap-2">
                         <Dialog>
@@ -394,7 +397,7 @@ export function CompsGrid({
                             </div>
                             <DialogFooter>
                               {onPushToForm && (
-                                <Button 
+                                <Button
                                   onClick={() => {
                                     onPushToForm(record);
                                     setDetailRecord(null);
@@ -407,13 +410,9 @@ export function CompsGrid({
                             </DialogFooter>
                           </DialogContent>
                         </Dialog>
-                        
+
                         {onPushToForm && (
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => onPushToForm(record)}
-                          >
+                          <Button variant="outline" size="sm" onClick={() => onPushToForm(record)}>
                             <Check className="h-4 w-4 mr-2" />
                             Use
                           </Button>
@@ -438,7 +437,7 @@ export function CompsGrid({
               size="sm"
               disabled={selectedIds.length === 0}
               onClick={() => {
-                const selectedRecord = sortedRecords.find(r => r.id === selectedIds[0]);
+                const selectedRecord = sortedRecords.find((r) => r.id === selectedIds[0]);
                 if (selectedRecord && onPushToForm) {
                   onPushToForm(selectedRecord);
                 }

@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 import {
   Table,
   TableBody,
@@ -6,13 +6,13 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table';
-import { cn } from '@/lib/utils';
-import { LoadingState } from '@/components/ui/loading-state';
-import { ErrorState } from '@/components/ui/error-state';
-import { Button } from '@/components/ui/button';
-import { RefreshCw, Search, Plus } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+} from "@/components/ui/table";
+import { cn } from "@/lib/utils";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Button } from "@/components/ui/button";
+import { RefreshCw, Search, Plus } from "lucide-react";
+import { Input } from "@/components/ui/input";
 
 export interface Column<T> {
   header: string;
@@ -45,14 +45,14 @@ export function DataTable<T>({
   onRetry,
   className,
   emptyState,
-  searchPlaceholder = 'Search...',
+  searchPlaceholder = "Search...",
   onSearch,
   onAdd,
-  addButtonText = 'Add New',
+  addButtonText = "Add New",
   keyExtractor = (item: any) => item.id,
-  onRowClick
+  onRowClick,
 }: DataTableProps<T>) {
-  const [searchQuery, setSearchQuery] = React.useState('');
+  const [searchQuery, setSearchQuery] = React.useState("");
 
   const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {
     const query = e.target.value;
@@ -61,7 +61,7 @@ export function DataTable<T>({
   };
 
   const renderAccessor = (row: T, accessor: keyof T | ((row: T) => any)) => {
-    if (typeof accessor === 'function') {
+    if (typeof accessor === "function") {
       return accessor(row);
     }
     return row[accessor];
@@ -124,17 +124,14 @@ export function DataTable<T>({
       <LoadingState
         isLoading={isLoading}
         loadingText="Loading data..."
-        variant={isLoading && data.length === 0 ? 'skeleton' : 'overlay'}
+        variant={isLoading && data.length === 0 ? "skeleton" : "overlay"}
       >
         <div className="rounded-md border">
           <Table>
             <TableHeader>
               <TableRow>
                 {columns.map((column, index) => (
-                  <TableHead
-                    key={index}
-                    className={column.className}
-                  >
+                  <TableHead key={index} className={column.className}>
                     {column.header}
                   </TableHead>
                 ))}
@@ -143,10 +140,7 @@ export function DataTable<T>({
             <TableBody>
               {data.length === 0 ? (
                 <TableRow>
-                  <TableCell
-                    colSpan={columns.length}
-                    className="h-24"
-                  >
+                  <TableCell colSpan={columns.length} className="h-24">
                     {renderEmptyState()}
                   </TableCell>
                 </TableRow>
@@ -159,9 +153,7 @@ export function DataTable<T>({
                   >
                     {columns.map((column, columnIndex) => (
                       <TableCell key={columnIndex} className={column.className}>
-                        {column.cell
-                          ? column.cell(row)
-                          : renderAccessor(row, column.accessorKey)}
+                        {column.cell ? column.cell(row) : renderAccessor(row, column.accessorKey)}
                       </TableCell>
                     ))}
                   </TableRow>

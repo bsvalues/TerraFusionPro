@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from "react";
 import {
   View,
   Text,
@@ -10,12 +10,12 @@ import {
   Animated,
   Keyboard,
   Alert,
-} from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as Colors from '../constants/Colors';
-import { DataSyncService, FieldNote, UserPresence } from '../services/DataSyncService';
-import { NotificationService } from '../services/NotificationService';
-import { ApiService } from '../services/ApiService';
+} from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import * as Colors from "../constants/Colors";
+import { DataSyncService, FieldNote, UserPresence } from "../services/DataSyncService";
+import { NotificationService } from "../services/NotificationService";
+import { ApiService } from "../services/ApiService";
 
 interface CollaborativeFieldNotesProps {
   propertyId: string;
@@ -36,41 +36,41 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
   const [activeUsers, setActiveUsers] = useState<UserPresence[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
-  const [noteText, setNoteText] = useState('');
+  const [noteText, setNoteText] = useState("");
   const [isOffline, setIsOffline] = useState(false);
-  
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(-50)).current;
-  
+
   // References
   const flatListRef = useRef<FlatList>(null);
-  
+
   // Services
   const dataSyncService = DataSyncService.getInstance();
   const notificationService = NotificationService.getInstance();
   const apiService = ApiService.getInstance();
-  
+
   // Document ID for Yjs
   const docId = `property_${propertyId}_parcel_${parcelId}`;
-  
+
   // Load initial data
   useEffect(() => {
     // Set client state in DataSyncService
     dataSyncService.setClientState(userId, userName);
-    
+
     // Load notes
     loadNotes();
-    
+
     // Set up refresh interval
     const interval = setInterval(() => {
       refreshNotes();
     }, 5000); // Refresh every 5 seconds
-    
+
     // Set up connection status change listener
     const connectionStatusListener = () => {
       setIsOffline(!apiService.isConnected());
-      
+
       // Animate notification
       if (!apiService.isConnected()) {
         showOfflineNotification();
@@ -78,105 +78,102 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
         hideOfflineNotification();
       }
     };
-    
+
     // Check initial connection status
     setIsOffline(!apiService.isConnected());
     if (!apiService.isConnected()) {
       showOfflineNotification();
     }
-    
+
     // Clean up
     return () => {
       clearInterval(interval);
     };
   }, [propertyId, parcelId]);
-  
+
   // Load notes
   const loadNotes = async () => {
     try {
       setIsLoading(true);
       await refreshNotes();
     } catch (error) {
-      console.error('Error loading notes:', error);
-      Alert.alert('Error', 'Failed to load field notes. Please try again.');
+      console.error("Error loading notes:", error);
+      Alert.alert("Error", "Failed to load field notes. Please try again.");
     } finally {
       setIsLoading(false);
     }
   };
-  
+
   // Refresh notes
   const refreshNotes = async () => {
     try {
       const fieldNotes = await dataSyncService.getFieldNotes(docId, parcelId);
-      
+
       // Sort by creation date (newest first)
       const sortedNotes = [...fieldNotes].sort(
         (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
-      
+
       setNotes(sortedNotes);
-      
+
       // Get active users
       const users = dataSyncService.getActiveUsers(docId);
       setActiveUsers(users);
     } catch (error) {
-      console.error('Error refreshing notes:', error);
+      console.error("Error refreshing notes:", error);
     }
   };
-  
+
   // Add a new note
   const addNote = async () => {
     if (!noteText.trim()) {
       return;
     }
-    
+
     Keyboard.dismiss();
-    
+
     try {
-      await dataSyncService.addFieldNote(
-        docId,
-        parcelId,
-        noteText.trim(),
-        userId,
-        userName
-      );
-      
-      setNoteText('');
+      await dataSyncService.addFieldNote(docId, parcelId, noteText.trim(), userId, userName);
+
+      setNoteText("");
       await refreshNotes();
-      
+
       // Scroll to top
       if (notes.length > 0) {
         flatListRef.current?.scrollToOffset({ offset: 0, animated: true });
       }
     } catch (error) {
-      console.error('Error adding note:', error);
-      Alert.alert('Error', 'Failed to add note. Please try again.');
+      console.error("Error adding note:", error);
+      Alert.alert("Error", "Failed to add note. Please try again.");
     }
   };
-  
+
   // Sync notes with server
   const syncNotes = async () => {
     if (!apiService.isConnected()) {
-      Alert.alert('Offline', 'You are currently offline. Please try again when you have an internet connection.');
+      Alert.alert(
+        "Offline",
+        "You are currently offline. Please try again when you have an internet connection."
+      );
       return;
     }
-    
+
     try {
       setIsSyncing(true);
       if (onSyncStatusChange) {
         onSyncStatusChange(true);
       }
-      
+
       await dataSyncService.syncDoc(docId, parcelId);
       await refreshNotes();
-      
+
       notificationService.sendSystemNotification(
-        'Sync Complete',
-        'Field notes have been synchronized successfully.'
+        "Sync Complete",
+        "Field notes have been synchronized successfully."
       );
     } catch (error) {
-      console.error('Error syncing notes:', error);
-      Alert.alert('Error', 'Failed to sync notes. Please try again.');
+      console.error("Error syncing notes:", error);
+      Alert.alert("Error", "Failed to sync notes. Please try again.");
     } finally {
       setIsSyncing(false);
       if (onSyncStatusChange) {
@@ -184,7 +181,7 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
       }
     }
   };
-  
+
   // Show offline notification
   const showOfflineNotification = () => {
     Animated.parallel([
@@ -200,7 +197,7 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
       }),
     ]).start();
   };
-  
+
   // Hide offline notification
   const hideOfflineNotification = () => {
     Animated.parallel([
@@ -216,39 +213,36 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
       }),
     ]).start();
   };
-  
+
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      year: 'numeric',
-      hour: 'numeric',
-      minute: 'numeric',
+    return date.toLocaleString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "numeric",
       hour12: true,
     });
   };
-  
+
   // Render note item
   const renderNoteItem = ({ item }: { item: FieldNote }) => {
     const isOwnNote = item.userId === userId;
-    const userColor = activeUsers.find(u => u.userId === item.userId)?.color || Colors.primary;
-    
+    const userColor = activeUsers.find((u) => u.userId === item.userId)?.color || Colors.primary;
+
     return (
-      <View style={[
-        styles.noteItem,
-        isOwnNote ? styles.ownNoteItem : null,
-      ]}>
+      <View style={[styles.noteItem, isOwnNote ? styles.ownNoteItem : null]}>
         <View style={styles.noteHeader}>
-          <View style={[styles.noteAuthorIcon, { backgroundColor: userColor + '20' }]}>
+          <View style={[styles.noteAuthorIcon, { backgroundColor: userColor + "20" }]}>
             <Text style={[styles.noteAuthorInitial, { color: userColor }]}>
               {item.createdBy.charAt(0).toUpperCase()}
             </Text>
           </View>
           <View style={styles.noteAuthorInfo}>
             <Text style={styles.noteAuthor}>
-              {item.createdBy} {isOwnNote && '(You)'}
+              {item.createdBy} {isOwnNote && "(You)"}
             </Text>
             <Text style={styles.noteDate}>{formatDate(item.createdAt)}</Text>
           </View>
@@ -257,33 +251,35 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
       </View>
     );
   };
-  
+
   // Render active user item
   const renderActiveUserItem = ({ item }: { item: UserPresence }) => {
     const isCurrentUser = item.userId === userId;
-    
+
     return (
       <View style={styles.activeUserContainer}>
-        <View style={[styles.activeUserAvatar, { backgroundColor: item.color + '20' }]}>
+        <View style={[styles.activeUserAvatar, { backgroundColor: item.color + "20" }]}>
           <Text style={[styles.activeUserInitial, { color: item.color }]}>
             {item.name.charAt(0).toUpperCase()}
           </Text>
-          <View style={[
-            styles.statusIndicator,
-            { backgroundColor: item.status === 'online' ? Colors.success : Colors.warning }
-          ]} />
+          <View
+            style={[
+              styles.statusIndicator,
+              { backgroundColor: item.status === "online" ? Colors.success : Colors.warning },
+            ]}
+          />
         </View>
         <Text style={styles.activeUserName} numberOfLines={1}>
-          {isCurrentUser ? 'You' : item.name}
+          {isCurrentUser ? "You" : item.name}
         </Text>
       </View>
     );
   };
-  
+
   return (
     <View style={styles.container}>
       {isOffline && (
-        <Animated.View 
+        <Animated.View
           style={[
             styles.offlineNotice,
             {
@@ -298,20 +294,20 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
           </Text>
         </Animated.View>
       )}
-      
+
       {activeUsers.length > 0 && (
         <View style={styles.activeUsersContainer}>
           <FlatList
             data={activeUsers}
             renderItem={renderActiveUserItem}
-            keyExtractor={item => item.userId.toString()}
+            keyExtractor={(item) => item.userId.toString()}
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.activeUsersList}
           />
         </View>
       )}
-      
+
       {isLoading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color={Colors.primary} />
@@ -322,7 +318,7 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
           ref={flatListRef}
           data={notes}
           renderItem={renderNoteItem}
-          keyExtractor={item => item.id}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.notesList}
           showsVerticalScrollIndicator={true}
           ListEmptyComponent={
@@ -334,7 +330,7 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
           }
         />
       )}
-      
+
       <View style={styles.inputContainer}>
         <View style={styles.inputWrapper}>
           <TextInput
@@ -357,7 +353,7 @@ const CollaborativeFieldNotes: React.FC<CollaborativeFieldNotesProps> = ({
             />
           </TouchableOpacity>
         </View>
-        
+
         <TouchableOpacity
           style={styles.syncButton}
           onPress={syncNotes}
@@ -381,14 +377,14 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.background,
   },
   offlineNotice: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: Colors.warning,
     paddingHorizontal: 15,
     paddingVertical: 10,
     margin: 10,
     borderRadius: 4,
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
@@ -407,7 +403,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
   },
   activeUserContainer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginRight: 16,
     width: 48,
   },
@@ -415,16 +411,16 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    justifyContent: 'center',
-    alignItems: 'center',
-    position: 'relative',
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
   },
   activeUserInitial: {
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   statusIndicator: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     right: 0,
     width: 10,
@@ -437,12 +433,12 @@ const styles = StyleSheet.create({
     fontSize: 10,
     color: Colors.textLight,
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   loadingText: {
     marginTop: 12,
@@ -454,8 +450,8 @@ const styles = StyleSheet.create({
   },
   emptyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     paddingTop: 100,
   },
   emptyText: {
@@ -477,31 +473,31 @@ const styles = StyleSheet.create({
     borderColor: Colors.border,
   },
   ownNoteItem: {
-    backgroundColor: Colors.primary + '08',
+    backgroundColor: Colors.primary + "08",
   },
   noteHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 8,
   },
   noteAuthorIcon: {
     width: 32,
     height: 32,
     borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 8,
   },
   noteAuthorInitial: {
     fontSize: 14,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   noteAuthorInfo: {
     flex: 1,
   },
   noteAuthor: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
   },
   noteDate: {
@@ -514,7 +510,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
   inputContainer: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 0,
     left: 0,
     right: 0,
@@ -522,14 +518,14 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     padding: 10,
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   inputWrapper: {
     flex: 1,
-    flexDirection: 'row',
-    alignItems: 'flex-end',
-    position: 'relative',
+    flexDirection: "row",
+    alignItems: "flex-end",
+    position: "relative",
     marginRight: 10,
   },
   input: {
@@ -544,23 +540,23 @@ const styles = StyleSheet.create({
     color: Colors.text,
   },
   addButton: {
-    position: 'absolute',
+    position: "absolute",
     right: 4,
     bottom: 4,
     width: 36,
     height: 36,
     borderRadius: 18,
     backgroundColor: Colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   addButtonDisabled: {
     backgroundColor: Colors.disabledButton,
   },
   syncButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
     backgroundColor: Colors.secondary,
     borderRadius: 20,
     paddingHorizontal: 12,
@@ -571,7 +567,7 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 14,
     marginLeft: 6,
-    fontWeight: '600',
+    fontWeight: "600",
   },
 });
 

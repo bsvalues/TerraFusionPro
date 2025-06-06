@@ -1,41 +1,41 @@
-import React from 'react';
-import { useLocation } from 'wouter';
+import React from "react";
+import { useLocation } from "wouter";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Award, Trophy, ArrowRight } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { UserProgress, Level, UserAchievement } from '@shared/schema';
+import { Award, Trophy, ArrowRight } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { UserProgress, Level, UserAchievement } from "@shared/schema";
 
 export function ProfileMiniCard() {
   const [_, setLocation] = useLocation();
-  
+
   // Fetch user progress
   const userProgressQuery = useQuery({
-    queryKey: ['/api/user-progress/me'],
+    queryKey: ["/api/user-progress/me"],
     queryFn: async () => {
-      const response = await apiRequest<UserProgress>('/api/user-progress/me');
+      const response = await apiRequest<UserProgress>("/api/user-progress/me");
       return response;
     },
   });
 
   // Fetch all levels for progress calculations
   const levelsQuery = useQuery({
-    queryKey: ['/api/levels'],
+    queryKey: ["/api/levels"],
     queryFn: async () => {
-      const response = await apiRequest<Level[]>('/api/levels');
+      const response = await apiRequest<Level[]>("/api/levels");
       return response;
     },
   });
 
   // Fetch user achievements (recently completed)
   const recentAchievementsQuery = useQuery({
-    queryKey: ['/api/user-achievements/recent'],
+    queryKey: ["/api/user-achievements/recent"],
     queryFn: async () => {
-      const response = await apiRequest<UserAchievement[]>('/api/user-achievements/recent');
+      const response = await apiRequest<UserAchievement[]>("/api/user-achievements/recent");
       return response;
     },
   });
@@ -68,11 +68,7 @@ export function ProfileMiniCard() {
             <Trophy className="mx-auto h-8 w-8 text-muted-foreground" />
             <p className="text-sm text-muted-foreground">Unable to load progress data</p>
           </div>
-          <Button 
-            variant="outline" 
-            className="w-full"
-            onClick={() => setLocation('/achievements')}
-          >
+          <Button variant="outline" className="w-full" onClick={() => setLocation("/achievements")}>
             <Award className="mr-2 h-4 w-4" />
             View Achievements
           </Button>
@@ -84,12 +80,12 @@ export function ProfileMiniCard() {
   const userProgress = userProgressQuery.data;
   const levels = levelsQuery.data || [];
   const recentAchievements = recentAchievementsQuery.data || [];
-  
+
   // Find current and next level
-  const currentLevel = levels.find(level => level.id === userProgress?.level) || levels[0];
-  const nextLevelIndex = levels.findIndex(level => level.id === currentLevel?.id) + 1;
+  const currentLevel = levels.find((level) => level.id === userProgress?.level) || levels[0];
+  const nextLevelIndex = levels.findIndex((level) => level.id === currentLevel?.id) + 1;
   const nextLevel = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
-  
+
   // Calculate progress to next level
   const currentPoints = userProgress?.totalPoints || 0;
   const currentLevelPoints = currentLevel?.pointThreshold || 0;
@@ -116,15 +112,15 @@ export function ProfileMiniCard() {
           </Avatar>
           <div>
             <div className="flex items-center">
-              <h3 className="font-medium">{currentLevel?.name || 'Appraiser'}</h3>
-              <Badge variant="outline" className="ml-2 text-xs">Level {currentLevel?.level || 1}</Badge>
+              <h3 className="font-medium">{currentLevel?.name || "Appraiser"}</h3>
+              <Badge variant="outline" className="ml-2 text-xs">
+                Level {currentLevel?.level || 1}
+              </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
-              {currentPoints} XP total
-            </p>
+            <p className="text-sm text-muted-foreground">{currentPoints} XP total</p>
           </div>
         </div>
-        
+
         {nextLevel && (
           <div className="space-y-1 mb-4">
             <div className="flex items-center justify-between text-xs">
@@ -136,7 +132,7 @@ export function ProfileMiniCard() {
             <Progress value={progressPercentage} className="h-2" />
           </div>
         )}
-        
+
         {mostRecentAchievement && (
           <div className="border rounded p-2 mb-4 bg-muted/10 flex items-center">
             <Award className="h-4 w-4 text-primary mr-2 flex-shrink-0" />
@@ -148,12 +144,8 @@ export function ProfileMiniCard() {
             </div>
           </div>
         )}
-        
-        <Button 
-          variant="outline" 
-          className="w-full"
-          onClick={() => setLocation('/achievements')}
-        >
+
+        <Button variant="outline" className="w-full" onClick={() => setLocation("/achievements")}>
           <Trophy className="mr-2 h-4 w-4" />
           View Achievements
           <ArrowRight className="ml-2 h-4 w-4" />

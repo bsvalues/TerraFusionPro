@@ -1,14 +1,21 @@
-import React from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import React from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Award, Star, Trophy, TrendingUp, CheckCircle, Target, Calendar, Zap } from 'lucide-react';
+import { Award, Star, Trophy, TrendingUp, CheckCircle, Target, Calendar, Zap } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { UserProgress, UserAchievement, Level } from '@shared/schema';
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { UserProgress, UserAchievement, Level } from "@shared/schema";
 
 interface UserProgressCardProps {
   userId?: number;
@@ -17,9 +24,9 @@ interface UserProgressCardProps {
 export function UserProgressCard({ userId }: UserProgressCardProps) {
   // Fetch user progress
   const userProgressQuery = useQuery({
-    queryKey: ['/api/user-progress', userId],
+    queryKey: ["/api/user-progress", userId],
     queryFn: async () => {
-      const response = await apiRequest<UserProgress>(`/api/user-progress/${userId || 'me'}`);
+      const response = await apiRequest<UserProgress>(`/api/user-progress/${userId || "me"}`);
       return response;
     },
     enabled: !!userId || true, // Default to current user if no ID provided
@@ -27,9 +34,11 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
 
   // Fetch user achievements
   const userAchievementsQuery = useQuery({
-    queryKey: ['/api/user-achievements', userId],
+    queryKey: ["/api/user-achievements", userId],
     queryFn: async () => {
-      const response = await apiRequest<UserAchievement[]>(`/api/user-achievements/${userId || 'me'}`);
+      const response = await apiRequest<UserAchievement[]>(
+        `/api/user-achievements/${userId || "me"}`
+      );
       return response;
     },
     enabled: !!userId || true,
@@ -37,9 +46,9 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
 
   // Fetch all levels for progress calculations
   const levelsQuery = useQuery({
-    queryKey: ['/api/levels'],
+    queryKey: ["/api/levels"],
     queryFn: async () => {
-      const response = await apiRequest<Level[]>('/api/levels');
+      const response = await apiRequest<Level[]>("/api/levels");
       return response;
     },
   });
@@ -81,12 +90,12 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
   const userProgress = userProgressQuery.data;
   const userAchievements = userAchievementsQuery.data || [];
   const levels = levelsQuery.data || [];
-  
+
   // Find current and next level
-  const currentLevel = levels.find(level => level.id === userProgress?.level) || levels[0];
-  const nextLevelIndex = levels.findIndex(level => level.id === currentLevel?.id) + 1;
+  const currentLevel = levels.find((level) => level.id === userProgress?.level) || levels[0];
+  const nextLevelIndex = levels.findIndex((level) => level.id === currentLevel?.id) + 1;
   const nextLevel = nextLevelIndex < levels.length ? levels[nextLevelIndex] : null;
-  
+
   // Calculate progress to next level
   const currentPoints = userProgress?.totalPoints || 0;
   const currentLevelPoints = currentLevel?.pointThreshold || 0;
@@ -104,11 +113,11 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
       // Sort by completion date, newest first
       return new Date(b.completedAt || 0).getTime() - new Date(a.completedAt || 0).getTime();
     })
-    .filter(achievement => achievement.completed)
+    .filter((achievement) => achievement.completed)
     .slice(0, 3);
-    
+
   // Get completed count
-  const completedAchievements = userAchievements.filter(a => a.completed).length;
+  const completedAchievements = userAchievements.filter((a) => a.completed).length;
   const totalAchievements = userAchievements.length;
   const completionPercentage = Math.round((completedAchievements / (totalAchievements || 1)) * 100);
 
@@ -118,12 +127,13 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
         <div className="flex items-center justify-between">
           <div>
             <CardTitle>Appraiser Progress</CardTitle>
-            <CardDescription>
-              Track your achievements and progress
-            </CardDescription>
+            <CardDescription>Track your achievements and progress</CardDescription>
           </div>
           <div className="flex items-center gap-2">
-            <Badge variant="outline" className="py-1 px-2 bg-green-50 text-green-700 border-green-200">
+            <Badge
+              variant="outline"
+              className="py-1 px-2 bg-green-50 text-green-700 border-green-200"
+            >
               <Trophy className="h-3.5 w-3.5 mr-1" />
               Level {currentLevel?.level || 1}
             </Badge>
@@ -138,10 +148,12 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
               <div className="flex items-center">
                 <Avatar className="h-10 w-10 mr-3 bg-green-100">
                   <AvatarImage src="" />
-                  <AvatarFallback className="text-green-700">{currentLevel?.level || 1}</AvatarFallback>
+                  <AvatarFallback className="text-green-700">
+                    {currentLevel?.level || 1}
+                  </AvatarFallback>
                 </Avatar>
                 <div>
-                  <h3 className="font-medium">{currentLevel?.name || 'Apprentice Appraiser'}</h3>
+                  <h3 className="font-medium">{currentLevel?.name || "Apprentice Appraiser"}</h3>
                   <p className="text-xs text-muted-foreground">XP: {currentPoints} points</p>
                 </div>
               </div>
@@ -155,7 +167,7 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
                 </div>
               )}
             </div>
-            
+
             <div className="space-y-1">
               <div className="flex items-center justify-between text-sm">
                 <span className="text-muted-foreground">Level Progress</span>
@@ -164,7 +176,7 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
               <Progress value={progressPercentage} className="h-2" />
             </div>
           </div>
-          
+
           {/* Stats */}
           <div className="border rounded-lg p-4 space-y-3">
             <h3 className="font-medium text-sm">Statistics</h3>
@@ -200,7 +212,7 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
             </div>
           </div>
         </div>
-        
+
         {/* Recent Achievements */}
         <div className="mt-6">
           <div className="flex justify-between items-center mb-3">
@@ -209,12 +221,12 @@ export function UserProgressCard({ userId }: UserProgressCardProps) {
               {completedAchievements}/{totalAchievements} Completed ({completionPercentage}%)
             </Badge>
           </div>
-          
+
           {recentAchievements.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {recentAchievements.map(achievement => (
-                <div 
-                  key={achievement.id} 
+              {recentAchievements.map((achievement) => (
+                <div
+                  key={achievement.id}
                   className="border rounded-lg p-3 bg-green-50/30 flex items-center"
                 >
                   <div className="bg-green-100 p-2 rounded-full mr-3">

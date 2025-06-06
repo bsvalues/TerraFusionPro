@@ -1,31 +1,85 @@
-import { 
-  User, InsertUser, users,
-  Organization, InsertOrganization, organizations,
-  Property, InsertProperty, properties,
-  PropertyImage, InsertPropertyImage, propertyImages,
-  Valuation, InsertValuation, valuations,
-  ComparableProperty, InsertComparableProperty, comparableProperties,
-  Order, InsertOrder, orders,
-  OrderStatusUpdate, InsertOrderStatusUpdate, orderStatusUpdates,
-  Report, InsertReport, reports,
-  ModelInference, InsertModelInference, modelInferences,
-  RealEstateTerm, InsertRealEstateTerm, realEstateTerms,
-  ReviewRequest, InsertReviewRequest, reviewRequests,
-  Comment, InsertComment, comments,
-  Annotation, InsertAnnotation, annotations,
-  RevisionHistory, InsertRevisionHistory, revisionHistory,
-  Photo, InsertPhoto, photos,
-  Sketch, InsertSketch, sketches,
-  AppraisalReport, InsertAppraisalReport, appraisalReports,
-  ComplianceCheck, InsertComplianceCheck, complianceChecks,
-  ComparableSale, InsertComparableSale, comparableSales,
-  MlsSystem, InsertMlsSystem, mlsSystems,
-  MlsFieldMapping, InsertMlsFieldMapping, mlsFieldMappings,
-  MlsPropertyMapping, InsertMlsPropertyMapping, mlsPropertyMappings,
-  MlsComparableMapping, InsertMlsComparableMapping, mlsComparableMappings,
-  LegacyImportJob, InsertLegacyImportJob, legacyImportJobs,
-  LegacyImportRecord, InsertLegacyImportRecord, legacyImportRecords,
-  LegacySystemTemplate, InsertLegacySystemTemplate, legacySystemTemplates,
+import {
+  User,
+  InsertUser,
+  users,
+  Organization,
+  InsertOrganization,
+  organizations,
+  Property,
+  InsertProperty,
+  properties,
+  PropertyImage,
+  InsertPropertyImage,
+  propertyImages,
+  Valuation,
+  InsertValuation,
+  valuations,
+  ComparableProperty,
+  InsertComparableProperty,
+  comparableProperties,
+  Order,
+  InsertOrder,
+  orders,
+  OrderStatusUpdate,
+  InsertOrderStatusUpdate,
+  orderStatusUpdates,
+  Report,
+  InsertReport,
+  reports,
+  ModelInference,
+  InsertModelInference,
+  modelInferences,
+  RealEstateTerm,
+  InsertRealEstateTerm,
+  realEstateTerms,
+  ReviewRequest,
+  InsertReviewRequest,
+  reviewRequests,
+  Comment,
+  InsertComment,
+  comments,
+  Annotation,
+  InsertAnnotation,
+  annotations,
+  RevisionHistory,
+  InsertRevisionHistory,
+  revisionHistory,
+  Photo,
+  InsertPhoto,
+  photos,
+  Sketch,
+  InsertSketch,
+  sketches,
+  AppraisalReport,
+  InsertAppraisalReport,
+  appraisalReports,
+  ComplianceCheck,
+  InsertComplianceCheck,
+  complianceChecks,
+  ComparableSale,
+  InsertComparableSale,
+  comparableSales,
+  MlsSystem,
+  InsertMlsSystem,
+  mlsSystems,
+  MlsFieldMapping,
+  InsertMlsFieldMapping,
+  mlsFieldMappings,
+  MlsPropertyMapping,
+  InsertMlsPropertyMapping,
+  mlsPropertyMappings,
+  MlsComparableMapping,
+  InsertMlsComparableMapping,
+  mlsComparableMappings,
+  LegacyImportJob,
+  InsertLegacyImportJob,
+  legacyImportJobs,
+  LegacyImportRecord,
+  InsertLegacyImportRecord,
+  legacyImportRecords,
+  LegacySystemTemplate,
+  InsertLegacySystemTemplate,
+  legacySystemTemplates,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, and, desc, gte, lte, sql, inArray, like } from "drizzle-orm";
@@ -38,13 +92,16 @@ export interface IStorage {
   getUserByEmail(email: string): Promise<User | undefined>;
   createUser(insertUser: InsertUser): Promise<User>;
   updateUser(id: number, user: Partial<InsertUser>): Promise<User | undefined>;
-  
+
   // Organization operations
   getOrganization(id: number): Promise<Organization | undefined>;
   getOrganizationByName(name: string): Promise<Organization | undefined>;
   createOrganization(insertOrg: InsertOrganization): Promise<Organization>;
-  updateOrganization(id: number, org: Partial<InsertOrganization>): Promise<Organization | undefined>;
-  
+  updateOrganization(
+    id: number,
+    org: Partial<InsertOrganization>
+  ): Promise<Organization | undefined>;
+
   // Property operations
   getProperty(id: number): Promise<Property | undefined>;
   getPropertiesByCreator(userId: number, limit?: number): Promise<Property[]>;
@@ -52,14 +109,17 @@ export interface IStorage {
   createProperty(insertProperty: InsertProperty): Promise<Property>;
   updateProperty(id: number, property: Partial<InsertProperty>): Promise<Property | undefined>;
   deleteProperty(id: number): Promise<boolean>;
-  
+
   // Property Image operations
   getPropertyImage(id: number): Promise<PropertyImage | undefined>;
   getPropertyImagesByProperty(propertyId: number): Promise<PropertyImage[]>;
   createPropertyImage(insertImage: InsertPropertyImage): Promise<PropertyImage>;
-  updatePropertyImage(id: number, image: Partial<InsertPropertyImage>): Promise<PropertyImage | undefined>;
+  updatePropertyImage(
+    id: number,
+    image: Partial<InsertPropertyImage>
+  ): Promise<PropertyImage | undefined>;
   deletePropertyImage(id: number): Promise<boolean>;
-  
+
   // Valuation operations
   getValuation(id: number): Promise<Valuation | undefined>;
   getValuationsByProperty(propertyId: number): Promise<Valuation[]>;
@@ -67,14 +127,17 @@ export interface IStorage {
   createValuation(insertValuation: InsertValuation): Promise<Valuation>;
   updateValuation(id: number, valuation: Partial<InsertValuation>): Promise<Valuation | undefined>;
   deleteValuation(id: number): Promise<boolean>;
-  
+
   // Comparable Property operations
   getComparableProperty(id: number): Promise<ComparableProperty | undefined>;
   getComparablesByValuation(valuationId: number): Promise<ComparableProperty[]>;
   createComparableProperty(insertComparable: InsertComparableProperty): Promise<ComparableProperty>;
-  updateComparableProperty(id: number, comparable: Partial<InsertComparableProperty>): Promise<ComparableProperty | undefined>;
+  updateComparableProperty(
+    id: number,
+    comparable: Partial<InsertComparableProperty>
+  ): Promise<ComparableProperty | undefined>;
   deleteComparableProperty(id: number): Promise<boolean>;
-  
+
   // Order operations
   getOrder(id: number): Promise<Order | undefined>;
   getOrderByOrderNumber(orderNumber: string): Promise<Order | undefined>;
@@ -82,25 +145,30 @@ export interface IStorage {
   getOrdersByStatus(status: string, limit?: number): Promise<Order[]>;
   createOrder(insertOrder: InsertOrder): Promise<Order>;
   updateOrder(id: number, order: Partial<InsertOrder>): Promise<Order | undefined>;
-  updateOrderStatus(id: number, status: string, updatedById: number, notes?: string): Promise<Order | undefined>;
-  
+  updateOrderStatus(
+    id: number,
+    status: string,
+    updatedById: number,
+    notes?: string
+  ): Promise<Order | undefined>;
+
   // Order Status Update operations
   getOrderStatusUpdates(orderId: number): Promise<OrderStatusUpdate[]>;
   createOrderStatusUpdate(insertStatusUpdate: InsertOrderStatusUpdate): Promise<OrderStatusUpdate>;
-  
+
   // Report operations
   getReport(id: number): Promise<Report | undefined>;
   getReportsByOrder(orderId: number): Promise<Report[]>;
   getReportsByGenerator(generatorId: number, limit?: number): Promise<Report[]>;
   createReport(insertReport: InsertReport): Promise<Report>;
   updateReport(id: number, report: Partial<InsertReport>): Promise<Report | undefined>;
-  
+
   // Model Inference operations
   getModelInference(id: number): Promise<ModelInference | undefined>;
   getModelInferencesByEntity(entityType: string, entityId: number): Promise<ModelInference[]>;
   getModelInferencesByModel(modelName: string, limit?: number): Promise<ModelInference[]>;
   createModelInference(insertInference: InsertModelInference): Promise<ModelInference>;
-  
+
   // Real Estate Term operations
   getRealEstateTerm(id: number): Promise<RealEstateTerm | undefined>;
   getRealEstateTermByName(term: string): Promise<RealEstateTerm | undefined>;
@@ -108,23 +176,33 @@ export interface IStorage {
   getRealEstateTermsByCategory(category: string): Promise<RealEstateTerm[]>;
   searchRealEstateTerms(query: string): Promise<RealEstateTerm[]>;
   createRealEstateTerm(insertTerm: InsertRealEstateTerm): Promise<RealEstateTerm>;
-  updateRealEstateTerm(id: number, term: Partial<InsertRealEstateTerm>): Promise<RealEstateTerm | undefined>;
+  updateRealEstateTerm(
+    id: number,
+    term: Partial<InsertRealEstateTerm>
+  ): Promise<RealEstateTerm | undefined>;
   deleteRealEstateTerm(id: number): Promise<boolean>;
   getRelatedTerms(id: number): Promise<RealEstateTerm[]>;
   getTermExplanation(term: string, context?: string): Promise<any | undefined>;
-  
+
   // Review Request operations
   getReviewRequest(id: number): Promise<ReviewRequest | undefined>;
   getPendingReviewRequests(limit?: number): Promise<ReviewRequest[]>;
   getReviewRequestsByRequester(requesterId: number, limit?: number): Promise<ReviewRequest[]>;
   getReviewRequestsByReviewer(reviewerId: number, limit?: number): Promise<ReviewRequest[]>;
-  getReviewRequestsByObject(objectType: string, objectId: number, limit?: number): Promise<ReviewRequest[]>;
+  getReviewRequestsByObject(
+    objectType: string,
+    objectId: number,
+    limit?: number
+  ): Promise<ReviewRequest[]>;
   getReviewRequestsByStatus(status: string, limit?: number): Promise<ReviewRequest[]>;
   createReviewRequest(insertRequest: InsertReviewRequest): Promise<ReviewRequest>;
-  updateReviewRequest(id: number, request: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined>;
+  updateReviewRequest(
+    id: number,
+    request: Partial<InsertReviewRequest>
+  ): Promise<ReviewRequest | undefined>;
   completeReviewRequest(id: number, approved: boolean): Promise<ReviewRequest | undefined>;
   deleteReviewRequest(id: number): Promise<boolean>;
-  
+
   // Comment operations
   getComment(id: number): Promise<Comment | undefined>;
   getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]>;
@@ -133,18 +211,25 @@ export interface IStorage {
   createComment(insertComment: InsertComment): Promise<Comment>;
   updateComment(id: number, comment: Partial<InsertComment>): Promise<Comment | undefined>;
   deleteComment(id: number): Promise<boolean>;
-  
+
   // Annotation operations
   getAnnotation(id: number): Promise<Annotation | undefined>;
   getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]>;
   getAnnotationsByUser(userId: number, limit?: number): Promise<Annotation[]>;
   createAnnotation(insertAnnotation: InsertAnnotation): Promise<Annotation>;
-  updateAnnotation(id: number, annotation: Partial<InsertAnnotation>): Promise<Annotation | undefined>;
+  updateAnnotation(
+    id: number,
+    annotation: Partial<InsertAnnotation>
+  ): Promise<Annotation | undefined>;
   deleteAnnotation(id: number): Promise<boolean>;
-  
+
   // Revision History operations
   getRevisionHistory(id: number): Promise<RevisionHistory | undefined>;
-  getRevisionHistoryByObject(objectType: string, objectId: number, limit?: number): Promise<RevisionHistory[]>;
+  getRevisionHistoryByObject(
+    objectType: string,
+    objectId: number,
+    limit?: number
+  ): Promise<RevisionHistory[]>;
   getRevisionHistoryByUser(userId: number, limit?: number): Promise<RevisionHistory[]>;
   createRevisionHistory(insertHistory: InsertRevisionHistory): Promise<RevisionHistory>;
 
@@ -153,7 +238,10 @@ export interface IStorage {
   getLegacyImportJobsByUser(userId: number, limit?: number): Promise<LegacyImportJob[]>;
   getLegacyImportJobsByStatus(status: string, limit?: number): Promise<LegacyImportJob[]>;
   createLegacyImportJob(insertJob: InsertLegacyImportJob): Promise<LegacyImportJob>;
-  updateLegacyImportJob(id: number, job: Partial<InsertLegacyImportJob>): Promise<LegacyImportJob | undefined>;
+  updateLegacyImportJob(
+    id: number,
+    job: Partial<InsertLegacyImportJob>
+  ): Promise<LegacyImportJob | undefined>;
   deleteLegacyImportJob(id: number): Promise<boolean>;
 
   // Legacy Import Record operations
@@ -161,7 +249,10 @@ export interface IStorage {
   getLegacyImportRecordsByJob(jobId: number): Promise<LegacyImportRecord[]>;
   getLegacyImportRecordsByStatus(status: string, limit?: number): Promise<LegacyImportRecord[]>;
   createLegacyImportRecord(insertRecord: InsertLegacyImportRecord): Promise<LegacyImportRecord>;
-  updateLegacyImportRecord(id: number, record: Partial<InsertLegacyImportRecord>): Promise<LegacyImportRecord | undefined>;
+  updateLegacyImportRecord(
+    id: number,
+    record: Partial<InsertLegacyImportRecord>
+  ): Promise<LegacyImportRecord | undefined>;
   deleteLegacyImportRecord(id: number): Promise<boolean>;
 
   // Legacy System Template operations
@@ -169,8 +260,13 @@ export interface IStorage {
   getLegacySystemTemplatesByType(systemType: string): Promise<LegacySystemTemplate[]>;
   getLegacySystemTemplatesByOrganization(orgId: number): Promise<LegacySystemTemplate[]>;
   getAllActiveLegacySystemTemplates(): Promise<LegacySystemTemplate[]>;
-  createLegacySystemTemplate(insertTemplate: InsertLegacySystemTemplate): Promise<LegacySystemTemplate>;
-  updateLegacySystemTemplate(id: number, template: Partial<InsertLegacySystemTemplate>): Promise<LegacySystemTemplate | undefined>;
+  createLegacySystemTemplate(
+    insertTemplate: InsertLegacySystemTemplate
+  ): Promise<LegacySystemTemplate>;
+  updateLegacySystemTemplate(
+    id: number,
+    template: Partial<InsertLegacySystemTemplate>
+  ): Promise<LegacySystemTemplate | undefined>;
   deleteLegacySystemTemplate(id: number): Promise<boolean>;
 }
 
@@ -213,7 +309,10 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getOrganizationByName(name: string): Promise<Organization | undefined> {
-    const [organization] = await db.select().from(organizations).where(eq(organizations.name, name));
+    const [organization] = await db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.name, name));
     return organization;
   }
 
@@ -222,7 +321,10 @@ export class DatabaseStorage implements IStorage {
     return organization;
   }
 
-  async updateOrganization(id: number, org: Partial<InsertOrganization>): Promise<Organization | undefined> {
+  async updateOrganization(
+    id: number,
+    org: Partial<InsertOrganization>
+  ): Promise<Organization | undefined> {
     const [updatedOrg] = await db
       .update(organizations)
       .set({ ...org, updatedAt: new Date() })
@@ -265,7 +367,10 @@ export class DatabaseStorage implements IStorage {
     return property;
   }
 
-  async updateProperty(id: number, property: Partial<InsertProperty>): Promise<Property | undefined> {
+  async updateProperty(
+    id: number,
+    property: Partial<InsertProperty>
+  ): Promise<Property | undefined> {
     const [updatedProperty] = await db
       .update(properties)
       .set({ ...property, updatedAt: new Date() })
@@ -275,10 +380,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteProperty(id: number): Promise<boolean> {
-    const [deletedProperty] = await db
-      .delete(properties)
-      .where(eq(properties.id, id))
-      .returning();
+    const [deletedProperty] = await db.delete(properties).where(eq(properties.id, id)).returning();
     return !!deletedProperty;
   }
 
@@ -289,10 +391,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getPropertyImagesByProperty(propertyId: number): Promise<PropertyImage[]> {
-    return db
-      .select()
-      .from(propertyImages)
-      .where(eq(propertyImages.propertyId, propertyId));
+    return db.select().from(propertyImages).where(eq(propertyImages.propertyId, propertyId));
   }
 
   async createPropertyImage(insertImage: InsertPropertyImage): Promise<PropertyImage> {
@@ -300,7 +399,10 @@ export class DatabaseStorage implements IStorage {
     return image;
   }
 
-  async updatePropertyImage(id: number, image: Partial<InsertPropertyImage>): Promise<PropertyImage | undefined> {
+  async updatePropertyImage(
+    id: number,
+    image: Partial<InsertPropertyImage>
+  ): Promise<PropertyImage | undefined> {
     const [updatedImage] = await db
       .update(propertyImages)
       .set(image)
@@ -345,7 +447,10 @@ export class DatabaseStorage implements IStorage {
     return valuation;
   }
 
-  async updateValuation(id: number, valuation: Partial<InsertValuation>): Promise<Valuation | undefined> {
+  async updateValuation(
+    id: number,
+    valuation: Partial<InsertValuation>
+  ): Promise<Valuation | undefined> {
     const [updatedValuation] = await db
       .update(valuations)
       .set({ ...valuation, updatedAt: new Date() })
@@ -355,16 +460,16 @@ export class DatabaseStorage implements IStorage {
   }
 
   async deleteValuation(id: number): Promise<boolean> {
-    const [deletedValuation] = await db
-      .delete(valuations)
-      .where(eq(valuations.id, id))
-      .returning();
+    const [deletedValuation] = await db.delete(valuations).where(eq(valuations.id, id)).returning();
     return !!deletedValuation;
   }
 
   // Comparable Property operations
   async getComparableProperty(id: number): Promise<ComparableProperty | undefined> {
-    const [comparable] = await db.select().from(comparableProperties).where(eq(comparableProperties.id, id));
+    const [comparable] = await db
+      .select()
+      .from(comparableProperties)
+      .where(eq(comparableProperties.id, id));
     return comparable;
   }
 
@@ -375,12 +480,17 @@ export class DatabaseStorage implements IStorage {
       .where(eq(comparableProperties.valuationId, valuationId));
   }
 
-  async createComparableProperty(insertComparable: InsertComparableProperty): Promise<ComparableProperty> {
+  async createComparableProperty(
+    insertComparable: InsertComparableProperty
+  ): Promise<ComparableProperty> {
     const [comparable] = await db.insert(comparableProperties).values(insertComparable).returning();
     return comparable;
   }
 
-  async updateComparableProperty(id: number, comparable: Partial<InsertComparableProperty>): Promise<ComparableProperty | undefined> {
+  async updateComparableProperty(
+    id: number,
+    comparable: Partial<InsertComparableProperty>
+  ): Promise<ComparableProperty | undefined> {
     const [updatedComparable] = await db
       .update(comparableProperties)
       .set(comparable)
@@ -440,7 +550,12 @@ export class DatabaseStorage implements IStorage {
     return updatedOrder;
   }
 
-  async updateOrderStatus(id: number, status: string, updatedById: number, notes?: string): Promise<Order | undefined> {
+  async updateOrderStatus(
+    id: number,
+    status: string,
+    updatedById: number,
+    notes?: string
+  ): Promise<Order | undefined> {
     // Get existing order
     const [order] = await db.select().from(orders).where(eq(orders.id, id));
     if (!order) return undefined;
@@ -464,7 +579,7 @@ export class DatabaseStorage implements IStorage {
 
       return updatedOrder;
     } catch (error) {
-      console.error('Error updating order status:', error);
+      console.error("Error updating order status:", error);
       return undefined;
     }
   }
@@ -478,8 +593,13 @@ export class DatabaseStorage implements IStorage {
       .orderBy(desc(orderStatusUpdates.createdAt));
   }
 
-  async createOrderStatusUpdate(insertStatusUpdate: InsertOrderStatusUpdate): Promise<OrderStatusUpdate> {
-    const [statusUpdate] = await db.insert(orderStatusUpdates).values(insertStatusUpdate).returning();
+  async createOrderStatusUpdate(
+    insertStatusUpdate: InsertOrderStatusUpdate
+  ): Promise<OrderStatusUpdate> {
+    const [statusUpdate] = await db
+      .insert(orderStatusUpdates)
+      .values(insertStatusUpdate)
+      .returning();
     return statusUpdate;
   }
 
@@ -526,15 +646,15 @@ export class DatabaseStorage implements IStorage {
     return inference;
   }
 
-  async getModelInferencesByEntity(entityType: string, entityId: number): Promise<ModelInference[]> {
+  async getModelInferencesByEntity(
+    entityType: string,
+    entityId: number
+  ): Promise<ModelInference[]> {
     return db
       .select()
       .from(modelInferences)
       .where(
-        and(
-          eq(modelInferences.entityType, entityType),
-          eq(modelInferences.entityId, entityId)
-        )
+        and(eq(modelInferences.entityType, entityType), eq(modelInferences.entityId, entityId))
       )
       .orderBy(desc(modelInferences.createdAt));
   }
@@ -568,10 +688,7 @@ export class DatabaseStorage implements IStorage {
   }
 
   async getAllRealEstateTerms(): Promise<RealEstateTerm[]> {
-    return db
-      .select()
-      .from(realEstateTerms)
-      .orderBy(realEstateTerms.term);
+    return db.select().from(realEstateTerms).orderBy(realEstateTerms.term);
   }
 
   async getRealEstateTermsByCategory(category: string): Promise<RealEstateTerm[]> {
@@ -601,7 +718,10 @@ export class DatabaseStorage implements IStorage {
     return term;
   }
 
-  async updateRealEstateTerm(id: number, term: Partial<InsertRealEstateTerm>): Promise<RealEstateTerm | undefined> {
+  async updateRealEstateTerm(
+    id: number,
+    term: Partial<InsertRealEstateTerm>
+  ): Promise<RealEstateTerm | undefined> {
     const [updatedTerm] = await db
       .update(realEstateTerms)
       .set({ ...term, updatedAt: new Date() })
@@ -627,31 +747,31 @@ export class DatabaseStorage implements IStorage {
 
     // Get related terms one by one (less efficient but safer)
     const relatedTerms: RealEstateTerm[] = [];
-    
+
     for (const relatedTermName of term.relatedTerms) {
       const relatedTerm = await this.getRealEstateTermByName(relatedTermName);
       if (relatedTerm) {
         relatedTerms.push(relatedTerm);
       }
     }
-    
+
     return relatedTerms;
   }
 
   async getTermExplanation(term: string, context?: string): Promise<any | undefined> {
     // Get the term from database
     const realEstateTerm = await this.getRealEstateTermByName(term);
-    
+
     if (!realEstateTerm) {
       return undefined;
     }
-    
+
     // Return term explanation
     return {
       definition: realEstateTerm.definition,
       contextualExplanation: realEstateTerm.contextualExplanation || undefined,
       examples: realEstateTerm.examples || [],
-      relatedTerms: realEstateTerm.relatedTerms || []
+      relatedTerms: realEstateTerm.relatedTerms || [],
     };
   }
 
@@ -669,18 +789,22 @@ export class DatabaseStorage implements IStorage {
 
   async getPendingReviewRequests(limit = 50): Promise<ReviewRequest[]> {
     try {
-      return await db.select().from(reviewRequests)
-        .where(eq(reviewRequests.status, 'pending'))
+      return await db
+        .select()
+        .from(reviewRequests)
+        .where(eq(reviewRequests.status, "pending"))
         .limit(limit);
     } catch (error) {
-      console.error('Error getting pending review requests:', error);
+      console.error("Error getting pending review requests:", error);
       return [];
     }
   }
 
   async getReviewRequestsByRequester(requesterId: number, limit = 50): Promise<ReviewRequest[]> {
     try {
-      return await db.select().from(reviewRequests)
+      return await db
+        .select()
+        .from(reviewRequests)
         .where(eq(reviewRequests.requesterId, requesterId))
         .limit(limit);
     } catch (error) {
@@ -691,7 +815,9 @@ export class DatabaseStorage implements IStorage {
 
   async getReviewRequestsByReviewer(reviewerId: number, limit = 50): Promise<ReviewRequest[]> {
     try {
-      return await db.select().from(reviewRequests)
+      return await db
+        .select()
+        .from(reviewRequests)
         .where(eq(reviewRequests.reviewerId, reviewerId))
         .limit(limit);
     } catch (error) {
@@ -700,13 +826,18 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async getReviewRequestsByObject(objectType: string, objectId: number, limit = 50): Promise<ReviewRequest[]> {
+  async getReviewRequestsByObject(
+    objectType: string,
+    objectId: number,
+    limit = 50
+  ): Promise<ReviewRequest[]> {
     try {
-      return await db.select().from(reviewRequests)
-        .where(and(
-          eq(reviewRequests.objectType, objectType),
-          eq(reviewRequests.objectId, objectId)
-        ))
+      return await db
+        .select()
+        .from(reviewRequests)
+        .where(
+          and(eq(reviewRequests.objectType, objectType), eq(reviewRequests.objectId, objectId))
+        )
         .limit(limit);
     } catch (error) {
       console.error(`Error getting review requests for ${objectType} ${objectId}:`, error);
@@ -716,7 +847,9 @@ export class DatabaseStorage implements IStorage {
 
   async getReviewRequestsByStatus(status: string, limit = 50): Promise<ReviewRequest[]> {
     try {
-      return await db.select().from(reviewRequests)
+      return await db
+        .select()
+        .from(reviewRequests)
         .where(eq(reviewRequests.status, status))
         .limit(limit);
     } catch (error) {
@@ -730,21 +863,25 @@ export class DatabaseStorage implements IStorage {
       const [request] = await db.insert(reviewRequests).values(insertRequest).returning();
       return request;
     } catch (error) {
-      console.error('Error creating review request:', error);
-      throw new Error('Failed to create review request');
+      console.error("Error creating review request:", error);
+      throw new Error("Failed to create review request");
     }
   }
 
-  async updateReviewRequest(id: number, request: Partial<InsertReviewRequest>): Promise<ReviewRequest | undefined> {
+  async updateReviewRequest(
+    id: number,
+    request: Partial<InsertReviewRequest>
+  ): Promise<ReviewRequest | undefined> {
     try {
-      const [updatedRequest] = await db.update(reviewRequests)
+      const [updatedRequest] = await db
+        .update(reviewRequests)
         .set({
           ...request,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(reviewRequests.id, id))
         .returning();
-      
+
       return updatedRequest;
     } catch (error) {
       console.error(`Error updating review request ${id}:`, error);
@@ -755,16 +892,17 @@ export class DatabaseStorage implements IStorage {
   async completeReviewRequest(id: number, approved: boolean): Promise<ReviewRequest | undefined> {
     try {
       const now = new Date();
-      const [completedRequest] = await db.update(reviewRequests)
+      const [completedRequest] = await db
+        .update(reviewRequests)
         .set({
-          status: 'completed',
+          status: "completed",
           approved,
           completedAt: now,
-          updatedAt: now
+          updatedAt: now,
         })
         .where(eq(reviewRequests.id, id))
         .returning();
-      
+
       return completedRequest;
     } catch (error) {
       console.error(`Error completing review request ${id}:`, error);
@@ -774,9 +912,8 @@ export class DatabaseStorage implements IStorage {
 
   async deleteReviewRequest(id: number): Promise<boolean> {
     try {
-      await db.delete(reviewRequests)
-        .where(eq(reviewRequests.id, id));
-      
+      await db.delete(reviewRequests).where(eq(reviewRequests.id, id));
+
       return true;
     } catch (error) {
       console.error(`Error deleting review request ${id}:`, error);
@@ -798,11 +935,10 @@ export class DatabaseStorage implements IStorage {
 
   async getCommentsByObject(objectType: string, objectId: number): Promise<Comment[]> {
     try {
-      return await db.select().from(comments)
-        .where(and(
-          eq(comments.objectType, objectType),
-          eq(comments.objectId, objectId)
-        ));
+      return await db
+        .select()
+        .from(comments)
+        .where(and(eq(comments.objectType, objectType), eq(comments.objectId, objectId)));
     } catch (error) {
       console.error(`Error getting comments for ${objectType} ${objectId}:`, error);
       return [];
@@ -811,9 +947,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCommentsByUser(userId: number, limit = 50): Promise<Comment[]> {
     try {
-      return await db.select().from(comments)
-        .where(eq(comments.userId, userId))
-        .limit(limit);
+      return await db.select().from(comments).where(eq(comments.userId, userId)).limit(limit);
     } catch (error) {
       console.error(`Error getting comments by user ${userId}:`, error);
       return [];
@@ -822,8 +956,7 @@ export class DatabaseStorage implements IStorage {
 
   async getCommentsByThread(threadId: number): Promise<Comment[]> {
     try {
-      return await db.select().from(comments)
-        .where(eq(comments.threadId, threadId));
+      return await db.select().from(comments).where(eq(comments.threadId, threadId));
     } catch (error) {
       console.error(`Error getting comments for thread ${threadId}:`, error);
       return [];
@@ -835,21 +968,22 @@ export class DatabaseStorage implements IStorage {
       const [comment] = await db.insert(comments).values(insertComment).returning();
       return comment;
     } catch (error) {
-      console.error('Error creating comment:', error);
-      throw new Error('Failed to create comment');
+      console.error("Error creating comment:", error);
+      throw new Error("Failed to create comment");
     }
   }
 
   async updateComment(id: number, comment: Partial<InsertComment>): Promise<Comment | undefined> {
     try {
-      const [updatedComment] = await db.update(comments)
+      const [updatedComment] = await db
+        .update(comments)
         .set({
           ...comment,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(comments.id, id))
         .returning();
-      
+
       return updatedComment;
     } catch (error) {
       console.error(`Error updating comment ${id}:`, error);
@@ -866,9 +1000,9 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-  
+
   // ===== ANNOTATION METHODS =====
-  
+
   async getAnnotation(id: number): Promise<Annotation | undefined> {
     try {
       const [annotation] = await db.select().from(annotations).where(eq(annotations.id, id));
@@ -878,58 +1012,59 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
-  
+
   async getAnnotationsByObject(objectType: string, objectId: number): Promise<Annotation[]> {
     try {
-      return await db.select().from(annotations)
-        .where(and(
-          eq(annotations.objectType, objectType),
-          eq(annotations.objectId, objectId)
-        ));
+      return await db
+        .select()
+        .from(annotations)
+        .where(and(eq(annotations.objectType, objectType), eq(annotations.objectId, objectId)));
     } catch (error) {
       console.error(`Error getting annotations for ${objectType} ${objectId}:`, error);
       return [];
     }
   }
-  
+
   async getAnnotationsByUser(userId: number, limit = 50): Promise<Annotation[]> {
     try {
-      return await db.select().from(annotations)
-        .where(eq(annotations.userId, userId))
-        .limit(limit);
+      return await db.select().from(annotations).where(eq(annotations.userId, userId)).limit(limit);
     } catch (error) {
       console.error(`Error getting annotations by user ${userId}:`, error);
       return [];
     }
   }
-  
+
   async createAnnotation(insertAnnotation: InsertAnnotation): Promise<Annotation> {
     try {
       const [annotation] = await db.insert(annotations).values(insertAnnotation).returning();
       return annotation;
     } catch (error) {
-      console.error('Error creating annotation:', error);
-      throw new Error('Failed to create annotation');
+      console.error("Error creating annotation:", error);
+      throw new Error("Failed to create annotation");
     }
   }
-  
-  async updateAnnotation(id: number, annotation: Partial<InsertAnnotation>): Promise<Annotation | undefined> {
+
+  async updateAnnotation(
+    id: number,
+    annotation: Partial<InsertAnnotation>
+  ): Promise<Annotation | undefined> {
     try {
-      const [updatedAnnotation] = await db.update(annotations)
+      const [updatedAnnotation] = await db
+        .update(annotations)
         .set({
           ...annotation,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(annotations.id, id))
         .returning();
-      
+
       return updatedAnnotation;
     } catch (error) {
       console.error(`Error updating annotation ${id}:`, error);
       return undefined;
     }
   }
-  
+
   async deleteAnnotation(id: number): Promise<boolean> {
     try {
       await db.delete(annotations).where(eq(annotations.id, id));
@@ -939,9 +1074,9 @@ export class DatabaseStorage implements IStorage {
       return false;
     }
   }
-  
+
   // ===== REVISION HISTORY METHODS =====
-  
+
   async getRevisionHistory(id: number): Promise<RevisionHistory | undefined> {
     try {
       const [history] = await db.select().from(revisionHistory).where(eq(revisionHistory.id, id));
@@ -951,14 +1086,19 @@ export class DatabaseStorage implements IStorage {
       return undefined;
     }
   }
-  
-  async getRevisionHistoryByObject(objectType: string, objectId: number, limit = 100): Promise<RevisionHistory[]> {
+
+  async getRevisionHistoryByObject(
+    objectType: string,
+    objectId: number,
+    limit = 100
+  ): Promise<RevisionHistory[]> {
     try {
-      return await db.select().from(revisionHistory)
-        .where(and(
-          eq(revisionHistory.objectType, objectType),
-          eq(revisionHistory.objectId, objectId)
-        ))
+      return await db
+        .select()
+        .from(revisionHistory)
+        .where(
+          and(eq(revisionHistory.objectType, objectType), eq(revisionHistory.objectId, objectId))
+        )
         .orderBy(desc(revisionHistory.createdAt))
         .limit(limit);
     } catch (error) {
@@ -966,10 +1106,12 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-  
+
   async getRevisionHistoryByUser(userId: number, limit = 50): Promise<RevisionHistory[]> {
     try {
-      return await db.select().from(revisionHistory)
+      return await db
+        .select()
+        .from(revisionHistory)
         .where(eq(revisionHistory.userId, userId))
         .orderBy(desc(revisionHistory.createdAt))
         .limit(limit);
@@ -978,14 +1120,14 @@ export class DatabaseStorage implements IStorage {
       return [];
     }
   }
-  
+
   async createRevisionHistory(insertHistory: InsertRevisionHistory): Promise<RevisionHistory> {
     try {
       const [history] = await db.insert(revisionHistory).values(insertHistory).returning();
       return history;
     } catch (error) {
-      console.error('Error creating revision history:', error);
-      throw new Error('Failed to create revision history');
+      console.error("Error creating revision history:", error);
+      throw new Error("Failed to create revision history");
     }
   }
 
@@ -1003,7 +1145,9 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacyImportJobsByUser(userId: number, limit = 50): Promise<LegacyImportJob[]> {
     try {
-      return await db.select().from(legacyImportJobs)
+      return await db
+        .select()
+        .from(legacyImportJobs)
         .where(eq(legacyImportJobs.createdById, userId))
         .orderBy(desc(legacyImportJobs.createdAt))
         .limit(limit);
@@ -1015,7 +1159,9 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacyImportJobsByStatus(status: string, limit = 50): Promise<LegacyImportJob[]> {
     try {
-      return await db.select().from(legacyImportJobs)
+      return await db
+        .select()
+        .from(legacyImportJobs)
         .where(eq(legacyImportJobs.status, status))
         .orderBy(desc(legacyImportJobs.createdAt))
         .limit(limit);
@@ -1030,21 +1176,25 @@ export class DatabaseStorage implements IStorage {
       const [job] = await db.insert(legacyImportJobs).values(insertJob).returning();
       return job;
     } catch (error) {
-      console.error('Error creating legacy import job:', error);
-      throw new Error('Failed to create legacy import job');
+      console.error("Error creating legacy import job:", error);
+      throw new Error("Failed to create legacy import job");
     }
   }
 
-  async updateLegacyImportJob(id: number, job: Partial<InsertLegacyImportJob>): Promise<LegacyImportJob | undefined> {
+  async updateLegacyImportJob(
+    id: number,
+    job: Partial<InsertLegacyImportJob>
+  ): Promise<LegacyImportJob | undefined> {
     try {
-      const [updatedJob] = await db.update(legacyImportJobs)
+      const [updatedJob] = await db
+        .update(legacyImportJobs)
         .set({
           ...job,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(legacyImportJobs.id, id))
         .returning();
-      
+
       return updatedJob;
     } catch (error) {
       console.error(`Error updating legacy import job ${id}:`, error);
@@ -1066,7 +1216,10 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacyImportRecord(id: number): Promise<LegacyImportRecord | undefined> {
     try {
-      const [record] = await db.select().from(legacyImportRecords).where(eq(legacyImportRecords.id, id));
+      const [record] = await db
+        .select()
+        .from(legacyImportRecords)
+        .where(eq(legacyImportRecords.id, id));
       return record;
     } catch (error) {
       console.error(`Error getting legacy import record ${id}:`, error);
@@ -1076,7 +1229,9 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacyImportRecordsByJob(jobId: number): Promise<LegacyImportRecord[]> {
     try {
-      return await db.select().from(legacyImportRecords)
+      return await db
+        .select()
+        .from(legacyImportRecords)
         .where(eq(legacyImportRecords.jobId, jobId))
         .orderBy(desc(legacyImportRecords.createdAt));
     } catch (error) {
@@ -1087,7 +1242,9 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacyImportRecordsByStatus(status: string, limit = 50): Promise<LegacyImportRecord[]> {
     try {
-      return await db.select().from(legacyImportRecords)
+      return await db
+        .select()
+        .from(legacyImportRecords)
         .where(eq(legacyImportRecords.importStatus, status))
         .orderBy(desc(legacyImportRecords.createdAt))
         .limit(limit);
@@ -1097,23 +1254,29 @@ export class DatabaseStorage implements IStorage {
     }
   }
 
-  async createLegacyImportRecord(insertRecord: InsertLegacyImportRecord): Promise<LegacyImportRecord> {
+  async createLegacyImportRecord(
+    insertRecord: InsertLegacyImportRecord
+  ): Promise<LegacyImportRecord> {
     try {
       const [record] = await db.insert(legacyImportRecords).values(insertRecord).returning();
       return record;
     } catch (error) {
-      console.error('Error creating legacy import record:', error);
-      throw new Error('Failed to create legacy import record');
+      console.error("Error creating legacy import record:", error);
+      throw new Error("Failed to create legacy import record");
     }
   }
 
-  async updateLegacyImportRecord(id: number, record: Partial<InsertLegacyImportRecord>): Promise<LegacyImportRecord | undefined> {
+  async updateLegacyImportRecord(
+    id: number,
+    record: Partial<InsertLegacyImportRecord>
+  ): Promise<LegacyImportRecord | undefined> {
     try {
-      const [updatedRecord] = await db.update(legacyImportRecords)
+      const [updatedRecord] = await db
+        .update(legacyImportRecords)
         .set(record)
         .where(eq(legacyImportRecords.id, id))
         .returning();
-      
+
       return updatedRecord;
     } catch (error) {
       console.error(`Error updating legacy import record ${id}:`, error);
@@ -1135,7 +1298,10 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacySystemTemplate(id: number): Promise<LegacySystemTemplate | undefined> {
     try {
-      const [template] = await db.select().from(legacySystemTemplates).where(eq(legacySystemTemplates.id, id));
+      const [template] = await db
+        .select()
+        .from(legacySystemTemplates)
+        .where(eq(legacySystemTemplates.id, id));
       return template;
     } catch (error) {
       console.error(`Error getting legacy system template ${id}:`, error);
@@ -1145,11 +1311,15 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacySystemTemplatesByType(systemType: string): Promise<LegacySystemTemplate[]> {
     try {
-      return await db.select().from(legacySystemTemplates)
-        .where(and(
-          eq(legacySystemTemplates.systemType, systemType),
-          eq(legacySystemTemplates.isActive, true)
-        ))
+      return await db
+        .select()
+        .from(legacySystemTemplates)
+        .where(
+          and(
+            eq(legacySystemTemplates.systemType, systemType),
+            eq(legacySystemTemplates.isActive, true)
+          )
+        )
         .orderBy(desc(legacySystemTemplates.createdAt));
     } catch (error) {
       console.error(`Error getting legacy system templates by type ${systemType}:`, error);
@@ -1159,11 +1329,15 @@ export class DatabaseStorage implements IStorage {
 
   async getLegacySystemTemplatesByOrganization(orgId: number): Promise<LegacySystemTemplate[]> {
     try {
-      return await db.select().from(legacySystemTemplates)
-        .where(and(
-          eq(legacySystemTemplates.organizationId, orgId),
-          eq(legacySystemTemplates.isActive, true)
-        ))
+      return await db
+        .select()
+        .from(legacySystemTemplates)
+        .where(
+          and(
+            eq(legacySystemTemplates.organizationId, orgId),
+            eq(legacySystemTemplates.isActive, true)
+          )
+        )
         .orderBy(desc(legacySystemTemplates.createdAt));
     } catch (error) {
       console.error(`Error getting legacy system templates by organization ${orgId}:`, error);
@@ -1173,35 +1347,43 @@ export class DatabaseStorage implements IStorage {
 
   async getAllActiveLegacySystemTemplates(): Promise<LegacySystemTemplate[]> {
     try {
-      return await db.select().from(legacySystemTemplates)
+      return await db
+        .select()
+        .from(legacySystemTemplates)
         .where(eq(legacySystemTemplates.isActive, true))
         .orderBy(desc(legacySystemTemplates.createdAt));
     } catch (error) {
-      console.error('Error getting all active legacy system templates:', error);
+      console.error("Error getting all active legacy system templates:", error);
       return [];
     }
   }
 
-  async createLegacySystemTemplate(insertTemplate: InsertLegacySystemTemplate): Promise<LegacySystemTemplate> {
+  async createLegacySystemTemplate(
+    insertTemplate: InsertLegacySystemTemplate
+  ): Promise<LegacySystemTemplate> {
     try {
       const [template] = await db.insert(legacySystemTemplates).values(insertTemplate).returning();
       return template;
     } catch (error) {
-      console.error('Error creating legacy system template:', error);
-      throw new Error('Failed to create legacy system template');
+      console.error("Error creating legacy system template:", error);
+      throw new Error("Failed to create legacy system template");
     }
   }
 
-  async updateLegacySystemTemplate(id: number, template: Partial<InsertLegacySystemTemplate>): Promise<LegacySystemTemplate | undefined> {
+  async updateLegacySystemTemplate(
+    id: number,
+    template: Partial<InsertLegacySystemTemplate>
+  ): Promise<LegacySystemTemplate | undefined> {
     try {
-      const [updatedTemplate] = await db.update(legacySystemTemplates)
+      const [updatedTemplate] = await db
+        .update(legacySystemTemplates)
         .set({
           ...template,
-          updatedAt: new Date()
+          updatedAt: new Date(),
         })
         .where(eq(legacySystemTemplates.id, id))
         .returning();
-      
+
       return updatedTemplate;
     } catch (error) {
       console.error(`Error updating legacy system template ${id}:`, error);

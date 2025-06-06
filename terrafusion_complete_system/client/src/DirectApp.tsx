@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 // 1. Create a simple context
 interface UserContextType {
@@ -12,7 +12,7 @@ const UserContext = createContext<UserContextType | undefined>(undefined);
 function useUser() {
   const context = useContext(UserContext);
   if (context === undefined) {
-    throw new Error('useUser must be used within a UserProvider');
+    throw new Error("useUser must be used within a UserProvider");
   }
   return context;
 }
@@ -23,31 +23,25 @@ interface UserProviderProps {
 }
 
 function UserProvider({ children }: UserProviderProps) {
-  const [name, setName] = useState('John Doe');
-  
+  const [name, setName] = useState("John Doe");
+
   const value = {
     name,
-    setName
+    setName,
   };
-  
-  return (
-    <UserContext.Provider value={value}>
-      {children}
-    </UserContext.Provider>
-  );
+
+  return <UserContext.Provider value={value}>{children}</UserContext.Provider>;
 }
 
 // 4. Create a component that uses the context
 function UserProfile() {
   const { name, setName } = useUser();
-  
+
   return (
     <div>
       <h2>User Profile</h2>
       <p>Name: {name}</p>
-      <button onClick={() => setName('Jane Doe')}>
-        Change Name
-      </button>
+      <button onClick={() => setName("Jane Doe")}>Change Name</button>
     </div>
   );
 }

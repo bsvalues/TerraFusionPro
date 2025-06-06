@@ -1,16 +1,16 @@
-import React from 'react';
-import { Link } from 'wouter';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { 
-  FileText, 
-  BarChart3, 
-  MapPin, 
-  Brain, 
-  Clock, 
-  CheckCircle, 
+import React from "react";
+import { Link } from "wouter";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import {
+  FileText,
+  BarChart3,
+  MapPin,
+  Brain,
+  Clock,
+  CheckCircle,
   AlertCircle,
   Plus,
   Search,
@@ -23,8 +23,8 @@ import {
   Home,
   Building,
   Map,
-  Camera
-} from 'lucide-react';
+  Camera,
+} from "lucide-react";
 
 const TerraFusionDashboard = () => {
   return (
@@ -239,7 +239,9 @@ const TerraFusionDashboard = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-gray-900">#APR-2025-001</h4>
-                      <Badge className="bg-red-100 text-red-800 border-red-200">High Priority</Badge>
+                      <Badge className="bg-red-100 text-red-800 border-red-200">
+                        High Priority
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                       <MapPin className="h-4 w-4" />
@@ -273,7 +275,9 @@ const TerraFusionDashboard = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-gray-900">#APR-2025-002</h4>
-                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">Medium Priority</Badge>
+                      <Badge className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                        Medium Priority
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                       <MapPin className="h-4 w-4" />
@@ -307,7 +311,9 @@ const TerraFusionDashboard = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h4 className="font-semibold text-gray-900">#APR-2025-003</h4>
-                      <Badge className="bg-green-100 text-green-800 border-green-200">Normal Priority</Badge>
+                      <Badge className="bg-green-100 text-green-800 border-green-200">
+                        Normal Priority
+                      </Badge>
                     </div>
                     <div className="flex items-center gap-2 text-sm text-gray-600 mb-2">
                       <MapPin className="h-4 w-4" />

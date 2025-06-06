@@ -1,6 +1,6 @@
 /**
  * File Parser Registry
- * 
+ *
  * This module provides a registry of file parsers for different formats.
  * It allows the system to detect and use the appropriate parser based on the file content.
  */
@@ -28,13 +28,13 @@ export class ParserRegistry {
       new MISMOXMLParser(),
       new CSVParser(),
       new JSONParser(),
-      new WorkFileParser()
+      new WorkFileParser(),
     ];
   }
 
   /**
    * Gets the appropriate parser for a file
-   * 
+   *
    * @param filename The name of the file
    * @param content The content of the file
    * @returns The appropriate parser or undefined if no parser can handle the file
@@ -49,7 +49,7 @@ export class ParserRegistry {
 
     // If no parser was found by content, try to detect by file extension
     const extension = path.extname(filename).toLowerCase();
-    
+
     // Map file extensions to parser types
     if (extension === ".pdf") {
       return this.getParserByName("PDFParser");
@@ -69,17 +69,17 @@ export class ParserRegistry {
 
   /**
    * Gets a parser by name
-   * 
+   *
    * @param name The name of the parser
    * @returns The parser or undefined if no parser with that name exists
    */
   getParserByName(name: string): FileParser | undefined {
-    return this.parsers.find(parser => parser.name === name);
+    return this.parsers.find((parser) => parser.name === name);
   }
 
   /**
    * Gets all registered parsers
-   * 
+   *
    * @returns Array of all registered parsers
    */
   getAllParsers(): FileParser[] {

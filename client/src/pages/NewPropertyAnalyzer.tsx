@@ -1,21 +1,20 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { Label } from '@/components/ui/label';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import {
-  Home,
-  DollarSign,
-  Building,
-  FileBarChart2,
-  Brain,
-  X
-} from 'lucide-react';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Label } from "@/components/ui/label";
+import { Home, DollarSign, Building, FileBarChart2, Brain, X } from "lucide-react";
 
 // Types for our property analysis
 interface PropertyData {
@@ -62,7 +61,7 @@ const mockComparables: Comparable[] = [
     bathrooms: 2,
     squareFeet: 1800,
     yearBuilt: 1995,
-    distanceInMiles: 0.1
+    distanceInMiles: 0.1,
   },
   {
     address: "124 Vineyard Dr, Grandview, WA",
@@ -71,7 +70,7 @@ const mockComparables: Comparable[] = [
     bathrooms: 2.5,
     squareFeet: 1950,
     yearBuilt: 2000,
-    distanceInMiles: 0.8
+    distanceInMiles: 0.8,
   },
   {
     address: "578 Highland Ave, Grandview, WA",
@@ -80,16 +79,16 @@ const mockComparables: Comparable[] = [
     bathrooms: 1.5,
     squareFeet: 1750,
     yearBuilt: 1992,
-    distanceInMiles: 1.2
-  }
+    distanceInMiles: 1.2,
+  },
 ];
 
 // Format currency
 const formatCurrency = (value: number) => {
-  return new Intl.NumberFormat('en-US', { 
-    style: 'currency', 
-    currency: 'USD', 
-    maximumFractionDigits: 0 
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
   }).format(value);
 };
 
@@ -113,7 +112,9 @@ const ComparableCard: React.FC<{ comparable: Comparable }> = ({ comparable }) =>
         <div className="flex justify-between items-start">
           <div>
             <p className="font-medium">{comparable.address}</p>
-            <p className="text-sm text-muted-foreground">{comparable.distanceInMiles.toFixed(1)} miles away</p>
+            <p className="text-sm text-muted-foreground">
+              {comparable.distanceInMiles.toFixed(1)} miles away
+            </p>
           </div>
           <p className="font-bold">{formatCurrency(comparable.price)}</p>
         </div>
@@ -125,7 +126,8 @@ const ComparableCard: React.FC<{ comparable: Comparable }> = ({ comparable }) =>
             <span className="text-muted-foreground">Baths:</span> {comparable.bathrooms}
           </div>
           <div>
-            <span className="text-muted-foreground">SqFt:</span> {comparable.squareFeet.toLocaleString()}
+            <span className="text-muted-foreground">SqFt:</span>{" "}
+            {comparable.squareFeet.toLocaleString()}
           </div>
         </div>
       </CardContent>
@@ -147,12 +149,12 @@ const NewPropertyAnalyzer: React.FC = () => {
     yearBuilt: 1997,
     propertyType: "Single Family",
     condition: "Good",
-    features: ["Garage", "Fireplace", "Fenced Yard"]
+    features: ["Garage", "Fireplace", "Fenced Yard"],
   });
 
   // State for new feature input
   const [newFeature, setNewFeature] = useState("");
-  
+
   // State for analysis status
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisError, setAnalysisError] = useState<string | null>(null);
@@ -161,28 +163,29 @@ const NewPropertyAnalyzer: React.FC = () => {
   // Handle input changes
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setPropertyData(prev => ({
+    setPropertyData((prev) => ({
       ...prev,
-      [name]: name === 'bedrooms' || name === 'bathrooms' || name === 'squareFeet' || name === 'yearBuilt' 
-        ? Number(value) 
-        : value
+      [name]:
+        name === "bedrooms" || name === "bathrooms" || name === "squareFeet" || name === "yearBuilt"
+          ? Number(value)
+          : value,
     }));
   };
 
   // Handle select changes
   const handleSelectChange = (name: string, value: string) => {
-    setPropertyData(prev => ({
+    setPropertyData((prev) => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
   // Add feature
   const addFeature = () => {
     if (newFeature.trim() && !propertyData.features.includes(newFeature.trim())) {
-      setPropertyData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        features: [...prev.features, newFeature.trim()]
+        features: [...prev.features, newFeature.trim()],
       }));
       setNewFeature("");
     }
@@ -190,9 +193,9 @@ const NewPropertyAnalyzer: React.FC = () => {
 
   // Remove feature
   const removeFeature = (index: number) => {
-    setPropertyData(prev => ({
+    setPropertyData((prev) => ({
       ...prev,
-      features: prev.features.filter((_, i) => i !== index)
+      features: prev.features.filter((_, i) => i !== index),
     }));
   };
 
@@ -201,23 +204,24 @@ const NewPropertyAnalyzer: React.FC = () => {
     e.preventDefault();
     setIsAnalyzing(true);
     setAnalysisError(null);
-    
+
     try {
       // Simulate API call - in real app, call the real API endpoint
-      await new Promise(resolve => setTimeout(resolve, 2000));
-      
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+
       // For demo, we'll use mock data as if it came from the server
       const mockResult: AnalysisResult = {
         estimatedValue: 315000,
         confidenceLevel: 85,
         valueRange: {
           min: 305000,
-          max: 325000
+          max: 325000,
         },
-        marketAnalysis: "The property at 406 Stardust Ct is located in a stable market with moderate growth potential. Recent comparable sales in Grandview show properties like this typically selling within 30 days of listing. Housing inventory in this area is currently low, creating favorable conditions for sellers.",
-        comparableProperties: mockComparables
+        marketAnalysis:
+          "The property at 406 Stardust Ct is located in a stable market with moderate growth potential. Recent comparable sales in Grandview show properties like this typically selling within 30 days of listing. Housing inventory in this area is currently low, creating favorable conditions for sellers.",
+        comparableProperties: mockComparables,
       };
-      
+
       setAnalysisResult(mockResult);
     } catch (error) {
       setAnalysisError(error instanceof Error ? error.message : "An unexpected error occurred");
@@ -229,7 +233,9 @@ const NewPropertyAnalyzer: React.FC = () => {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold text-center mb-2">TerraFusion Property Analyzer</h1>
-      <p className="text-center text-muted-foreground mb-8">AI-powered property valuation and market analysis</p>
+      <p className="text-center text-muted-foreground mb-8">
+        AI-powered property valuation and market analysis
+      </p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Property Input Form */}
@@ -252,7 +258,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                     placeholder="Enter property address"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-3 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
@@ -328,7 +334,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-2">
                     <Label htmlFor="squareFeet">Square Feet</Label>
@@ -354,7 +360,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                     />
                   </div>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="propertyType">Property Type</Label>
                   <Select
@@ -373,7 +379,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label htmlFor="condition">Condition</Label>
                   <Select
@@ -392,15 +398,15 @@ const NewPropertyAnalyzer: React.FC = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Label>Property Features</Label>
                   <div className="flex flex-wrap gap-2 mb-2">
                     {propertyData.features.map((feature, index) => (
-                      <FeatureTag 
-                        key={index} 
-                        feature={feature} 
-                        onRemove={() => removeFeature(index)} 
+                      <FeatureTag
+                        key={index}
+                        feature={feature}
+                        onRemove={() => removeFeature(index)}
                       />
                     ))}
                   </div>
@@ -409,7 +415,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                       value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
                       placeholder="Add feature"
-                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addFeature())}
+                      onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), addFeature())}
                     />
                     <Button type="button" variant="outline" onClick={addFeature}>
                       Add
@@ -418,11 +424,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                 </div>
               </CardContent>
               <CardFooter>
-                <Button 
-                  type="submit" 
-                  className="w-full" 
-                  disabled={isAnalyzing}
-                >
+                <Button type="submit" className="w-full" disabled={isAnalyzing}>
                   {isAnalyzing ? (
                     <>
                       <span className="animate-spin mr-2">⟳</span> Analyzing Property
@@ -437,7 +439,7 @@ const NewPropertyAnalyzer: React.FC = () => {
             </Card>
           </form>
         </div>
-        
+
         {/* Results Section */}
         <div>
           {analysisError ? (
@@ -462,25 +464,27 @@ const NewPropertyAnalyzer: React.FC = () => {
               <CardContent className="space-y-6">
                 <div className="text-center py-6">
                   <div className="animate-spin h-12 w-12 border-4 border-primary border-t-transparent rounded-full mx-auto mb-4"></div>
-                  <p className="text-muted-foreground">Analyzing property details and market data...</p>
+                  <p className="text-muted-foreground">
+                    Analyzing property details and market data...
+                  </p>
                 </div>
-                
+
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-3/4" />
                   <Skeleton className="h-4 w-1/2" />
                   <Skeleton className="h-4 w-5/6" />
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-2">
                   <Skeleton className="h-4 w-1/3" />
                   <Skeleton className="h-8 w-1/2" />
                   <Skeleton className="h-2 w-full" />
                 </div>
-                
+
                 <Separator />
-                
+
                 <div className="space-y-3">
                   <Skeleton className="h-4 w-1/4" />
                   <Skeleton className="h-[100px] w-full" />
@@ -507,7 +511,8 @@ const NewPropertyAnalyzer: React.FC = () => {
                     <div>
                       <p className="text-sm text-muted-foreground">Value Range</p>
                       <p className="text-lg">
-                        {formatCurrency(analysisResult.valueRange.min)} - {formatCurrency(analysisResult.valueRange.max)}
+                        {formatCurrency(analysisResult.valueRange.min)} -{" "}
+                        {formatCurrency(analysisResult.valueRange.max)}
                       </p>
                     </div>
                   </div>
@@ -520,7 +525,7 @@ const NewPropertyAnalyzer: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl flex items-center gap-2">
@@ -528,12 +533,10 @@ const NewPropertyAnalyzer: React.FC = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-muted-foreground">
-                    {analysisResult.marketAnalysis}
-                  </p>
+                  <p className="text-muted-foreground">{analysisResult.marketAnalysis}</p>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-xl flex items-center gap-2">
@@ -559,7 +562,8 @@ const NewPropertyAnalyzer: React.FC = () => {
                   <FileBarChart2 className="h-12 w-12 text-muted-foreground mx-auto mb-4 opacity-50" />
                   <h3 className="text-lg font-medium mb-2">No Analysis Results Yet</h3>
                   <p className="text-sm text-muted-foreground">
-                    Enter property details and click "Analyze Property" to see AI-powered valuation results
+                    Enter property details and click "Analyze Property" to see AI-powered valuation
+                    results
                   </p>
                 </div>
               </CardContent>

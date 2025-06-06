@@ -3,11 +3,11 @@
  * Form-first architecture with real-time agent validation
  */
 
-import { EventEmitter } from 'events';
+import { EventEmitter } from "events";
 
 export interface FormField {
   id: string;
-  type: 'text' | 'number' | 'select' | 'textarea' | 'comp' | 'address';
+  type: "text" | "number" | "select" | "textarea" | "comp" | "address";
   label: string;
   value: any;
   required: boolean;
@@ -31,7 +31,7 @@ export interface FormSection {
 export interface FormTemplate {
   id: string;
   name: string;
-  type: 'URAR' | 'TOTAL' | 'ClickForms' | 'ACI' | 'Custom';
+  type: "URAR" | "TOTAL" | "ClickForms" | "ACI" | "Custom";
   sections: FormSection[];
   validation: FormValidation;
   agents: string[];
@@ -45,14 +45,14 @@ export interface FormValidation {
 export interface ValidationRule {
   id: string;
   field: string;
-  type: 'required' | 'pattern' | 'range' | 'custom';
+  type: "required" | "pattern" | "range" | "custom";
   value: any;
   message: string;
 }
 
 export interface AgentCheck {
   agentId: string;
-  trigger: 'onChange' | 'onComplete' | 'onSubmit';
+  trigger: "onChange" | "onComplete" | "onSubmit";
   fields: string[];
 }
 
@@ -60,7 +60,7 @@ export interface FormInstance {
   id: string;
   templateId: string;
   data: Record<string, any>;
-  status: 'draft' | 'validating' | 'complete' | 'submitted';
+  status: "draft" | "validating" | "complete" | "submitted";
   validationResults: ValidationResult[];
   agentFeedback: AgentFeedback[];
   createdAt: Date;
@@ -81,7 +81,7 @@ export interface ValidationResult {
 export interface AgentFeedback {
   agentId: string;
   fieldId?: string;
-  type: 'validation' | 'suggestion' | 'narrative' | 'comp' | 'risk';
+  type: "validation" | "suggestion" | "narrative" | "comp" | "risk";
   content: any;
   confidence: number;
   timestamp: Date;
@@ -96,72 +96,70 @@ export class FormEngine extends EventEmitter {
     this.loadDefaultTemplates();
   }
 
-
-
   private loadDefaultTemplates(): void {
     const urarTemplate: FormTemplate = {
-      id: 'urar-standard',
-      name: 'URAR Standard Form',
-      type: 'URAR',
+      id: "urar-standard",
+      name: "URAR Standard Form",
+      type: "URAR",
       sections: [
         {
-          id: 'subject-property',
-          title: 'Subject Property Information',
+          id: "subject-property",
+          title: "Subject Property Information",
           order: 1,
           fields: [
             {
-              id: 'property_address',
-              type: 'address',
-              label: 'Property Address',
-              value: '',
+              id: "property_address",
+              type: "address",
+              label: "Property Address",
+              value: "",
               required: true,
-              agentHints: ['address-validation', 'geo-lookup'],
+              agentHints: ["address-validation", "geo-lookup"],
               validation: {
-                pattern: '^[0-9]+\\s+[A-Za-z0-9\\s,.-]+$'
-              }
+                pattern: "^[0-9]+\\s+[A-Za-z0-9\\s,.-]+$",
+              },
             },
             {
-              id: 'legal_description',
-              type: 'textarea',
-              label: 'Legal Description',
-              value: '',
+              id: "legal_description",
+              type: "textarea",
+              label: "Legal Description",
+              value: "",
               required: true,
-              agentHints: ['legal-validation']
+              agentHints: ["legal-validation"],
             },
             {
-              id: 'sale_price',
-              type: 'number',
-              label: 'Sale Price',
+              id: "sale_price",
+              type: "number",
+              label: "Sale Price",
               value: 0,
               required: true,
-              agentHints: ['market-validation', 'price-analysis'],
+              agentHints: ["market-validation", "price-analysis"],
               validation: {
                 min: 0,
-                max: 50000000
-              }
-            }
-          ]
-        }
+                max: 50000000,
+              },
+            },
+          ],
+        },
       ],
       validation: {
         rules: [
           {
-            id: 'address-required',
-            field: 'property_address',
-            type: 'required',
+            id: "address-required",
+            field: "property_address",
+            type: "required",
             value: true,
-            message: 'Property address is required'
-          }
+            message: "Property address is required",
+          },
         ],
         agentChecks: [
           {
-            agentId: 'comp-model',
-            trigger: 'onChange',
-            fields: ['sale_price']
-          }
-        ]
+            agentId: "comp-model",
+            trigger: "onChange",
+            fields: ["sale_price"],
+          },
+        ],
       },
-      agents: ['comp-model', 'narrative-synth', 'risk-validator', 'form-audit']
+      agents: ["comp-model", "narrative-synth", "risk-validator", "form-audit"],
     };
 
     this.templates.set(urarTemplate.id, urarTemplate);
@@ -178,16 +176,16 @@ export class FormEngine extends EventEmitter {
       id: formId,
       templateId,
       data: initialData || {},
-      status: 'draft',
+      status: "draft",
       validationResults: [],
       agentFeedback: [],
       createdAt: new Date(),
-      updatedAt: new Date()
+      updatedAt: new Date(),
     };
 
     this.instances.set(formId, instance);
-    this.emit('formCreated', instance);
-    
+    this.emit("formCreated", instance);
+
     return instance;
   }
 
@@ -201,7 +199,7 @@ export class FormEngine extends EventEmitter {
     instance.updatedAt = new Date();
 
     // Emit field update for agent processing
-    this.emit('fieldUpdated', { formId, fieldId, value, formData: instance.data });
+    this.emit("fieldUpdated", { formId, fieldId, value, formData: instance.data });
   }
 
   async submitForm(formId: string): Promise<{ hash: string; signature: string }> {
@@ -215,23 +213,23 @@ export class FormEngine extends EventEmitter {
 
     instance.hash = hash;
     instance.signature = signature;
-    instance.status = 'submitted';
+    instance.status = "submitted";
     instance.updatedAt = new Date();
 
-    this.emit('formSubmitted', instance);
+    this.emit("formSubmitted", instance);
 
     return { hash, signature };
   }
 
   private async generateFormHash(instance: FormInstance): Promise<string> {
-    const crypto = await import('crypto');
+    const crypto = await import("crypto");
     const content = JSON.stringify({
       templateId: instance.templateId,
       data: instance.data,
-      timestamp: instance.updatedAt.toISOString()
+      timestamp: instance.updatedAt.toISOString(),
     });
-    
-    return crypto.createHash('sha256').update(content).digest('hex');
+
+    return crypto.createHash("sha256").update(content).digest("hex");
   }
 
   private async signForm(hash: string): Promise<string> {

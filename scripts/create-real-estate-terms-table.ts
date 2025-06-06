@@ -1,6 +1,6 @@
-import { db } from '../server/db';
-import { realEstateTerms } from '../shared/schema';
-import { sql } from 'drizzle-orm';
+import { db } from "../server/db";
+import { realEstateTerms } from "../shared/schema";
+import { sql } from "drizzle-orm";
 
 async function createRealEstateTermsTable() {
   try {
@@ -12,14 +12,14 @@ async function createRealEstateTermsTable() {
         AND table_name = 'real_estate_terms'
       );
     `);
-    
+
     const tableExists = result.rows[0].exists;
-    
+
     if (tableExists) {
-      console.log('Table real_estate_terms already exists.');
+      console.log("Table real_estate_terms already exists.");
       return;
     }
-    
+
     // Create the real_estate_terms table
     await db.execute(sql`
       CREATE TABLE IF NOT EXISTS real_estate_terms (
@@ -36,10 +36,10 @@ async function createRealEstateTermsTable() {
         updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP NOT NULL
       );
     `);
-    
-    console.log('Successfully created real_estate_terms table.');
+
+    console.log("Successfully created real_estate_terms table.");
   } catch (error) {
-    console.error('Error creating real_estate_terms table:', error);
+    console.error("Error creating real_estate_terms table:", error);
   } finally {
     process.exit(0);
   }

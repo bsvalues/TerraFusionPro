@@ -28,15 +28,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useToast } from "@/hooks/use-toast";
 import { FileDown, Pencil, Plus, Trash2, Download, Settings } from "lucide-react";
-import config from '@shared/config';
+import config from "@shared/config";
 
 interface Adjustment {
   id: string;
@@ -80,7 +75,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
   const [bulkAdjustmentType, setBulkAdjustmentType] = useState("");
   const [bulkAdjustmentAmount, setBulkAdjustmentAmount] = useState("");
   const [bulkAdjustmentDescription, setBulkAdjustmentDescription] = useState("");
-  
+
   // Export options
   const [exportFormat, setExportFormat] = useState<"pdf" | "zip">("zip");
   const [exportOptions, setExportOptions] = useState({
@@ -90,7 +85,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
     includeAIAnnotations: config.pdfExport.enableAIAnnotations,
     addWatermark: config.pdfExport.addWatermark,
     watermarkText: config.pdfExport.watermarkText,
-    includeMetadata: config.zipExport.includeMetadata
+    includeMetadata: config.zipExport.includeMetadata,
   });
 
   // Select/deselect all comparables
@@ -132,7 +127,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
           amount: bulkAdjustmentAmount,
           description: bulkAdjustmentDescription || `${bulkAdjustmentType} adjustment`,
         };
-        
+
         return {
           ...comp,
           adjustments: [...comp.adjustments, newAdjustment],
@@ -144,7 +139,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
     // Update comparables in parent component
     onUpdate(updatedComparables);
     setIsAdjustmentModalOpen(false);
-    
+
     // Reset form fields
     setBulkAdjustmentType("");
     setBulkAdjustmentAmount("");
@@ -169,7 +164,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
     });
 
     onUpdate(updatedComparables);
-    
+
     toast({
       title: "Adjustment deleted",
       description: "The adjustment has been removed.",
@@ -189,12 +184,13 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
 
     try {
       const selectedIds = selectedComparables;
-      
+
       // Call the export API based on format selection
-      const endpoint = exportFormat === "pdf" 
-        ? `/api/comparables/${selectedIds[0]}/export-pdf` 
-        : `/api/appraisals/${appraisalId}/export-zip`;
-      
+      const endpoint =
+        exportFormat === "pdf"
+          ? `/api/comparables/${selectedIds[0]}/export-pdf`
+          : `/api/appraisals/${appraisalId}/export-zip`;
+
       const options = {
         method: "POST",
         headers: {
@@ -217,12 +213,12 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
       // Simulate processing time
       setTimeout(() => {
         setIsExportModalOpen(false);
-        
+
         toast({
           title: "Export complete",
           description: `${exportFormat === "pdf" ? "PDF" : "ZIP archive"} has been generated successfully.`,
         });
-        
+
         // In a real implementation, we would trigger a download
         // For demo, just show success message
       }, 1500);
@@ -240,7 +236,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
   const getAdjustedPrice = (comparable: Comparable) => {
     const salePrice = parseFloat(comparable.salePrice);
     if (isNaN(salePrice)) return "N/A";
-    
+
     let totalAdjustment = 0;
     if (comparable.adjustments && comparable.adjustments.length > 0) {
       totalAdjustment = comparable.adjustments.reduce((sum, adj) => {
@@ -248,7 +244,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
         return isNaN(amount) ? sum : sum + amount;
       }, 0);
     }
-    
+
     const adjustedPrice = salePrice + totalAdjustment;
     return `$${adjustedPrice.toLocaleString()}`;
   };
@@ -272,14 +268,14 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
       //     options: exportOptions,
       //   }),
       // });
-      
+
       // For demo purposes, simulate the export process
       showDemoWarning();
-      
+
       // Simulate processing time
       setTimeout(() => {
         toast({
-          title: "Export complete", 
+          title: "Export complete",
           description: "PDF has been generated successfully.",
         });
       }, 1000);
@@ -335,7 +331,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
             <Plus className="h-4 w-4 mr-2" />
             Add Adjustment
           </Button>
-          
+
           <Button
             variant="outline"
             size="sm"
@@ -357,14 +353,14 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
             Export Selected
           </Button>
         </div>
-        
+
         <div className="flex items-center gap-2">
           {config.demoMode.enabled && (
             <div className="bg-yellow-100 text-yellow-800 px-3 py-1 rounded-md text-sm font-medium border border-yellow-300">
               {config.demoMode.demoLabelText}
             </div>
           )}
-          
+
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -390,8 +386,10 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10">
-                  <Checkbox 
-                    checked={selectedComparables.length === comparables.length && comparables.length > 0}
+                  <Checkbox
+                    checked={
+                      selectedComparables.length === comparables.length && comparables.length > 0
+                    }
                     onCheckedChange={handleSelectAll}
                   />
                 </TableHead>
@@ -407,9 +405,11 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
               {comparables.map((comparable) => (
                 <TableRow key={comparable.id}>
                   <TableCell>
-                    <Checkbox 
+                    <Checkbox
                       checked={selectedComparables.includes(comparable.id)}
-                      onCheckedChange={(checked) => handleSelectComparable(comparable.id, !!checked)}
+                      onCheckedChange={(checked) =>
+                        handleSelectComparable(comparable.id, !!checked)
+                      }
                     />
                   </TableCell>
                   <TableCell>
@@ -426,16 +426,21 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
                     {comparable.adjustments && comparable.adjustments.length > 0 ? (
                       <div className="space-y-1">
                         {comparable.adjustments.map((adjustment) => (
-                          <div key={adjustment.id} className="flex items-center justify-between text-sm">
+                          <div
+                            key={adjustment.id}
+                            className="flex items-center justify-between text-sm"
+                          >
                             <span>{adjustment.adjustmentType}: </span>
-                            <span className={`font-medium ${parseFloat(adjustment.amount) >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                              {parseFloat(adjustment.amount) >= 0 ? '+' : ''}
-                              ${parseInt(adjustment.amount).toLocaleString()}
+                            <span
+                              className={`font-medium ${parseFloat(adjustment.amount) >= 0 ? "text-green-600" : "text-red-600"}`}
+                            >
+                              {parseFloat(adjustment.amount) >= 0 ? "+" : ""}$
+                              {parseInt(adjustment.amount).toLocaleString()}
                             </span>
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-6 w-6" 
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6"
                               onClick={() => deleteAdjustment(comparable.id, adjustment.id)}
                             >
                               <Trash2 className="h-3 w-3" />
@@ -452,8 +457,8 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="icon"
                             onClick={() => handleExportSinglePDF(comparable)}
                           >
@@ -489,15 +494,12 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
               Apply the same adjustment to all selected properties.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 pt-4">
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="adjustmentType">Adjustment Type</Label>
-                <Select 
-                  value={bulkAdjustmentType} 
-                  onValueChange={setBulkAdjustmentType}
-                >
+                <Select value={bulkAdjustmentType} onValueChange={setBulkAdjustmentType}>
                   <SelectTrigger id="adjustmentType">
                     <SelectValue placeholder="Select type" />
                   </SelectTrigger>
@@ -511,29 +513,29 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="adjustmentAmount">Amount</Label>
-                <Input 
-                  id="adjustmentAmount" 
-                  type="text" 
-                  placeholder="e.g. 5000 or -3000" 
+                <Input
+                  id="adjustmentAmount"
+                  type="text"
+                  placeholder="e.g. 5000 or -3000"
                   value={bulkAdjustmentAmount}
                   onChange={(e) => setBulkAdjustmentAmount(e.target.value)}
                 />
               </div>
             </div>
-            
+
             <div className="space-y-2">
               <Label htmlFor="adjustmentDescription">Description (Optional)</Label>
-              <Input 
-                id="adjustmentDescription" 
-                placeholder="Describe the adjustment" 
+              <Input
+                id="adjustmentDescription"
+                placeholder="Describe the adjustment"
                 value={bulkAdjustmentDescription}
                 onChange={(e) => setBulkAdjustmentDescription(e.target.value)}
               />
             </div>
-            
+
             <div className="pt-4 flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsAdjustmentModalOpen(false)}>
                 Cancel
@@ -555,108 +557,128 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
               Configure export settings for {selectedComparables.length} selected properties.
             </DialogDescription>
           </DialogHeader>
-          
+
           <div className="space-y-4 pt-4">
             <div className="space-y-2">
               <Label>Export Format</Label>
               <div className="flex space-x-4">
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    id="formatPDF" 
+                  <input
+                    type="radio"
+                    id="formatPDF"
                     checked={exportFormat === "pdf"}
                     onChange={() => setExportFormat("pdf")}
                     className="h-4 w-4"
                   />
-                  <Label htmlFor="formatPDF" className="font-normal">Single PDF</Label>
+                  <Label htmlFor="formatPDF" className="font-normal">
+                    Single PDF
+                  </Label>
                 </div>
                 <div className="flex items-center space-x-2">
-                  <input 
-                    type="radio" 
-                    id="formatZIP" 
+                  <input
+                    type="radio"
+                    id="formatZIP"
                     checked={exportFormat === "zip"}
                     onChange={() => setExportFormat("zip")}
                     className="h-4 w-4"
                   />
-                  <Label htmlFor="formatZIP" className="font-normal">ZIP Archive</Label>
+                  <Label htmlFor="formatZIP" className="font-normal">
+                    ZIP Archive
+                  </Label>
                 </div>
               </div>
               <p className="text-sm text-gray-500">
-                {exportFormat === "pdf" 
+                {exportFormat === "pdf"
                   ? "Export as a single PDF file (only available when one property is selected)."
                   : "Export multiple PDFs in a ZIP archive with a metadata file."}
               </p>
             </div>
-            
+
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Content Options</h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="includeCover" className="font-normal">Include cover page</Label>
-                  <Switch 
-                    id="includeCover" 
+                  <Label htmlFor="includeCover" className="font-normal">
+                    Include cover page
+                  </Label>
+                  <Switch
+                    id="includeCover"
                     checked={exportOptions.includeCover}
                     onCheckedChange={(checked) => toggleExportOption("includeCover", checked)}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="includePhotos" className="font-normal">Include property photos</Label>
-                  <Switch 
-                    id="includePhotos" 
+                  <Label htmlFor="includePhotos" className="font-normal">
+                    Include property photos
+                  </Label>
+                  <Switch
+                    id="includePhotos"
                     checked={exportOptions.includePhotos}
                     onCheckedChange={(checked) => toggleExportOption("includePhotos", checked)}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="includeAdjustments" className="font-normal">Include adjustments</Label>
-                  <Switch 
-                    id="includeAdjustments" 
+                  <Label htmlFor="includeAdjustments" className="font-normal">
+                    Include adjustments
+                  </Label>
+                  <Switch
+                    id="includeAdjustments"
                     checked={exportOptions.includeAdjustments}
                     onCheckedChange={(checked) => toggleExportOption("includeAdjustments", checked)}
                   />
                 </div>
-                
+
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="includeAIAnnotations" className="font-normal">Include AI analysis</Label>
-                  <Switch 
-                    id="includeAIAnnotations" 
+                  <Label htmlFor="includeAIAnnotations" className="font-normal">
+                    Include AI analysis
+                  </Label>
+                  <Switch
+                    id="includeAIAnnotations"
                     checked={exportOptions.includeAIAnnotations}
-                    onCheckedChange={(checked) => toggleExportOption("includeAIAnnotations", checked)}
+                    onCheckedChange={(checked) =>
+                      toggleExportOption("includeAIAnnotations", checked)
+                    }
                   />
                 </div>
               </div>
             </div>
-            
+
             <div className="border-t pt-4">
               <h4 className="font-medium mb-3">Advanced Options</h4>
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
-                  <Label htmlFor="addWatermark" className="font-normal">Add watermark</Label>
-                  <Switch 
-                    id="addWatermark" 
+                  <Label htmlFor="addWatermark" className="font-normal">
+                    Add watermark
+                  </Label>
+                  <Switch
+                    id="addWatermark"
                     checked={exportOptions.addWatermark}
                     onCheckedChange={(checked) => toggleExportOption("addWatermark", checked)}
                   />
                 </div>
-                
+
                 {exportOptions.addWatermark && (
                   <div className="space-y-2">
                     <Label htmlFor="watermarkText">Watermark Text</Label>
-                    <Input 
-                      id="watermarkText" 
+                    <Input
+                      id="watermarkText"
                       value={exportOptions.watermarkText}
-                      onChange={(e) => setExportOptions({...exportOptions, watermarkText: e.target.value})}
+                      onChange={(e) =>
+                        setExportOptions({ ...exportOptions, watermarkText: e.target.value })
+                      }
                     />
                   </div>
                 )}
-                
+
                 {exportFormat === "zip" && (
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="includeMetadata" className="font-normal">Include metadata file</Label>
-                    <Switch 
-                      id="includeMetadata" 
+                    <Label htmlFor="includeMetadata" className="font-normal">
+                      Include metadata file
+                    </Label>
+                    <Switch
+                      id="includeMetadata"
                       checked={exportOptions.includeMetadata}
                       onCheckedChange={(checked) => toggleExportOption("includeMetadata", checked)}
                     />
@@ -664,7 +686,7 @@ const BatchAdjustments: React.FC<BatchAdjustmentsProps> = ({
                 )}
               </div>
             </div>
-            
+
             <div className="pt-4 flex justify-end space-x-2">
               <Button variant="outline" onClick={() => setIsExportModalOpen(false)}>
                 Cancel

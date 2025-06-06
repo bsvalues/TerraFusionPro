@@ -3,17 +3,17 @@
  * Converts SQLite S3DB files to JSON format for integration
  */
 
-import sqlite3 from 'sqlite3';
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
+import sqlite3 from "sqlite3";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 class S3DBConverter {
   constructor() {
-    this.outputDir = 'data/converted';
+    this.outputDir = "data/converted";
     this.ensureOutputDir();
   }
 
@@ -26,7 +26,7 @@ class S3DBConverter {
   async convertDatabase(dbPath, outputName) {
     return new Promise((resolve, reject) => {
       console.log(`Converting ${dbPath}...`);
-      
+
       const db = new sqlite3.Database(dbPath, sqlite3.OPEN_READONLY, (err) => {
         if (err) {
           console.error(`Error opening database ${dbPath}:`, err);
@@ -47,7 +47,7 @@ class S3DBConverter {
         const result = {
           database: outputName,
           convertedAt: new Date().toISOString(),
-          tables: {}
+          tables: {},
         };
 
         let completed = 0;
@@ -59,7 +59,7 @@ class S3DBConverter {
           return;
         }
 
-        tables.forEach(table => {
+        tables.forEach((table) => {
           const tableName = table.name;
           console.log(`Processing table: ${tableName}`);
 
@@ -83,7 +83,7 @@ class S3DBConverter {
                 result.tables[tableName] = {
                   schema: schema,
                   rowCount: rows.length,
-                  data: rows
+                  data: rows,
                 };
                 console.log(`✓ ${tableName}: ${rows.length} rows`);
               }
@@ -109,9 +109,9 @@ class S3DBConverter {
 
   async convertAll() {
     const databases = [
-      { path: 'attached_assets/contacts.s3db', name: 'contacts' },
-      { path: 'attached_assets/filemanagement.s3db', name: 'filemanagement' },
-      { path: 'attached_assets/spectrum.s3db', name: 'spectrum' }
+      { path: "attached_assets/contacts.s3db", name: "contacts" },
+      { path: "attached_assets/filemanagement.s3db", name: "filemanagement" },
+      { path: "attached_assets/spectrum.s3db", name: "spectrum" },
     ];
 
     const results = [];
@@ -135,21 +135,21 @@ class S3DBConverter {
       conversionDate: new Date().toISOString(),
       totalDatabases: databases.length,
       successfulConversions: results.length,
-      databases: results.map(r => ({
+      databases: results.map((r) => ({
         name: r.database,
         tableCount: Object.keys(r.tables).length,
-        totalRows: Object.values(r.tables).reduce((sum, table) => sum + table.rowCount, 0)
-      }))
+        totalRows: Object.values(r.tables).reduce((sum, table) => sum + table.rowCount, 0),
+      })),
     };
 
     fs.writeFileSync(
-      path.join(this.outputDir, 'conversion_summary.json'),
+      path.join(this.outputDir, "conversion_summary.json"),
       JSON.stringify(summary, null, 2)
     );
 
-    console.log('\n=== Conversion Summary ===');
+    console.log("\n=== Conversion Summary ===");
     console.log(`Converted ${summary.successfulConversions}/${summary.totalDatabases} databases`);
-    summary.databases.forEach(db => {
+    summary.databases.forEach((db) => {
       console.log(`${db.name}: ${db.tableCount} tables, ${db.totalRows} total rows`);
     });
 
@@ -160,13 +160,14 @@ class S3DBConverter {
 // Run conversion if called directly
 if (import.meta.url === `file://${process.argv[1]}`) {
   const converter = new S3DBConverter();
-  converter.convertAll()
-    .then(summary => {
-      console.log('\n✓ All conversions completed successfully');
+  converter
+    .convertAll()
+    .then((summary) => {
+      console.log("\n✓ All conversions completed successfully");
       process.exit(0);
     })
-    .catch(error => {
-      console.error('\n✗ Conversion failed:', error);
+    .catch((error) => {
+      console.error("\n✗ Conversion failed:", error);
       process.exit(1);
     });
 }

@@ -13,10 +13,10 @@ export async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
   try {
     // Combine email body and attachment content
     const emailContent = email.htmlBody || email.body;
-    
+
     // Extract text from attachments (PDF, Word, etc)
     const attachmentText = await extractTextFromAttachments(email.attachments);
-    
+
     // Use OpenAI to extract structured data from the email and attachments
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -24,7 +24,7 @@ export async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
         {
           role: "system",
           content: `You are an AI assistant specialized in extracting appraisal order information from emails and attachments. 
-          Extract all relevant information about the property, client, lender, and order details.`
+          Extract all relevant information about the property, client, lender, and order details.`,
         },
         {
           role: "user",
@@ -39,16 +39,16 @@ export async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
           Extract and return the following information in JSON format:
           1. Client information (name, company, email, phone, address if available)
           2. Lender information (name, address, contact person, contact email, contact phone if available)
-          3. Order details (order number, order date, due date, fee amount, report type, property type, property address, city, state, zip, borrower name, occupancy status, loan type, and any special instructions)`
-        }
+          3. Order details (order number, order date, due date, fee amount, report type, property type, property address, city, state, zip, borrower name, occupancy status, loan type, and any special instructions)`,
+        },
       ],
-      response_format: { type: "json_object" }
+      response_format: { type: "json_object" },
     });
 
     // Parse the response
     const content = response.choices[0].message.content || "{}";
     const extractedData = JSON.parse(content);
-    
+
     // Format the response
     return {
       clientInfo: {
@@ -56,14 +56,14 @@ export async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
         company: extractedData.client?.company || "Unknown Company",
         email: extractedData.client?.email || "unknown@example.com",
         phone: extractedData.client?.phone || "Unknown",
-        address: extractedData.client?.address
+        address: extractedData.client?.address,
       },
       lenderInfo: {
         name: extractedData.lender?.name || "Unknown Lender",
         address: extractedData.lender?.address || "Unknown Address",
         contactPerson: extractedData.lender?.contactPerson,
         contactEmail: extractedData.lender?.contactEmail,
-        contactPhone: extractedData.lender?.contactPhone
+        contactPhone: extractedData.lender?.contactPhone,
       },
       orderDetails: {
         orderNumber: extractedData.order?.orderNumber || `ORD-${Date.now()}`,
@@ -79,23 +79,23 @@ export async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
         borrowerName: extractedData.order?.borrowerName,
         occupancyStatus: extractedData.order?.occupancyStatus,
         loanType: extractedData.order?.loanType,
-        specialInstructions: extractedData.order?.specialInstructions
-      }
+        specialInstructions: extractedData.order?.specialInstructions,
+      },
     };
   } catch (error) {
     console.error("Error extracting data from email:", error);
-    
+
     // Return default values if AI extraction fails
     return {
       clientInfo: {
         name: "Unknown Client",
         company: "Unknown Company",
         email: "unknown@example.com",
-        phone: "Unknown"
+        phone: "Unknown",
       },
       lenderInfo: {
         name: "Unknown Lender",
-        address: "Unknown Address"
+        address: "Unknown Address",
       },
       orderDetails: {
         orderNumber: `ORD-${Date.now()}`,
@@ -106,8 +106,8 @@ export async function extractPropertyDataFromEmail(email: OrderEmail): Promise<{
         propertyAddress: "Unknown Address",
         propertyCity: "Unknown City",
         propertyState: "Unknown State",
-        propertyZip: "Unknown Zip"
-      }
+        propertyZip: "Unknown Zip",
+      },
     };
   }
 }
@@ -117,12 +117,14 @@ async function extractTextFromAttachments(attachments: any[]): Promise<string> {
   try {
     // In a production environment, we would have specialized parsers for each file type
     // PDF.js for PDFs, mammoth for Word documents, etc.
-    
+
     // For now, we'll just analyze the attachments and return their names and types
-    const attachmentInfo = attachments.map(attachment => {
-      return `Filename: ${attachment.filename}, Type: ${attachment.contentType}`;
-    }).join("\n");
-    
+    const attachmentInfo = attachments
+      .map((attachment) => {
+        return `Filename: ${attachment.filename}, Type: ${attachment.contentType}`;
+      })
+      .join("\n");
+
     return `Attachments found:\n${attachmentInfo}`;
   } catch (error) {
     console.error("Error extracting text from attachments:", error);

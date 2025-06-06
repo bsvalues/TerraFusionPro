@@ -1,12 +1,19 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Separator } from '@/components/ui/separator';
-import { Loader2, ArrowRight, Home, DollarSign, BarChart3, PieChart } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState } from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
+import { Loader2, ArrowRight, Home, DollarSign, BarChart3, PieChart } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 
 interface PropertyData {
   address: {
@@ -21,13 +28,13 @@ interface PropertyData {
   squareFeet: number;
   yearBuilt: number;
   lotSize: number;
-  features: Array<{name: string}>;
+  features: Array<{ name: string }>;
   condition: string;
 }
 
 interface ValuationResult {
   estimatedValue: number;
-  confidenceLevel: 'high' | 'medium' | 'low';
+  confidenceLevel: "high" | "medium" | "low";
   valueRange: {
     min: number;
     max: number;
@@ -50,7 +57,7 @@ export default function PropertyAnalysis() {
       street: "406 Stardust Ct",
       city: "Grandview",
       state: "WA",
-      zipCode: "98930"
+      zipCode: "98930",
     },
     propertyType: "Single Family",
     bedrooms: 4,
@@ -58,48 +65,50 @@ export default function PropertyAnalysis() {
     squareFeet: 1850,
     yearBuilt: 1995,
     lotSize: 0.17,
-    features: [
-      { name: "Garage" },
-      { name: "Fireplace" },
-      { name: "Patio" }
-    ],
-    condition: "Good"
+    features: [{ name: "Garage" }, { name: "Fireplace" }, { name: "Patio" }],
+    condition: "Good",
   });
-  
+
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<ValuationResult | null>(null);
   const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
-    if (name.includes('.')) {
+
+    if (name.includes(".")) {
       // Handle nested properties (e.g., address.street)
-      const [parent, child] = name.split('.');
-      setPropertyData(prev => {
+      const [parent, child] = name.split(".");
+      setPropertyData((prev) => {
         const parentObj = prev[parent as keyof PropertyData];
-        if (parentObj && typeof parentObj === 'object') {
+        if (parentObj && typeof parentObj === "object") {
           return {
             ...prev,
             [parent]: {
               ...parentObj,
-              [child]: value
-            }
+              [child]: value,
+            },
           };
         }
         return prev;
       });
-    } else if (name === 'bedrooms' || name === 'bathrooms' || name === 'squareFeet' || name === 'yearBuilt' || name === 'lotSize') {
+    } else if (
+      name === "bedrooms" ||
+      name === "bathrooms" ||
+      name === "squareFeet" ||
+      name === "yearBuilt" ||
+      name === "lotSize"
+    ) {
       // Handle numeric properties
-      setPropertyData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        [name]: parseFloat(value) || 0
+        [name]: parseFloat(value) || 0,
       }));
     } else {
       // Handle simple string properties
-      setPropertyData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
@@ -107,31 +116,31 @@ export default function PropertyAnalysis() {
   const analyzeProperty = async () => {
     setIsLoading(true);
     setResult(null);
-    
+
     try {
-      console.log('Starting property analysis for 406 Stardust Ct');
-      console.log('Sending data:', propertyData);
-      
+      console.log("Starting property analysis for 406 Stardust Ct");
+      console.log("Sending data:", propertyData);
+
       // Direct HTTP call to the property-analysis endpoint
-      const response = await fetch('/api/property-analysis', {
-        method: 'POST',
+      const response = await fetch("/api/property-analysis", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json'
+          "Content-Type": "application/json",
         },
-        body: JSON.stringify(propertyData)
+        body: JSON.stringify(propertyData),
       });
-      
+
       if (!response.ok) {
         throw new Error(`HTTP error: ${response.status}`);
       }
-      
+
       const data = await response.json();
-      console.log('Analysis result:', data);
-      
+      console.log("Analysis result:", data);
+
       // Use fallback result for immediate feedback
       const fallbackResult: ValuationResult = {
         estimatedValue: 345000,
-        confidenceLevel: 'medium',
+        confidenceLevel: "medium",
         valueRange: {
           min: 330000,
           max: 360000,
@@ -141,39 +150,42 @@ export default function PropertyAnalysis() {
             factor: "Location",
             description: "Grandview, WA location",
             amount: 15000,
-            reasoning: "Property is in a desirable neighborhood in Grandview"
+            reasoning: "Property is in a desirable neighborhood in Grandview",
           },
           {
             factor: "Size",
             description: "1850 square feet",
             amount: 10000,
-            reasoning: "Property size is above average for the area"
+            reasoning: "Property size is above average for the area",
           },
           {
             factor: "Year Built",
             description: "Built in 1995",
             amount: -5000,
-            reasoning: "Property is slightly older than comparable newer constructions"
-          }
+            reasoning: "Property is slightly older than comparable newer constructions",
+          },
         ],
-        marketAnalysis: "The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property at 406 Stardust Ct benefits from good schools nearby and a stable community atmosphere.",
-        comparableAnalysis: "Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. Properties with updated features tend to sell at the higher end of this range.",
-        valuationMethodology: "This valuation utilizes comparable sales approach combined with machine learning models analyzing property-specific features and location factors."
+        marketAnalysis:
+          "The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property at 406 Stardust Ct benefits from good schools nearby and a stable community atmosphere.",
+        comparableAnalysis:
+          "Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. Properties with updated features tend to sell at the higher end of this range.",
+        valuationMethodology:
+          "This valuation utilizes comparable sales approach combined with machine learning models analyzing property-specific features and location factors.",
       };
-      
+
       setResult(fallbackResult);
     } catch (error) {
-      console.error('Error analyzing property:', error);
+      console.error("Error analyzing property:", error);
       toast({
         title: "Error",
         description: "Using fallback valuation for 406 Stardust Ct.",
-        variant: "destructive"
+        variant: "destructive",
       });
-      
+
       // Provide a fallback response for 406 Stardust Ct
       const fallbackResult: ValuationResult = {
         estimatedValue: 345000,
-        confidenceLevel: 'medium',
+        confidenceLevel: "medium",
         valueRange: {
           min: 330000,
           max: 360000,
@@ -183,26 +195,29 @@ export default function PropertyAnalysis() {
             factor: "Location",
             description: "Grandview, WA location",
             amount: 15000,
-            reasoning: "Property is in a desirable neighborhood in Grandview"
+            reasoning: "Property is in a desirable neighborhood in Grandview",
           },
           {
             factor: "Size",
             description: "1850 square feet",
             amount: 10000,
-            reasoning: "Property size is above average for the area"
+            reasoning: "Property size is above average for the area",
           },
           {
             factor: "Year Built",
             description: "Built in 1995",
             amount: -5000,
-            reasoning: "Property is slightly older than comparable newer constructions"
-          }
+            reasoning: "Property is slightly older than comparable newer constructions",
+          },
         ],
-        marketAnalysis: "The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property at 406 Stardust Ct benefits from good schools nearby and a stable community atmosphere.",
-        comparableAnalysis: "Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. Properties with updated features tend to sell at the higher end of this range.",
-        valuationMethodology: "This valuation utilizes comparable sales approach combined with machine learning models analyzing property-specific features and location factors."
+        marketAnalysis:
+          "The Grandview, WA market has shown steady growth with average prices increasing 4.7% year-over-year. This property at 406 Stardust Ct benefits from good schools nearby and a stable community atmosphere.",
+        comparableAnalysis:
+          "Recent sales of similar properties in Grandview show values between $330,000 and $360,000 for similar-sized homes. Properties with updated features tend to sell at the higher end of this range.",
+        valuationMethodology:
+          "This valuation utilizes comparable sales approach combined with machine learning models analyzing property-specific features and location factors.",
       };
-      
+
       setResult(fallbackResult);
     } finally {
       setIsLoading(false);
@@ -210,30 +225,32 @@ export default function PropertyAnalysis() {
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
-  const getConfidenceBadgeVariant = (confidence: string): "default" | "destructive" | "outline" | "secondary" | "success" => {
+  const getConfidenceBadgeVariant = (
+    confidence: string
+  ): "default" | "destructive" | "outline" | "secondary" | "success" => {
     switch (confidence) {
-      case 'high':
-        return 'success';
-      case 'medium':
-        return 'secondary';
-      case 'low':
-        return 'destructive';
+      case "high":
+        return "success";
+      case "medium":
+        return "secondary";
+      case "low":
+        return "destructive";
       default:
-        return 'secondary';
+        return "secondary";
     }
   };
 
   return (
     <div className="container py-10">
       <h1 className="text-3xl font-bold mb-6">TerraFusion Property Analysis: 406 Stardust Ct</h1>
-      
+
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Property Data Form */}
         <Card>
@@ -242,9 +259,7 @@ export default function PropertyAnalysis() {
               <Home className="h-5 w-5" />
               Property Information
             </CardTitle>
-            <CardDescription>
-              406 Stardust Ct, Grandview, WA 98930
-            </CardDescription>
+            <CardDescription>406 Stardust Ct, Grandview, WA 98930</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
@@ -295,7 +310,7 @@ export default function PropertyAnalysis() {
                   </div>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <h3 className="text-sm font-medium">Property Details</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -380,7 +395,7 @@ export default function PropertyAnalysis() {
                   />
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <Label>Features</Label>
@@ -396,7 +411,7 @@ export default function PropertyAnalysis() {
             </div>
           </CardContent>
           <CardFooter>
-            <Button 
+            <Button
               className="w-full bg-primary text-white font-medium"
               onClick={analyzeProperty}
               disabled={isLoading}
@@ -408,14 +423,14 @@ export default function PropertyAnalysis() {
                 </>
               ) : (
                 <>
-                  Analyze Property 
+                  Analyze Property
                   <ArrowRight className="ml-2 h-4 w-4" />
                 </>
               )}
             </Button>
           </CardFooter>
         </Card>
-        
+
         {/* Valuation Results */}
         <Card>
           <CardHeader>
@@ -423,9 +438,7 @@ export default function PropertyAnalysis() {
               <DollarSign className="h-5 w-5" />
               Property Valuation
             </CardTitle>
-            <CardDescription>
-              AI-powered valuation for 406 Stardust Ct
-            </CardDescription>
+            <CardDescription>AI-powered valuation for 406 Stardust Ct</CardDescription>
           </CardHeader>
           <CardContent>
             {isLoading ? (
@@ -444,16 +457,19 @@ export default function PropertyAnalysis() {
                   </div>
                   <div className="flex items-center justify-center gap-2 mt-2">
                     <Badge variant={getConfidenceBadgeVariant(result.confidenceLevel)}>
-                      {result.confidenceLevel.charAt(0).toUpperCase() + result.confidenceLevel.slice(1)} Confidence
+                      {result.confidenceLevel.charAt(0).toUpperCase() +
+                        result.confidenceLevel.slice(1)}{" "}
+                      Confidence
                     </Badge>
                     <span className="text-sm text-muted-foreground">
-                      Range: {formatCurrency(result.valueRange.min)} - {formatCurrency(result.valueRange.max)}
+                      Range: {formatCurrency(result.valueRange.min)} -{" "}
+                      {formatCurrency(result.valueRange.max)}
                     </span>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-lg font-medium mb-3 flex items-center gap-2">
                     <BarChart3 className="h-4 w-4" />
@@ -464,8 +480,11 @@ export default function PropertyAnalysis() {
                       <div key={index} className="border rounded-lg p-3">
                         <div className="flex justify-between items-center">
                           <h4 className="font-medium">{adj.factor}</h4>
-                          <span className={`font-medium ${adj.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                            {adj.amount >= 0 ? '+' : ''}{formatCurrency(adj.amount)}
+                          <span
+                            className={`font-medium ${adj.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                          >
+                            {adj.amount >= 0 ? "+" : ""}
+                            {formatCurrency(adj.amount)}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground mt-1">{adj.description}</p>
@@ -474,9 +493,9 @@ export default function PropertyAnalysis() {
                     ))}
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-lg font-medium mb-2 flex items-center gap-2">
                     <PieChart className="h-4 w-4" />
@@ -484,16 +503,16 @@ export default function PropertyAnalysis() {
                   </h3>
                   <p className="text-sm">{result.marketAnalysis}</p>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-lg font-medium mb-2">Comparable Analysis</h3>
                   <p className="text-sm">{result.comparableAnalysis}</p>
                 </div>
-                
+
                 <Separator />
-                
+
                 <div>
                   <h3 className="text-lg font-medium mb-2">Valuation Methodology</h3>
                   <p className="text-sm">{result.valuationMethodology}</p>
@@ -504,7 +523,8 @@ export default function PropertyAnalysis() {
                 <Home className="h-12 w-12 text-muted-foreground mb-4" />
                 <h3 className="text-lg font-medium">Ready to Analyze 406 Stardust Ct</h3>
                 <p className="text-sm text-muted-foreground mt-2 max-w-md">
-                  Click "Analyze Property" to get an AI-powered valuation report for this property in Grandview, WA.
+                  Click "Analyze Property" to get an AI-powered valuation report for this property
+                  in Grandview, WA.
                 </p>
               </div>
             )}

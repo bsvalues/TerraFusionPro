@@ -1,30 +1,30 @@
-import React from 'react';
-import { PageLayout } from '@/components/layout/page-layout';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { UserProgressCard } from '@/components/gamification/UserProgress';
-import { AchievementsList } from '@/components/gamification/AchievementsList';
-import { Award, Trophy, Zap, Target, Medal } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { UserProgress, Level } from '@shared/schema';
+import React from "react";
+import { PageLayout } from "@/components/layout/page-layout";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { UserProgressCard } from "@/components/gamification/UserProgress";
+import { AchievementsList } from "@/components/gamification/AchievementsList";
+import { Award, Trophy, Zap, Target, Medal } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { UserProgress, Level } from "@shared/schema";
 
 export default function AchievementsPage() {
   // Fetch user progress data
   const userProgressQuery = useQuery({
-    queryKey: ['/api/user-progress/me'],
+    queryKey: ["/api/user-progress/me"],
     queryFn: async () => {
-      const response = await apiRequest<UserProgress>('/api/user-progress/me');
+      const response = await apiRequest<UserProgress>("/api/user-progress/me");
       return response;
     },
   });
 
   // Fetch levels data
   const levelsQuery = useQuery({
-    queryKey: ['/api/levels'],
+    queryKey: ["/api/levels"],
     queryFn: async () => {
-      const response = await apiRequest<Level[]>('/api/levels');
+      const response = await apiRequest<Level[]>("/api/levels");
       return response;
     },
   });
@@ -86,42 +86,43 @@ export default function AchievementsPage() {
       <div className="space-y-6">
         {/* User Progress Card */}
         <UserProgressCard />
-        
+
         {/* Next Milestones */}
         {nextMilestones.length > 0 && (
           <Card>
             <CardHeader>
               <CardTitle>Next Milestones</CardTitle>
-              <CardDescription>
-                Upcoming goals to help you level up faster
-              </CardDescription>
+              <CardDescription>Upcoming goals to help you level up faster</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {nextMilestones.map((milestone, index) => (
-                  <div key={index} className="border rounded-lg p-4 flex flex-col items-center text-center">
-                    <div className="bg-primary/10 p-3 rounded-full mb-3">
-                      {milestone.icon}
-                    </div>
+                  <div
+                    key={index}
+                    className="border rounded-lg p-4 flex flex-col items-center text-center"
+                  >
+                    <div className="bg-primary/10 p-3 rounded-full mb-3">{milestone.icon}</div>
                     <h3 className="font-medium mb-1">{milestone.title}</h3>
                     <p className="text-sm text-muted-foreground mb-4">{milestone.description}</p>
                     <div className="w-full bg-muted rounded-full h-2 mb-2">
-                      <div 
-                        className="bg-primary h-2 rounded-full" 
-                        style={{ width: `${milestone.progress}%` }} 
+                      <div
+                        className="bg-primary h-2 rounded-full"
+                        style={{ width: `${milestone.progress}%` }}
                       />
                     </div>
-                    <span className="text-xs font-medium">{Math.round(milestone.progress)}% Complete</span>
+                    <span className="text-xs font-medium">
+                      {Math.round(milestone.progress)}% Complete
+                    </span>
                   </div>
                 ))}
               </div>
             </CardContent>
           </Card>
         )}
-        
+
         {/* Achievements List */}
         <AchievementsList />
-        
+
         {/* Leaderboard Preview */}
         <Card className="bg-muted/10">
           <CardHeader>
@@ -134,8 +135,9 @@ export default function AchievementsPage() {
             <Trophy className="h-16 w-16 mx-auto mb-4 text-amber-500 opacity-70" />
             <h3 className="text-lg font-medium mb-2">Leaderboard Coming Soon!</h3>
             <p className="text-muted-foreground mb-6 max-w-md mx-auto">
-              The appraiser leaderboard feature is under development and will be available soon. 
-              Keep completing reports and earning achievements to secure your spot on the leaderboard!
+              The appraiser leaderboard feature is under development and will be available soon.
+              Keep completing reports and earning achievements to secure your spot on the
+              leaderboard!
             </p>
             <Button variant="outline" disabled>
               <Trophy className="mr-2 h-4 w-4" />

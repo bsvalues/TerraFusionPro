@@ -2,12 +2,8 @@
   "version": "6.0",
   "nxVersion": "20.8.1",
   "pathMappings": {
-    "@/*": [
-      "./client/src/*"
-    ],
-    "@shared/*": [
-      "./shared/*"
-    ]
+    "@/*": ["./client/src/*"],
+    "@shared/*": ["./shared/*"]
   },
   "nxJsonPlugins": [],
   "pluginsConfig": {

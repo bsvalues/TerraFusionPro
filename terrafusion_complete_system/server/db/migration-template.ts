@@ -3,7 +3,7 @@
  * Date: [MIGRATION_DATE]
  * Description: [MIGRATION_DESCRIPTION]
  */
-import { Pool } from '@neondatabase/serverless';
+import { Pool } from "@neondatabase/serverless";
 
 /**
  * Apply the migration

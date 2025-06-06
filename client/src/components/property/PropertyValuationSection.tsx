@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Progress } from '@/components/ui/progress';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
-import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, RefreshCcw } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Progress } from "@/components/ui/progress";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { DollarSign, TrendingUp, TrendingDown, BarChart, Info, RefreshCcw } from "lucide-react";
 
 // Define interface for the valuation response
 interface AIValuationResponse {
   estimatedValue: number;
-  confidenceLevel: 'high' | 'medium' | 'low';
+  confidenceLevel: "high" | "medium" | "low";
   valueRange: {
     min: number;
     max: number;
@@ -41,20 +41,20 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
   const fetchValuation = async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       // Call the AI valuation endpoint
       const response = await fetch(`/api/ai/value/${propertyId}`);
-      
+
       if (!response.ok) {
         throw new Error(`Failed to fetch valuation: ${response.status}`);
       }
-      
+
       const data = await response.json();
       setValuation(data);
     } catch (err) {
-      console.error('Error fetching property valuation:', err);
-      setError('Unable to retrieve property valuation. Please try again later.');
+      console.error("Error fetching property valuation:", err);
+      setError("Unable to retrieve property valuation. Please try again later.");
     } finally {
       setIsLoading(false);
     }
@@ -69,30 +69,38 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
 
   // Format currency function
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       maximumFractionDigits: 0,
     }).format(value);
   };
 
   // Calculate confidence score for progress bar
-  const getConfidenceScore = (level: 'high' | 'medium' | 'low'): number => {
+  const getConfidenceScore = (level: "high" | "medium" | "low"): number => {
     switch (level) {
-      case 'high': return 90;
-      case 'medium': return 60;
-      case 'low': return 30;
-      default: return 0;
+      case "high":
+        return 90;
+      case "medium":
+        return 60;
+      case "low":
+        return 30;
+      default:
+        return 0;
     }
   };
 
   // Get confidence color for styling
-  const getConfidenceColor = (level: 'high' | 'medium' | 'low'): string => {
+  const getConfidenceColor = (level: "high" | "medium" | "low"): string => {
     switch (level) {
-      case 'high': return 'text-green-600';
-      case 'medium': return 'text-amber-600';
-      case 'low': return 'text-red-600';
-      default: return 'text-gray-600';
+      case "high":
+        return "text-green-600";
+      case "medium":
+        return "text-amber-600";
+      case "low":
+        return "text-red-600";
+      default:
+        return "text-gray-600";
     }
   };
 
@@ -105,24 +113,17 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
               <DollarSign className="h-5 w-5 mr-1 text-green-600" />
               AI Property Valuation
             </CardTitle>
-            <CardDescription>
-              Powered by TerraFusion AI valuation engine
-            </CardDescription>
+            <CardDescription>Powered by TerraFusion AI valuation engine</CardDescription>
           </div>
           {!isLoading && (
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              onClick={fetchValuation}
-              disabled={isLoading}
-            >
+            <Button variant="ghost" size="sm" onClick={fetchValuation} disabled={isLoading}>
               <RefreshCcw className="h-4 w-4 mr-1" />
               Refresh
             </Button>
           )}
         </div>
       </CardHeader>
-      
+
       <CardContent>
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-6">
@@ -145,16 +146,17 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
                 {formatCurrency(valuation.estimatedValue)}
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Range: {formatCurrency(valuation.valueRange.min)} - {formatCurrency(valuation.valueRange.max)}
+                Range: {formatCurrency(valuation.valueRange.min)} -{" "}
+                {formatCurrency(valuation.valueRange.max)}
               </p>
             </div>
-            
+
             {/* Confidence Level */}
             <div className="flex items-center justify-between mb-1">
               <div className="flex items-center">
                 <span className="text-sm font-medium mr-2">Confidence Level:</span>
-                <Badge 
-                  variant={valuation.confidenceLevel === 'high' ? 'default' : 'outline'}
+                <Badge
+                  variant={valuation.confidenceLevel === "high" ? "default" : "outline"}
                   className={`capitalize ${getConfidenceColor(valuation.confidenceLevel)}`}
                 >
                   {valuation.confidenceLevel}
@@ -167,15 +169,16 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
                   </TooltipTrigger>
                   <TooltipContent>
                     <p className="max-w-xs">
-                      Confidence level indicates the reliability of this valuation based on data quality, market conditions, and property characteristics.
+                      Confidence level indicates the reliability of this valuation based on data
+                      quality, market conditions, and property characteristics.
                     </p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
             </div>
-            
+
             <Progress value={getConfidenceScore(valuation.confidenceLevel)} className="h-2" />
-            
+
             {/* Valuation Adjustments */}
             {valuation.adjustments && valuation.adjustments.length > 0 && (
               <>
@@ -189,7 +192,10 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
                     {valuation.adjustments.map((adjustment, index) => (
                       <div key={index} className="flex justify-between items-center text-sm">
                         <span className="flex-1">{adjustment.description}</span>
-                        <Badge variant="outline" className={`flex items-center ${adjustment.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                        <Badge
+                          variant="outline"
+                          className={`flex items-center ${adjustment.amount >= 0 ? "text-green-600" : "text-red-600"}`}
+                        >
                           {adjustment.amount >= 0 ? (
                             <TrendingUp className="h-3 w-3 mr-1" />
                           ) : (
@@ -203,26 +209,22 @@ export function PropertyValuationSection({ propertyId, className }: PropertyValu
                 </div>
               </>
             )}
-            
+
             {/* Market Analysis */}
             {valuation.marketAnalysis && (
               <>
                 <Separator className="my-4" />
                 <div>
                   <h3 className="text-sm font-medium mb-2">Market Analysis</h3>
-                  <p className="text-sm text-muted-foreground">
-                    {valuation.marketAnalysis}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{valuation.marketAnalysis}</p>
                 </div>
               </>
             )}
-            
+
             {/* Methodology */}
             <div className="text-xs text-muted-foreground mt-4 flex justify-between">
               <span>Methodology: {valuation.valuationMethodology}</span>
-              {valuation.modelVersion && (
-                <span>Model: v{valuation.modelVersion}</span>
-              )}
+              {valuation.modelVersion && <span>Model: v{valuation.modelVersion}</span>}
             </div>
           </div>
         ) : (

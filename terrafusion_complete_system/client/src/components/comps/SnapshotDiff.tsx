@@ -1,15 +1,22 @@
-import { ComparableSnapshot } from '@shared/types/comps';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
-import { Plus, Minus, RefreshCw, Circle } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { ComparableSnapshot } from "@shared/types/comps";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { Badge } from "@/components/ui/badge";
+import { Plus, Minus, RefreshCw, Circle } from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface SnapshotDiffProps {
   baseSnapshot: ComparableSnapshot;
   compareSnapshot: ComparableSnapshot;
 }
 
-type DiffType = 'added' | 'removed' | 'changed' | 'unchanged';
+type DiffType = "added" | "removed" | "changed" | "unchanged";
 
 interface FieldDiff {
   key: string;
@@ -20,60 +27,60 @@ interface FieldDiff {
 
 export function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProps) {
   const [diffResults, setDiffResults] = useState<FieldDiff[]>([]);
-  const [filter, setFilter] = useState<DiffType | 'all'>('all');
-  
+  const [filter, setFilter] = useState<DiffType | "all">("all");
+
   // Generate diff results
   useEffect(() => {
     if (!baseSnapshot || !compareSnapshot) {
       return;
     }
-    
+
     const results: FieldDiff[] = [];
     const baseFields = baseSnapshot.fields;
     const compareFields = compareSnapshot.fields;
-    
+
     // Check for changed or removed fields
-    Object.keys(baseFields).forEach(key => {
+    Object.keys(baseFields).forEach((key) => {
       if (!(key in compareFields)) {
         // Field was removed in the compare snapshot
         results.push({
           key,
-          diffType: 'removed',
+          diffType: "removed",
           baseValue: baseFields[key],
-          compareValue: undefined
+          compareValue: undefined,
         });
       } else if (JSON.stringify(baseFields[key]) !== JSON.stringify(compareFields[key])) {
         // Field value changed
         results.push({
           key,
-          diffType: 'changed',
+          diffType: "changed",
           baseValue: baseFields[key],
-          compareValue: compareFields[key]
+          compareValue: compareFields[key],
         });
       } else {
         // Field value unchanged
         results.push({
           key,
-          diffType: 'unchanged',
+          diffType: "unchanged",
           baseValue: baseFields[key],
-          compareValue: compareFields[key]
+          compareValue: compareFields[key],
         });
       }
     });
-    
+
     // Check for added fields
-    Object.keys(compareFields).forEach(key => {
+    Object.keys(compareFields).forEach((key) => {
       if (!(key in baseFields)) {
         // Field was added in the compare snapshot
         results.push({
           key,
-          diffType: 'added',
+          diffType: "added",
           baseValue: undefined,
-          compareValue: compareFields[key]
+          compareValue: compareFields[key],
         });
       }
     });
-    
+
     // Sort by diff type and then by key
     results.sort((a, b) => {
       const typeOrder = { changed: 0, added: 1, removed: 2, unchanged: 3 };
@@ -82,130 +89,133 @@ export function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProp
       }
       return a.key.localeCompare(b.key);
     });
-    
+
     setDiffResults(results);
   }, [baseSnapshot, compareSnapshot]);
-  
+
   // Filter diff results
-  const filteredResults = filter === 'all' 
-    ? diffResults 
-    : diffResults.filter(diff => diff.diffType === filter);
-  
+  const filteredResults =
+    filter === "all" ? diffResults : diffResults.filter((diff) => diff.diffType === filter);
+
   // Get counts for each diff type
   const counts = {
-    changed: diffResults.filter(d => d.diffType === 'changed').length,
-    added: diffResults.filter(d => d.diffType === 'added').length,
-    removed: diffResults.filter(d => d.diffType === 'removed').length,
-    unchanged: diffResults.filter(d => d.diffType === 'unchanged').length,
-    all: diffResults.length
+    changed: diffResults.filter((d) => d.diffType === "changed").length,
+    added: diffResults.filter((d) => d.diffType === "added").length,
+    removed: diffResults.filter((d) => d.diffType === "removed").length,
+    unchanged: diffResults.filter((d) => d.diffType === "unchanged").length,
+    all: diffResults.length,
   };
-  
+
   // Format a value for display
   const formatValue = (value: any): string => {
     if (value === undefined || value === null) {
-      return '-';
+      return "-";
     }
-    
-    if (typeof value === 'object') {
+
+    if (typeof value === "object") {
       return JSON.stringify(value);
     }
-    
+
     return String(value);
   };
-  
+
   // Get diff badge
   const getDiffBadge = (diffType: DiffType) => {
     switch (diffType) {
-      case 'added':
+      case "added":
         return <Badge className="bg-green-500">Added</Badge>;
-      case 'removed':
+      case "removed":
         return <Badge className="bg-red-500">Removed</Badge>;
-      case 'changed':
+      case "changed":
         return <Badge className="bg-amber-500">Changed</Badge>;
-      case 'unchanged':
+      case "unchanged":
         return <Badge variant="outline">Unchanged</Badge>;
       default:
         return null;
     }
   };
-  
+
   // Get diff icon
   const getDiffIcon = (diffType: DiffType) => {
     switch (diffType) {
-      case 'added':
+      case "added":
         return <Plus className="h-4 w-4 text-green-500" />;
-      case 'removed':
+      case "removed":
         return <Minus className="h-4 w-4 text-red-500" />;
-      case 'changed':
+      case "changed":
         return <RefreshCw className="h-4 w-4 text-amber-500" />;
-      case 'unchanged':
+      case "unchanged":
         return <Circle className="h-4 w-4 text-gray-300" />;
       default:
         return null;
     }
   };
-  
+
   if (!baseSnapshot || !compareSnapshot) {
     return <div>Select two snapshots to compare</div>;
   }
-  
+
   return (
     <div>
       <div className="flex flex-wrap gap-2 mb-4">
-        <Badge 
-          variant={filter === 'all' ? 'default' : 'outline'}
+        <Badge
+          variant={filter === "all" ? "default" : "outline"}
           className="cursor-pointer"
-          onClick={() => setFilter('all')}
+          onClick={() => setFilter("all")}
         >
           All ({counts.all})
         </Badge>
-        <Badge 
-          variant={filter === 'changed' ? 'default' : 'outline'}
+        <Badge
+          variant={filter === "changed" ? "default" : "outline"}
           className="cursor-pointer bg-amber-100 text-amber-800 hover:bg-amber-200"
-          onClick={() => setFilter('changed')}
+          onClick={() => setFilter("changed")}
         >
           <RefreshCw className="mr-1 h-3 w-3" />
           Changed ({counts.changed})
         </Badge>
-        <Badge 
-          variant={filter === 'added' ? 'default' : 'outline'}
+        <Badge
+          variant={filter === "added" ? "default" : "outline"}
           className="cursor-pointer bg-green-100 text-green-800 hover:bg-green-200"
-          onClick={() => setFilter('added')}
+          onClick={() => setFilter("added")}
         >
           <Plus className="mr-1 h-3 w-3" />
           Added ({counts.added})
         </Badge>
-        <Badge 
-          variant={filter === 'removed' ? 'default' : 'outline'}
+        <Badge
+          variant={filter === "removed" ? "default" : "outline"}
           className="cursor-pointer bg-red-100 text-red-800 hover:bg-red-200"
-          onClick={() => setFilter('removed')}
+          onClick={() => setFilter("removed")}
         >
           <Minus className="mr-1 h-3 w-3" />
           Removed ({counts.removed})
         </Badge>
-        <Badge 
-          variant={filter === 'unchanged' ? 'default' : 'outline'}
+        <Badge
+          variant={filter === "unchanged" ? "default" : "outline"}
           className="cursor-pointer"
-          onClick={() => setFilter('unchanged')}
+          onClick={() => setFilter("unchanged")}
         >
           <Circle className="mr-1 h-3 w-3" />
           Unchanged ({counts.unchanged})
         </Badge>
       </div>
-      
+
       <div className="bg-slate-50 rounded-md p-2 mb-4">
         <div className="text-sm flex justify-between">
           <div>
             <span className="font-medium">Base: </span>
-            <span className="text-gray-600">Version {baseSnapshot.version} ({baseSnapshot.source})</span>
+            <span className="text-gray-600">
+              Version {baseSnapshot.version} ({baseSnapshot.source})
+            </span>
           </div>
           <div>
             <span className="font-medium">Compare: </span>
-            <span className="text-gray-600">Version {compareSnapshot.version} ({compareSnapshot.source})</span>
+            <span className="text-gray-600">
+              Version {compareSnapshot.version} ({compareSnapshot.source})
+            </span>
           </div>
         </div>
       </div>
-      
+
       <div className="rounded-md border overflow-hidden">
         <Table>
           <TableHeader>
@@ -225,7 +235,10 @@ export function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProp
               </TableRow>
             ) : (
               filteredResults.map((diff) => (
-                <TableRow key={diff.key} className={diff.diffType === 'unchanged' ? 'opacity-60' : ''}>
+                <TableRow
+                  key={diff.key}
+                  className={diff.diffType === "unchanged" ? "opacity-60" : ""}
+                >
                   <TableCell className="whitespace-nowrap">
                     <div className="flex items-center">
                       {getDiffIcon(diff.diffType)}
@@ -235,10 +248,10 @@ export function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProp
                     </div>
                   </TableCell>
                   <TableCell className="font-medium">{diff.key}</TableCell>
-                  <TableCell className={diff.diffType === 'added' ? 'text-gray-400 italic' : ''}>
+                  <TableCell className={diff.diffType === "added" ? "text-gray-400 italic" : ""}>
                     {formatValue(diff.baseValue)}
                   </TableCell>
-                  <TableCell className={diff.diffType === 'removed' ? 'text-gray-400 italic' : ''}>
+                  <TableCell className={diff.diffType === "removed" ? "text-gray-400 italic" : ""}>
                     {formatValue(diff.compareValue)}
                   </TableCell>
                 </TableRow>
@@ -247,10 +260,10 @@ export function SnapshotDiff({ baseSnapshot, compareSnapshot }: SnapshotDiffProp
           </TableBody>
         </Table>
       </div>
-      
+
       <div className="mt-4 text-sm text-gray-500">
-        {filteredResults.length} {filteredResults.length === 1 ? 'result' : 'results'} displayed 
-        {filter !== 'all' && ` (filtered by ${filter})`}
+        {filteredResults.length} {filteredResults.length === 1 ? "result" : "results"} displayed
+        {filter !== "all" && ` (filtered by ${filter})`}
       </div>
     </div>
   );

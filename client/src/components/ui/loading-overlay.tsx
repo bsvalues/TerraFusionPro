@@ -1,7 +1,7 @@
-import React from 'react';
-import { Loader2 } from 'lucide-react';
-import { useApp } from '@/contexts/AppContext';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { Loader2 } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
+import { cn } from "@/lib/utils";
 
 export interface LoadingOverlayProps {
   // Optional override to show loading even when global state is not loading
@@ -22,7 +22,7 @@ export function LoadingOverlay({
 }: LoadingOverlayProps) {
   const { state } = useApp();
   const isVisible = show !== undefined ? show : state.isLoading;
-  const displayMessage = message || state.loadingMessage || 'Loading...';
+  const displayMessage = message || state.loadingMessage || "Loading...";
 
   if (!isVisible) {
     return null;

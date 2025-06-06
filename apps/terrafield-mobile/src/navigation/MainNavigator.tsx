@@ -1,7 +1,7 @@
-import React from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+import React from "react";
+import { createStackNavigator } from "@react-navigation/stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 import {
   RootStackParamList,
@@ -11,39 +11,39 @@ import {
   ReportsStackParamList,
   SettingsStackParamList,
   DashboardStackParamList,
-} from './types';
+} from "./types";
 
 // Mock screen components for demonstration purposes
 // In a real app, these would be imported from the actual screens
-import LoginScreen from '../screens/LoginScreen';
-import DashboardHomeScreen from '../screens/DashboardHomeScreen';
-import PropertiesListScreen from '../screens/PropertiesListScreen';
-import PropertyDetailScreen from '../screens/PropertyDetailScreen';
-import PropertyEditScreen from '../screens/PropertyEditScreen';
-import AddPropertyScreen from '../screens/AddPropertyScreen';
-import PropertySearchScreen from '../screens/PropertySearchScreen';
-import PropertyMapViewScreen from '../screens/PropertyMapViewScreen';
-import ComparableSearchScreen from '../screens/ComparableSearchScreen';
-import PropertyComparisonDashboard from '../screens/PropertyComparisonDashboard';
-import InspectionListScreen from '../screens/InspectionListScreen';
-import InspectionDetailScreen from '../screens/InspectionDetailScreen';
-import PhotoCaptureScreen from '../screens/PhotoCaptureScreen';
-import ARMeasurementScreen from '../screens/ARMeasurementScreen';
-import VoiceNotesScreen from '../screens/VoiceNotesScreen';
-import SketchPadScreen from '../screens/SketchPadScreen';
-import FieldDataVerificationScreen from '../screens/FieldDataVerificationScreen';
-import ReportsListScreen from '../screens/ReportsListScreen';
-import ReportDetailScreen from '../screens/ReportDetailScreen';
-import ReportGenerationScreen from '../screens/ReportGenerationScreen';
-import ComplianceDocumentsScreen from '../screens/ComplianceDocumentsScreen';
-import SettingsHomeScreen from '../screens/SettingsHomeScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import AccountSettingsScreen from '../screens/AccountSettingsScreen';
-import AppSettingsScreen from '../screens/AppSettingsScreen';
-import OfflineScreen from '../screens/OfflineScreen';
-import CollaborationScreen from '../screens/CollaborationScreen';
-import ExternalDataScreen from '../screens/ExternalDataScreen';
-import SupportScreen from '../screens/SupportScreen';
+import LoginScreen from "../screens/LoginScreen";
+import DashboardHomeScreen from "../screens/DashboardHomeScreen";
+import PropertiesListScreen from "../screens/PropertiesListScreen";
+import PropertyDetailScreen from "../screens/PropertyDetailScreen";
+import PropertyEditScreen from "../screens/PropertyEditScreen";
+import AddPropertyScreen from "../screens/AddPropertyScreen";
+import PropertySearchScreen from "../screens/PropertySearchScreen";
+import PropertyMapViewScreen from "../screens/PropertyMapViewScreen";
+import ComparableSearchScreen from "../screens/ComparableSearchScreen";
+import PropertyComparisonDashboard from "../screens/PropertyComparisonDashboard";
+import InspectionListScreen from "../screens/InspectionListScreen";
+import InspectionDetailScreen from "../screens/InspectionDetailScreen";
+import PhotoCaptureScreen from "../screens/PhotoCaptureScreen";
+import ARMeasurementScreen from "../screens/ARMeasurementScreen";
+import VoiceNotesScreen from "../screens/VoiceNotesScreen";
+import SketchPadScreen from "../screens/SketchPadScreen";
+import FieldDataVerificationScreen from "../screens/FieldDataVerificationScreen";
+import ReportsListScreen from "../screens/ReportsListScreen";
+import ReportDetailScreen from "../screens/ReportDetailScreen";
+import ReportGenerationScreen from "../screens/ReportGenerationScreen";
+import ComplianceDocumentsScreen from "../screens/ComplianceDocumentsScreen";
+import SettingsHomeScreen from "../screens/SettingsHomeScreen";
+import ProfileScreen from "../screens/ProfileScreen";
+import AccountSettingsScreen from "../screens/AccountSettingsScreen";
+import AppSettingsScreen from "../screens/AppSettingsScreen";
+import OfflineScreen from "../screens/OfflineScreen";
+import CollaborationScreen from "../screens/CollaborationScreen";
+import ExternalDataScreen from "../screens/ExternalDataScreen";
+import SupportScreen from "../screens/SupportScreen";
 
 // Create navigators
 const RootStack = createStackNavigator<RootStackParamList>();
@@ -82,7 +82,10 @@ const PropertiesStackNavigator = () => {
       <PropertiesStack.Screen name="PropertySearch" component={PropertySearchScreen} />
       <PropertiesStack.Screen name="ComparableSearch" component={ComparableSearchScreen} />
       <PropertiesStack.Screen name="PropertyMapView" component={PropertyMapViewScreen} />
-      <PropertiesStack.Screen name="PropertyComparisonDashboard" component={PropertyComparisonDashboard} />
+      <PropertiesStack.Screen
+        name="PropertyComparisonDashboard"
+        component={PropertyComparisonDashboard}
+      />
     </PropertiesStack.Navigator>
   );
 };
@@ -100,7 +103,10 @@ const InspectionStackNavigator = () => {
       <InspectionStack.Screen name="ARMeasurement" component={ARMeasurementScreen} />
       <InspectionStack.Screen name="VoiceNotes" component={VoiceNotesScreen} />
       <InspectionStack.Screen name="SketchPad" component={SketchPadScreen} />
-      <InspectionStack.Screen name="FieldDataVerification" component={FieldDataVerificationScreen} />
+      <InspectionStack.Screen
+        name="FieldDataVerification"
+        component={FieldDataVerificationScreen}
+      />
     </InspectionStack.Navigator>
   );
 };
@@ -108,10 +114,7 @@ const InspectionStackNavigator = () => {
 // Reports stack navigator
 const ReportsStackNavigator = () => {
   return (
-    <ReportsStack.Navigator
-      initialRouteName="ReportsList"
-      screenOptions={{ headerShown: false }}
-    >
+    <ReportsStack.Navigator initialRouteName="ReportsList" screenOptions={{ headerShown: false }}>
       <ReportsStack.Screen name="ReportsList" component={ReportsListScreen} />
       <ReportsStack.Screen name="ReportDetail" component={ReportDetailScreen} />
       <ReportsStack.Screen name="ReportGeneration" component={ReportGenerationScreen} />
@@ -123,10 +126,7 @@ const ReportsStackNavigator = () => {
 // Settings stack navigator
 const SettingsStackNavigator = () => {
   return (
-    <SettingsStack.Navigator
-      initialRouteName="SettingsHome"
-      screenOptions={{ headerShown: false }}
-    >
+    <SettingsStack.Navigator initialRouteName="SettingsHome" screenOptions={{ headerShown: false }}>
       <SettingsStack.Screen name="SettingsHome" component={SettingsHomeScreen} />
       <SettingsStack.Screen name="Profile" component={ProfileScreen} />
       <SettingsStack.Screen name="AccountSettings" component={AccountSettingsScreen} />
@@ -147,27 +147,27 @@ const MainTabNavigator = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
-          let iconName: string = 'home';
-          
-          if (route.name === 'Dashboard') {
-            iconName = focused ? 'view-dashboard' : 'view-dashboard-outline';
-          } else if (route.name === 'Properties') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Reports') {
-            iconName = focused ? 'file-document' : 'file-document-outline';
-          } else if (route.name === 'Inspection') {
-            iconName = focused ? 'clipboard-check' : 'clipboard-check-outline';
-          } else if (route.name === 'Settings') {
-            iconName = focused ? 'cog' : 'cog-outline';
+          let iconName: string = "home";
+
+          if (route.name === "Dashboard") {
+            iconName = focused ? "view-dashboard" : "view-dashboard-outline";
+          } else if (route.name === "Properties") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "Reports") {
+            iconName = focused ? "file-document" : "file-document-outline";
+          } else if (route.name === "Inspection") {
+            iconName = focused ? "clipboard-check" : "clipboard-check-outline";
+          } else if (route.name === "Settings") {
+            iconName = focused ? "cog" : "cog-outline";
           }
-          
+
           return <MaterialCommunityIcons name={iconName as any} size={size} color={color} />;
         },
-        tabBarActiveTintColor: '#3498db',
-        tabBarInactiveTintColor: 'gray',
+        tabBarActiveTintColor: "#3498db",
+        tabBarInactiveTintColor: "gray",
         tabBarStyle: {
           borderTopWidth: 1,
-          borderTopColor: '#f0f0f0',
+          borderTopColor: "#f0f0f0",
         },
       })}
     >
@@ -183,10 +183,7 @@ const MainTabNavigator = () => {
 // Root stack navigator
 const RootStackNavigator = () => {
   return (
-    <RootStack.Navigator
-      initialRouteName="Main"
-      screenOptions={{ headerShown: false }}
-    >
+    <RootStack.Navigator initialRouteName="Main" screenOptions={{ headerShown: false }}>
       <RootStack.Screen name="Login" component={LoginScreen} />
       <RootStack.Screen name="Main" component={MainTabNavigator} />
     </RootStack.Navigator>

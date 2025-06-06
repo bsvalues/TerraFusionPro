@@ -1,11 +1,11 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { 
-  Building2, 
-  Search, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import {
+  Building2,
+  Search,
   Plus,
   MapPin,
   Calendar,
@@ -16,8 +16,8 @@ import {
   Filter,
   Eye,
   Edit,
-  MoreHorizontal
-} from 'lucide-react';
+  MoreHorizontal,
+} from "lucide-react";
 
 export default function Properties() {
   return (
@@ -77,7 +77,7 @@ export default function Properties() {
                 </div>
                 <Badge className="bg-green-100 text-green-800">Active</Badge>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
@@ -146,7 +146,7 @@ export default function Properties() {
                 </div>
                 <Badge className="bg-blue-100 text-blue-800">Recent</Badge>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
@@ -215,7 +215,7 @@ export default function Properties() {
                 </div>
                 <Badge className="bg-yellow-100 text-yellow-800">Pending</Badge>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">
@@ -284,7 +284,7 @@ export default function Properties() {
                 </div>
                 <Badge className="bg-green-100 text-green-800">Complete</Badge>
               </div>
-              
+
               <div className="grid grid-cols-3 gap-4 mb-4">
                 <div className="text-center">
                   <div className="flex items-center justify-center gap-1 mb-1">

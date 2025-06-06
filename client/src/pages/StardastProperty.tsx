@@ -1,6 +1,6 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export default function StardustProperty() {
   // Hardcoded property data for 406 Stardust Ct
@@ -18,14 +18,9 @@ export default function StardustProperty() {
     lastSold: "2020-06-15",
     lastSoldPrice: 325000,
     estimatedValue: 402500,
-    features: [
-      "Attached Garage",
-      "Central Air",
-      "Patio",
-      "Fireplace",
-      "Hardwood Floors"
-    ],
-    description: "Beautiful single-family home in the desirable Grandview Heights neighborhood. This 4-bedroom, 2.5-bathroom home offers 2,432 square feet of living space on a quarter-acre lot. Built in 2006, it features an open floor plan, hardwood floors throughout the main level, and a spacious kitchen with granite countertops and stainless steel appliances."
+    features: ["Attached Garage", "Central Air", "Patio", "Fireplace", "Hardwood Floors"],
+    description:
+      "Beautiful single-family home in the desirable Grandview Heights neighborhood. This 4-bedroom, 2.5-bathroom home offers 2,432 square feet of living space on a quarter-acre lot. Built in 2006, it features an open floor plan, hardwood floors throughout the main level, and a spacious kitchen with granite countertops and stainless steel appliances.",
   };
 
   return (
@@ -42,10 +37,12 @@ export default function StardustProperty() {
             </CardHeader>
             <CardContent>
               <div className="bg-gray-100 p-4 rounded-lg mb-4">
-                <div className="text-3xl font-bold text-green-600">${property.estimatedValue.toLocaleString()}</div>
+                <div className="text-3xl font-bold text-green-600">
+                  ${property.estimatedValue.toLocaleString()}
+                </div>
                 <div className="text-sm text-gray-600">Estimated Market Value</div>
               </div>
-              
+
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-6">
                 <div>
                   <div className="text-sm text-gray-500">Property Type</div>
@@ -58,7 +55,9 @@ export default function StardustProperty() {
                 <div>
                   <div className="text-sm text-gray-500">Last Sold</div>
                   <div className="font-medium">${property.lastSoldPrice.toLocaleString()}</div>
-                  <div className="text-xs text-gray-500">{new Date(property.lastSold).toLocaleDateString()}</div>
+                  <div className="text-xs text-gray-500">
+                    {new Date(property.lastSold).toLocaleDateString()}
+                  </div>
                 </div>
                 <div>
                   <div className="text-sm text-gray-500">Bedrooms</div>
@@ -73,16 +72,16 @@ export default function StardustProperty() {
                   <div className="font-medium">{property.squareFeet.toLocaleString()}</div>
                 </div>
               </div>
-              
+
               <Separator className="my-4" />
-              
+
               <div>
                 <h3 className="font-semibold mb-2">Description</h3>
                 <p className="text-gray-700">{property.description}</p>
               </div>
             </CardContent>
           </Card>
-          
+
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Market Analysis</CardTitle>
@@ -95,20 +94,20 @@ export default function StardustProperty() {
                     [Value Trend Chart]
                   </div>
                 </div>
-                
+
                 <div>
                   <h3 className="font-semibold mb-2">Local Market Conditions</h3>
                   <p className="text-gray-700">
-                    The Grandview real estate market has shown steady appreciation over the past 12 months, 
-                    with median home values increasing 8.3%. This property's estimated value of $402,500 
-                    represents a 23.8% increase from its last sale price in 2020.
+                    The Grandview real estate market has shown steady appreciation over the past 12
+                    months, with median home values increasing 8.3%. This property's estimated value
+                    of $402,500 represents a 23.8% increase from its last sale price in 2020.
                   </p>
                 </div>
               </div>
             </CardContent>
           </Card>
         </div>
-        
+
         <div>
           <Card>
             <CardHeader>
@@ -124,7 +123,7 @@ export default function StardustProperty() {
               </ul>
             </CardContent>
           </Card>
-          
+
           <Card className="mt-6">
             <CardHeader>
               <CardTitle>Comparable Properties</CardTitle>
@@ -136,13 +135,13 @@ export default function StardustProperty() {
                   <div className="text-sm text-gray-600">Sold: $410,000 (2 months ago)</div>
                   <div className="text-sm">4 bed, 2.5 bath, 2,510 sqft</div>
                 </div>
-                
+
                 <div className="p-3 border rounded-lg">
                   <div className="font-semibold">315 Skyview Ln</div>
                   <div className="text-sm text-gray-600">Sold: $395,000 (4 months ago)</div>
                   <div className="text-sm">3 bed, 2.5 bath, 2,350 sqft</div>
                 </div>
-                
+
                 <div className="p-3 border rounded-lg">
                   <div className="font-semibold">508 Galaxy Ave</div>
                   <div className="text-sm text-gray-600">Sold: $425,000 (1 month ago)</div>

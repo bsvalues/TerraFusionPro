@@ -1,12 +1,12 @@
-import React from 'react';
+import React from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Award, Trophy, Medal, Star, Clock, CheckCircle, Target, Calendar } from 'lucide-react';
-import { useQuery } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { UserAchievement, AchievementDefinition } from '@shared/schema';
+import { Award, Trophy, Medal, Star, Clock, CheckCircle, Target, Calendar } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { UserAchievement, AchievementDefinition } from "@shared/schema";
 
 interface AchievementsListProps {
   userId?: number;
@@ -14,34 +14,38 @@ interface AchievementsListProps {
 
 // Icon mapping based on achievement type
 const achievementIcons: Record<string, React.ReactNode> = {
-  'property': <Target className="h-5 w-5" />,
-  'adjustment': <Star className="h-5 w-5" />,
-  'compliance': <CheckCircle className="h-5 w-5" />,
-  'streak': <Calendar className="h-5 w-5" />,
-  'completion': <Trophy className="h-5 w-5" />,
-  'default': <Award className="h-5 w-5" />
+  property: <Target className="h-5 w-5" />,
+  adjustment: <Star className="h-5 w-5" />,
+  compliance: <CheckCircle className="h-5 w-5" />,
+  streak: <Calendar className="h-5 w-5" />,
+  completion: <Trophy className="h-5 w-5" />,
+  default: <Award className="h-5 w-5" />,
 };
 
 // Achievement card for a specific achievement
 const AchievementCard = ({ achievement }: { achievement: UserAchievement }) => {
   // Determine the icon based on achievement type
   const icon = achievementIcons[achievement.type] || achievementIcons.default;
-  
+
   // Determine badge variant and status text based on completion
   const badgeVariant = achievement.completed ? "success" : "outline";
   const statusText = achievement.completed ? "Completed" : "In Progress";
-  
+
   // Calculate completion percentage for in-progress achievements
   const progressPercentage = achievement.completed ? 100 : achievement.progress || 0;
-  
+
   return (
-    <Card className={`hover:shadow-md transition-all ${achievement.completed ? 'border-l-4 border-l-green-500' : ''}`}>
+    <Card
+      className={`hover:shadow-md transition-all ${achievement.completed ? "border-l-4 border-l-green-500" : ""}`}
+    >
       <CardHeader className="pb-2">
         <div className="flex justify-between items-start">
           <div className="flex items-center gap-3">
-            <div className={`p-2 rounded-full ${achievement.completed ? 'bg-green-100' : 'bg-muted'}`}>
-              {React.cloneElement(icon as React.ReactElement, { 
-                className: `${achievement.completed ? 'text-green-700' : 'text-muted-foreground'}`
+            <div
+              className={`p-2 rounded-full ${achievement.completed ? "bg-green-100" : "bg-muted"}`}
+            >
+              {React.cloneElement(icon as React.ReactElement, {
+                className: `${achievement.completed ? "text-green-700" : "text-muted-foreground"}`,
               })}
             </div>
             <div>
@@ -64,7 +68,7 @@ const AchievementCard = ({ achievement }: { achievement: UserAchievement }) => {
             </div>
           </div>
           <Progress value={progressPercentage} className="h-2" />
-          
+
           {/* Completion date if completed */}
           {achievement.completed && achievement.completedAt && (
             <div className="text-xs text-muted-foreground flex items-center">
@@ -81,9 +85,11 @@ const AchievementCard = ({ achievement }: { achievement: UserAchievement }) => {
 export function AchievementsList({ userId }: AchievementsListProps) {
   // Fetch user achievements
   const userAchievementsQuery = useQuery({
-    queryKey: ['/api/user-achievements', userId],
+    queryKey: ["/api/user-achievements", userId],
     queryFn: async () => {
-      const response = await apiRequest<UserAchievement[]>(`/api/user-achievements/${userId || 'me'}`);
+      const response = await apiRequest<UserAchievement[]>(
+        `/api/user-achievements/${userId || "me"}`
+      );
       return response;
     },
     enabled: !!userId || true,
@@ -91,9 +97,9 @@ export function AchievementsList({ userId }: AchievementsListProps) {
 
   // Fetch achievement definitions (for category grouping)
   const achievementDefinitionsQuery = useQuery({
-    queryKey: ['/api/achievement-definitions'],
+    queryKey: ["/api/achievement-definitions"],
     queryFn: async () => {
-      const response = await apiRequest<AchievementDefinition[]>('/api/achievement-definitions');
+      const response = await apiRequest<AchievementDefinition[]>("/api/achievement-definitions");
       return response;
     },
   });
@@ -133,21 +139,21 @@ export function AchievementsList({ userId }: AchievementsListProps) {
   }
 
   const userAchievements = userAchievementsQuery.data || [];
-  
+
   // Group achievements by category
   const achievementsByCategory: Record<string, UserAchievement[]> = {};
-  userAchievements.forEach(achievement => {
-    const category = achievement.category || 'Other';
+  userAchievements.forEach((achievement) => {
+    const category = achievement.category || "Other";
     if (!achievementsByCategory[category]) {
       achievementsByCategory[category] = [];
     }
     achievementsByCategory[category].push(achievement);
   });
-  
+
   // Create completed and in progress achievement lists
-  const completedAchievements = userAchievements.filter(achievement => achievement.completed);
-  const inProgressAchievements = userAchievements.filter(achievement => !achievement.completed);
-  
+  const completedAchievements = userAchievements.filter((achievement) => achievement.completed);
+  const inProgressAchievements = userAchievements.filter((achievement) => !achievement.completed);
+
   // Get completed count
   const completedCount = completedAchievements.length;
   const totalCount = userAchievements.length;
@@ -165,7 +171,9 @@ export function AchievementsList({ userId }: AchievementsListProps) {
           </div>
           <Badge variant="outline" className="px-2 py-1">
             <Trophy className="h-3.5 w-3.5 mr-1.5" />
-            <span>{completedCount}/{totalCount} Complete ({completionPercentage}%)</span>
+            <span>
+              {completedCount}/{totalCount} Complete ({completionPercentage}%)
+            </span>
           </Badge>
         </div>
       </CardHeader>
@@ -180,32 +188,34 @@ export function AchievementsList({ userId }: AchievementsListProps) {
               In Progress <Badge className="ml-1">{inProgressAchievements.length}</Badge>
             </TabsTrigger>
             {/* Category tabs for quick navigation */}
-            {Object.keys(achievementsByCategory).slice(0, 2).map(category => (
-              <TabsTrigger key={category} value={category}>
-                {category}
-              </TabsTrigger>
-            ))}
+            {Object.keys(achievementsByCategory)
+              .slice(0, 2)
+              .map((category) => (
+                <TabsTrigger key={category} value={category}>
+                  {category}
+                </TabsTrigger>
+              ))}
           </TabsList>
-          
+
           {/* All Achievements tab */}
           <TabsContent value="all" className="space-y-6">
             {Object.entries(achievementsByCategory).map(([category, achievements]) => (
               <div key={category} className="space-y-4">
                 <h3 className="text-lg font-medium">{category}</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {achievements.map(achievement => (
+                  {achievements.map((achievement) => (
                     <AchievementCard key={achievement.id} achievement={achievement} />
                   ))}
                 </div>
               </div>
             ))}
           </TabsContent>
-          
+
           {/* Completed Achievements tab */}
           <TabsContent value="complete" className="space-y-4">
             {completedAchievements.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {completedAchievements.map(achievement => (
+                {completedAchievements.map((achievement) => (
                   <AchievementCard key={achievement.id} achievement={achievement} />
                 ))}
               </div>
@@ -219,12 +229,12 @@ export function AchievementsList({ userId }: AchievementsListProps) {
               </div>
             )}
           </TabsContent>
-          
+
           {/* In Progress Achievements tab */}
           <TabsContent value="in-progress" className="space-y-4">
             {inProgressAchievements.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {inProgressAchievements.map(achievement => (
+                {inProgressAchievements.map((achievement) => (
                   <AchievementCard key={achievement.id} achievement={achievement} />
                 ))}
               </div>
@@ -238,12 +248,12 @@ export function AchievementsList({ userId }: AchievementsListProps) {
               </div>
             )}
           </TabsContent>
-          
+
           {/* Category tabs content */}
           {Object.entries(achievementsByCategory).map(([category, achievements]) => (
             <TabsContent key={category} value={category} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {achievements.map(achievement => (
+                {achievements.map((achievement) => (
                   <AchievementCard key={achievement.id} achievement={achievement} />
                 ))}
               </div>

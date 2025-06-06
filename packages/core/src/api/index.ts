@@ -1,9 +1,9 @@
-export * from './gateway';
-export * from './schema';
+export * from "./gateway";
+export * from "./schema";
 
-import { Router } from 'express';
-import { ExtensionPointManager } from '../plugins/extension-point';
-import { ApiExtension } from '../plugins/types';
+import { Router } from "express";
+import { ExtensionPointManager } from "../plugins/extension-point";
+import { ApiExtension } from "../plugins/types";
 
 /**
  * Register an API extension
@@ -20,14 +20,14 @@ export function registerApiExtension(
 ): void {
   // Get the extension point manager
   const extensionPointManager = ExtensionPointManager.getInstance();
-  
+
   // Get the API extension point
-  const apiExtensionPoint = extensionPointManager.getExtensionPoint<ApiExtension>('core.api');
-  
+  const apiExtensionPoint = extensionPointManager.getExtensionPoint<ApiExtension>("core.api");
+
   if (!apiExtensionPoint) {
-    throw new Error('API extension point not registered');
+    throw new Error("API extension point not registered");
   }
-  
+
   // Register the API extension
   apiExtensionPoint.register({
     id,

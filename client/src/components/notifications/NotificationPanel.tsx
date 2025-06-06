@@ -1,48 +1,48 @@
-import React, { useState } from 'react';
-import { 
-  AlertCircle, 
-  Bell, 
-  Brain, 
-  Calendar, 
-  Check, 
-  ChevronDown, 
-  ChevronUp, 
-  Clock, 
-  Eye, 
-  Image, 
-  Info, 
-  Lightbulb, 
-  MoreHorizontal, 
-  Zap 
-} from 'lucide-react';
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
-} from '@/components/ui/dropdown-menu';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { 
-  Card, 
-  CardContent, 
-  CardDescription, 
-  CardFooter, 
-  CardHeader, 
-  CardTitle 
-} from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
+import React, { useState } from "react";
+import {
+  AlertCircle,
+  Bell,
+  Brain,
+  Calendar,
+  Check,
+  ChevronDown,
+  ChevronUp,
+  Clock,
+  Eye,
+  Image,
+  Info,
+  Lightbulb,
+  MoreHorizontal,
+  Zap,
+} from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 
 export interface Notification {
   id: string;
-  type: 'alert' | 'reminder' | 'update' | 'insight' | 'compliance' | 'market';
+  type: "alert" | "reminder" | "update" | "insight" | "compliance" | "market";
   message: string;
   date: string;
   read: boolean;
-  importance?: 'high' | 'medium' | 'low';
+  importance?: "high" | "medium" | "low";
   aiGenerated?: boolean;
   data?: any;
 }
@@ -63,56 +63,71 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
   onMarkAsRead,
   onMarkAllAsRead,
   onDismiss,
-  className
+  className,
 }) => {
   const [expanded, setExpanded] = useState(false);
-  
+
   // Count unread notifications
-  const unreadCount = notifications.filter(notification => !notification.read).length;
-  
+  const unreadCount = notifications.filter((notification) => !notification.read).length;
+
   // Filter high importance AI notifications for quick access
   const highImportanceAI = notifications.filter(
-    notification => notification.importance === 'high' && notification.aiGenerated && !notification.read
+    (notification) =>
+      notification.importance === "high" && notification.aiGenerated && !notification.read
   );
-  
+
   // Helper function to get the appropriate icon for a notification type
   const getNotificationIcon = (type: string, aiGenerated?: boolean) => {
     switch (type) {
-      case 'alert':
-        return aiGenerated ? <Brain className="h-4 w-4 text-red-500" /> : <AlertCircle className="h-4 w-4 text-red-500" />;
-      case 'reminder':
-        return aiGenerated ? <Brain className="h-4 w-4 text-amber-500" /> : <Calendar className="h-4 w-4 text-amber-500" />;
-      case 'update':
-        return aiGenerated ? <Brain className="h-4 w-4 text-blue-500" /> : <Info className="h-4 w-4 text-blue-500" />;
-      case 'insight':
+      case "alert":
+        return aiGenerated ? (
+          <Brain className="h-4 w-4 text-red-500" />
+        ) : (
+          <AlertCircle className="h-4 w-4 text-red-500" />
+        );
+      case "reminder":
+        return aiGenerated ? (
+          <Brain className="h-4 w-4 text-amber-500" />
+        ) : (
+          <Calendar className="h-4 w-4 text-amber-500" />
+        );
+      case "update":
+        return aiGenerated ? (
+          <Brain className="h-4 w-4 text-blue-500" />
+        ) : (
+          <Info className="h-4 w-4 text-blue-500" />
+        );
+      case "insight":
         return <Lightbulb className="h-4 w-4 text-primary" />;
-      case 'compliance':
+      case "compliance":
         return <AlertCircle className="h-4 w-4 text-orange-500" />;
-      case 'market':
+      case "market":
         return <Zap className="h-4 w-4 text-green-500" />;
       default:
         return <Info className="h-4 w-4 text-muted-foreground" />;
     }
   };
-  
+
   // Helper function to format the notification date
   const formatDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const today = new Date();
     const yesterday = new Date(today);
     yesterday.setDate(yesterday.getDate() - 1);
-    
+
     if (date.toDateString() === today.toDateString()) {
-      return 'Today';
+      return "Today";
     } else if (date.toDateString() === yesterday.toDateString()) {
-      return 'Yesterday';
+      return "Yesterday";
     } else {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
     }
   };
-  
+
   return (
-    <Card className={`w-full transition-all duration-300 ease-in-out border-primary/20 ${expanded ? 'shadow-md' : ''} ${className || ''}`}>
+    <Card
+      className={`w-full transition-all duration-300 ease-in-out border-primary/20 ${expanded ? "shadow-md" : ""} ${className || ""}`}
+    >
       <CardHeader className="px-4 py-3 flex flex-row items-center justify-between space-y-0">
         <div className="flex items-center gap-2">
           <div className="relative">
@@ -127,7 +142,10 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
             <CardTitle className="text-sm flex items-center gap-2">
               AI-Powered Notifications
               {unreadCount > 0 && (
-                <Badge variant="outline" className="h-5 text-[10px] bg-primary/5 text-primary border-primary/20">
+                <Badge
+                  variant="outline"
+                  className="h-5 text-[10px] bg-primary/5 text-primary border-primary/20"
+                >
                   {unreadCount} New
                 </Badge>
               )}
@@ -138,9 +156,9 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-1">
-          <Button 
-            variant="ghost" 
-            size="icon" 
+          <Button
+            variant="ghost"
+            size="icon"
             className="h-7 w-7"
             onClick={() => setExpanded(!expanded)}
           >
@@ -172,13 +190,13 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </DropdownMenu>
         </div>
       </CardHeader>
-      
+
       {/* Quick Actions for High-Priority AI notifications */}
       {!expanded && highImportanceAI.length > 0 && (
         <CardContent className="px-4 py-3 pt-0">
           <div className="space-y-2">
-            {highImportanceAI.slice(0, 1).map(notification => (
-              <div 
+            {highImportanceAI.slice(0, 1).map((notification) => (
+              <div
                 key={notification.id}
                 className="flex items-start gap-2 p-2 rounded-md bg-primary/5 border border-primary/15"
               >
@@ -188,22 +206,24 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                 <div className="flex-1 text-xs">
                   <div className="font-medium mb-0.5 flex items-center gap-1.5">
                     <span>AI Insight</span>
-                    <Badge className="h-4 text-[10px] bg-primary/20 text-primary border-primary/20">High Priority</Badge>
+                    <Badge className="h-4 text-[10px] bg-primary/20 text-primary border-primary/20">
+                      High Priority
+                    </Badge>
                   </div>
                   <p>{notification.message}</p>
                   <div className="flex items-center gap-2 mt-1.5">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="h-6 text-[10px] border-primary/20 text-primary"
                       onClick={() => onMarkAsRead(notification.id)}
                     >
                       <Zap className="h-3 w-3 mr-1" />
                       Take action
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="sm" 
+                    <Button
+                      variant="ghost"
+                      size="sm"
                       className="h-6 text-[10px]"
                       onClick={() => onDismiss(notification.id)}
                     >
@@ -214,8 +234,8 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
               </div>
             ))}
             {highImportanceAI.length > 1 && (
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 className="w-full text-xs text-primary h-6"
                 onClick={() => setExpanded(true)}
               >
@@ -225,7 +245,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </div>
         </CardContent>
       )}
-      
+
       {/* Expanded View with all notifications */}
       {expanded && (
         <CardContent className="px-4 pt-0 pb-3">
@@ -242,11 +262,9 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
               ) : (
                 notifications.map((notification, index) => (
                   <div key={notification.id}>
-                    <div 
+                    <div
                       className={`flex items-start gap-2 p-2 rounded-md transition-colors ${
-                        !notification.read 
-                          ? 'bg-primary/5 hover:bg-primary/10' 
-                          : 'hover:bg-muted'
+                        !notification.read ? "bg-primary/5 hover:bg-primary/10" : "hover:bg-muted"
                       }`}
                     >
                       <div className="mt-0.5">
@@ -256,11 +274,12 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                         <div className="flex items-center justify-between mb-0.5">
                           <div className="flex items-center gap-1.5">
                             <span className="font-medium capitalize">
-                              {notification.aiGenerated ? 'AI ' : ''}{notification.type}
+                              {notification.aiGenerated ? "AI " : ""}
+                              {notification.type}
                             </span>
-                            {notification.importance === 'high' && (
-                              <Badge 
-                                variant="outline" 
+                            {notification.importance === "high" && (
+                              <Badge
+                                variant="outline"
                                 className="h-4 text-[10px] border-red-200 text-red-600 bg-red-50"
                               >
                                 High
@@ -275,14 +294,14 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                             {formatDate(notification.date)}
                           </span>
                         </div>
-                        <p className={!notification.read ? 'font-medium' : ''}>
+                        <p className={!notification.read ? "font-medium" : ""}>
                           {notification.message}
                         </p>
                         <div className="flex items-center gap-2 mt-1.5">
                           {!notification.read && (
-                            <Button 
-                              variant="ghost" 
-                              size="sm" 
+                            <Button
+                              variant="ghost"
+                              size="sm"
                               className="h-6 text-[10px]"
                               onClick={() => onMarkAsRead(notification.id)}
                             >
@@ -290,19 +309,19 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                               Mark as read
                             </Button>
                           )}
-                          {notification.type === 'insight' && (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                          {notification.type === "insight" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="h-6 text-[10px] border-primary/20 text-primary"
                             >
                               <Zap className="h-3 w-3 mr-1" />
                               Apply insight
                             </Button>
                           )}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-6 text-[10px]"
                             onClick={() => onDismiss(notification.id)}
                           >
@@ -311,9 +330,7 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
                         </div>
                       </div>
                     </div>
-                    {index < notifications.length - 1 && (
-                      <Separator className="my-1" />
-                    )}
+                    {index < notifications.length - 1 && <Separator className="my-1" />}
                   </div>
                 ))
               )}
@@ -321,23 +338,14 @@ const NotificationPanel: React.FC<NotificationPanelProps> = ({
           </ScrollArea>
         </CardContent>
       )}
-      
+
       {expanded && (
         <CardFooter className="px-4 py-2 flex justify-between border-t">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-xs"
-            onClick={onMarkAllAsRead}
-          >
+          <Button variant="ghost" size="sm" className="text-xs" onClick={onMarkAllAsRead}>
             <Check className="h-3.5 w-3.5 mr-1.5" />
             Mark all as read
           </Button>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="text-xs border-primary/20 text-primary"
-          >
+          <Button variant="outline" size="sm" className="text-xs border-primary/20 text-primary">
             <Brain className="h-3.5 w-3.5 mr-1.5" />
             AI Notification Settings
           </Button>

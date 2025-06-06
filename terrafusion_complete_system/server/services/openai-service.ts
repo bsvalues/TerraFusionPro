@@ -25,7 +25,7 @@ export interface MarketAnalysisResult {
   priceTrends: MarketTrendPoint[];
   inventoryTrends: MarketTrendPoint[];
   riskAssessment: {
-    level: 'low' | 'moderate' | 'high';
+    level: "low" | "moderate" | "high";
     factors: string[];
   };
   recommendations: string[];
@@ -33,17 +33,19 @@ export interface MarketAnalysisResult {
 
 /**
  * Generate a market analysis using OpenAI
- * 
+ *
  * @param params Analysis parameters
  * @returns Structured market analysis data
  */
-export async function generateMarketAnalysis(params: MarketAnalysisRequest): Promise<MarketAnalysisResult> {
+export async function generateMarketAnalysis(
+  params: MarketAnalysisRequest
+): Promise<MarketAnalysisResult> {
   try {
     const { location, propertyType, timeframe, additionalContext } = params;
-    
+
     const systemPrompt = `You are an expert real estate market analyst with deep knowledge of property markets across the United States. 
     Provide a detailed market analysis for ${propertyType} properties in ${location} over the ${timeframe} timeframe.
-    ${additionalContext ? `Additional context to consider: ${additionalContext}` : ''}
+    ${additionalContext ? `Additional context to consider: ${additionalContext}` : ""}
     
     Format your response as a JSON object with the following structure:
     {
@@ -59,32 +61,37 @@ export async function generateMarketAnalysis(params: MarketAnalysisRequest): Pro
     }
     
     Generate realistic but simulated market data for the charts based on your market knowledge.`;
-    
+
     const response = await openai.chat.completions.create({
       model: MODEL,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: `Analyze the ${propertyType} market in ${location} over the ${timeframe} timeframe.` }
+        {
+          role: "user",
+          content: `Analyze the ${propertyType} market in ${location} over the ${timeframe} timeframe.`,
+        },
       ],
       response_format: { type: "json_object" },
       temperature: 0.5,
     });
-    
+
     const contentText = response.choices[0].message.content;
     if (!contentText) {
       throw new Error("Empty response from OpenAI");
     }
-    
+
     return JSON.parse(contentText) as MarketAnalysisResult;
   } catch (error) {
     console.error("Error generating market analysis with OpenAI:", error);
-    throw new Error(`Failed to generate market analysis: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to generate market analysis: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
 }
 
 /**
  * Generate property valuation insights using OpenAI
- * 
+ *
  * @param propertyData Property details
  * @param comps Comparable properties
  * @returns Valuation insights and recommendations
@@ -111,25 +118,27 @@ export async function generatePropertyValuationInsights(
       ],
       "insights": ["Array of 3-5 key insights about this valuation"]
     }`;
-    
+
     const response = await openai.chat.completions.create({
       model: MODEL,
       messages: [
         { role: "system", content: systemPrompt },
-        { role: "user", content: JSON.stringify({ subject: propertyData, comparables: comps }) }
+        { role: "user", content: JSON.stringify({ subject: propertyData, comparables: comps }) },
       ],
       response_format: { type: "json_object" },
       temperature: 0.3,
     });
-    
+
     const contentText = response.choices[0].message.content;
     if (!contentText) {
       throw new Error("Empty response from OpenAI");
     }
-    
+
     return JSON.parse(contentText);
   } catch (error) {
     console.error("Error generating property valuation insights with OpenAI:", error);
-    throw new Error(`Failed to generate property valuation insights: ${error instanceof Error ? error.message : 'Unknown error'}`);
+    throw new Error(
+      `Failed to generate property valuation insights: ${error instanceof Error ? error.message : "Unknown error"}`
+    );
   }
 }

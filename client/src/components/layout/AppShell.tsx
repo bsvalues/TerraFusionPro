@@ -1,10 +1,10 @@
-import React from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { 
+import React from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
   Home,
   FileText,
   Search,
@@ -22,27 +22,27 @@ import {
   Folder,
   CheckSquare,
   TrendingUp,
-  Shuffle
-} from 'lucide-react';
+  Shuffle,
+} from "lucide-react";
 
 interface AppShellProps {
   children: React.ReactNode;
 }
 
 const navigationItems = [
-  { icon: Home, label: 'Dashboard', path: '/' },
-  { icon: Database, label: 'Legacy Importer', path: '/legacy-import' },
-  { icon: FileText, label: 'Reports', path: '/reports' },
-  { icon: Upload, label: 'Orders', path: '/orders' },
-  { icon: Building2, label: 'Properties', path: '/properties' },
-  { icon: Search, label: 'Comparables', path: '/comps' },
-  { icon: Camera, label: 'Photos', path: '/photos' },
-  { icon: PencilRuler, label: 'Sketches', path: '/sketches' },
-  { icon: BarChart3, label: 'Analytics', path: '/analytics' },
-  { icon: Brain, label: 'AI Assistant', path: '/ai' },
-  { icon: Shuffle, label: 'Conversion', path: '/conversion' },
-  { icon: CheckSquare, label: 'Compliance', path: '/compliance' },
-  { icon: Settings, label: 'Settings', path: '/settings' },
+  { icon: Home, label: "Dashboard", path: "/" },
+  { icon: Database, label: "Legacy Importer", path: "/legacy-import" },
+  { icon: FileText, label: "Reports", path: "/reports" },
+  { icon: Upload, label: "Orders", path: "/orders" },
+  { icon: Building2, label: "Properties", path: "/properties" },
+  { icon: Search, label: "Comparables", path: "/comps" },
+  { icon: Camera, label: "Photos", path: "/photos" },
+  { icon: PencilRuler, label: "Sketches", path: "/sketches" },
+  { icon: BarChart3, label: "Analytics", path: "/analytics" },
+  { icon: Brain, label: "AI Assistant", path: "/ai" },
+  { icon: Shuffle, label: "Conversion", path: "/conversion" },
+  { icon: CheckSquare, label: "Compliance", path: "/compliance" },
+  { icon: Settings, label: "Settings", path: "/settings" },
 ];
 
 export function AppShell({ children }: AppShellProps) {
@@ -63,15 +63,15 @@ export function AppShell({ children }: AppShellProps) {
           {navigationItems.map((item) => {
             const Icon = item.icon;
             const isActive = location === item.path;
-            
+
             return (
               <button
                 key={item.path}
                 onClick={() => setLocation(item.path)}
                 className={`w-full flex items-center gap-3 px-3 py-2 text-left rounded-lg transition-colors ${
-                  isActive 
-                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                    : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'
+                  isActive
+                    ? "bg-blue-50 text-blue-700 border border-blue-200"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
                 <Icon className="h-5 w-5" />
@@ -104,10 +104,7 @@ export function AppShell({ children }: AppShellProps) {
             <div className="flex-1 max-w-md">
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-slate-400" />
-                <Input 
-                  placeholder="Search properties, reports..." 
-                  className="pl-10"
-                />
+                <Input placeholder="Search properties, reports..." className="pl-10" />
               </div>
             </div>
 
@@ -117,7 +114,7 @@ export function AppShell({ children }: AppShellProps) {
                 <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
                 AI Active
               </Badge>
-              
+
               <Button variant="outline" size="sm">
                 <Upload className="h-4 w-4 mr-2" />
                 Quick Upload
@@ -136,9 +133,7 @@ export function AppShell({ children }: AppShellProps) {
 
         {/* Content Area */}
         <main className="flex-1 overflow-y-auto">
-          <div className="p-8">
-            {children}
-          </div>
+          <div className="p-8">{children}</div>
         </main>
       </div>
     </div>

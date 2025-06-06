@@ -1,8 +1,8 @@
-import React from 'react';
-import { UseQueryResult } from '@tanstack/react-query';
-import { LoadingState } from '@/components/ui/loading-state';
-import { ErrorState } from '@/components/ui/error-state';
-import { Card, CardContent } from '@/components/ui/card';
+import React from "react";
+import { UseQueryResult } from "@tanstack/react-query";
+import { LoadingState } from "@/components/ui/loading-state";
+import { ErrorState } from "@/components/ui/error-state";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface DataQueryWrapperProps<TData> {
   query: UseQueryResult<TData, Error>;
@@ -10,7 +10,7 @@ interface DataQueryWrapperProps<TData> {
   loadingText?: string;
   loadingComponent?: React.ReactNode;
   errorComponent?: React.ReactNode;
-  loadingVariant?: 'overlay' | 'inline' | 'skeleton';
+  loadingVariant?: "overlay" | "inline" | "skeleton";
   showCard?: boolean;
   className?: string;
   hideLoadingState?: boolean;
@@ -19,13 +19,13 @@ interface DataQueryWrapperProps<TData> {
 export function DataQueryWrapper<TData>({
   query,
   children,
-  loadingText = 'Loading data...',
+  loadingText = "Loading data...",
   loadingComponent,
   errorComponent,
-  loadingVariant = 'overlay',
+  loadingVariant = "overlay",
   showCard = false,
   className,
-  hideLoadingState = false
+  hideLoadingState = false,
 }: DataQueryWrapperProps<TData>) {
   const { isLoading, isError, error, data, refetch } = query;
 
@@ -44,7 +44,7 @@ export function DataQueryWrapper<TData>({
     return (
       <ErrorState
         title="Error loading data"
-        message={error?.message || 'An unexpected error occurred while fetching data.'}
+        message={error?.message || "An unexpected error occurred while fetching data."}
         onRetry={() => refetch()}
         className={className}
       />
@@ -55,23 +55,20 @@ export function DataQueryWrapper<TData>({
   const content = (
     <>
       {!hideLoadingState && (
-        <LoadingState
-          isLoading={isLoading}
-          loadingText={loadingText}
-          variant={loadingVariant}
-        >
+        <LoadingState isLoading={isLoading} loadingText={loadingText} variant={loadingVariant}>
           {data ? children(data) : null}
         </LoadingState>
       )}
-      {hideLoadingState && (isLoading ? (
-        loadingComponent || (
-          <div className="flex justify-center py-8">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          </div>
-        )
-      ) : (
-        data ? children(data) : null
-      ))}
+      {hideLoadingState &&
+        (isLoading
+          ? loadingComponent || (
+              <div className="flex justify-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+              </div>
+            )
+          : data
+            ? children(data)
+            : null)}
     </>
   );
 
@@ -79,9 +76,7 @@ export function DataQueryWrapper<TData>({
   if (showCard) {
     return (
       <Card className={className}>
-        <CardContent className="pt-6">
-          {content}
-        </CardContent>
+        <CardContent className="pt-6">{content}</CardContent>
       </Card>
     );
   }

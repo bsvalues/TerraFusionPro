@@ -1,6 +1,14 @@
 import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
@@ -11,7 +19,13 @@ import { Badge } from "@/components/ui/badge";
 import { CheckCircle, Copy, Link, Trash2, Calendar, AlertCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { apiRequest, queryClient, getQueryFn } from "@/lib/queryClient";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 interface PropertyShareDialogProps {
   propertyId: number;
@@ -19,10 +33,10 @@ interface PropertyShareDialogProps {
   onClose: () => void;
 }
 
-export default function PropertyShareDialog({ 
-  propertyId, 
-  isOpen, 
-  onClose 
+export default function PropertyShareDialog({
+  propertyId,
+  isOpen,
+  onClose,
 }: PropertyShareDialogProps) {
   const { toast } = useToast();
   const [expiryDays, setExpiryDays] = useState<string>("7");
@@ -36,7 +50,11 @@ export default function PropertyShareDialog({
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   // Fetch existing share links for this property
-  const { data: shareLinks, isLoading, error } = useQuery({
+  const {
+    data: shareLinks,
+    isLoading,
+    error,
+  } = useQuery({
     queryKey: [`/api/properties/${propertyId}/share-links`],
     queryFn: getQueryFn({ on401: "returnNull" }),
     enabled: isOpen && propertyId > 0,
@@ -56,7 +74,7 @@ export default function PropertyShareDialog({
     mutationFn: async (shareData: ShareLinkData) => {
       return await apiRequest(`/api/properties/${propertyId}/share`, {
         method: "POST",
-        data: shareData
+        data: shareData,
       });
     },
     onSuccess: () => {
@@ -72,7 +90,7 @@ export default function PropertyShareDialog({
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
   interface PropertyShareLink {
@@ -92,12 +110,12 @@ export default function PropertyShareDialog({
     createdAt: string;
     updatedAt: string;
   }
-  
+
   // Delete share link
   const deleteShareLinkMutation = useMutation({
     mutationFn: async (shareLinkId: number) => {
       await apiRequest(`/api/property-shares/${shareLinkId}`, {
-        method: "DELETE"
+        method: "DELETE",
       });
     },
     onSuccess: () => {
@@ -113,13 +131,15 @@ export default function PropertyShareDialog({
         description: error.message,
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Handle create new share link
   const handleCreateShareLink = () => {
     const shareData = {
-      expiresAt: showExpiration ? new Date(Date.now() + parseInt(expiryDays) * 24 * 60 * 60 * 1000).toISOString() : undefined,
+      expiresAt: showExpiration
+        ? new Date(Date.now() + parseInt(expiryDays) * 24 * 60 * 60 * 1000).toISOString()
+        : undefined,
       viewsLimit: showViewLimit ? parseInt(viewsLimit) : undefined,
       includePhotos,
       includeComparables,
@@ -136,7 +156,7 @@ export default function PropertyShareDialog({
     navigator.clipboard.writeText(shareUrl).then(() => {
       setCopiedId(token);
       setTimeout(() => setCopiedId(null), 2000);
-      
+
       toast({
         title: "Link copied",
         description: "The share link has been copied to your clipboard.",
@@ -147,12 +167,12 @@ export default function PropertyShareDialog({
   // Get formatted expiration date
   const getExpirationInfo = (expiresAt: string | undefined) => {
     if (!expiresAt) return "No expiration";
-    
+
     const expDate = new Date(expiresAt);
     const now = new Date();
     const diffTime = expDate.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays < 0) return "Expired";
     if (diffDays === 0) return "Expires today";
     if (diffDays === 1) return "Expires tomorrow";
@@ -173,26 +193,25 @@ export default function PropertyShareDialog({
           {/* New Share Link Form */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Create New Share Link</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="expiration">Expiration</Label>
-                    <div className="text-muted-foreground text-xs">Link will expire after this time</div>
+                    <div className="text-muted-foreground text-xs">
+                      Link will expire after this time
+                    </div>
                   </div>
-                  <Switch 
+                  <Switch
                     id="expiration-toggle"
-                    checked={showExpiration} 
-                    onCheckedChange={setShowExpiration} 
+                    checked={showExpiration}
+                    onCheckedChange={setShowExpiration}
                   />
                 </div>
-                
+
                 {showExpiration && (
-                  <Select
-                    value={expiryDays}
-                    onValueChange={setExpiryDays}
-                  >
+                  <Select value={expiryDays} onValueChange={setExpiryDays}>
                     <SelectTrigger>
                       <SelectValue placeholder="Select expiration" />
                     </SelectTrigger>
@@ -205,19 +224,21 @@ export default function PropertyShareDialog({
                     </SelectContent>
                   </Select>
                 )}
-                
+
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label htmlFor="views-limit">Views Limit</Label>
-                    <div className="text-muted-foreground text-xs">Limit number of times this can be viewed</div>
+                    <div className="text-muted-foreground text-xs">
+                      Limit number of times this can be viewed
+                    </div>
                   </div>
-                  <Switch 
+                  <Switch
                     id="views-toggle"
-                    checked={showViewLimit} 
-                    onCheckedChange={setShowViewLimit} 
+                    checked={showViewLimit}
+                    onCheckedChange={setShowViewLimit}
                   />
                 </div>
-                
+
                 {showViewLimit && (
                   <Input
                     id="views-limit"
@@ -230,73 +251,85 @@ export default function PropertyShareDialog({
                   />
                 )}
               </div>
-              
+
               <div className="space-y-4">
                 <div className="space-y-2">
                   <Label className="text-sm font-medium">Include in Share</Label>
-                  
+
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="include-photos" className="cursor-pointer text-sm text-muted-foreground">
+                    <Label
+                      htmlFor="include-photos"
+                      className="cursor-pointer text-sm text-muted-foreground"
+                    >
                       Property Photos
                     </Label>
-                    <Switch 
+                    <Switch
                       id="include-photos"
-                      checked={includePhotos} 
-                      onCheckedChange={setIncludePhotos} 
+                      checked={includePhotos}
+                      onCheckedChange={setIncludePhotos}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="include-comparables" className="cursor-pointer text-sm text-muted-foreground">
+                    <Label
+                      htmlFor="include-comparables"
+                      className="cursor-pointer text-sm text-muted-foreground"
+                    >
                       Comparable Properties
                     </Label>
-                    <Switch 
+                    <Switch
                       id="include-comparables"
-                      checked={includeComparables} 
-                      onCheckedChange={setIncludeComparables} 
+                      checked={includeComparables}
+                      onCheckedChange={setIncludeComparables}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="include-valuation" className="cursor-pointer text-sm text-muted-foreground">
+                    <Label
+                      htmlFor="include-valuation"
+                      className="cursor-pointer text-sm text-muted-foreground"
+                    >
                       Valuation Data
                     </Label>
-                    <Switch 
+                    <Switch
                       id="include-valuation"
-                      checked={includeValuation} 
-                      onCheckedChange={setIncludeValuation} 
+                      checked={includeValuation}
+                      onCheckedChange={setIncludeValuation}
                     />
                   </div>
-                  
+
                   <div className="flex items-center justify-between">
-                    <Label htmlFor="allow-reports" className="cursor-pointer text-sm text-muted-foreground">
+                    <Label
+                      htmlFor="allow-reports"
+                      className="cursor-pointer text-sm text-muted-foreground"
+                    >
                       Appraisal Reports
                     </Label>
-                    <Switch 
+                    <Switch
                       id="allow-reports"
-                      checked={allowReports} 
-                      onCheckedChange={setAllowReports} 
+                      checked={allowReports}
+                      onCheckedChange={setAllowReports}
                     />
                   </div>
                 </div>
               </div>
             </div>
-            
-            <Button 
-              onClick={handleCreateShareLink} 
+
+            <Button
+              onClick={handleCreateShareLink}
               className="w-full"
               disabled={createShareLinkMutation.isPending}
             >
               {createShareLinkMutation.isPending ? "Creating..." : "Create Share Link"}
             </Button>
           </div>
-          
+
           <Separator />
-          
+
           {/* Existing Share Links */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Active Share Links</h3>
-            
+
             {isLoading ? (
               <div className="text-center py-4">Loading share links...</div>
             ) : error ? (
@@ -310,87 +343,104 @@ export default function PropertyShareDialog({
               </div>
             ) : (
               <div className="space-y-3">
-                {shareLinks && Array.isArray(shareLinks) && shareLinks.map((link: PropertyShareLink) => (
-                  <Card key={link.id} className="p-4">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Link className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">Share Link</span>
-                          
-                          <div className="flex gap-1">
-                            {link.includePhotos && (
-                              <Badge variant="outline" className="text-xs">Photos</Badge>
-                            )}
-                            {link.includeComparables && (
-                              <Badge variant="outline" className="text-xs">Comps</Badge>
-                            )}
-                            {link.includeValuation && (
-                              <Badge variant="outline" className="text-xs">Value</Badge>
-                            )}
-                            {link.allowReports && (
-                              <Badge variant="outline" className="text-xs">Reports</Badge>
+                {shareLinks &&
+                  Array.isArray(shareLinks) &&
+                  shareLinks.map((link: PropertyShareLink) => (
+                    <Card key={link.id} className="p-4">
+                      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <Link className="h-4 w-4 text-muted-foreground" />
+                            <span className="font-medium">Share Link</span>
+
+                            <div className="flex gap-1">
+                              {link.includePhotos && (
+                                <Badge variant="outline" className="text-xs">
+                                  Photos
+                                </Badge>
+                              )}
+                              {link.includeComparables && (
+                                <Badge variant="outline" className="text-xs">
+                                  Comps
+                                </Badge>
+                              )}
+                              {link.includeValuation && (
+                                <Badge variant="outline" className="text-xs">
+                                  Value
+                                </Badge>
+                              )}
+                              {link.allowReports && (
+                                <Badge variant="outline" className="text-xs">
+                                  Reports
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+                            <span>
+                              {link.viewCount} view{link.viewCount !== 1 ? "s" : ""}
+                              {link.viewsLimit ? ` of ${link.viewsLimit}` : ""}
+                            </span>
+
+                            {link.expiresAt && (
+                              <div className="flex items-center gap-1">
+                                <Calendar className="h-3 w-3" />
+                                <span>{getExpirationInfo(link.expiresAt)}</span>
+                              </div>
                             )}
                           </div>
                         </div>
-                        
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <span>
-                            {link.viewCount} view{link.viewCount !== 1 ? 's' : ''}
-                            {link.viewsLimit ? ` of ${link.viewsLimit}` : ''}
-                          </span>
-                          
-                          {link.expiresAt && (
-                            <div className="flex items-center gap-1">
-                              <Calendar className="h-3 w-3" />
-                              <span>{getExpirationInfo(link.expiresAt)}</span>
-                            </div>
-                          )}
+
+                        <div className="flex items-center space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="flex items-center gap-1"
+                            onClick={() => handleCopyLink(link.token)}
+                          >
+                            {copiedId === link.token ? (
+                              <>
+                                <CheckCircle className="h-4 w-4 text-green-500" />
+                                <span>Copied</span>
+                              </>
+                            ) : (
+                              <>
+                                <Copy className="h-4 w-4" />
+                                <span>Copy</span>
+                              </>
+                            )}
+                          </Button>
+
+                          <Button
+                            size="sm"
+                            variant="destructive"
+                            className="flex items-center gap-1"
+                            onClick={() => deleteShareLinkMutation.mutate(link.id)}
+                            disabled={
+                              deleteShareLinkMutation.isPending &&
+                              deleteShareLinkMutation.variables === link.id
+                            }
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            {deleteShareLinkMutation.isPending &&
+                            deleteShareLinkMutation.variables === link.id
+                              ? "Deleting..."
+                              : "Delete"}
+                          </Button>
                         </div>
                       </div>
-                      
-                      <div className="flex items-center space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          className="flex items-center gap-1"
-                          onClick={() => handleCopyLink(link.token)}
-                        >
-                          {copiedId === link.token ? (
-                            <>
-                              <CheckCircle className="h-4 w-4 text-green-500" />
-                              <span>Copied</span>
-                            </>
-                          ) : (
-                            <>
-                              <Copy className="h-4 w-4" />
-                              <span>Copy</span>
-                            </>
-                          )}
-                        </Button>
-                        
-                        <Button
-                          size="sm"
-                          variant="destructive"
-                          className="flex items-center gap-1"
-                          onClick={() => deleteShareLinkMutation.mutate(link.id)}
-                          disabled={deleteShareLinkMutation.isPending && deleteShareLinkMutation.variables === link.id}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                          {deleteShareLinkMutation.isPending && deleteShareLinkMutation.variables === link.id ? 
-                            'Deleting...' : 'Delete'}
-                        </Button>
-                      </div>
-                    </div>
-                  </Card>
-                ))}
+                    </Card>
+                  ))}
               </div>
             )}
           </div>
         </div>
-        
+
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>Close</Button>
+          <Button variant="outline" onClick={onClose}>
+            Close
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -1,7 +1,20 @@
-import { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { TrendingUp, TrendingDown, DollarSign, Home, Calendar, MapPin } from 'lucide-react';
+import { useState, useEffect } from "react";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  BarChart,
+  Bar,
+  PieChart,
+  Pie,
+  Cell,
+} from "recharts";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { TrendingUp, TrendingDown, DollarSign, Home, Calendar, MapPin } from "lucide-react";
 
 interface TrendData {
   month: string;
@@ -30,7 +43,7 @@ export default function AnalyticsDashboard() {
     totalProperties: 0,
     totalValue: 0,
     avgPrice: 0,
-    medianGLA: 0
+    medianGLA: 0,
   });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -45,46 +58,45 @@ export default function AnalyticsDashboard() {
       setError(null);
 
       // Fetch trends data
-      const trendsResponse = await fetch('/api/analytics/trends');
-      if (!trendsResponse.ok) throw new Error('Failed to fetch trends data');
+      const trendsResponse = await fetch("/api/analytics/trends");
+      if (!trendsResponse.ok) throw new Error("Failed to fetch trends data");
       const trends = await trendsResponse.json();
       setMonthlyTrends(trends);
 
       // Fetch zip code data
-      const zipResponse = await fetch('/api/analytics/zip-codes');
-      if (!zipResponse.ok) throw new Error('Failed to fetch zip code data');
+      const zipResponse = await fetch("/api/analytics/zip-codes");
+      if (!zipResponse.ok) throw new Error("Failed to fetch zip code data");
       const zipData = await zipResponse.json();
       setZipCodeData(zipData);
 
       // Fetch property types
-      const typesResponse = await fetch('/api/analytics/property-types');
-      if (!typesResponse.ok) throw new Error('Failed to fetch property types');
+      const typesResponse = await fetch("/api/analytics/property-types");
+      if (!typesResponse.ok) throw new Error("Failed to fetch property types");
       const types = await typesResponse.json();
       setPropertyTypes(types);
 
       // Fetch total stats
-      const statsResponse = await fetch('/api/analytics/summary');
-      if (!statsResponse.ok) throw new Error('Failed to fetch summary stats');
+      const statsResponse = await fetch("/api/analytics/summary");
+      if (!statsResponse.ok) throw new Error("Failed to fetch summary stats");
       const stats = await statsResponse.json();
       setTotalStats(stats);
-
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load analytics data');
+      setError(err instanceof Error ? err.message : "Failed to load analytics data");
     } finally {
       setLoading(false);
     }
   };
 
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
   const formatNumber = (value: number) => {
-    return new Intl.NumberFormat('en-US').format(value);
+    return new Intl.NumberFormat("en-US").format(value);
   };
 
   if (loading) {
@@ -113,7 +125,7 @@ export default function AnalyticsDashboard() {
     );
   }
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+  const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042", "#8884D8"];
 
   return (
     <div className="p-6 space-y-6">
@@ -183,9 +195,7 @@ export default function AnalyticsDashboard() {
         <Card className="col-span-1 lg:col-span-2">
           <CardHeader>
             <CardTitle>Monthly Price Trends</CardTitle>
-            <CardDescription>
-              Median sale prices and living area trends over time
-            </CardDescription>
+            <CardDescription>Median sale prices and living area trends over time</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -194,12 +204,28 @@ export default function AnalyticsDashboard() {
                 <XAxis dataKey="month" />
                 <YAxis yAxisId="left" />
                 <YAxis yAxisId="right" orientation="right" />
-                <Tooltip formatter={(value, name) => [
-                  name === 'medianPrice' ? formatCurrency(Number(value)) : formatNumber(Number(value)),
-                  name === 'medianPrice' ? 'Median Price' : 'Avg GLA (sqft)'
-                ]} />
-                <Line yAxisId="left" type="monotone" dataKey="medianPrice" stroke="#8884d8" strokeWidth={2} />
-                <Line yAxisId="right" type="monotone" dataKey="avgGLA" stroke="#82ca9d" strokeWidth={2} />
+                <Tooltip
+                  formatter={(value, name) => [
+                    name === "medianPrice"
+                      ? formatCurrency(Number(value))
+                      : formatNumber(Number(value)),
+                    name === "medianPrice" ? "Median Price" : "Avg GLA (sqft)",
+                  ]}
+                />
+                <Line
+                  yAxisId="left"
+                  type="monotone"
+                  dataKey="medianPrice"
+                  stroke="#8884d8"
+                  strokeWidth={2}
+                />
+                <Line
+                  yAxisId="right"
+                  type="monotone"
+                  dataKey="avgGLA"
+                  stroke="#82ca9d"
+                  strokeWidth={2}
+                />
               </LineChart>
             </ResponsiveContainer>
           </CardContent>
@@ -209,9 +235,7 @@ export default function AnalyticsDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Top ZIP Codes by Median Price</CardTitle>
-            <CardDescription>
-              Highest value markets in imported data
-            </CardDescription>
+            <CardDescription>Highest value markets in imported data</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -219,7 +243,7 @@ export default function AnalyticsDashboard() {
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="zipCode" />
                 <YAxis />
-                <Tooltip formatter={(value) => [formatCurrency(Number(value)), 'Median Price']} />
+                <Tooltip formatter={(value) => [formatCurrency(Number(value)), "Median Price"]} />
                 <Bar dataKey="medianPrice" fill="#8884d8" />
               </BarChart>
             </ResponsiveContainer>
@@ -230,9 +254,7 @@ export default function AnalyticsDashboard() {
         <Card>
           <CardHeader>
             <CardTitle>Property Type Distribution</CardTitle>
-            <CardDescription>
-              Breakdown by property categories
-            </CardDescription>
+            <CardDescription>Breakdown by property categories</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -274,15 +296,15 @@ export default function AnalyticsDashboard() {
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Most Active ZIP:</span>
               <span className="font-medium">
-                {zipCodeData.sort((a, b) => b.salesCount - a.salesCount)[0]?.zipCode} 
-                ({zipCodeData.sort((a, b) => b.salesCount - a.salesCount)[0]?.salesCount} sales)
+                {zipCodeData.sort((a, b) => b.salesCount - a.salesCount)[0]?.zipCode}(
+                {zipCodeData.sort((a, b) => b.salesCount - a.salesCount)[0]?.salesCount} sales)
               </span>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm text-gray-600">Price Range:</span>
               <span className="font-medium">
-                {formatCurrency(Math.min(...zipCodeData.map(z => z.medianPrice)))} - 
-                {formatCurrency(Math.max(...zipCodeData.map(z => z.medianPrice)))}
+                {formatCurrency(Math.min(...zipCodeData.map((z) => z.medianPrice)))} -
+                {formatCurrency(Math.max(...zipCodeData.map((z) => z.medianPrice)))}
               </span>
             </div>
           </CardContent>

@@ -46,6 +46,7 @@ The module integrates seamlessly with the TerraFusion platform through Node.js b
 ## Schema Mapping
 
 Intelligent field mapping supports various column name conventions:
+
 - Address: `address`, `property_address`, `street_address`
 - Price: `sale_price`, `price`, `sale_amount`, `selling_price`
 - Area: `gla`, `sqft`, `square_feet`, `living_area`

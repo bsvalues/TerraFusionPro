@@ -3,7 +3,7 @@ import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
 import { setupBasicWebSocketServer } from "./basic-websocket";
 // Import health check module
-import * as healthCheck from './monitoring/health-check';
+import * as healthCheck from "./monitoring/health-check";
 // Import database startup checks
 import { runStartupChecks } from "./db";
 
@@ -14,15 +14,18 @@ app.use(express.urlencoded({ extended: false }));
 // Add CORS headers to allow WebSocket connections
 app.use((req, res, next) => {
   // Allow CORS for WebSocket upgrade requests
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-  res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-  
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header(
+    "Access-Control-Allow-Headers",
+    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
+  );
+
   // Handle preflight requests
-  if (req.method === 'OPTIONS') {
+  if (req.method === "OPTIONS") {
     return res.status(200).end();
   }
-  
+
   next();
 });
 
@@ -59,16 +62,16 @@ app.use((req, res, next) => {
 (async () => {
   // Run database startup checks
   await runStartupChecks();
-  
+
   const server = await registerRoutes(app);
-  
+
   // Setup a single WebSocket server implementation for all paths
   const wsApi = setupBasicWebSocketServer(server);
-  console.log('[WebSocket] WebSocket server initialized');
-  
+  console.log("[WebSocket] WebSocket server initialized");
+
   // Register health check routes
   healthCheck.registerHealthRoutes(app);
-  
+
   // Log server status periodically
   setInterval(() => {
     log(`Server running: ${new Date().toISOString()}`);
@@ -95,52 +98,55 @@ app.use((req, res, next) => {
   // this serves both the API and the client.
   // It is the only port that is not firewalled.
   const port = process.env.PORT || 5000;
-  
+
   // Create a function to handle server shutdown
   const shutdownGracefully = () => {
-    console.log('Shutting down server gracefully...');
+    console.log("Shutting down server gracefully...");
     server.close(() => {
-      console.log('Server closed successfully');
+      console.log("Server closed successfully");
       process.exit(0);
     });
-    
+
     // Force close after timeout if graceful shutdown fails
     setTimeout(() => {
-      console.error('Could not close connections in time, forcefully shutting down');
+      console.error("Could not close connections in time, forcefully shutting down");
       process.exit(1);
     }, 10000);
   };
-  
+
   // Handle termination signals
-  process.on('SIGTERM', shutdownGracefully);
-  process.on('SIGINT', shutdownGracefully);
-  
+  process.on("SIGTERM", shutdownGracefully);
+  process.on("SIGINT", shutdownGracefully);
+
   // Add error handler for the port in use case
-  server.on('error', (err: any) => {
-    if (err.code === 'EADDRINUSE') {
+  server.on("error", (err: any) => {
+    if (err.code === "EADDRINUSE") {
       console.error(`Port ${port} is already in use. Attempting to use another port...`);
       // In Replit, we need to wait a moment for the port to be released
       setTimeout(() => {
-        console.log('Retrying server startup...');
+        console.log("Retrying server startup...");
         server.listen({
           port,
           host: "0.0.0.0",
           reusePort: true,
-          backlog: 511
+          backlog: 511,
         });
       }, 5000);
     } else {
-      console.error('Server error:', err);
+      console.error("Server error:", err);
     }
   });
-  
+
   // Start the server
-  server.listen({
-    port,
-    host: "0.0.0.0",
-    reusePort: true,
-    backlog: 511
-  }, () => {
-    log(`serving on port ${port}`);
-  });
+  server.listen(
+    {
+      port,
+      host: "0.0.0.0",
+      reusePort: true,
+      backlog: 511,
+    },
+    () => {
+      log(`serving on port ${port}`);
+    }
+  );
 })();

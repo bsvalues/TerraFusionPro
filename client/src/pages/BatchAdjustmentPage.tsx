@@ -20,7 +20,7 @@ const demoComparables = [
     grossLivingArea: "2250",
     bedrooms: "4",
     bathrooms: "2.5",
-    adjustments: []
+    adjustments: [],
   },
   {
     id: "comp2",
@@ -41,9 +41,9 @@ const demoComparables = [
         comparableId: "comp2",
         adjustmentType: "Location",
         amount: "15000",
-        description: "Superior location adjustment"
-      }
-    ]
+        description: "Superior location adjustment",
+      },
+    ],
   },
   {
     id: "comp3",
@@ -58,7 +58,7 @@ const demoComparables = [
     grossLivingArea: "2100",
     bedrooms: "3",
     bathrooms: "2",
-    adjustments: []
+    adjustments: [],
   },
   {
     id: "comp4",
@@ -79,9 +79,9 @@ const demoComparables = [
         comparableId: "comp4",
         adjustmentType: "GLA",
         amount: "-8500",
-        description: "Size adjustment - smaller than subject"
-      }
-    ]
+        description: "Size adjustment - smaller than subject",
+      },
+    ],
   },
   {
     id: "comp5",
@@ -96,8 +96,8 @@ const demoComparables = [
     grossLivingArea: "2550",
     bedrooms: "5",
     bathrooms: "3.5",
-    adjustments: []
-  }
+    adjustments: [],
+  },
 ];
 
 const BatchAdjustmentPage = () => {
@@ -158,9 +158,7 @@ const BatchAdjustmentPage = () => {
       <Card className="mb-8">
         <CardHeader>
           <CardTitle>Appraisal Summary</CardTitle>
-          <CardDescription>
-            Properties being adjusted for appraisal #{appraisalId}
-          </CardDescription>
+          <CardDescription>Properties being adjusted for appraisal #{appraisalId}</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-3 gap-6">

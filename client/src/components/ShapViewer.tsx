@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react';
-import { shapWebSocketClient, ShapData } from '@/lib/shapWebSocket';
+import { useEffect, useState } from "react";
+import { shapWebSocketClient, ShapData } from "@/lib/shapWebSocket";
 import {
   Card,
   CardContent,
@@ -10,19 +10,25 @@ import {
 } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
-import { 
-  AlertCircle, 
-  Info, 
-  BarChart4, 
-  History, 
-  Download, 
+import {
+  AlertCircle,
+  Info,
+  BarChart4,
+  History,
+  Download,
   RefreshCw,
-  ExternalLink
+  ExternalLink,
 } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
@@ -46,11 +52,11 @@ interface ModelVersion {
  * SHAP Viewer Component
  * Displays SHAP values for property condition scores
  */
-export function ShapViewer({ 
-  propertyId, 
-  initialCondition = 'good', 
+export function ShapViewer({
+  propertyId,
+  initialCondition = "good",
   className,
-  showVersionComparison = true
+  showVersionComparison = true,
 }: ShapViewerProps) {
   // State for selected condition, connection status, and SHAP data
   const [condition, setCondition] = useState<string>(initialCondition);
@@ -69,7 +75,7 @@ export function ShapViewer({
   const modelVersions: ModelVersion[] = [
     { version: "latest", name: "v2.1.0 (Current)", date: "2025-03-15" },
     { version: "v2.0.0", name: "v2.0.0", date: "2025-02-01" },
-    { version: "v1.0.0", name: "v1.0.0 (Initial)", date: "2024-12-10" }
+    { version: "v1.0.0", name: "v1.0.0 (Initial)", date: "2024-12-10" },
   ];
 
   // Connect to WebSocket on component mount
@@ -77,18 +83,18 @@ export function ShapViewer({
     connectToWebSocket();
 
     // Set up event listeners
-    shapWebSocketClient.on('connection_established', handleConnectionEstablished);
-    shapWebSocketClient.on('shap_update', handleShapUpdate);
-    shapWebSocketClient.on('error', handleError);
-    shapWebSocketClient.on('disconnected', handleDisconnected);
+    shapWebSocketClient.on("connection_established", handleConnectionEstablished);
+    shapWebSocketClient.on("shap_update", handleShapUpdate);
+    shapWebSocketClient.on("error", handleError);
+    shapWebSocketClient.on("disconnected", handleDisconnected);
 
     // Clean up event listeners on unmount
     return () => {
-      shapWebSocketClient.off('connection_established', handleConnectionEstablished);
-      shapWebSocketClient.off('shap_update', handleShapUpdate);
-      shapWebSocketClient.off('error', handleError);
-      shapWebSocketClient.off('disconnected', handleDisconnected);
-      
+      shapWebSocketClient.off("connection_established", handleConnectionEstablished);
+      shapWebSocketClient.off("shap_update", handleShapUpdate);
+      shapWebSocketClient.off("error", handleError);
+      shapWebSocketClient.off("disconnected", handleDisconnected);
+
       // Disconnect WebSocket on unmount
       if (shapWebSocketClient.isConnected()) {
         shapWebSocketClient.disconnect();
@@ -100,7 +106,7 @@ export function ShapViewer({
   useEffect(() => {
     if (connected && condition) {
       requestShapValues(condition, selectedVersion);
-      
+
       // If comparing versions, also load previous version data
       if (isComparing && selectedVersion === "latest") {
         loadPreviousVersionData();
@@ -118,49 +124,49 @@ export function ShapViewer({
       setConnecting(true);
       setError(null);
       await shapWebSocketClient.connect();
-      
+
       // We'll initiate a request for SHAP data once we've connected
       if (condition && shapWebSocketClient.isConnected()) {
         requestShapValues(condition, selectedVersion);
       } else {
         // Fallback to mock SHAP data if connection fails
-        console.log('[SHAP Viewer] Using mock data since connection failed or was not established');
+        console.log("[SHAP Viewer] Using mock data since connection failed or was not established");
         handleShapUpdate({
-          type: 'shap_update',
+          type: "shap_update",
           data: getMockShapData(condition),
-          timestamp: Date.now()
+          timestamp: Date.now(),
         });
       }
     } catch (err) {
-      setError('Failed to connect to the server. Using local data instead.');
-      console.error('[SHAP Viewer] Connection error:', err);
-      
+      setError("Failed to connect to the server. Using local data instead.");
+      console.error("[SHAP Viewer] Connection error:", err);
+
       // Fallback to mock SHAP data
       handleShapUpdate({
-        type: 'shap_update',
+        type: "shap_update",
         data: getMockShapData(condition),
-        timestamp: Date.now()
+        timestamp: Date.now(),
       });
     } finally {
       setConnecting(false);
     }
   };
-  
+
   /**
    * Get mock SHAP data for fallback
    */
   const getMockShapData = (conditionType: string): ShapData => {
     const conditionToScore: Record<string, number> = {
-      'excellent': 4.8,
-      'good': 4.0,
-      'average': 3.0,
-      'fair': 2.0,
-      'poor': 1.2
+      excellent: 4.8,
+      good: 4.0,
+      average: 3.0,
+      fair: 2.0,
+      poor: 1.2,
     };
-    
+
     const baseScore = 3.0;
     const finalScore = conditionToScore[conditionType] || 3.0;
-    
+
     return {
       condition: conditionType,
       base_score: baseScore,
@@ -171,19 +177,23 @@ export function ShapViewer({
         "Foundation",
         "Windows & Doors",
         "Interior Finishes",
-        "Property Age"
+        "Property Age",
       ],
       values: [
-        conditionType === 'excellent' || conditionType === 'good' ? 0.8 : -0.4,
-        conditionType === 'excellent' ? 0.5 : (conditionType === 'poor' ? -0.6 : 0.2),
-        conditionType === 'poor' || conditionType === 'fair' ? -0.7 : 0.3,
-        conditionType === 'excellent' ? 0.4 : (conditionType === 'poor' ? -0.5 : 0.1),
-        conditionType === 'excellent' || conditionType === 'good' ? 0.6 : -0.3,
-        conditionType === 'poor' || conditionType === 'fair' ? -0.4 : (conditionType === 'excellent' ? 0.2 : -0.1)
+        conditionType === "excellent" || conditionType === "good" ? 0.8 : -0.4,
+        conditionType === "excellent" ? 0.5 : conditionType === "poor" ? -0.6 : 0.2,
+        conditionType === "poor" || conditionType === "fair" ? -0.7 : 0.3,
+        conditionType === "excellent" ? 0.4 : conditionType === "poor" ? -0.5 : 0.1,
+        conditionType === "excellent" || conditionType === "good" ? 0.6 : -0.3,
+        conditionType === "poor" || conditionType === "fair"
+          ? -0.4
+          : conditionType === "excellent"
+            ? 0.2
+            : -0.1,
       ],
       image_path: `/api/shap/sample-images/${conditionType}_condition.png`,
       model_version: "2.1.0 (local)",
-      timestamp: Date.now()
+      timestamp: Date.now(),
     };
   };
 
@@ -193,8 +203,8 @@ export function ShapViewer({
   const handleConnectionEstablished = (data: any) => {
     setConnected(true);
     setError(null);
-    console.log('[SHAP Viewer] Connected to server:', data);
-    
+    console.log("[SHAP Viewer] Connected to server:", data);
+
     // Request SHAP values for current condition
     if (condition) {
       requestShapValues(condition, selectedVersion);
@@ -205,31 +215,31 @@ export function ShapViewer({
    * Handle SHAP update event
    */
   const handleShapUpdate = (message: any) => {
-    console.log('[SHAP Viewer] Received SHAP data:', message);
-    
+    console.log("[SHAP Viewer] Received SHAP data:", message);
+
     if (message.data) {
-      if (typeof message.data === 'object' && 'condition' in message.data) {
+      if (typeof message.data === "object" && "condition" in message.data) {
         // Single condition data
         setShapData(message.data as ShapData);
-        
+
         // Handle image path
         if (message.data.image_path) {
           const imagePath = message.data.image_path;
           // Convert to relative path if it's a full path
-          const fileName = imagePath.split('/').pop();
+          const fileName = imagePath.split("/").pop();
           setImageUrl(`/api/shap/sample-images/${fileName}`);
         }
-      } else if (typeof message.data === 'object') {
+      } else if (typeof message.data === "object") {
         // Multiple conditions data
         // Find the one matching our current condition
         const conditionData = message.data[condition];
         if (conditionData) {
           setShapData(conditionData);
-          
+
           // Handle image path
           if (conditionData.image_path) {
             const imagePath = conditionData.image_path;
-            const fileName = imagePath.split('/').pop();
+            const fileName = imagePath.split("/").pop();
             setImageUrl(`/api/shap/sample-images/${fileName}`);
           }
         }
@@ -241,8 +251,8 @@ export function ShapViewer({
    * Handle error event
    */
   const handleError = (error: any) => {
-    setError(`Error: ${error.error || 'Unknown error'}`);
-    console.error('[SHAP Viewer] Error:', error);
+    setError(`Error: ${error.error || "Unknown error"}`);
+    console.error("[SHAP Viewer] Error:", error);
   };
 
   /**
@@ -250,7 +260,7 @@ export function ShapViewer({
    */
   const handleDisconnected = () => {
     setConnected(false);
-    console.log('[SHAP Viewer] Disconnected from server');
+    console.log("[SHAP Viewer] Disconnected from server");
   };
 
   /**
@@ -258,11 +268,13 @@ export function ShapViewer({
    */
   const requestShapValues = (condition: string, version: string = "latest") => {
     if (!connected) {
-      console.warn('[SHAP Viewer] Cannot request SHAP values: not connected');
+      console.warn("[SHAP Viewer] Cannot request SHAP values: not connected");
       return;
     }
-    
-    console.log(`[SHAP Viewer] Requesting SHAP values for condition: ${condition}, version: ${version}`);
+
+    console.log(
+      `[SHAP Viewer] Requesting SHAP values for condition: ${condition}, version: ${version}`
+    );
     shapWebSocketClient.requestShapForCondition(condition, version);
   };
 
@@ -272,32 +284,32 @@ export function ShapViewer({
   const loadPreviousVersionData = async () => {
     try {
       setIsLoadingComparison(true);
-      
+
       // For demonstration purposes, we'll simulate loading from previous version
       // In a real app, you would call a specific API endpoint or add parameters to the WebSocket request
-      
+
       // Simulate a delay
-      await new Promise(resolve => setTimeout(resolve, 800));
-      
+      await new Promise((resolve) => setTimeout(resolve, 800));
+
       // Get the previous version from our versions list
-      const previousVersion = modelVersions.find(v => v.version === "v2.0.0");
+      const previousVersion = modelVersions.find((v) => v.version === "v2.0.0");
       if (previousVersion) {
         // Request the SHAP values for the previous version
         // For now, we'll simulate it with slightly different values
         // This would normally come from a separate API call or WebSocket request
         const previousData: ShapData = {
           ...shapData!,
-          values: shapData!.values.map(val => val * 0.85), // Simulate different values
+          values: shapData!.values.map((val) => val * 0.85), // Simulate different values
           base_score: shapData!.base_score - 0.2,
           final_score: shapData!.final_score - 0.3,
-          model_version: "2.0.0"
+          model_version: "2.0.0",
         };
-        
+
         setPreviousVersionData(previousData);
       }
     } catch (error) {
-      console.error('[SHAP Viewer] Error loading previous version data:', error);
-      setError('Failed to load comparison data. Please try again.');
+      console.error("[SHAP Viewer] Error loading previous version data:", error);
+      setError("Failed to load comparison data. Please try again.");
     } finally {
       setIsLoadingComparison(false);
     }
@@ -315,7 +327,7 @@ export function ShapViewer({
    */
   const handleVersionChange = (value: string) => {
     setSelectedVersion(value);
-    
+
     // If switching away from latest, disable comparison
     if (value !== "latest") {
       setIsComparing(false);
@@ -327,7 +339,7 @@ export function ShapViewer({
    */
   const toggleComparison = (checked: boolean) => {
     setIsComparing(checked);
-    
+
     if (checked && selectedVersion === "latest") {
       loadPreviousVersionData();
     } else {
@@ -339,20 +351,20 @@ export function ShapViewer({
    * Get color based on SHAP value
    */
   const getShapColor = (value: number): string => {
-    if (value >= 0.5) return 'text-green-600 font-medium';
-    if (value >= 0.2) return 'text-green-500';
-    if (value >= 0) return 'text-green-400';
-    if (value >= -0.2) return 'text-blue-400';
-    if (value >= -0.5) return 'text-blue-500';
-    return 'text-blue-600 font-medium';
+    if (value >= 0.5) return "text-green-600 font-medium";
+    if (value >= 0.2) return "text-green-500";
+    if (value >= 0) return "text-green-400";
+    if (value >= -0.2) return "text-blue-400";
+    if (value >= -0.5) return "text-blue-500";
+    return "text-blue-600 font-medium";
   };
 
   /**
    * Get progress bar color based on SHAP value
    */
   const getProgressColor = (value: number): string => {
-    if (value >= 0) return 'bg-green-500';
-    return 'bg-blue-500';
+    if (value >= 0) return "bg-green-500";
+    return "bg-blue-500";
   };
 
   /**
@@ -366,7 +378,7 @@ export function ShapViewer({
    * Format SHAP value for display
    */
   const formatShapValue = (value: number): string => {
-    const sign = value >= 0 ? '+' : '';
+    const sign = value >= 0 ? "+" : "";
     return `${sign}${value.toFixed(2)}`;
   };
 
@@ -375,7 +387,7 @@ export function ShapViewer({
    */
   const getDifference = (current: number, previous: number): string => {
     const diff = current - previous;
-    const sign = diff >= 0 ? '+' : '';
+    const sign = diff >= 0 ? "+" : "";
     return `${sign}${diff.toFixed(2)}`;
   };
 
@@ -384,9 +396,9 @@ export function ShapViewer({
    */
   const getDifferenceColor = (current: number, previous: number): string => {
     const diff = current - previous;
-    if (diff > 0.1) return 'text-green-600';
-    if (diff < -0.1) return 'text-red-600';
-    return 'text-gray-600';
+    if (diff > 0.1) return "text-green-600";
+    if (diff < -0.1) return "text-red-600";
+    return "text-gray-600";
   };
 
   /**
@@ -394,22 +406,22 @@ export function ShapViewer({
    */
   const exportShapData = () => {
     if (!shapData) return;
-    
+
     const exportData = {
-      property_id: propertyId || 'sample',
+      property_id: propertyId || "sample",
       condition: condition,
       model_version: selectedVersion,
       timestamp: new Date().toISOString(),
       shap_data: shapData,
-      previous_version_data: previousVersionData || undefined
+      previous_version_data: previousVersionData || undefined,
     };
-    
-    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
-    
-    const a = document.createElement('a');
+
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `shap_data_${condition}_${selectedVersion.replace('.', '_')}.json`;
+    a.download = `shap_data_${condition}_${selectedVersion.replace(".", "_")}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -437,7 +449,7 @@ export function ShapViewer({
           See how different features contribute to the property condition score
         </CardDescription>
       </CardHeader>
-      
+
       <CardContent>
         {/* Connection error message */}
         {error && (
@@ -448,10 +460,10 @@ export function ShapViewer({
               {error}
               {!connected && shapData && (
                 <div className="mt-2">
-                  <Button 
-                    size="sm" 
-                    variant="outline" 
-                    onClick={connectToWebSocket} 
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={connectToWebSocket}
                     disabled={connecting}
                   >
                     {connecting ? "Connecting..." : "Try Again"}
@@ -461,17 +473,13 @@ export function ShapViewer({
             </AlertDescription>
           </Alert>
         )}
-        
+
         {/* Controls section */}
         <div className="mb-4 space-y-4">
           {/* Condition selector */}
           <div>
             <Label htmlFor="condition-select">Property Condition</Label>
-            <Select
-              value={condition}
-              onValueChange={handleConditionChange}
-              disabled={!connected}
-            >
+            <Select value={condition} onValueChange={handleConditionChange} disabled={!connected}>
               <SelectTrigger id="condition-select">
                 <SelectValue placeholder="Select a condition" />
               </SelectTrigger>
@@ -484,7 +492,7 @@ export function ShapViewer({
               </SelectContent>
             </Select>
           </div>
-          
+
           {/* Model version selector */}
           {showVersionComparison && (
             <div>
@@ -507,7 +515,7 @@ export function ShapViewer({
               </Select>
             </div>
           )}
-          
+
           {/* Version comparison toggle */}
           {showVersionComparison && selectedVersion === "latest" && (
             <div className="flex items-center justify-between pt-2">
@@ -523,18 +531,18 @@ export function ShapViewer({
             </div>
           )}
         </div>
-        
+
         {/* Property image */}
         {imageUrl && (
           <div className="mb-6 rounded-md border p-1">
-            <img 
-              src={imageUrl} 
-              alt={`${condition} property condition`} 
+            <img
+              src={imageUrl}
+              alt={`${condition} property condition`}
               className="max-h-52 w-full rounded object-cover"
             />
           </div>
         )}
-        
+
         {/* SHAP values visualization */}
         {shapData ? (
           <div className="space-y-6">
@@ -554,7 +562,7 @@ export function ShapViewer({
                   </span>
                 </TabsTrigger>
               </TabsList>
-              
+
               {/* Explanation tab */}
               <TabsContent value="explanation" className="mt-4">
                 {/* Score summary */}
@@ -567,8 +575,12 @@ export function ShapViewer({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className={`ml-2 text-xs ${getDifferenceColor(shapData.base_score, previousVersionData.base_score)}`}>
-                                ({getDifference(shapData.base_score, previousVersionData.base_score)})
+                              <span
+                                className={`ml-2 text-xs ${getDifferenceColor(shapData.base_score, previousVersionData.base_score)}`}
+                              >
+                                (
+                                {getDifference(shapData.base_score, previousVersionData.base_score)}
+                                )
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -579,7 +591,7 @@ export function ShapViewer({
                       )}
                     </div>
                   </div>
-                  
+
                   {shapData.features.map((feature, index) => (
                     <div key={feature} className="mb-2 flex items-center justify-between">
                       <span className="text-sm font-medium">{feature}:</span>
@@ -591,12 +603,22 @@ export function ShapViewer({
                           <TooltipProvider>
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <span className={`ml-2 text-xs ${getDifferenceColor(shapData.values[index], previousVersionData.values[index])}`}>
-                                  ({getDifference(shapData.values[index], previousVersionData.values[index])})
+                                <span
+                                  className={`ml-2 text-xs ${getDifferenceColor(shapData.values[index], previousVersionData.values[index])}`}
+                                >
+                                  (
+                                  {getDifference(
+                                    shapData.values[index],
+                                    previousVersionData.values[index]
+                                  )}
+                                  )
                                 </span>
                               </TooltipTrigger>
                               <TooltipContent>
-                                <p>Previous version: {formatShapValue(previousVersionData.values[index])}</p>
+                                <p>
+                                  Previous version:{" "}
+                                  {formatShapValue(previousVersionData.values[index])}
+                                </p>
                               </TooltipContent>
                             </Tooltip>
                           </TooltipProvider>
@@ -604,7 +626,7 @@ export function ShapViewer({
                       </div>
                     </div>
                   ))}
-                  
+
                   <div className="mt-4 flex items-center justify-between border-t border-border pt-3">
                     <span className="font-semibold">Final Score:</span>
                     <div className="flex items-center">
@@ -613,8 +635,15 @@ export function ShapViewer({
                         <TooltipProvider>
                           <Tooltip>
                             <TooltipTrigger asChild>
-                              <span className={`ml-2 text-xs font-medium ${getDifferenceColor(shapData.final_score, previousVersionData.final_score)}`}>
-                                ({getDifference(shapData.final_score, previousVersionData.final_score)})
+                              <span
+                                className={`ml-2 text-xs font-medium ${getDifferenceColor(shapData.final_score, previousVersionData.final_score)}`}
+                              >
+                                (
+                                {getDifference(
+                                  shapData.final_score,
+                                  previousVersionData.final_score
+                                )}
+                                )
                               </span>
                             </TooltipTrigger>
                             <TooltipContent>
@@ -626,7 +655,7 @@ export function ShapViewer({
                     </div>
                   </div>
                 </div>
-                
+
                 {/* SHAP visualization */}
                 <div className="mt-6 space-y-4">
                   <div className="flex items-center justify-between">
@@ -642,7 +671,7 @@ export function ShapViewer({
                       </span>
                     </div>
                   </div>
-                  
+
                   {shapData.features.map((feature, index) => (
                     <div key={feature} className="space-y-1">
                       <div className="flex items-center justify-between">
@@ -654,48 +683,58 @@ export function ShapViewer({
                       {isComparing && previousVersionData ? (
                         <div className="relative">
                           {/* Current version bar */}
-                          <Progress 
+                          <Progress
                             value={getProgressValue(shapData.values[index])}
-                            className={shapData.values[index] >= 0 ? 'bg-green-100' : 'bg-blue-100'} 
+                            className={shapData.values[index] >= 0 ? "bg-green-100" : "bg-blue-100"}
                             indicatorClassName={getProgressColor(shapData.values[index])}
                           />
                           {/* Previous version overlay (semi-transparent) */}
                           <div className="absolute inset-0 opacity-40 pointer-events-none">
-                            <Progress 
-                              value={getProgressValue(previousVersionData.values[index])} 
-                              className={previousVersionData.values[index] >= 0 ? 'bg-yellow-100' : 'bg-purple-100'} 
-                              indicatorClassName={previousVersionData.values[index] >= 0 ? 'bg-yellow-500' : 'bg-purple-500'} 
+                            <Progress
+                              value={getProgressValue(previousVersionData.values[index])}
+                              className={
+                                previousVersionData.values[index] >= 0
+                                  ? "bg-yellow-100"
+                                  : "bg-purple-100"
+                              }
+                              indicatorClassName={
+                                previousVersionData.values[index] >= 0
+                                  ? "bg-yellow-500"
+                                  : "bg-purple-500"
+                              }
                             />
                           </div>
                         </div>
                       ) : (
-                        <Progress 
-                          value={getProgressValue(shapData.values[index])} 
-                          className={shapData.values[index] >= 0 ? 'bg-green-100' : 'bg-blue-100'} 
-                          indicatorClassName={getProgressColor(shapData.values[index])} 
+                        <Progress
+                          value={getProgressValue(shapData.values[index])}
+                          className={shapData.values[index] >= 0 ? "bg-green-100" : "bg-blue-100"}
+                          indicatorClassName={getProgressColor(shapData.values[index])}
                         />
                       )}
                     </div>
                   ))}
                 </div>
-                
+
                 {/* Explanation */}
                 <Alert className="mt-6">
                   <Info className="h-4 w-4" />
                   <AlertTitle>Understanding SHAP Values</AlertTitle>
                   <AlertDescription className="text-xs">
                     SHAP values show how each feature pushes the prediction higher or lower.
-                    Positive values (green) increase the score, while negative values (blue) decrease it.
-                    {isComparing && " Previous version values are shown as overlays for comparison."}
+                    Positive values (green) increase the score, while negative values (blue)
+                    decrease it.
+                    {isComparing &&
+                      " Previous version values are shown as overlays for comparison."}
                   </AlertDescription>
                 </Alert>
               </TabsContent>
-              
+
               {/* Details tab */}
               <TabsContent value="details" className="mt-4 space-y-6">
                 <div className="rounded-md bg-muted p-3 space-y-3">
                   <h3 className="text-sm font-medium">Model Information</h3>
-                  
+
                   <div className="grid grid-cols-2 gap-2 text-xs">
                     <div className="flex flex-col">
                       <span className="text-muted-foreground">Model Version</span>
@@ -723,24 +762,29 @@ export function ShapViewer({
                     </div>
                   </div>
                 </div>
-                
+
                 <div className="rounded-md bg-muted p-3 space-y-3">
                   <h3 className="text-sm font-medium">Version History</h3>
-                  
+
                   <div className="space-y-2 text-xs">
                     {modelVersions.map((version) => (
-                      <div key={version.version} className="flex items-center justify-between border-b border-border pb-2">
+                      <div
+                        key={version.version}
+                        className="flex items-center justify-between border-b border-border pb-2"
+                      >
                         <div>
                           <div className="font-medium">{version.name}</div>
                           <div className="text-muted-foreground">{version.date}</div>
                         </div>
                         <div className="flex items-center space-x-2">
                           {version.version === selectedVersion ? (
-                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">Current</span>
+                            <span className="text-xs bg-green-100 text-green-800 px-2 py-0.5 rounded-full">
+                              Current
+                            </span>
                           ) : (
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="h-7 px-2"
                               onClick={() => setSelectedVersion(version.version)}
                             >
@@ -752,7 +796,7 @@ export function ShapViewer({
                     ))}
                   </div>
                 </div>
-                
+
                 <div className="rounded-md bg-muted p-3 space-y-3">
                   <div className="flex items-center justify-between">
                     <h3 className="text-sm font-medium">Feature Distribution</h3>
@@ -761,10 +805,14 @@ export function ShapViewer({
                       <span className="text-xs">View Full Analytics</span>
                     </Button>
                   </div>
-                  
+
                   <div className="text-xs text-center p-4 border border-dashed rounded-md">
-                    <p className="text-muted-foreground">Feature distribution visualization would appear here</p>
-                    <p className="text-muted-foreground">Shows how this property compares to the training distribution</p>
+                    <p className="text-muted-foreground">
+                      Feature distribution visualization would appear here
+                    </p>
+                    <p className="text-muted-foreground">
+                      Shows how this property compares to the training distribution
+                    </p>
                   </div>
                 </div>
               </TabsContent>
@@ -794,12 +842,12 @@ export function ShapViewer({
           </div>
         )}
       </CardContent>
-      
+
       {shapData && (
         <CardFooter className="flex justify-end border-t pt-4">
-          <Button 
-            variant="outline" 
-            size="sm" 
+          <Button
+            variant="outline"
+            size="sm"
             onClick={exportShapData}
             className="flex items-center"
           >

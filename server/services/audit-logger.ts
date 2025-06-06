@@ -1,5 +1,5 @@
-import crypto from 'crypto';
-import { TerraFusionComp } from './rust-importer-bridge';
+import crypto from "crypto";
+import { TerraFusionComp } from "./rust-importer-bridge";
 
 export interface AuditLogEntry {
   id: string;
@@ -18,7 +18,7 @@ export class AuditLogger {
 
   public hashComp(comp: TerraFusionComp): string {
     const serialized = JSON.stringify(comp, Object.keys(comp).sort());
-    return crypto.createHash('sha256').update(serialized).digest('hex');
+    return crypto.createHash("sha256").update(serialized).digest("hex");
   }
 
   public logCompImport(jobId: string, comp: TerraFusionComp): string {
@@ -29,7 +29,7 @@ export class AuditLogger {
       id,
       jobId,
       compHash,
-      createdAt: new Date()
+      createdAt: new Date(),
     };
 
     if (!this.auditLogs.has(jobId)) {
@@ -42,10 +42,10 @@ export class AuditLogger {
 
   public calculateMerkleRoot(jobId: string): string {
     const entries = this.auditLogs.get(jobId) || [];
-    const hashes = entries.map(entry => entry.compHash);
+    const hashes = entries.map((entry) => entry.compHash);
 
     if (hashes.length === 0) {
-      return '';
+      return "";
     }
 
     if (hashes.length === 1) {
@@ -56,15 +56,15 @@ export class AuditLogger {
     let level = hashes;
     while (level.length > 1) {
       const nextLevel: string[] = [];
-      
+
       for (let i = 0; i < level.length; i += 2) {
         const left = level[i];
         const right = i + 1 < level.length ? level[i + 1] : left;
         const combined = left + right;
-        const hash = crypto.createHash('sha256').update(combined).digest('hex');
+        const hash = crypto.createHash("sha256").update(combined).digest("hex");
         nextLevel.push(hash);
       }
-      
+
       level = nextLevel;
     }
 
@@ -74,7 +74,7 @@ export class AuditLogger {
     // Update all entries with the Merkle root
     const jobEntries = this.auditLogs.get(jobId);
     if (jobEntries) {
-      jobEntries.forEach(entry => {
+      jobEntries.forEach((entry) => {
         entry.merkleRoot = merkleRoot;
       });
     }
@@ -86,15 +86,15 @@ export class AuditLogger {
     try {
       // Simulate blockchain transaction
       // In production, this would use Web3, Ethereum, or other blockchain APIs
-      const txId = `tx_${Date.now()}_${crypto.randomBytes(16).toString('hex')}`;
-      
+      const txId = `tx_${Date.now()}_${crypto.randomBytes(16).toString("hex")}`;
+
       console.log(`[Blockchain] Publishing Merkle root for job ${jobId}: ${merkleRoot}`);
       console.log(`[Blockchain] Transaction ID: ${txId}`);
 
       // Update audit entries with blockchain transaction ID
       const entries = this.auditLogs.get(jobId);
       if (entries) {
-        entries.forEach(entry => {
+        entries.forEach((entry) => {
           entry.blockchainTxId = txId;
         });
       }
@@ -108,9 +108,9 @@ export class AuditLogger {
 
   public finalizeJobAudit(jobId: string): Promise<{ merkleRoot: string; txId: string | null }> {
     const merkleRoot = this.calculateMerkleRoot(jobId);
-    return this.publishToBlockchain(jobId, merkleRoot).then(txId => ({
+    return this.publishToBlockchain(jobId, merkleRoot).then((txId) => ({
       merkleRoot,
-      txId
+      txId,
     }));
   }
 
@@ -136,26 +136,26 @@ export class AuditLogger {
     logs: AuditLogEntry[];
   } {
     const logs = jobId ? this.getAuditLog(jobId) : this.getAllAuditLogs();
-    
-    const uniqueJobs = new Set(logs.map(log => log.jobId)).size;
-    const uniqueTxs = new Set(logs.map(log => log.blockchainTxId).filter(Boolean)).size;
+
+    const uniqueJobs = new Set(logs.map((log) => log.jobId)).size;
+    const uniqueTxs = new Set(logs.map((log) => log.blockchainTxId).filter(Boolean)).size;
 
     return {
       summary: {
         totalJobs: uniqueJobs,
         totalRecords: logs.length,
         totalHashes: logs.length,
-        blockchainTransactions: uniqueTxs
+        blockchainTransactions: uniqueTxs,
       },
-      logs
+      logs,
     };
   }
 
   public verifyIntegrity(jobId: string, comp: TerraFusionComp): boolean {
     const calculatedHash = this.hashComp(comp);
     const entries = this.auditLogs.get(jobId) || [];
-    
-    return entries.some(entry => entry.compHash === calculatedHash);
+
+    return entries.some((entry) => entry.compHash === calculatedHash);
   }
 }
 

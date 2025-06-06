@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { Search, CheckCircle, AlertTriangle, Download, ExternalLink } from 'lucide-react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
+import { useState } from "react";
+import { Search, CheckCircle, AlertTriangle, Download, ExternalLink } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 
 interface VerificationResult {
   job_id: string;
@@ -21,7 +21,7 @@ interface VerificationResult {
 }
 
 export default function ExplorerPage() {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [result, setResult] = useState<VerificationResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,12 +35,12 @@ export default function ExplorerPage() {
 
     try {
       const response = await fetch(`/api/explorer?q=${encodeURIComponent(query)}`);
-      
+
       if (response.status === 404) {
-        setError('No records found for this search query');
+        setError("No records found for this search query");
         return;
       }
-      
+
       if (!response.ok) {
         throw new Error(`Search failed: ${response.status}`);
       }
@@ -48,26 +48,26 @@ export default function ExplorerPage() {
       const data = await response.json();
       setResult(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Search failed');
+      setError(err instanceof Error ? err.message : "Search failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter') {
+    if (e.key === "Enter") {
       search();
     }
   };
 
   const downloadLedger = async () => {
     if (!result) return;
-    
+
     try {
       const response = await fetch(`/api/audit/export?format=json&jobId=${result.job_id}`);
       const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
       a.download = `terrafusion-audit-${result.job_id}.json`;
       document.body.appendChild(a);
@@ -75,13 +75,13 @@ export default function ExplorerPage() {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (err) {
-      console.error('Download failed:', err);
+      console.error("Download failed:", err);
     }
   };
 
   const openBlockchainExplorer = () => {
     if (result?.blockchain_tx_id) {
-      window.open(`https://etherscan.io/tx/${result.blockchain_tx_id}`, '_blank');
+      window.open(`https://etherscan.io/tx/${result.blockchain_tx_id}`, "_blank");
     }
   };
 
@@ -90,7 +90,9 @@ export default function ExplorerPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">TerraFusion Explorer</h1>
-          <p className="text-gray-600 mt-1">Verify cryptographic integrity of property data imports</p>
+          <p className="text-gray-600 mt-1">
+            Verify cryptographic integrity of property data imports
+          </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-green-600">
           <CheckCircle className="h-4 w-4" />
@@ -119,10 +121,10 @@ export default function ExplorerPage() {
               className="flex-1"
             />
             <Button onClick={search} disabled={loading || !query.trim()}>
-              {loading ? 'Searching...' : 'Search'}
+              {loading ? "Searching..." : "Search"}
             </Button>
           </div>
-          
+
           <div className="text-xs text-gray-500 space-y-1">
             <div>Examples:</div>
             <div>• Job ID: job_abc123-def456-ghi789</div>
@@ -148,7 +150,11 @@ export default function ExplorerPage() {
       {result && (
         <div className="space-y-4">
           {/* Verification Status */}
-          <Card className={result.verified ? 'border-green-200 bg-green-50' : 'border-yellow-200 bg-yellow-50'}>
+          <Card
+            className={
+              result.verified ? "border-green-200 bg-green-50" : "border-yellow-200 bg-yellow-50"
+            }
+          >
             <CardContent className="p-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
@@ -159,18 +165,17 @@ export default function ExplorerPage() {
                   )}
                   <div>
                     <div className="font-medium">
-                      {result.verified ? 'Cryptographically Verified' : 'Verification Pending'}
+                      {result.verified ? "Cryptographically Verified" : "Verification Pending"}
                     </div>
                     <div className="text-sm text-gray-600">
-                      {result.verified 
-                        ? 'Hash integrity confirmed on blockchain'
-                        : 'Blockchain confirmation in progress'
-                      }
+                      {result.verified
+                        ? "Hash integrity confirmed on blockchain"
+                        : "Blockchain confirmation in progress"}
                     </div>
                   </div>
                 </div>
-                <Badge variant={result.verified ? 'default' : 'secondary'}>
-                  {result.verified ? 'Verified' : 'Pending'}
+                <Badge variant={result.verified ? "default" : "secondary"}>
+                  {result.verified ? "Verified" : "Pending"}
                 </Badge>
               </div>
             </CardContent>
@@ -185,11 +190,9 @@ export default function ExplorerPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="text-sm font-medium text-gray-700">Job ID</label>
-                  <div className="font-mono text-sm bg-gray-100 p-2 rounded">
-                    {result.job_id}
-                  </div>
+                  <div className="font-mono text-sm bg-gray-100 p-2 rounded">{result.job_id}</div>
                 </div>
-                
+
                 <div>
                   <label className="text-sm font-medium text-gray-700">Records Processed</label>
                   <div className="text-lg font-semibold">{result.entry_count}</div>
@@ -197,9 +200,7 @@ export default function ExplorerPage() {
 
                 <div>
                   <label className="text-sm font-medium text-gray-700">Timestamp</label>
-                  <div className="text-sm">
-                    {new Date(result.timestamp).toLocaleString()}
-                  </div>
+                  <div className="text-sm">{new Date(result.timestamp).toLocaleString()}</div>
                 </div>
 
                 {result.metadata?.county && (
@@ -215,7 +216,9 @@ export default function ExplorerPage() {
                   <label className="text-sm font-medium text-gray-700">Source Formats</label>
                   <div className="flex gap-2 mt-1">
                     {result.metadata.source_formats.map((format, index) => (
-                      <Badge key={index} variant="outline">{format}</Badge>
+                      <Badge key={index} variant="outline">
+                        {format}
+                      </Badge>
                     ))}
                   </div>
                 </div>
@@ -242,11 +245,7 @@ export default function ExplorerPage() {
                   <div className="font-mono text-xs bg-gray-100 p-2 rounded flex-1 break-all">
                     {result.blockchain_tx_id}
                   </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={openBlockchainExplorer}
-                  >
+                  <Button variant="outline" size="sm" onClick={openBlockchainExplorer}>
                     <ExternalLink className="h-4 w-4" />
                   </Button>
                 </div>
@@ -258,7 +257,10 @@ export default function ExplorerPage() {
                 </label>
                 <div className="max-h-32 overflow-y-auto bg-gray-100 p-2 rounded">
                   {result.comp_hashes.map((hash, index) => (
-                    <div key={index} className="font-mono text-xs py-1 border-b border-gray-200 last:border-b-0">
+                    <div
+                      key={index}
+                      className="font-mono text-xs py-1 border-b border-gray-200 last:border-b-0"
+                    >
                       {hash}
                     </div>
                   ))}

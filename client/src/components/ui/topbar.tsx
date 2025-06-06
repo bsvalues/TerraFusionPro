@@ -3,24 +3,15 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { 
-  DropdownMenu, 
-  DropdownMenuContent, 
-  DropdownMenuItem, 
-  DropdownMenuLabel, 
-  DropdownMenuSeparator, 
-  DropdownMenuTrigger 
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  Search, 
-  Bell, 
-  User, 
-  LogOut, 
-  Settings, 
-  HelpCircle,
-  Zap,
-  Activity
-} from "lucide-react";
+import { Search, Bell, User, LogOut, Settings, HelpCircle, Zap, Activity } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export function Topbar() {
@@ -28,10 +19,10 @@ export function Topbar() {
   const [notifications] = useState([
     { id: 1, message: "QC Review completed for 123 Main St", time: "2m ago", unread: true },
     { id: 2, message: "New order assigned: Property valuation", time: "5m ago", unread: true },
-    { id: 3, message: "AI Agent completed 5 conversions", time: "10m ago", unread: false }
+    { id: 3, message: "AI Agent completed 5 conversions", time: "10m ago", unread: false },
   ]);
 
-  const unreadCount = notifications.filter(n => n.unread).length;
+  const unreadCount = notifications.filter((n) => n.unread).length;
 
   return (
     <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
@@ -72,8 +63,8 @@ export function Topbar() {
             <Button variant="ghost" size="icon" className="relative">
               <Bell className="w-5 h-5" />
               {unreadCount > 0 && (
-                <Badge 
-                  variant="destructive" 
+                <Badge
+                  variant="destructive"
                   className="absolute -top-1 -right-1 w-5 h-5 text-xs flex items-center justify-center p-0"
                 >
                   {unreadCount}
@@ -87,10 +78,12 @@ export function Topbar() {
             {notifications.map((notification) => (
               <DropdownMenuItem key={notification.id} className="flex flex-col items-start p-3">
                 <div className="flex w-full justify-between items-start">
-                  <p className={cn(
-                    "text-sm",
-                    notification.unread ? "font-medium" : "text-muted-foreground"
-                  )}>
+                  <p
+                    className={cn(
+                      "text-sm",
+                      notification.unread ? "font-medium" : "text-muted-foreground"
+                    )}
+                  >
                     {notification.message}
                   </p>
                   {notification.unread && (
@@ -128,9 +121,7 @@ export function Topbar() {
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
                 <p className="text-sm font-medium leading-none">John Appraiser</p>
-                <p className="text-xs leading-none text-muted-foreground">
-                  john@terrafusion.ai
-                </p>
+                <p className="text-xs leading-none text-muted-foreground">john@terrafusion.ai</p>
               </div>
             </DropdownMenuLabel>
             <DropdownMenuSeparator />

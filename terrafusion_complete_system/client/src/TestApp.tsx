@@ -2,7 +2,7 @@ import { useSimpleAppraisal } from "./contexts/SimpleAppraisalContext";
 
 function TestApp() {
   const { currentUser } = useSimpleAppraisal();
-  
+
   return (
     <div className="p-8">
       <h1 className="text-3xl font-bold mb-4">Test App</h1>

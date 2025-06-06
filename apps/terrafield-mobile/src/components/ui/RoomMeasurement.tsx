@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
 import {
   View,
   Text,
@@ -12,17 +12,17 @@ import {
   ViewStyle,
   TextStyle,
   Dimensions,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 
 /**
  * Units of measurement
  */
 export enum MeasurementUnit {
-  FEET = 'ft',
-  METERS = 'm',
-  INCHES = 'in',
-  CENTIMETERS = 'cm',
+  FEET = "ft",
+  METERS = "m",
+  INCHES = "in",
+  CENTIMETERS = "cm",
 }
 
 /**
@@ -40,11 +40,11 @@ export interface RoomDimension {
  * Room shape options
  */
 export enum RoomShape {
-  RECTANGLE = 'rectangle',
-  SQUARE = 'square',
-  L_SHAPED = 'l-shaped',
-  IRREGULAR = 'irregular',
-  CIRCULAR = 'circular',
+  RECTANGLE = "rectangle",
+  SQUARE = "square",
+  L_SHAPED = "l-shaped",
+  IRREGULAR = "irregular",
+  CIRCULAR = "circular",
 }
 
 /**
@@ -74,14 +74,10 @@ const generateId = (): string => {
 /**
  * Convert between units
  */
-const convertUnit = (
-  value: number,
-  fromUnit: MeasurementUnit,
-  toUnit: MeasurementUnit
-): number => {
+const convertUnit = (value: number, fromUnit: MeasurementUnit, toUnit: MeasurementUnit): number => {
   // Convert to meters first (as base unit)
   let meters = 0;
-  
+
   switch (fromUnit) {
     case MeasurementUnit.FEET:
       meters = value * 0.3048;
@@ -96,7 +92,7 @@ const convertUnit = (
       meters = value;
       break;
   }
-  
+
   // Then convert from meters to target unit
   switch (toUnit) {
     case MeasurementUnit.FEET:
@@ -122,7 +118,7 @@ const calculateArea = (dimension: RoomDimension): number => {
  */
 const formatArea = (dimension: RoomDimension): string => {
   const area = calculateArea(dimension);
-  
+
   switch (dimension.unit) {
     case MeasurementUnit.FEET:
       return `${area.toFixed(2)} sq. ft`;
@@ -157,11 +153,11 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
   );
   const [unit, setUnit] = useState<MeasurementUnit>(defaultUnit);
   const [expandedDimension, setExpandedDimension] = useState<string | null>(null);
-  
+
   // Add a new room dimension
   const addDimension = () => {
     if (disabled) return;
-    
+
     const newDimension: RoomDimension = {
       id: generateId(),
       name: `Room ${dimensions.length + 1}`,
@@ -169,68 +165,64 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
       width: 0,
       unit,
     };
-    
+
     const newDimensions = [...dimensions, newDimension];
     onDimensionsChange(newDimensions);
     setSelectedDimension(newDimension.id);
     setExpandedDimension(newDimension.id);
   };
-  
+
   // Remove a room dimension
   const removeDimension = (id: string) => {
     if (disabled) return;
-    
-    Alert.alert(
-      'Remove Room',
-      'Are you sure you want to remove this room?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
+
+    Alert.alert("Remove Room", "Are you sure you want to remove this room?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Remove",
+        style: "destructive",
+        onPress: () => {
+          const newDimensions = dimensions.filter((d) => d.id !== id);
+          onDimensionsChange(newDimensions);
+
+          if (selectedDimension === id) {
+            setSelectedDimension(newDimensions.length > 0 ? newDimensions[0].id : null);
+          }
+
+          if (expandedDimension === id) {
+            setExpandedDimension(null);
+          }
         },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            const newDimensions = dimensions.filter(d => d.id !== id);
-            onDimensionsChange(newDimensions);
-            
-            if (selectedDimension === id) {
-              setSelectedDimension(newDimensions.length > 0 ? newDimensions[0].id : null);
-            }
-            
-            if (expandedDimension === id) {
-              setExpandedDimension(null);
-            }
-          },
-        },
-      ]
-    );
+      },
+    ]);
   };
-  
+
   // Update a room dimension
   const updateDimension = (id: string, updates: Partial<RoomDimension>) => {
     if (disabled) return;
-    
-    const newDimensions = dimensions.map(dimension => {
+
+    const newDimensions = dimensions.map((dimension) => {
       if (dimension.id === id) {
         return { ...dimension, ...updates };
       }
       return dimension;
     });
-    
+
     onDimensionsChange(newDimensions);
   };
-  
+
   // Change the unit for all dimensions
   const changeUnitForAll = (newUnit: MeasurementUnit) => {
     if (disabled) return;
-    
-    const newDimensions = dimensions.map(dimension => {
+
+    const newDimensions = dimensions.map((dimension) => {
       if (dimension.unit === newUnit) {
         return dimension;
       }
-      
+
       return {
         ...dimension,
         length: convertUnit(dimension.length, dimension.unit, newUnit),
@@ -238,36 +230,36 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
         unit: newUnit,
       };
     });
-    
+
     setUnit(newUnit);
     onDimensionsChange(newDimensions);
   };
-  
+
   // Get the selected dimension
   const getSelectedDimension = (): RoomDimension | null => {
     if (!selectedDimension) return null;
-    return dimensions.find(d => d.id === selectedDimension) || null;
+    return dimensions.find((d) => d.id === selectedDimension) || null;
   };
-  
+
   // Calculate total area
   const getTotalArea = (): string => {
-    if (dimensions.length === 0) return '0';
-    
+    if (dimensions.length === 0) return "0";
+
     // Convert all to the same unit (current selected unit)
     const totalArea = dimensions.reduce((sum, dimension) => {
       const area = calculateArea(dimension);
-      
+
       if (dimension.unit === unit) {
         return sum + area;
       }
-      
+
       // Convert to the selected unit
       const lengthConverted = convertUnit(dimension.length, dimension.unit, unit);
       const widthConverted = convertUnit(dimension.width, dimension.unit, unit);
-      
-      return sum + (lengthConverted * widthConverted);
+
+      return sum + lengthConverted * widthConverted;
     }, 0);
-    
+
     // Format based on the unit
     switch (unit) {
       case MeasurementUnit.FEET:
@@ -280,7 +272,7 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
         return `${totalArea.toFixed(2)} sq. cm`;
     }
   };
-  
+
   // Toggle dimension expansion
   const toggleExpand = (id: string) => {
     if (expandedDimension === id) {
@@ -290,7 +282,7 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
       setSelectedDimension(id);
     }
   };
-  
+
   return (
     <View style={[styles.container, containerStyle]}>
       <View style={styles.labelContainer}>
@@ -299,7 +291,7 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
           {required && <Text style={styles.required}> *</Text>}
         </Text>
       </View>
-      
+
       {/* Unit Selector */}
       <View style={styles.unitSelectorContainer}>
         <Text style={styles.unitSelectorLabel}>Measurement Units:</Text>
@@ -313,15 +305,17 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
             onPress={() => !disabled && changeUnitForAll(MeasurementUnit.FEET)}
             disabled={disabled}
           >
-            <Text style={[
-              styles.unitOptionText,
-              unit === MeasurementUnit.FEET && styles.activeUnitOptionText,
-              disabled && styles.disabledText,
-            ]}>
+            <Text
+              style={[
+                styles.unitOptionText,
+                unit === MeasurementUnit.FEET && styles.activeUnitOptionText,
+                disabled && styles.disabledText,
+              ]}
+            >
               {MeasurementUnit.FEET}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.unitOption,
@@ -331,15 +325,17 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
             onPress={() => !disabled && changeUnitForAll(MeasurementUnit.METERS)}
             disabled={disabled}
           >
-            <Text style={[
-              styles.unitOptionText,
-              unit === MeasurementUnit.METERS && styles.activeUnitOptionText,
-              disabled && styles.disabledText,
-            ]}>
+            <Text
+              style={[
+                styles.unitOptionText,
+                unit === MeasurementUnit.METERS && styles.activeUnitOptionText,
+                disabled && styles.disabledText,
+              ]}
+            >
               {MeasurementUnit.METERS}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.unitOption,
@@ -349,15 +345,17 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
             onPress={() => !disabled && changeUnitForAll(MeasurementUnit.INCHES)}
             disabled={disabled}
           >
-            <Text style={[
-              styles.unitOptionText,
-              unit === MeasurementUnit.INCHES && styles.activeUnitOptionText,
-              disabled && styles.disabledText,
-            ]}>
+            <Text
+              style={[
+                styles.unitOptionText,
+                unit === MeasurementUnit.INCHES && styles.activeUnitOptionText,
+                disabled && styles.disabledText,
+              ]}
+            >
               {MeasurementUnit.INCHES}
             </Text>
           </TouchableOpacity>
-          
+
           <TouchableOpacity
             style={[
               styles.unitOption,
@@ -367,31 +365,31 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
             onPress={() => !disabled && changeUnitForAll(MeasurementUnit.CENTIMETERS)}
             disabled={disabled}
           >
-            <Text style={[
-              styles.unitOptionText,
-              unit === MeasurementUnit.CENTIMETERS && styles.activeUnitOptionText,
-              disabled && styles.disabledText,
-            ]}>
+            <Text
+              style={[
+                styles.unitOptionText,
+                unit === MeasurementUnit.CENTIMETERS && styles.activeUnitOptionText,
+                disabled && styles.disabledText,
+              ]}
+            >
               {MeasurementUnit.CENTIMETERS}
             </Text>
           </TouchableOpacity>
         </View>
       </View>
-      
+
       {/* Room List */}
       <ScrollView style={styles.roomListContainer}>
         {dimensions.length === 0 ? (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="ruler-square" size={32} color="#bdc3c7" />
-            <Text style={styles.emptyStateText}>
-              No rooms added yet
-            </Text>
+            <Text style={styles.emptyStateText}>No rooms added yet</Text>
             <Text style={styles.emptyStateSubtext}>
               Tap the "Add Room" button to start measuring
             </Text>
           </View>
         ) : (
-          dimensions.map(dimension => (
+          dimensions.map((dimension) => (
             <View key={dimension.id} style={styles.roomItemContainer}>
               <TouchableOpacity
                 style={[
@@ -406,11 +404,9 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
                   <Text style={styles.roomDimensions}>
                     {dimension.length.toFixed(2)} × {dimension.width.toFixed(2)} {dimension.unit}
                   </Text>
-                  <Text style={styles.roomArea}>
-                    Area: {formatArea(dimension)}
-                  </Text>
+                  <Text style={styles.roomArea}>Area: {formatArea(dimension)}</Text>
                 </View>
-                
+
                 <View style={styles.roomItemActions}>
                   <TouchableOpacity
                     style={[styles.roomAction, disabled && styles.disabledRoomAction]}
@@ -424,7 +420,11 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
                     />
                   </TouchableOpacity>
                   <TouchableOpacity
-                    style={[styles.roomAction, styles.deleteAction, disabled && styles.disabledRoomAction]}
+                    style={[
+                      styles.roomAction,
+                      styles.deleteAction,
+                      disabled && styles.disabledRoomAction,
+                    ]}
                     onPress={() => removeDimension(dimension.id)}
                     disabled={disabled}
                   >
@@ -436,7 +436,7 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
                   </TouchableOpacity>
                 </View>
               </TouchableOpacity>
-              
+
               {expandedDimension === dimension.id && (
                 <View style={styles.expandedSection}>
                   <View style={styles.inputGroup}>
@@ -444,20 +444,24 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
                     <TextInput
                       style={[styles.input, disabled && styles.disabledInput]}
                       value={dimension.name}
-                      onChangeText={text => updateDimension(dimension.id, { name: text })}
+                      onChangeText={(text) => updateDimension(dimension.id, { name: text })}
                       placeholder="Room name"
                       editable={!disabled}
                     />
                   </View>
-                  
+
                   <View style={styles.dimensionInputs}>
                     <View style={styles.inputGroup}>
                       <Text style={styles.inputLabel}>Length:</Text>
                       <View style={styles.measurementInput}>
                         <TextInput
-                          style={[styles.input, styles.numberInput, disabled && styles.disabledInput]}
+                          style={[
+                            styles.input,
+                            styles.numberInput,
+                            disabled && styles.disabledInput,
+                          ]}
                           value={dimension.length.toString()}
-                          onChangeText={text => {
+                          onChangeText={(text) => {
                             const value = parseFloat(text) || 0;
                             updateDimension(dimension.id, { length: value });
                           }}
@@ -468,14 +472,18 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
                         <Text style={styles.unitText}>{dimension.unit}</Text>
                       </View>
                     </View>
-                    
+
                     <View style={styles.inputGroup}>
                       <Text style={styles.inputLabel}>Width:</Text>
                       <View style={styles.measurementInput}>
                         <TextInput
-                          style={[styles.input, styles.numberInput, disabled && styles.disabledInput]}
+                          style={[
+                            styles.input,
+                            styles.numberInput,
+                            disabled && styles.disabledInput,
+                          ]}
                           value={dimension.width.toString()}
-                          onChangeText={text => {
+                          onChangeText={(text) => {
                             const value = parseFloat(text) || 0;
                             updateDimension(dimension.id, { width: value });
                           }}
@@ -487,14 +495,14 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
                       </View>
                     </View>
                   </View>
-                  
+
                   {/* Visual Room Editor */}
                   {showVisualEditor && (
                     <View style={styles.visualEditor}>
                       <Text style={styles.visualEditorTitle}>Visual Editor</Text>
                       <RoomVisualEditor
                         dimension={dimension}
-                        onChange={updates => updateDimension(dimension.id, updates)}
+                        onChange={(updates) => updateDimension(dimension.id, updates)}
                         disabled={disabled}
                       />
                     </View>
@@ -505,7 +513,7 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
           ))
         )}
       </ScrollView>
-      
+
       {/* Add Room Button */}
       <View style={styles.actionContainer}>
         <TouchableOpacity
@@ -516,7 +524,7 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
           <MaterialCommunityIcons name="plus" size={20} color="#fff" />
           <Text style={styles.addButtonText}>Add Room</Text>
         </TouchableOpacity>
-        
+
         {dimensions.length > 0 && (
           <View style={styles.totalAreaContainer}>
             <Text style={styles.totalAreaLabel}>Total Area:</Text>
@@ -524,14 +532,10 @@ export const RoomMeasurement: React.FC<RoomMeasurementProps> = ({
           </View>
         )}
       </View>
-      
-      {helperText && !error && (
-        <Text style={styles.helperText}>{helperText}</Text>
-      )}
-      
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
+
+      {helperText && !error && <Text style={styles.helperText}>{helperText}</Text>}
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
@@ -550,20 +554,19 @@ const RoomVisualEditor: React.FC<RoomVisualEditorProps> = ({
 }) => {
   // Calculate appropriate scaling based on the current dimensions
   const maxDimension = Math.max(dimension.length, dimension.width);
-  const screenWidth = Dimensions.get('window').width - 80; // Account for padding
-  
+  const screenWidth = Dimensions.get("window").width - 80; // Account for padding
+
   // Define minimum size to prevent tiny rooms
   const minVisualSize = 100;
-  
+
   // Scale to fit in the view, but maintain minimum size
-  const scale = maxDimension > 0
-    ? Math.max(minVisualSize / maxDimension, screenWidth / (maxDimension * 2))
-    : 1;
-  
+  const scale =
+    maxDimension > 0 ? Math.max(minVisualSize / maxDimension, screenWidth / (maxDimension * 2)) : 1;
+
   // Calculate visual dimensions
   const visualLength = Math.max(dimension.length * scale, 20);
   const visualWidth = Math.max(dimension.width * scale, 20);
-  
+
   // Setup drag handlers for corners
   const cornerPositions = {
     topLeft: new Animated.ValueXY({ x: 0, y: 0 }),
@@ -571,7 +574,7 @@ const RoomVisualEditor: React.FC<RoomVisualEditorProps> = ({
     bottomLeft: new Animated.ValueXY({ x: 0, y: visualWidth }),
     bottomRight: new Animated.ValueXY({ x: visualLength, y: visualWidth }),
   };
-  
+
   // Create pan responders for each corner
   const createPanResponder = (corner: keyof typeof cornerPositions) => {
     return PanResponder.create({
@@ -586,27 +589,21 @@ const RoomVisualEditor: React.FC<RoomVisualEditorProps> = ({
       onPanResponderMove: (_, gesture) => {
         // Update position based on gesture
         cornerPositions[corner].setValue({ x: gesture.dx, y: gesture.dy });
-        
+
         // Calculate new dimensions
         let newLength = dimension.length;
         let newWidth = dimension.width;
-        
-        if (corner === 'topRight' || corner === 'bottomRight') {
+
+        if (corner === "topRight" || corner === "bottomRight") {
           // Dragging right side affects length
-          newLength = Math.max(
-            0.1,
-            dimension.length + (gesture.dx / scale)
-          );
+          newLength = Math.max(0.1, dimension.length + gesture.dx / scale);
         }
-        
-        if (corner === 'bottomLeft' || corner === 'bottomRight') {
+
+        if (corner === "bottomLeft" || corner === "bottomRight") {
           // Dragging bottom side affects width
-          newWidth = Math.max(
-            0.1,
-            dimension.width + (gesture.dy / scale)
-          );
+          newWidth = Math.max(0.1, dimension.width + gesture.dy / scale);
         }
-        
+
         // Update dimensions
         onChange({
           length: newLength,
@@ -619,10 +616,10 @@ const RoomVisualEditor: React.FC<RoomVisualEditorProps> = ({
       },
     });
   };
-  
+
   // Create pan responders
-  const bottomRightPanResponder = createPanResponder('bottomRight');
-  
+  const bottomRightPanResponder = createPanResponder("bottomRight");
+
   return (
     <View style={[styles.visualEditorContainer, disabled && styles.disabledVisualEditor]}>
       {/* Room Rectangle */}
@@ -641,30 +638,26 @@ const RoomVisualEditor: React.FC<RoomVisualEditorProps> = ({
             {dimension.length.toFixed(2)} {dimension.unit}
           </Text>
         </View>
-        
+
         <View style={[styles.dimensionLabel, styles.widthLabel]}>
           <Text style={styles.dimensionLabelText}>
             {dimension.width.toFixed(2)} {dimension.unit}
           </Text>
         </View>
-        
+
         {/* Draggable Handle */}
         {!disabled && (
           <Animated.View
             style={[
               styles.cornerHandle,
-              { 
+              {
                 bottom: -10,
                 right: -10,
               },
             ]}
             {...bottomRightPanResponder.panHandlers}
           >
-            <MaterialCommunityIcons
-              name="resize-bottom-right"
-              size={20}
-              color="#3498db"
-            />
+            <MaterialCommunityIcons name="resize-bottom-right" size={20} color="#3498db" />
           </Animated.View>
         )}
       </View>
@@ -681,130 +674,130 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
   },
   required: {
-    color: '#e74c3c',
+    color: "#e74c3c",
   },
   unitSelectorContainer: {
     marginBottom: 16,
   },
   unitSelectorLabel: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 8,
   },
   unitOptions: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   unitOption: {
     flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     marginHorizontal: 2,
     borderRadius: 4,
   },
   activeUnitOption: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
   },
   disabledUnitOption: {
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     opacity: 0.6,
   },
   unitOptionText: {
-    color: '#7f8c8d',
-    fontWeight: '500',
+    color: "#7f8c8d",
+    fontWeight: "500",
   },
   activeUnitOptionText: {
-    color: 'white',
+    color: "white",
   },
   disabledText: {
-    color: '#bdc3c7',
+    color: "#bdc3c7",
   },
   roomListContainer: {
     maxHeight: 400,
     marginBottom: 16,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     height: 150,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
-    borderStyle: 'dashed',
+    borderColor: "#eee",
+    borderStyle: "dashed",
   },
   emptyStateText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#7f8c8d',
+    fontWeight: "500",
+    color: "#7f8c8d",
     marginTop: 12,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#95a5a6',
+    color: "#95a5a6",
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   roomItemContainer: {
     marginBottom: 8,
   },
   roomItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f9f9f9',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     padding: 12,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   selectedRoomItem: {
-    borderColor: '#3498db',
+    borderColor: "#3498db",
   },
   roomItemContent: {
     flex: 1,
   },
   roomName: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 4,
   },
   roomDimensions: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   roomArea: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#27ae60',
+    fontWeight: "500",
+    color: "#27ae60",
     marginTop: 4,
   },
   roomItemActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   roomAction: {
     padding: 8,
     marginLeft: 4,
   },
   deleteAction: {
-    backgroundColor: '#f9ebea',
+    backgroundColor: "#f9ebea",
     borderRadius: 4,
   },
   disabledRoomAction: {
     opacity: 0.5,
   },
   expandedSection: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
     borderTopWidth: 0,
     borderBottomLeftRadius: 8,
     borderBottomRightRadius: 8,
@@ -815,51 +808,51 @@ const styles = StyleSheet.create({
   },
   inputLabel: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 4,
   },
   input: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 4,
     padding: 8,
     fontSize: 14,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   dimensionInputs: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   measurementInput: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   numberInput: {
     flex: 1,
-    textAlign: 'right',
+    textAlign: "right",
   },
   unitText: {
     marginLeft: 8,
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   disabledInput: {
-    backgroundColor: '#f5f5f5',
-    color: '#bdc3c7',
+    backgroundColor: "#f5f5f5",
+    color: "#bdc3c7",
   },
   visualEditor: {
     marginTop: 16,
   },
   visualEditorTitle: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 8,
   },
   visualEditorContainer: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     padding: 16,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     minHeight: 200,
   },
@@ -867,84 +860,84 @@ const styles = StyleSheet.create({
     opacity: 0.7,
   },
   roomRectangle: {
-    backgroundColor: '#e1f5fe',
+    backgroundColor: "#e1f5fe",
     borderWidth: 2,
-    borderColor: '#3498db',
-    position: 'relative',
+    borderColor: "#3498db",
+    position: "relative",
   },
   dimensionLabel: {
-    position: 'absolute',
-    backgroundColor: 'rgba(52, 152, 219, 0.8)',
+    position: "absolute",
+    backgroundColor: "rgba(52, 152, 219, 0.8)",
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 4,
   },
   lengthLabel: {
     top: -16,
-    left: '50%',
+    left: "50%",
     transform: [{ translateX: -30 }],
   },
   widthLabel: {
     left: -30,
-    top: '50%',
+    top: "50%",
     transform: [{ translateY: -10 }],
   },
   dimensionLabelText: {
-    color: 'white',
+    color: "white",
     fontSize: 12,
   },
   cornerHandle: {
-    position: 'absolute',
+    position: "absolute",
     width: 24,
     height: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'white',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "white",
     borderWidth: 1,
-    borderColor: '#3498db',
+    borderColor: "#3498db",
     borderRadius: 12,
   },
   actionContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3498db",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
   },
   addButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
     marginLeft: 8,
   },
   disabledButton: {
-    backgroundColor: '#bdc3c7',
+    backgroundColor: "#bdc3c7",
   },
   totalAreaContainer: {
-    alignItems: 'flex-end',
+    alignItems: "flex-end",
   },
   totalAreaLabel: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   totalAreaValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#27ae60',
+    fontWeight: "bold",
+    color: "#27ae60",
   },
   helperText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 8,
   },
   errorText: {
     fontSize: 12,
-    color: '#e74c3c',
+    color: "#e74c3c",
     marginTop: 8,
   },
 });

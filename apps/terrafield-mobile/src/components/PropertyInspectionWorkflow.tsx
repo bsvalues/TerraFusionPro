@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from "react";
 import {
   View,
   Text,
@@ -10,8 +10,8 @@ import {
   ViewStyle,
   TextStyle,
   Dimensions,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
 import {
   TextField,
   NumberField,
@@ -20,31 +20,31 @@ import {
   RadioGroup,
   Checkbox,
   FormSection,
-} from './ui/FormComponents';
-import { ConditionRating, ConditionRatingInput } from './ui/ConditionRating';
-import { LocationPicker, LocationData } from './ui/LocationPicker';
-import { RoomDimension, RoomMeasurement } from './ui/RoomMeasurement';
-import { VoiceNote, VoiceNotes, VoiceNoteCategory } from './ui/VoiceNotes';
-import { SketchData, SketchTool, ROOM_TEMPLATES } from './ui/SketchTool';
-import { PropertyData } from '../services/types';
-import { DataSyncService } from '../services/DataSyncService';
-import { OfflineQueueService, OperationType } from '../services/OfflineQueueService';
+} from "./ui/FormComponents";
+import { ConditionRating, ConditionRatingInput } from "./ui/ConditionRating";
+import { LocationPicker, LocationData } from "./ui/LocationPicker";
+import { RoomDimension, RoomMeasurement } from "./ui/RoomMeasurement";
+import { VoiceNote, VoiceNotes, VoiceNoteCategory } from "./ui/VoiceNotes";
+import { SketchData, SketchTool, ROOM_TEMPLATES } from "./ui/SketchTool";
+import { PropertyData } from "../services/types";
+import { DataSyncService } from "../services/DataSyncService";
+import { OfflineQueueService, OperationType } from "../services/OfflineQueueService";
 
 // Screen dimensions for responsive design
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
+const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
 /**
  * Property inspection workflow steps
  */
 export enum InspectionStep {
-  PROPERTY_DETAILS = 'property_details',
-  CONDITION_ASSESSMENT = 'condition_assessment',
-  MEASUREMENTS = 'measurements',
-  FEATURES = 'features',
-  PHOTOS = 'photos',
-  NOTES = 'notes',
-  SKETCHES = 'sketches',
-  SUMMARY = 'summary',
+  PROPERTY_DETAILS = "property_details",
+  CONDITION_ASSESSMENT = "condition_assessment",
+  MEASUREMENTS = "measurements",
+  FEATURES = "features",
+  PHOTOS = "photos",
+  NOTES = "notes",
+  SKETCHES = "sketches",
+  SUMMARY = "summary",
 }
 
 /**
@@ -116,56 +116,56 @@ interface StepConfig {
 const STEPS: StepConfig[] = [
   {
     key: InspectionStep.PROPERTY_DETAILS,
-    label: 'Property Details',
-    icon: 'home',
-    description: 'Basic property information and location',
+    label: "Property Details",
+    icon: "home",
+    description: "Basic property information and location",
     required: true,
   },
   {
     key: InspectionStep.CONDITION_ASSESSMENT,
-    label: 'Condition',
-    icon: 'home-search',
-    description: 'Property condition ratings',
+    label: "Condition",
+    icon: "home-search",
+    description: "Property condition ratings",
     required: true,
   },
   {
     key: InspectionStep.MEASUREMENTS,
-    label: 'Measurements',
-    icon: 'ruler',
-    description: 'Room dimensions and area',
+    label: "Measurements",
+    icon: "ruler",
+    description: "Room dimensions and area",
     required: true,
   },
   {
     key: InspectionStep.FEATURES,
-    label: 'Features',
-    icon: 'tag-multiple',
-    description: 'Property features and amenities',
+    label: "Features",
+    icon: "tag-multiple",
+    description: "Property features and amenities",
     required: true,
   },
   {
     key: InspectionStep.PHOTOS,
-    label: 'Photos',
-    icon: 'camera',
-    description: 'Property photographs',
+    label: "Photos",
+    icon: "camera",
+    description: "Property photographs",
     required: true,
   },
   {
     key: InspectionStep.NOTES,
-    label: 'Notes',
-    icon: 'text',
-    description: 'Voice notes and observations',
+    label: "Notes",
+    icon: "text",
+    description: "Voice notes and observations",
   },
   {
     key: InspectionStep.SKETCHES,
-    label: 'Sketches',
-    icon: 'pencil',
-    description: 'Floor plans and property sketches',
+    label: "Sketches",
+    icon: "pencil",
+    description: "Floor plans and property sketches",
   },
   {
     key: InspectionStep.SUMMARY,
-    label: 'Summary',
-    icon: 'check-circle',
-    description: 'Review and complete inspection',
+    label: "Summary",
+    icon: "check-circle",
+    description: "Review and complete inspection",
     required: true,
   },
 ];
@@ -174,28 +174,28 @@ const STEPS: StepConfig[] = [
  * Property types for selection
  */
 const PROPERTY_TYPES = [
-  { label: 'Single Family', value: 'single_family' },
-  { label: 'Condo', value: 'condo' },
-  { label: 'Townhouse', value: 'townhouse' },
-  { label: 'Multi-Family', value: 'multi_family' },
-  { label: 'Vacant Land', value: 'vacant_land' },
-  { label: 'Commercial', value: 'commercial' },
+  { label: "Single Family", value: "single_family" },
+  { label: "Condo", value: "condo" },
+  { label: "Townhouse", value: "townhouse" },
+  { label: "Multi-Family", value: "multi_family" },
+  { label: "Vacant Land", value: "vacant_land" },
+  { label: "Commercial", value: "commercial" },
 ];
 
 /**
  * Additional features list for selection
  */
 const ADDITIONAL_FEATURES = [
-  { key: 'deck', label: 'Deck/Patio' },
-  { key: 'fence', label: 'Fence' },
-  { key: 'sprinklers', label: 'Sprinkler System' },
-  { key: 'securitySystem', label: 'Security System' },
-  { key: 'solarPanels', label: 'Solar Panels' },
-  { key: 'hottub', label: 'Hot Tub/Spa' },
-  { key: 'workshop', label: 'Workshop/Shed' },
-  { key: 'waterfront', label: 'Waterfront' },
-  { key: 'view', label: 'View' },
-  { key: 'cornerLot', label: 'Corner Lot' },
+  { key: "deck", label: "Deck/Patio" },
+  { key: "fence", label: "Fence" },
+  { key: "sprinklers", label: "Sprinkler System" },
+  { key: "securitySystem", label: "Security System" },
+  { key: "solarPanels", label: "Solar Panels" },
+  { key: "hottub", label: "Hot Tub/Spa" },
+  { key: "workshop", label: "Workshop/Shed" },
+  { key: "waterfront", label: "Waterfront" },
+  { key: "view", label: "View" },
+  { key: "cornerLot", label: "Corner Lot" },
 ];
 
 /**
@@ -203,12 +203,12 @@ const ADDITIONAL_FEATURES = [
  */
 export const createDefaultInspectionData = (propertyId?: string): PropertyInspectionData => ({
   property: {
-    id: propertyId || '',
-    address: '',
-    city: '',
-    state: '',
-    zipCode: '',
-    propertyType: '',
+    id: propertyId || "",
+    address: "",
+    city: "",
+    state: "",
+    zipCode: "",
+    propertyType: "",
     yearBuilt: null,
     squareFeet: null,
     bedrooms: null,
@@ -273,58 +273,58 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
   hideSteps = [],
 }) => {
   // Filter visible steps
-  const visibleSteps = STEPS.filter(step => !hideSteps.includes(step.key));
-  
+  const visibleSteps = STEPS.filter((step) => !hideSteps.includes(step.key));
+
   // State
   const [currentStep, setCurrentStep] = useState<InspectionStep>(initialStep);
   const [progress, setProgress] = useState<number>(0);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
-  
+
   // Animation values
   const fadeAnim = useRef(new Animated.Value(1)).current;
   const slideAnim = useRef(new Animated.Value(0)).current;
-  
+
   // Services
   const dataSyncService = DataSyncService.getInstance();
   const offlineQueueService = OfflineQueueService.getInstance();
-  
+
   // Calculate progress
   useEffect(() => {
     const completedStepCount = Object.values(inspectionData.completedSteps).filter(Boolean).length;
-    const totalRequiredSteps = visibleSteps.filter(step => step.required).length;
+    const totalRequiredSteps = visibleSteps.filter((step) => step.required).length;
     const newProgress = totalRequiredSteps > 0 ? completedStepCount / totalRequiredSteps : 0;
     setProgress(newProgress);
   }, [inspectionData.completedSteps]);
-  
+
   // Update inspection data
   const updateInspectionData = (updates: Partial<PropertyInspectionData>) => {
     if (disabled) return;
-    
+
     onUpdate({
       ...inspectionData,
       ...updates,
     });
   };
-  
+
   // Mark step as complete
   const markStepComplete = (step: InspectionStep, isComplete: boolean = true) => {
     if (disabled) return;
-    
+
     const updatedCompletedSteps = {
       ...inspectionData.completedSteps,
       [step]: isComplete,
     };
-    
+
     onUpdate({
       ...inspectionData,
       completedSteps: updatedCompletedSteps,
     });
   };
-  
+
   // Navigate to a step
   const navigateToStep = (step: InspectionStep) => {
     if (disabled) return;
-    
+
     // Animate out
     Animated.parallel([
       Animated.timing(fadeAnim, {
@@ -333,17 +333,24 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
         useNativeDriver: true,
       }),
       Animated.timing(slideAnim, {
-        toValue: STEPS.findIndex(s => s.key === currentStep) < STEPS.findIndex(s => s.key === step) ? -50 : 50,
+        toValue:
+          STEPS.findIndex((s) => s.key === currentStep) < STEPS.findIndex((s) => s.key === step)
+            ? -50
+            : 50,
         duration: 200,
         useNativeDriver: true,
       }),
     ]).start(() => {
       // Change step
       setCurrentStep(step);
-      
+
       // Reset animation values
-      slideAnim.setValue(STEPS.findIndex(s => s.key === currentStep) > STEPS.findIndex(s => s.key === step) ? 50 : -50);
-      
+      slideAnim.setValue(
+        STEPS.findIndex((s) => s.key === currentStep) > STEPS.findIndex((s) => s.key === step)
+          ? 50
+          : -50
+      );
+
       // Animate in
       Animated.parallel([
         Animated.timing(fadeAnim, {
@@ -359,17 +366,17 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       ]).start();
     });
   };
-  
+
   // Handle next step
   const handleNextStep = () => {
     if (disabled) return;
-    
-    const currentIndex = visibleSteps.findIndex(step => step.key === currentStep);
-    
+
+    const currentIndex = visibleSteps.findIndex((step) => step.key === currentStep);
+
     if (currentIndex < visibleSteps.length - 1) {
       // Mark current step as complete
       markStepComplete(currentStep);
-      
+
       // Navigate to next step
       navigateToStep(visibleSteps[currentIndex + 1].key);
     } else if (currentStep === InspectionStep.SUMMARY) {
@@ -377,94 +384,90 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       handleComplete();
     }
   };
-  
+
   // Handle previous step
   const handlePreviousStep = () => {
     if (disabled) return;
-    
-    const currentIndex = visibleSteps.findIndex(step => step.key === currentStep);
-    
+
+    const currentIndex = visibleSteps.findIndex((step) => step.key === currentStep);
+
     if (currentIndex > 0) {
       navigateToStep(visibleSteps[currentIndex - 1].key);
     }
   };
-  
+
   // Handle complete
   const handleComplete = async () => {
     if (disabled || isSubmitting) return;
-    
+
     // Check if required steps are completed
-    const requiredSteps = visibleSteps.filter(step => step.required);
-    const incompleteSteps = requiredSteps.filter(step => !inspectionData.completedSteps[step.key]);
-    
+    const requiredSteps = visibleSteps.filter((step) => step.required);
+    const incompleteSteps = requiredSteps.filter(
+      (step) => !inspectionData.completedSteps[step.key]
+    );
+
     if (incompleteSteps.length > 0) {
       Alert.alert(
-        'Incomplete Inspection',
-        `Please complete the following required steps: ${incompleteSteps.map(step => step.label).join(', ')}`,
-        [{ text: 'OK' }]
+        "Incomplete Inspection",
+        `Please complete the following required steps: ${incompleteSteps.map((step) => step.label).join(", ")}`,
+        [{ text: "OK" }]
       );
       return;
     }
-    
+
     // Confirm completion
-    Alert.alert(
-      'Complete Inspection',
-      'Are you sure you want to complete this inspection?',
-      [
-        {
-          text: 'Cancel',
-          style: 'cancel',
-        },
-        {
-          text: 'Complete',
-          onPress: async () => {
-            setIsSubmitting(true);
-            
-            try {
-              // Update completion status
-              const completedInspection: PropertyInspectionData = {
-                ...inspectionData,
-                completed: true,
-                endTime: new Date(),
-              };
-              
-              // Save to local storage and queue for sync
-              onUpdate(completedInspection);
-              
-              // Queue property update for sync
-              await offlineQueueService.enqueue(
-                OperationType.UPDATE_PROPERTY,
-                completedInspection.property,
-                2 // High priority
-              );
-              
-              // Call onComplete callback
-              if (onComplete) {
-                onComplete(completedInspection);
-              }
-              
-              // Show success message
-              Alert.alert(
-                'Inspection Completed',
-                'Property inspection has been completed and will be synchronized when online.',
-                [{ text: 'OK' }]
-              );
-            } catch (error) {
-              console.error('Error completing inspection:', error);
-              Alert.alert(
-                'Error',
-                'Failed to complete inspection. Please try again.',
-                [{ text: 'OK' }]
-              );
-            } finally {
-              setIsSubmitting(false);
+    Alert.alert("Complete Inspection", "Are you sure you want to complete this inspection?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Complete",
+        onPress: async () => {
+          setIsSubmitting(true);
+
+          try {
+            // Update completion status
+            const completedInspection: PropertyInspectionData = {
+              ...inspectionData,
+              completed: true,
+              endTime: new Date(),
+            };
+
+            // Save to local storage and queue for sync
+            onUpdate(completedInspection);
+
+            // Queue property update for sync
+            await offlineQueueService.enqueue(
+              OperationType.UPDATE_PROPERTY,
+              completedInspection.property,
+              2 // High priority
+            );
+
+            // Call onComplete callback
+            if (onComplete) {
+              onComplete(completedInspection);
             }
-          },
+
+            // Show success message
+            Alert.alert(
+              "Inspection Completed",
+              "Property inspection has been completed and will be synchronized when online.",
+              [{ text: "OK" }]
+            );
+          } catch (error) {
+            console.error("Error completing inspection:", error);
+            Alert.alert("Error", "Failed to complete inspection. Please try again.", [
+              { text: "OK" },
+            ]);
+          } finally {
+            setIsSubmitting(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
-  
+
   // Render active step content
   const renderStepContent = () => {
     switch (currentStep) {
@@ -488,19 +491,16 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
         return null;
     }
   };
-  
+
   // Render Property Details step
   const renderPropertyDetailsStep = () => {
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Property Identification"
-          subtitle="Basic property details"
-        >
+        <FormSection title="Property Identification" subtitle="Basic property details">
           <TextField
             label="Street Address"
             value={inspectionData.property.address}
-            onChangeText={text => {
+            onChangeText={(text) => {
               updateInspectionData({
                 property: {
                   ...inspectionData.property,
@@ -511,13 +511,13 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             required
             disabled={disabled}
           />
-          
+
           <View style={styles.rowFields}>
             <View style={styles.fieldHalf}>
               <TextField
                 label="City"
                 value={inspectionData.property.city}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -529,12 +529,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.fieldHalf}>
               <TextField
                 label="State"
                 value={inspectionData.property.state}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -547,13 +547,13 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
               />
             </View>
           </View>
-          
+
           <View style={styles.rowFields}>
             <View style={styles.fieldHalf}>
               <TextField
                 label="ZIP Code"
                 value={inspectionData.property.zipCode}
-                onChangeText={text => {
+                onChangeText={(text) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -566,13 +566,13 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.fieldHalf}>
               <SelectField
                 label="Property Type"
                 value={inspectionData.property.propertyType}
                 options={PROPERTY_TYPES}
-                onSelect={value => {
+                onSelect={(value) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -586,17 +586,14 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             </View>
           </View>
         </FormSection>
-        
-        <FormSection
-          title="Property Characteristics"
-          subtitle="Size and basic features"
-        >
+
+        <FormSection title="Property Characteristics" subtitle="Size and basic features">
           <View style={styles.rowFields}>
             <View style={styles.fieldHalf}>
               <NumberField
                 label="Square Feet"
                 value={inspectionData.property.squareFeet}
-                onChangeValue={value => {
+                onChangeValue={(value) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -609,12 +606,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.fieldHalf}>
               <NumberField
                 label="Lot Size"
                 value={inspectionData.property.lotSize}
-                onChangeValue={value => {
+                onChangeValue={(value) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -627,13 +624,13 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
               />
             </View>
           </View>
-          
+
           <View style={styles.rowFields}>
             <View style={styles.fieldHalf}>
               <NumberField
                 label="Bedrooms"
                 value={inspectionData.property.bedrooms}
-                onChangeValue={value => {
+                onChangeValue={(value) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -645,12 +642,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.fieldHalf}>
               <NumberField
                 label="Bathrooms"
                 value={inspectionData.property.bathrooms}
-                onChangeValue={value => {
+                onChangeValue={(value) => {
                   updateInspectionData({
                     property: {
                       ...inspectionData.property,
@@ -665,11 +662,11 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
               />
             </View>
           </View>
-          
+
           <NumberField
             label="Year Built"
             value={inspectionData.property.yearBuilt}
-            onChangeValue={value => {
+            onChangeValue={(value) => {
               updateInspectionData({
                 property: {
                   ...inspectionData.property,
@@ -681,16 +678,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             disabled={disabled}
           />
         </FormSection>
-        
-        <FormSection
-          title="Property Location"
-          subtitle="Capture GPS coordinates"
-          collapsible
-        >
+
+        <FormSection title="Property Location" subtitle="Capture GPS coordinates" collapsible>
           <LocationPicker
             label="Property Location"
             value={inspectionData.location || null}
-            onChange={location => {
+            onChange={(location) => {
               if (location) {
                 // Update property with GPS coordinates
                 updateInspectionData({
@@ -711,19 +704,16 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Condition Assessment step
   const renderConditionAssessmentStep = () => {
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Overall Property Condition"
-          subtitle="General condition assessment"
-        >
+        <FormSection title="Overall Property Condition" subtitle="General condition assessment">
           <ConditionRatingInput
             label="Overall Condition"
             value={inspectionData.condition.overall}
-            onChange={value => {
+            onChange={(value) => {
               updateInspectionData({
                 condition: {
                   ...inspectionData.condition,
@@ -735,15 +725,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             disabled={disabled}
           />
         </FormSection>
-        
-        <FormSection
-          title="Exterior Condition"
-          subtitle="External elements assessment"
-        >
+
+        <FormSection title="Exterior Condition" subtitle="External elements assessment">
           <ConditionRatingInput
             label="Exterior"
             value={inspectionData.condition.exterior}
-            onChange={value => {
+            onChange={(value) => {
               updateInspectionData({
                 condition: {
                   ...inspectionData.condition,
@@ -754,11 +741,11 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             required
             disabled={disabled}
           />
-          
+
           <ConditionRatingInput
             label="Roof"
             value={inspectionData.condition.roof}
-            onChange={value => {
+            onChange={(value) => {
               updateInspectionData({
                 condition: {
                   ...inspectionData.condition,
@@ -769,11 +756,11 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             required
             disabled={disabled}
           />
-          
+
           <ConditionRatingInput
             label="Foundation"
             value={inspectionData.condition.foundation}
-            onChange={value => {
+            onChange={(value) => {
               updateInspectionData({
                 condition: {
                   ...inspectionData.condition,
@@ -785,15 +772,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             disabled={disabled}
           />
         </FormSection>
-        
-        <FormSection
-          title="Interior Condition"
-          subtitle="Internal elements assessment"
-        >
+
+        <FormSection title="Interior Condition" subtitle="Internal elements assessment">
           <ConditionRatingInput
             label="Interior"
             value={inspectionData.condition.interior}
-            onChange={value => {
+            onChange={(value) => {
               updateInspectionData({
                 condition: {
                   ...inspectionData.condition,
@@ -804,11 +788,11 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             required
             disabled={disabled}
           />
-          
+
           <ConditionRatingInput
             label="Systems (HVAC, Plumbing, Electrical)"
             value={inspectionData.condition.systems}
-            onChange={value => {
+            onChange={(value) => {
               updateInspectionData({
                 condition: {
                   ...inspectionData.condition,
@@ -823,19 +807,16 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Measurements step
   const renderMeasurementsStep = () => {
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Room Measurements"
-          subtitle="Capture room dimensions"
-        >
+        <FormSection title="Room Measurements" subtitle="Capture room dimensions">
           <RoomMeasurement
             label="Room Dimensions"
             dimensions={inspectionData.rooms}
-            onDimensionsChange={dimensions => {
+            onDimensionsChange={(dimensions) => {
               updateInspectionData({
                 rooms: dimensions,
               });
@@ -846,21 +827,18 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Features step
   const renderFeaturesStep = () => {
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Major Features"
-          subtitle="Primary property features"
-        >
+        <FormSection title="Major Features" subtitle="Primary property features">
           <View style={styles.featuresGrid}>
             <View style={styles.featureItem}>
               <ToggleSwitch
                 label="Garage"
                 value={inspectionData.features.garage}
-                onToggle={value => {
+                onToggle={(value) => {
                   updateInspectionData({
                     features: {
                       ...inspectionData.features,
@@ -875,12 +853,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.featureItem}>
               <ToggleSwitch
                 label="Pool"
                 value={inspectionData.features.pool}
-                onToggle={value => {
+                onToggle={(value) => {
                   updateInspectionData({
                     features: {
                       ...inspectionData.features,
@@ -895,12 +873,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.featureItem}>
               <ToggleSwitch
                 label="Fireplace"
                 value={inspectionData.features.fireplace}
-                onToggle={value => {
+                onToggle={(value) => {
                   updateInspectionData({
                     features: {
                       ...inspectionData.features,
@@ -911,12 +889,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.featureItem}>
               <ToggleSwitch
                 label="Basement"
                 value={inspectionData.features.basement}
-                onToggle={value => {
+                onToggle={(value) => {
                   updateInspectionData({
                     features: {
                       ...inspectionData.features,
@@ -927,12 +905,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.featureItem}>
               <ToggleSwitch
                 label="Central A/C"
                 value={inspectionData.features.centralAir}
-                onToggle={value => {
+                onToggle={(value) => {
                   updateInspectionData({
                     features: {
                       ...inspectionData.features,
@@ -943,12 +921,12 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                 disabled={disabled}
               />
             </View>
-            
+
             <View style={styles.featureItem}>
               <ToggleSwitch
                 label="Renovated"
                 value={inspectionData.features.renovated}
-                onToggle={value => {
+                onToggle={(value) => {
                   updateInspectionData({
                     features: {
                       ...inspectionData.features,
@@ -961,18 +939,15 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             </View>
           </View>
         </FormSection>
-        
-        <FormSection
-          title="Additional Features"
-          subtitle="Other property amenities"
-        >
+
+        <FormSection title="Additional Features" subtitle="Other property amenities">
           <View style={styles.checkboxGrid}>
-            {ADDITIONAL_FEATURES.map(feature => (
+            {ADDITIONAL_FEATURES.map((feature) => (
               <View key={feature.key} style={styles.checkboxItem}>
                 <Checkbox
                   label={feature.label}
                   checked={!!inspectionData.features[feature.key]}
-                  onCheck={checked => {
+                  onCheck={(checked) => {
                     updateInspectionData({
                       features: {
                         ...inspectionData.features,
@@ -989,78 +964,51 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Photos step
   const renderPhotosStep = () => {
     // This is a placeholder for the Photo capture functionality
     // Actual implementation would include camera access and photo management
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Property Photos"
-          subtitle="Capture and organize photos"
-        >
+        <FormSection title="Property Photos" subtitle="Capture and organize photos">
           <Text style={styles.photoInstructions}>
-            Photos can be captured using the camera button below. Each photo will be automatically organized by category.
+            Photos can be captured using the camera button below. Each photo will be automatically
+            organized by category.
           </Text>
-          
+
           <View style={styles.photoCategories}>
-            <TouchableOpacity 
-              style={styles.photoCategory}
-              disabled={disabled}
-            >
+            <TouchableOpacity style={styles.photoCategory} disabled={disabled}>
               <MaterialCommunityIcons name="home-outline" size={32} color="#3498db" />
               <Text style={styles.photoCategoryLabel}>Front</Text>
-              <Text style={styles.photoCount}>
-                {inspectionData.photos.front.length} Photos
-              </Text>
+              <Text style={styles.photoCount}>{inspectionData.photos.front.length} Photos</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.photoCategory}
-              disabled={disabled}
-            >
+
+            <TouchableOpacity style={styles.photoCategory} disabled={disabled}>
               <MaterialCommunityIcons name="home-export-outline" size={32} color="#3498db" />
               <Text style={styles.photoCategoryLabel}>Rear</Text>
-              <Text style={styles.photoCount}>
-                {inspectionData.photos.rear.length} Photos
-              </Text>
+              <Text style={styles.photoCount}>{inspectionData.photos.rear.length} Photos</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.photoCategory}
-              disabled={disabled}
-            >
+
+            <TouchableOpacity style={styles.photoCategory} disabled={disabled}>
               <MaterialCommunityIcons name="sofa" size={32} color="#3498db" />
               <Text style={styles.photoCategoryLabel}>Interior</Text>
-              <Text style={styles.photoCount}>
-                {inspectionData.photos.interior.length} Photos
-              </Text>
+              <Text style={styles.photoCount}>{inspectionData.photos.interior.length} Photos</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.photoCategory}
-              disabled={disabled}
-            >
+
+            <TouchableOpacity style={styles.photoCategory} disabled={disabled}>
               <MaterialCommunityIcons name="alert" size={32} color="#3498db" />
               <Text style={styles.photoCategoryLabel}>Damages</Text>
-              <Text style={styles.photoCount}>
-                {inspectionData.photos.damages.length} Photos
-              </Text>
+              <Text style={styles.photoCount}>{inspectionData.photos.damages.length} Photos</Text>
             </TouchableOpacity>
-            
-            <TouchableOpacity 
-              style={styles.photoCategory}
-              disabled={disabled}
-            >
+
+            <TouchableOpacity style={styles.photoCategory} disabled={disabled}>
               <MaterialCommunityIcons name="image-multiple" size={32} color="#3498db" />
               <Text style={styles.photoCategoryLabel}>Other</Text>
-              <Text style={styles.photoCount}>
-                {inspectionData.photos.other.length} Photos
-              </Text>
+              <Text style={styles.photoCount}>{inspectionData.photos.other.length} Photos</Text>
             </TouchableOpacity>
           </View>
-          
+
           <TouchableOpacity
             style={[styles.cameraButton, disabled && styles.disabledButton]}
             disabled={disabled}
@@ -1068,7 +1016,7 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             <MaterialCommunityIcons name="camera" size={32} color="white" />
             <Text style={styles.cameraButtonText}>Capture Photo</Text>
           </TouchableOpacity>
-          
+
           <Text style={styles.photoNote}>
             Note: Photos will be automatically enhanced and synchronized when online.
           </Text>
@@ -1076,19 +1024,16 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Notes step
   const renderNotesStep = () => {
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Voice Notes"
-          subtitle="Record observations and comments"
-        >
+        <FormSection title="Voice Notes" subtitle="Record observations and comments">
           <VoiceNotes
             label="Property Observations"
             notes={inspectionData.notes}
-            onNotesChange={notes => {
+            onNotesChange={(notes) => {
               updateInspectionData({
                 notes,
               });
@@ -1100,28 +1045,23 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Sketches step
   const renderSketchesStep = () => {
     // Get first sketch or create a new one if none exists
-    const currentSketch = inspectionData.sketches.length > 0 
-      ? inspectionData.sketches[0] 
-      : null;
-    
+    const currentSketch = inspectionData.sketches.length > 0 ? inspectionData.sketches[0] : null;
+
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Property Sketches"
-          subtitle="Create floor plans and sketches"
-        >
+        <FormSection title="Property Sketches" subtitle="Create floor plans and sketches">
           <SketchTool
             label="Floor Plan"
             sketch={currentSketch}
-            onSketchChange={sketch => {
+            onSketchChange={(sketch) => {
               const updatedSketches = currentSketch
-                ? inspectionData.sketches.map(s => s.id === sketch.id ? sketch : s)
+                ? inspectionData.sketches.map((s) => (s.id === sketch.id ? sketch : s))
                 : [...inspectionData.sketches, sketch];
-              
+
               updateInspectionData({
                 sketches: updatedSketches,
               });
@@ -1134,26 +1074,27 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   // Render Summary step
   const renderSummaryStep = () => {
     // Calculate completion percentage
-    const requiredSteps = visibleSteps.filter(step => step.required);
-    const completedRequiredSteps = requiredSteps.filter(step => inspectionData.completedSteps[step.key]);
-    const completionPercentage = Math.round((completedRequiredSteps.length / requiredSteps.length) * 100);
-    
+    const requiredSteps = visibleSteps.filter((step) => step.required);
+    const completedRequiredSteps = requiredSteps.filter(
+      (step) => inspectionData.completedSteps[step.key]
+    );
+    const completionPercentage = Math.round(
+      (completedRequiredSteps.length / requiredSteps.length) * 100
+    );
+
     // Calculate inspection duration
     const startTime = new Date(inspectionData.startTime);
     const endTime = inspectionData.endTime ? new Date(inspectionData.endTime) : new Date();
     const durationMs = endTime.getTime() - startTime.getTime();
     const durationMinutes = Math.round(durationMs / (1000 * 60));
-    
+
     return (
       <ScrollView style={styles.stepContent}>
-        <FormSection
-          title="Inspection Summary"
-          subtitle="Review and complete inspection"
-        >
+        <FormSection title="Inspection Summary" subtitle="Review and complete inspection">
           <View style={styles.summaryHeader}>
             <View style={styles.summaryProgress}>
               <View style={styles.progressCircle}>
@@ -1161,80 +1102,80 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
               </View>
               <Text style={styles.progressText}>Complete</Text>
             </View>
-            
+
             <View style={styles.summaryDuration}>
               <MaterialCommunityIcons name="clock-outline" size={32} color="#7f8c8d" />
               <Text style={styles.durationValue}>{durationMinutes} min</Text>
               <Text style={styles.durationLabel}>Duration</Text>
             </View>
           </View>
-          
+
           <View style={styles.summaryDetails}>
             <Text style={styles.summaryTitle}>Property Details</Text>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Address:</Text>
               <Text style={styles.summaryValue}>
-                {inspectionData.property.address}, {inspectionData.property.city}, {inspectionData.property.state} {inspectionData.property.zipCode}
+                {inspectionData.property.address}, {inspectionData.property.city},{" "}
+                {inspectionData.property.state} {inspectionData.property.zipCode}
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Property Type:</Text>
               <Text style={styles.summaryValue}>
-                {PROPERTY_TYPES.find(t => t.value === inspectionData.property.propertyType)?.label || 'Not specified'}
+                {PROPERTY_TYPES.find((t) => t.value === inspectionData.property.propertyType)
+                  ?.label || "Not specified"}
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Size:</Text>
               <Text style={styles.summaryValue}>
-                {inspectionData.property.squareFeet?.toLocaleString() || 'Not specified'} sq ft
+                {inspectionData.property.squareFeet?.toLocaleString() || "Not specified"} sq ft
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Bedrooms/Bathrooms:</Text>
               <Text style={styles.summaryValue}>
-                {inspectionData.property.bedrooms || 'N/A'} beds, {inspectionData.property.bathrooms || 'N/A'} baths
+                {inspectionData.property.bedrooms || "N/A"} beds,{" "}
+                {inspectionData.property.bathrooms || "N/A"} baths
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Year Built:</Text>
               <Text style={styles.summaryValue}>
-                {inspectionData.property.yearBuilt || 'Not specified'}
+                {inspectionData.property.yearBuilt || "Not specified"}
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Overall Condition:</Text>
-              <Text style={styles.summaryValue}>
-                {inspectionData.condition.overall}
-              </Text>
+              <Text style={styles.summaryValue}>{inspectionData.condition.overall}</Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Rooms Measured:</Text>
-              <Text style={styles.summaryValue}>
-                {inspectionData.rooms.length}
-              </Text>
+              <Text style={styles.summaryValue}>{inspectionData.rooms.length}</Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Photos Taken:</Text>
               <Text style={styles.summaryValue}>
-                {Object.values(inspectionData.photos).reduce((sum, photos) => sum + photos.length, 0)}
+                {Object.values(inspectionData.photos).reduce(
+                  (sum, photos) => sum + photos.length,
+                  0
+                )}
               </Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Voice Notes:</Text>
-              <Text style={styles.summaryValue}>
-                {inspectionData.notes.length}
-              </Text>
+              <Text style={styles.summaryValue}>{inspectionData.notes.length}</Text>
             </View>
-            
+
             <View style={styles.summaryItem}>
               <Text style={styles.summaryLabel}>Key Features:</Text>
               <Text style={styles.summaryValue}>
@@ -1242,14 +1183,13 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
                   .filter(([_, value]) => !!value)
                   .map(([key]) => {
                     // Convert from camelCase to Title Case
-                    return key.replace(/([A-Z])/g, ' $1')
-                      .replace(/^./, str => str.toUpperCase());
+                    return key.replace(/([A-Z])/g, " $1").replace(/^./, (str) => str.toUpperCase());
                   })
-                  .join(', ') || 'None specified'}
+                  .join(", ") || "None specified"}
               </Text>
             </View>
           </View>
-          
+
           <TouchableOpacity
             style={[styles.completeButton, disabled && styles.disabledButton]}
             onPress={handleComplete}
@@ -1268,34 +1208,23 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       </ScrollView>
     );
   };
-  
+
   return (
     <View style={[styles.container, containerStyle]}>
       {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.headerTitle, headerStyle]}>Property Inspection</Text>
-        
+
         <View style={styles.progressContainer}>
           <View style={styles.progressBar}>
-            <View 
-              style={[
-                styles.progressFill,
-                { width: `${progress * 100}%` }
-              ]}
-            />
+            <View style={[styles.progressFill, { width: `${progress * 100}%` }]} />
           </View>
-          <Text style={styles.progressText}>
-            {Math.round(progress * 100)}% Complete
-          </Text>
+          <Text style={styles.progressText}>{Math.round(progress * 100)}% Complete</Text>
         </View>
       </View>
-      
+
       {/* Steps Indicator */}
-      <ScrollView 
-        horizontal 
-        showsHorizontalScrollIndicator={false}
-        style={styles.stepsIndicator}
-      >
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.stepsIndicator}>
         {visibleSteps.map((step, index) => (
           <TouchableOpacity
             key={step.key}
@@ -1309,9 +1238,21 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
             disabled={disabled}
           >
             <MaterialCommunityIcons
-              name={currentStep === step.key ? step.icon : inspectionData.completedSteps[step.key] ? 'check-circle' : step.icon}
+              name={
+                currentStep === step.key
+                  ? step.icon
+                  : inspectionData.completedSteps[step.key]
+                    ? "check-circle"
+                    : step.icon
+              }
               size={24}
-              color={currentStep === step.key ? '#fff' : inspectionData.completedSteps[step.key] ? '#27ae60' : '#7f8c8d'}
+              color={
+                currentStep === step.key
+                  ? "#fff"
+                  : inspectionData.completedSteps[step.key]
+                    ? "#27ae60"
+                    : "#7f8c8d"
+              }
             />
             <Text
               style={[
@@ -1331,9 +1272,9 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
           </TouchableOpacity>
         ))}
       </ScrollView>
-      
+
       {/* Step Content */}
-      <Animated.View 
+      <Animated.View
         style={[
           styles.stepContentContainer,
           {
@@ -1344,47 +1285,48 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
       >
         {renderStepContent()}
       </Animated.View>
-      
+
       {/* Navigation Controls */}
       <View style={styles.navigationControls}>
         <TouchableOpacity
           style={[
-            styles.navButton, 
+            styles.navButton,
             styles.prevButton,
-            (
-              visibleSteps.findIndex(step => step.key === currentStep) === 0 ||
-              disabled
-            ) && styles.disabledNavButton,
+            (visibleSteps.findIndex((step) => step.key === currentStep) === 0 || disabled) &&
+              styles.disabledNavButton,
           ]}
           onPress={handlePreviousStep}
-          disabled={visibleSteps.findIndex(step => step.key === currentStep) === 0 || disabled}
+          disabled={visibleSteps.findIndex((step) => step.key === currentStep) === 0 || disabled}
         >
           <MaterialCommunityIcons name="chevron-left" size={24} color="white" />
           <Text style={styles.navButtonText}>Previous</Text>
         </TouchableOpacity>
-        
+
         <View style={styles.stepIndicator}>
           <Text style={styles.stepIndicatorText}>
-            {visibleSteps.findIndex(step => step.key === currentStep) + 1} of {visibleSteps.length}
+            {visibleSteps.findIndex((step) => step.key === currentStep) + 1} of{" "}
+            {visibleSteps.length}
           </Text>
         </View>
-        
+
         <TouchableOpacity
-          style={[
-            styles.navButton,
-            styles.nextButton,
-            disabled && styles.disabledNavButton,
-          ]}
+          style={[styles.navButton, styles.nextButton, disabled && styles.disabledNavButton]}
           onPress={handleNextStep}
           disabled={disabled}
         >
           <Text style={styles.navButtonText}>
-            {visibleSteps.findIndex(step => step.key === currentStep) === visibleSteps.length - 1 ? 'Complete' : 'Next'}
+            {visibleSteps.findIndex((step) => step.key === currentStep) === visibleSteps.length - 1
+              ? "Complete"
+              : "Next"}
           </Text>
-          <MaterialCommunityIcons 
-            name={visibleSteps.findIndex(step => step.key === currentStep) === visibleSteps.length - 1 ? 'check-circle' : 'chevron-right'} 
-            size={24} 
-            color="white" 
+          <MaterialCommunityIcons
+            name={
+              visibleSteps.findIndex((step) => step.key === currentStep) === visibleSteps.length - 1
+                ? "check-circle"
+                : "chevron-right"
+            }
+            size={24}
+            color="white"
           />
         </TouchableOpacity>
       </View>
@@ -1395,144 +1337,144 @@ export const PropertyInspectionWorkflow: React.FC<PropertyInspectionWorkflowProp
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     borderRadius: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   header: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
     padding: 16,
   },
   headerTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
     marginBottom: 8,
   },
   progressContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   progressBar: {
     flex: 1,
     height: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     borderRadius: 4,
-    overflow: 'hidden',
+    overflow: "hidden",
     marginRight: 10,
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: '#fff',
+    height: "100%",
+    backgroundColor: "#fff",
     borderRadius: 4,
   },
   progressText: {
     fontSize: 14,
-    color: '#fff',
+    color: "#fff",
   },
   stepsIndicator: {
-    flexDirection: 'row',
-    backgroundColor: '#fff',
+    flexDirection: "row",
+    backgroundColor: "#fff",
     paddingVertical: 8,
     paddingHorizontal: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#eee',
+    borderBottomColor: "#eee",
   },
   stepButton: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginHorizontal: 4,
     borderRadius: 8,
-    backgroundColor: '#f5f5f5',
+    backgroundColor: "#f5f5f5",
     minWidth: 80,
   },
   activeStepButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
   },
   completedStepButton: {
-    backgroundColor: '#e1f5fe',
+    backgroundColor: "#e1f5fe",
   },
   disabledStepButton: {
     opacity: 0.7,
   },
   stepButtonText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   activeStepButtonText: {
-    color: '#fff',
-    fontWeight: 'bold',
+    color: "#fff",
+    fontWeight: "bold",
   },
   completedStepButtonText: {
-    color: '#27ae60',
+    color: "#27ae60",
   },
   requiredStep: {
-    position: 'absolute',
+    position: "absolute",
     top: 2,
     right: 2,
   },
   requiredStepText: {
     fontSize: 16,
-    color: '#e74c3c',
-    fontWeight: 'bold',
+    color: "#e74c3c",
+    fontWeight: "bold",
   },
   stepContentContainer: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   stepContent: {
     flex: 1,
     padding: 16,
   },
   navigationControls: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#f5f5f5",
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: '#eee',
+    borderTopColor: "#eee",
   },
   navButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingVertical: 8,
     paddingHorizontal: 16,
     borderRadius: 8,
   },
   prevButton: {
-    backgroundColor: '#95a5a6',
+    backgroundColor: "#95a5a6",
   },
   nextButton: {
-    backgroundColor: '#3498db',
+    backgroundColor: "#3498db",
   },
   disabledNavButton: {
-    backgroundColor: '#bdc3c7',
+    backgroundColor: "#bdc3c7",
   },
   navButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
     marginLeft: 4,
     marginRight: 4,
   },
   stepIndicator: {
-    backgroundColor: '#f0f0f0',
+    backgroundColor: "#f0f0f0",
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 16,
   },
   stepIndicatorText: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   rowFields: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginHorizontal: -6,
   },
   fieldHalf: {
@@ -1540,122 +1482,122 @@ const styles = StyleSheet.create({
     paddingHorizontal: 6,
   },
   featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -6,
   },
   featureItem: {
-    width: '50%',
+    width: "50%",
     paddingHorizontal: 6,
     marginBottom: 12,
   },
   checkboxGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -6,
   },
   checkboxItem: {
-    width: '50%',
+    width: "50%",
     paddingHorizontal: 6,
     marginBottom: 8,
   },
   photoInstructions: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 16,
     lineHeight: 20,
   },
   photoCategories: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
     marginBottom: 16,
   },
   photoCategory: {
-    width: '30%',
-    backgroundColor: '#f8f9fa',
+    width: "30%",
+    backgroundColor: "#f8f9fa",
     borderRadius: 8,
     padding: 12,
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   photoCategoryLabel: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginTop: 8,
   },
   photoCount: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 4,
   },
   cameraButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#3498db",
     borderRadius: 8,
     paddingVertical: 12,
     marginBottom: 16,
   },
   cameraButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
     marginLeft: 8,
   },
   photoNote: {
     fontSize: 12,
-    color: '#7f8c8d',
-    fontStyle: 'italic',
+    color: "#7f8c8d",
+    fontStyle: "italic",
   },
   summaryHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 24,
   },
   summaryProgress: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   progressCircle: {
     width: 80,
     height: 80,
     borderRadius: 40,
-    backgroundColor: '#3498db',
-    alignItems: 'center',
-    justifyContent: 'center',
+    backgroundColor: "#3498db",
+    alignItems: "center",
+    justifyContent: "center",
   },
   progressPercentage: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#fff',
+    fontWeight: "bold",
+    color: "#fff",
   },
   summaryDuration: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   durationValue: {
     fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
+    fontWeight: "bold",
+    color: "#333",
     marginTop: 4,
   },
   durationLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   summaryDetails: {
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     borderRadius: 8,
     padding: 16,
     marginBottom: 16,
   },
   summaryTitle: {
     fontSize: 18,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
     marginBottom: 12,
   },
   summaryItem: {
@@ -1663,28 +1605,28 @@ const styles = StyleSheet.create({
   },
   summaryLabel: {
     fontSize: 14,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   summaryValue: {
     fontSize: 16,
-    color: '#333',
+    color: "#333",
   },
   completeButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: '#27ae60',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#27ae60",
     borderRadius: 8,
     paddingVertical: 14,
     marginTop: 16,
   },
   completeButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
   },
   disabledButton: {
-    backgroundColor: '#bdc3c7',
+    backgroundColor: "#bdc3c7",
   },
 });

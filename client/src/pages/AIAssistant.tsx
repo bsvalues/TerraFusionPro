@@ -1,11 +1,11 @@
-import React from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
-import { 
-  Brain, 
+import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Brain,
   Send,
   Lightbulb,
   BarChart3,
@@ -14,8 +14,8 @@ import {
   Zap,
   MessageSquare,
   Clock,
-  CheckCircle2
-} from 'lucide-react';
+  CheckCircle2,
+} from "lucide-react";
 
 export default function AIAssistant() {
   return (
@@ -96,7 +96,11 @@ export default function AIAssistant() {
                   </div>
                   <div className="flex-1">
                     <div className="bg-slate-50 rounded-lg p-3">
-                      <p className="text-sm">Hello! I'm your AI assistant. I can help you with property valuations, market analysis, comparable searches, and report reviews. What would you like assistance with today?</p>
+                      <p className="text-sm">
+                        Hello! I'm your AI assistant. I can help you with property valuations,
+                        market analysis, comparable searches, and report reviews. What would you
+                        like assistance with today?
+                      </p>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">Just now</p>
                   </div>
@@ -106,7 +110,9 @@ export default function AIAssistant() {
                 <div className="flex gap-3 justify-end">
                   <div className="flex-1 max-w-xs">
                     <div className="bg-blue-600 text-white rounded-lg p-3">
-                      <p className="text-sm">Can you analyze the market trends for Cityville, CA?</p>
+                      <p className="text-sm">
+                        Can you analyze the market trends for Cityville, CA?
+                      </p>
                     </div>
                     <p className="text-xs text-slate-500 mt-1 text-right">2 minutes ago</p>
                   </div>
@@ -129,7 +135,10 @@ export default function AIAssistant() {
                         <li>• Price per sq ft: $265 (up from $235)</li>
                         <li>• Inventory levels: 2.3 months supply</li>
                       </ul>
-                      <p className="text-sm mt-2">The market shows strong appreciation with low inventory. Would you like a detailed comparative analysis?</p>
+                      <p className="text-sm mt-2">
+                        The market shows strong appreciation with low inventory. Would you like a
+                        detailed comparative analysis?
+                      </p>
                     </div>
                     <p className="text-xs text-slate-500 mt-1">1 minute ago</p>
                   </div>
@@ -139,8 +148,8 @@ export default function AIAssistant() {
               {/* Chat Input */}
               <div className="border-t p-4">
                 <div className="flex gap-2">
-                  <Textarea 
-                    placeholder="Ask the AI assistant anything about properties, valuations, or market analysis..." 
+                  <Textarea
+                    placeholder="Ask the AI assistant anything about properties, valuations, or market analysis..."
                     className="flex-1 min-h-[60px] resize-none"
                   />
                   <Button size="sm" className="px-3">
@@ -168,7 +177,9 @@ export default function AIAssistant() {
                   <CheckCircle2 className="h-4 w-4 text-blue-600" />
                   <span className="text-sm font-medium text-blue-800">Market Opportunity</span>
                 </div>
-                <p className="text-xs text-blue-700">Cityville market showing 15% appreciation - consider higher valuation adjustments</p>
+                <p className="text-xs text-blue-700">
+                  Cityville market showing 15% appreciation - consider higher valuation adjustments
+                </p>
               </div>
 
               <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
@@ -176,7 +187,9 @@ export default function AIAssistant() {
                   <CheckCircle2 className="h-4 w-4 text-green-600" />
                   <span className="text-sm font-medium text-green-800">Comp Suggestion</span>
                 </div>
-                <p className="text-xs text-green-700">Found 3 new comparable sales within 0.5 miles - review for better accuracy</p>
+                <p className="text-xs text-green-700">
+                  Found 3 new comparable sales within 0.5 miles - review for better accuracy
+                </p>
               </div>
 
               <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
@@ -184,7 +197,9 @@ export default function AIAssistant() {
                   <CheckCircle2 className="h-4 w-4 text-purple-600" />
                   <span className="text-sm font-medium text-purple-800">Quality Check</span>
                 </div>
-                <p className="text-xs text-purple-700">Report #APR-2025-001 shows 98% accuracy score - ready for delivery</p>
+                <p className="text-xs text-purple-700">
+                  Report #APR-2025-001 shows 98% accuracy score - ready for delivery
+                </p>
               </div>
             </CardContent>
           </Card>

@@ -1,54 +1,67 @@
-import React, { useState } from 'react';
-import { ErrorBoundary } from '@/components/error-boundary';
-import { LoadingCard } from '@/components/ui/loading-spinner';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useWebSocketResource } from '@/hooks/use-websocket-resource';
-import { useWebSocket } from '@/contexts/WebSocketContext';
-import { Search, Map, Grid3X3, RefreshCw } from 'lucide-react';
+import React, { useState } from "react";
+import { ErrorBoundary } from "@/components/error-boundary";
+import { LoadingCard } from "@/components/ui/loading-spinner";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useWebSocketResource } from "@/hooks/use-websocket-resource";
+import { useWebSocket } from "@/contexts/WebSocketContext";
+import { Search, Map, Grid3X3, RefreshCw } from "lucide-react";
 
 // Search form component with error boundary
 const CompsSearchForm = () => {
   const [searchParams, setSearchParams] = useState({
-    address: '',
-    city: '',
-    state: 'TX',
-    radius: '1',
-    minPrice: '',
-    maxPrice: '',
+    address: "",
+    city: "",
+    state: "TX",
+    radius: "1",
+    minPrice: "",
+    maxPrice: "",
   });
-  
+
   const { isConnected } = useWebSocket();
-  
-  const { 
-    data: searchResults, 
-    isLoading, 
-    error, 
-    refetch 
+
+  const {
+    data: searchResults,
+    isLoading,
+    error,
+    refetch,
   } = useWebSocketResource({
-    resource: 'comps',
+    resource: "comps",
     params: searchParams,
     autoFetch: false,
-    enabled: isConnected
+    enabled: isConnected,
   });
-  
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setSearchParams(prev => ({ ...prev, [name]: value }));
+    setSearchParams((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleSelectChange = (name: string, value: string) => {
-    setSearchParams(prev => ({ ...prev, [name]: value }));
+    setSearchParams((prev) => ({ ...prev, [name]: value }));
   };
-  
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     refetch();
   };
-  
+
   return (
     <div className="container py-6 space-y-6">
       <div className="flex flex-col gap-2">
@@ -57,13 +70,11 @@ const CompsSearchForm = () => {
           Search for comparable properties based on location and parameters
         </p>
       </div>
-      
+
       <Card>
         <CardHeader>
           <CardTitle>Search Parameters</CardTitle>
-          <CardDescription>
-            Enter property details to find comparable sales
-          </CardDescription>
+          <CardDescription>Enter property details to find comparable sales</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
@@ -79,7 +90,7 @@ const CompsSearchForm = () => {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="city">City</Label>
                 <Input
@@ -91,12 +102,12 @@ const CompsSearchForm = () => {
                   required
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="state">State</Label>
-                <Select 
+                <Select
                   value={searchParams.state}
-                  onValueChange={(value) => handleSelectChange('state', value)}
+                  onValueChange={(value) => handleSelectChange("state", value)}
                 >
                   <SelectTrigger id="state">
                     <SelectValue placeholder="Select state" />
@@ -110,12 +121,12 @@ const CompsSearchForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="radius">Search Radius (miles)</Label>
-                <Select 
+                <Select
                   value={searchParams.radius}
-                  onValueChange={(value) => handleSelectChange('radius', value)}
+                  onValueChange={(value) => handleSelectChange("radius", value)}
                 >
                   <SelectTrigger id="radius">
                     <SelectValue placeholder="Select radius" />
@@ -129,7 +140,7 @@ const CompsSearchForm = () => {
                   </SelectContent>
                 </Select>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="minPrice">Minimum Price</Label>
                 <Input
@@ -141,7 +152,7 @@ const CompsSearchForm = () => {
                   onChange={handleInputChange}
                 />
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="maxPrice">Maximum Price</Label>
                 <Input
@@ -154,7 +165,7 @@ const CompsSearchForm = () => {
                 />
               </div>
             </div>
-            
+
             <div className="flex justify-end">
               <Button type="submit" disabled={isLoading || !isConnected}>
                 {isLoading ? (
@@ -173,7 +184,7 @@ const CompsSearchForm = () => {
           </form>
         </CardContent>
       </Card>
-      
+
       {/* Results section */}
       <div className="space-y-4">
         {isLoading ? (
@@ -210,7 +221,7 @@ const CompsSearchForm = () => {
                 </Button>
               </div>
             </div>
-            
+
             {searchResults.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {searchResults.map((comp: any) => (
@@ -222,7 +233,7 @@ const CompsSearchForm = () => {
                         {comp.city}, {comp.state}
                       </p>
                       <p className="text-lg font-bold mt-2">
-                        ${comp.price?.toLocaleString() || 'N/A'}
+                        ${comp.price?.toLocaleString() || "N/A"}
                       </p>
                     </CardContent>
                   </Card>
@@ -234,7 +245,8 @@ const CompsSearchForm = () => {
                   <Search className="h-8 w-8 text-muted-foreground mb-2" />
                   <h3 className="font-medium text-lg">No results found</h3>
                   <p className="text-muted-foreground max-w-md mt-1">
-                    Try adjusting your search criteria or expanding the search radius to find more comparable properties.
+                    Try adjusting your search criteria or expanding the search radius to find more
+                    comparable properties.
                   </p>
                 </CardContent>
               </Card>

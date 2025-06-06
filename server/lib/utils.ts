@@ -1,5 +1,5 @@
-import * as crypto from 'crypto';
-import { Request } from 'express';
+import * as crypto from "crypto";
+import { Request } from "express";
 
 /**
  * Generate a random token of specified length
@@ -8,7 +8,7 @@ import { Request } from 'express';
  */
 export function generateRandomToken(length: number = 32): string {
   const buffer = crypto.randomBytes(Math.ceil(length / 2));
-  return buffer.toString('hex').slice(0, length);
+  return buffer.toString("hex").slice(0, length);
 }
 
 /**
@@ -26,10 +26,10 @@ export function generateShortId(): string {
  * @returns Formatted date string
  */
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric'
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
   });
 }
 
@@ -39,11 +39,11 @@ export function formatDate(date: Date): string {
  * @returns Formatted currency string
  */
 export function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('en-US', {
-    style: 'currency',
-    currency: 'USD',
+  return new Intl.NumberFormat("en-US", {
+    style: "currency",
+    currency: "USD",
     minimumFractionDigits: 0,
-    maximumFractionDigits: 0
+    maximumFractionDigits: 0,
   }).format(value);
 }
 
@@ -53,7 +53,7 @@ export function formatCurrency(value: number): string {
  * @returns Formatted number string
  */
 export function formatNumber(value: number): string {
-  return new Intl.NumberFormat('en-US').format(value);
+  return new Intl.NumberFormat("en-US").format(value);
 }
 
 /**
@@ -62,7 +62,7 @@ export function formatNumber(value: number): string {
  * @returns Hostname (e.g., "example.com")
  */
 export function getHostname(req: any): string {
-  return req.get('host') || 'localhost';
+  return req.get("host") || "localhost";
 }
 
 /**
@@ -71,7 +71,7 @@ export function getHostname(req: any): string {
  * @returns Base URL (e.g., "https://example.com")
  */
 export function getBaseUrl(req: any): string {
-  const protocol = req.headers['x-forwarded-proto'] || req.protocol;
+  const protocol = req.headers["x-forwarded-proto"] || req.protocol;
   const host = getHostname(req);
   return `${protocol}://${host}`;
 }
@@ -104,7 +104,7 @@ export function getValueOrDefault<T>(value: T | null | undefined, defaultValue: 
  */
 export function getDaysUntilExpiry(expiryDate: Date | null): number | null {
   if (!expiryDate) return null;
-  
+
   const now = new Date();
   const diffTime = expiryDate.getTime() - now.getTime();
   return Math.ceil(diffTime / (1000 * 60 * 60 * 24));

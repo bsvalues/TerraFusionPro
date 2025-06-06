@@ -1,16 +1,16 @@
 import { relations } from "drizzle-orm";
-import { 
-  pgTable, 
-  serial, 
-  text, 
-  timestamp, 
-  integer, 
+import {
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  integer,
   boolean,
   json,
   real,
   uuid,
   primaryKey,
-  uniqueIndex
+  uniqueIndex,
 } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
@@ -108,7 +108,9 @@ export const propertiesRelations = relations(properties, ({ one, many }) => ({
 
 export const propertyImages = pgTable("property_images", {
   id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  propertyId: integer("property_id")
+    .references(() => properties.id)
+    .notNull(),
   imageUrl: text("image_url").notNull(),
   caption: text("caption"),
   roomType: text("room_type"), // kitchen, bathroom, exterior, etc.
@@ -131,7 +133,9 @@ export const propertyImagesRelations = relations(propertyImages, ({ one }) => ({
 
 export const valuations = pgTable("valuations", {
   id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  propertyId: integer("property_id")
+    .references(() => properties.id)
+    .notNull(),
   orderId: integer("order_id").references(() => orders.id),
   appraiserId: integer("appraiser_id").references(() => users.id),
   valuationAmount: integer("valuation_amount").notNull(),
@@ -161,24 +165,28 @@ export const valuationsRelations = relations(valuations, ({ one, many }) => ({
   comparables: many(comparableProperties),
 }));
 
-export const comparableProperties = pgTable("comparable_properties", {
-  id: serial("id").primaryKey(),
-  valuationId: integer("valuation_id").references(() => valuations.id),
-  propertyId: integer("property_id").references(() => properties.id),
-  comparablePropertyId: integer("comparable_property_id").references(() => properties.id),
-  adjustedValue: integer("adjusted_value"),
-  similarity: real("similarity"), // Similarity score (0-1)
-  adjustments: json("adjustments"), // Adjustment details
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-}, (table) => {
-  return {
-    propertyComparableIdx: uniqueIndex("property_comparable_idx").on(
-      table.valuationId, 
-      table.propertyId, 
-      table.comparablePropertyId
-    ),
-  };
-});
+export const comparableProperties = pgTable(
+  "comparable_properties",
+  {
+    id: serial("id").primaryKey(),
+    valuationId: integer("valuation_id").references(() => valuations.id),
+    propertyId: integer("property_id").references(() => properties.id),
+    comparablePropertyId: integer("comparable_property_id").references(() => properties.id),
+    adjustedValue: integer("adjusted_value"),
+    similarity: real("similarity"), // Similarity score (0-1)
+    adjustments: json("adjustments"), // Adjustment details
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => {
+    return {
+      propertyComparableIdx: uniqueIndex("property_comparable_idx").on(
+        table.valuationId,
+        table.propertyId,
+        table.comparablePropertyId
+      ),
+    };
+  }
+);
 
 export const comparablePropertiesRelations = relations(comparableProperties, ({ one }) => ({
   valuation: one(valuations, {
@@ -238,7 +246,9 @@ export const ordersRelations = relations(orders, ({ one, many }) => ({
 
 export const orderStatusUpdates = pgTable("order_status_updates", {
   id: serial("id").primaryKey(),
-  orderId: integer("order_id").references(() => orders.id).notNull(),
+  orderId: integer("order_id")
+    .references(() => orders.id)
+    .notNull(),
   status: text("status").notNull(),
   notes: text("notes"),
   updatedById: integer("updated_by_id").references(() => users.id),
@@ -260,7 +270,9 @@ export const orderStatusUpdatesRelations = relations(orderStatusUpdates, ({ one 
 
 export const reports = pgTable("reports", {
   id: serial("id").primaryKey(),
-  orderId: integer("order_id").references(() => orders.id).notNull(),
+  orderId: integer("order_id")
+    .references(() => orders.id)
+    .notNull(),
   valuationId: integer("valuation_id").references(() => valuations.id),
   title: text("title").notNull(),
   reportType: text("report_type").notNull(), // full, summary, etc.
@@ -320,7 +332,9 @@ export const legacyImportJobs = pgTable("legacy_import_jobs", {
   processedRecords: integer("processed_records").default(0),
   totalRecords: integer("total_records").default(0),
   errorLogs: json("error_logs"), // Processing errors and warnings
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdById: integer("created_by_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
@@ -336,7 +350,9 @@ export const legacyImportJobsRelations = relations(legacyImportJobs, ({ one, man
 
 export const legacyImportRecords = pgTable("legacy_import_records", {
   id: serial("id").primaryKey(),
-  jobId: integer("job_id").references(() => legacyImportJobs.id).notNull(),
+  jobId: integer("job_id")
+    .references(() => legacyImportJobs.id)
+    .notNull(),
   sourceSystem: text("source_system"), // TOTAL, ClickForms, ACI, DataMaster, etc.
   sourceRecordId: text("source_record_id"), // Original record ID from legacy system
   recordType: text("record_type").notNull(), // property, valuation, order, etc.
@@ -367,7 +383,9 @@ export const legacySystemTemplates = pgTable("legacy_system_templates", {
   validationRules: json("validation_rules"), // Data validation specific to this system
   isActive: boolean("is_active").default(true).notNull(),
   organizationId: integer("organization_id").references(() => organizations.id),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdById: integer("created_by_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -413,8 +431,12 @@ export const fieldNotes = pgTable("field_notes", {
 
 export const appraisalForms = pgTable("appraisal_forms", {
   id: serial("id").primaryKey(),
-  orderId: integer("order_id").references(() => orders.id).notNull(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  orderId: integer("order_id")
+    .references(() => orders.id)
+    .notNull(),
+  propertyId: integer("property_id")
+    .references(() => properties.id)
+    .notNull(),
   formType: text("form_type").notNull(), // urar, commercial, land, etc.
   formData: json("form_data").notNull(), // Complete form field data
   status: text("status").default("draft").notNull(), // draft, in_progress, completed, reviewed
@@ -424,7 +446,9 @@ export const appraisalForms = pgTable("appraisal_forms", {
   lastSavedAt: timestamp("last_saved_at").defaultNow().notNull(),
   submittedAt: timestamp("submitted_at"),
   reviewedAt: timestamp("reviewed_at"),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdById: integer("created_by_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -451,7 +475,9 @@ export const formTemplates = pgTable("form_templates", {
   templateData: json("template_data").notNull(), // Template structure and defaults
   isDefault: boolean("is_default").default(false),
   organizationId: integer("organization_id").references(() => organizations.id),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdById: integer("created_by_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -487,7 +513,9 @@ export const mlsSystems = pgTable("mls_systems", {
 
 export const mlsFieldMappings = pgTable("mls_field_mappings", {
   id: serial("id").primaryKey(),
-  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
+  mlsSystemId: integer("mls_system_id")
+    .references(() => mlsSystems.id)
+    .notNull(),
   mlsFieldName: text("mls_field_name").notNull(),
   appFieldName: text("app_field_name").notNull(),
   dataType: text("data_type").notNull(), // string, number, date, boolean, etc.
@@ -498,8 +526,12 @@ export const mlsFieldMappings = pgTable("mls_field_mappings", {
 
 export const mlsPropertyMappings = pgTable("mls_property_mappings", {
   id: serial("id").primaryKey(),
-  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
+  mlsSystemId: integer("mls_system_id")
+    .references(() => mlsSystems.id)
+    .notNull(),
+  propertyId: integer("property_id")
+    .references(() => properties.id)
+    .notNull(),
   mlsNumber: text("mls_number").notNull(),
   mlsStatus: text("mls_status"),
   rawData: json("raw_data"),
@@ -535,8 +567,12 @@ export const comparableSales = pgTable("comparable_sales", {
 
 export const mlsComparableMappings = pgTable("mls_comparable_mappings", {
   id: serial("id").primaryKey(),
-  mlsSystemId: integer("mls_system_id").references(() => mlsSystems.id).notNull(),
-  comparableId: integer("comparable_id").references(() => comparableSales.id).notNull(),
+  mlsSystemId: integer("mls_system_id")
+    .references(() => mlsSystems.id)
+    .notNull(),
+  comparableId: integer("comparable_id")
+    .references(() => comparableSales.id)
+    .notNull(),
   mlsNumber: text("mls_number").notNull(),
   rawData: json("raw_data"),
   lastSynced: timestamp("last_synced").defaultNow().notNull(),
@@ -550,7 +586,9 @@ export const reviewRequests = pgTable("review_requests", {
   id: serial("id").primaryKey(),
   objectType: text("object_type").notNull(), // The type of object being reviewed (e.g. "property", "valuation", "report")
   objectId: integer("object_id").notNull(), // The ID of the object being reviewed
-  requesterId: integer("requester_id").references(() => users.id).notNull(),
+  requesterId: integer("requester_id")
+    .references(() => users.id)
+    .notNull(),
   reviewerId: integer("reviewer_id").references(() => users.id), // May be null until assigned
   status: text("status").default("pending").notNull(), // pending, in_review, completed, rejected
   priority: text("priority").default("normal").notNull(), // low, normal, high, urgent
@@ -565,7 +603,9 @@ export const reviewRequests = pgTable("review_requests", {
 
 export const comments = pgTable("comments", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   objectType: text("object_type").notNull(), // The type of object being commented on
   objectId: integer("object_id").notNull(), // The ID of the object being commented on
   threadId: integer("thread_id"), // ID of parent comment if this is a reply
@@ -577,7 +617,9 @@ export const comments = pgTable("comments", {
 
 export const annotations = pgTable("annotations", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   objectType: text("object_type").notNull(), // The type of object being annotated
   objectId: integer("object_id").notNull(), // The ID of the object being annotated
   type: text("type").notNull(), // highlight, note, drawing, etc.
@@ -590,7 +632,9 @@ export const annotations = pgTable("annotations", {
 
 export const revisionHistory = pgTable("revision_history", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   objectType: text("object_type").notNull(), // The type of object being revised
   objectId: integer("object_id").notNull(), // The ID of the object being revised
   changeType: text("change_type").notNull(), // created, updated, deleted
@@ -605,8 +649,12 @@ export const revisionHistory = pgTable("revision_history", {
 
 export const appraisalReports = pgTable("appraisal_reports", {
   id: serial("id").primaryKey(),
-  orderId: integer("order_id").references(() => orders.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(), // The appraiser who created the report
+  orderId: integer("order_id")
+    .references(() => orders.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(), // The appraiser who created the report
   title: text("title").notNull(),
   reportType: text("report_type").notNull(), // URAR, 1004D, 2055, etc.
   status: text("status").default("draft").notNull(), // draft, in_review, completed, submitted
@@ -624,8 +672,12 @@ export const appraisalReports = pgTable("appraisal_reports", {
 
 export const photos = pgTable("photos", {
   id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  propertyId: integer("property_id")
+    .references(() => properties.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   title: text("title").notNull(),
   description: text("description"),
   category: text("category").notNull(), // front, rear, street, kitchen, etc.
@@ -643,8 +695,12 @@ export const photos = pgTable("photos", {
 
 export const sketches = pgTable("sketches", {
   id: serial("id").primaryKey(),
-  propertyId: integer("property_id").references(() => properties.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  propertyId: integer("property_id")
+    .references(() => properties.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   title: text("title").notNull(),
   description: text("description"),
   sketchType: text("sketch_type").notNull(), // floor_plan, site_plan, etc.
@@ -662,8 +718,12 @@ export const sketches = pgTable("sketches", {
 
 export const complianceChecks = pgTable("compliance_checks", {
   id: serial("id").primaryKey(),
-  reportId: integer("report_id").references(() => appraisalReports.id).notNull(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  reportId: integer("report_id")
+    .references(() => appraisalReports.id)
+    .notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   checkType: text("check_type").notNull(), // uad, fnma, fhlmc, etc.
   status: text("status").default("pending").notNull(), // pending, passed, failed
   results: json("results"), // Detailed check results
@@ -678,7 +738,9 @@ export const complianceChecks = pgTable("compliance_checks", {
 
 export const conversionHistory = pgTable("conversion_history", {
   id: serial("id").primaryKey(),
-  userId: integer("user_id").references(() => users.id).notNull(),
+  userId: integer("user_id")
+    .references(() => users.id)
+    .notNull(),
   templateName: text("template_name").notNull(),
   inputFileName: text("input_file_name").notNull(),
   outputFileName: text("output_file_name"),
@@ -702,7 +764,9 @@ export const conversionTemplates = pgTable("conversion_templates", {
   fieldMappings: json("field_mappings"), // Default field mappings
   isDefault: boolean("is_default").default(false),
   organizationId: integer("organization_id").references(() => organizations.id),
-  createdById: integer("created_by_id").references(() => users.id).notNull(),
+  createdById: integer("created_by_id")
+    .references(() => users.id)
+    .notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
@@ -754,7 +818,9 @@ export type InsertValuation = z.infer<typeof insertValuationSchema>;
 
 // Comparable Property types
 export type ComparableProperty = typeof comparableProperties.$inferSelect;
-export const insertComparablePropertySchema = createInsertSchema(comparableProperties).omit({ id: true });
+export const insertComparablePropertySchema = createInsertSchema(comparableProperties).omit({
+  id: true,
+});
 export type InsertComparableProperty = z.infer<typeof insertComparablePropertySchema>;
 
 // Order types
@@ -764,7 +830,9 @@ export type InsertOrder = z.infer<typeof insertOrderSchema>;
 
 // Order Status Update types
 export type OrderStatusUpdate = typeof orderStatusUpdates.$inferSelect;
-export const insertOrderStatusUpdateSchema = createInsertSchema(orderStatusUpdates).omit({ id: true });
+export const insertOrderStatusUpdateSchema = createInsertSchema(orderStatusUpdates).omit({
+  id: true,
+});
 export type InsertOrderStatusUpdate = z.infer<typeof insertOrderStatusUpdateSchema>;
 
 // Report types
@@ -794,7 +862,7 @@ export const fieldNoteSchema = z.object({
   text: z.string(),
   createdAt: z.string().or(z.date()),
   createdBy: z.string().optional(),
-  userId: z.number().optional()
+  userId: z.number().optional(),
 });
 
 // MLS System types
@@ -809,7 +877,9 @@ export type InsertMlsFieldMapping = z.infer<typeof insertMlsFieldMappingSchema>;
 
 // MLS Property Mapping types
 export type MlsPropertyMapping = typeof mlsPropertyMappings.$inferSelect;
-export const insertMlsPropertyMappingSchema = createInsertSchema(mlsPropertyMappings).omit({ id: true });
+export const insertMlsPropertyMappingSchema = createInsertSchema(mlsPropertyMappings).omit({
+  id: true,
+});
 export type InsertMlsPropertyMapping = z.infer<typeof insertMlsPropertyMappingSchema>;
 
 // Comparable Sale types
@@ -819,7 +889,9 @@ export type InsertComparableSale = z.infer<typeof insertComparableSaleSchema>;
 
 // MLS Comparable Mapping types
 export type MlsComparableMapping = typeof mlsComparableMappings.$inferSelect;
-export const insertMlsComparableMappingSchema = createInsertSchema(mlsComparableMappings).omit({ id: true });
+export const insertMlsComparableMappingSchema = createInsertSchema(mlsComparableMappings).omit({
+  id: true,
+});
 export type InsertMlsComparableMapping = z.infer<typeof insertMlsComparableMappingSchema>;
 
 // Review Request types
@@ -844,12 +916,16 @@ export type InsertRevisionHistory = z.infer<typeof insertRevisionHistorySchema>;
 
 // Conversion History types
 export type ConversionHistory = typeof conversionHistory.$inferSelect;
-export const insertConversionHistorySchema = createInsertSchema(conversionHistory).omit({ id: true });
+export const insertConversionHistorySchema = createInsertSchema(conversionHistory).omit({
+  id: true,
+});
 export type InsertConversionHistory = z.infer<typeof insertConversionHistorySchema>;
 
 // Conversion Template types
 export type ConversionTemplate = typeof conversionTemplates.$inferSelect;
-export const insertConversionTemplateSchema = createInsertSchema(conversionTemplates).omit({ id: true });
+export const insertConversionTemplateSchema = createInsertSchema(conversionTemplates).omit({
+  id: true,
+});
 export type InsertConversionTemplate = z.infer<typeof insertConversionTemplateSchema>;
 
 // Appraisal Report types
@@ -879,10 +955,14 @@ export type InsertLegacyImportJob = z.infer<typeof insertLegacyImportJobSchema>;
 
 // Legacy Import Record types
 export type LegacyImportRecord = typeof legacyImportRecords.$inferSelect;
-export const insertLegacyImportRecordSchema = createInsertSchema(legacyImportRecords).omit({ id: true });
+export const insertLegacyImportRecordSchema = createInsertSchema(legacyImportRecords).omit({
+  id: true,
+});
 export type InsertLegacyImportRecord = z.infer<typeof insertLegacyImportRecordSchema>;
 
 // Legacy System Template types
 export type LegacySystemTemplate = typeof legacySystemTemplates.$inferSelect;
-export const insertLegacySystemTemplateSchema = createInsertSchema(legacySystemTemplates).omit({ id: true });
+export const insertLegacySystemTemplateSchema = createInsertSchema(legacySystemTemplates).omit({
+  id: true,
+});
 export type InsertLegacySystemTemplate = z.infer<typeof insertLegacySystemTemplateSchema>;

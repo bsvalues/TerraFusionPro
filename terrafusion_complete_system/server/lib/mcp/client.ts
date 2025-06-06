@@ -1,11 +1,11 @@
-import { 
-  MCPMessage, 
-  MCPResponseMessage, 
+import {
+  MCPMessage,
+  MCPResponseMessage,
   MCPContentTypes,
   MCPContentTypeMap,
   createMCPMessage,
-  createMCPResponse
-} from './types';
+  createMCPResponse,
+} from "./types";
 
 /**
  * MCP Client for sending and receiving messages
@@ -13,12 +13,15 @@ import {
 export class MCPClient {
   private clientId: string;
   private handlers: Map<string, (message: MCPMessage<any>) => Promise<any>> = new Map();
-  private pendingResponses: Map<string, {
-    resolve: (value: any) => void,
-    reject: (reason: any) => void,
-    timeout: NodeJS.Timeout
-  }> = new Map();
-  
+  private pendingResponses: Map<
+    string,
+    {
+      resolve: (value: any) => void;
+      reject: (reason: any) => void;
+      timeout: NodeJS.Timeout;
+    }
+  > = new Map();
+
   /**
    * Create a new MCP client
    * @param clientId - Unique identifier for this client
@@ -26,7 +29,7 @@ export class MCPClient {
   constructor(clientId: string) {
     this.clientId = clientId;
   }
-  
+
   /**
    * Register a handler for a specific content type
    * @param contentType - Content type to handle
@@ -38,7 +41,7 @@ export class MCPClient {
   ): void {
     this.handlers.set(contentType, handler as any);
   }
-  
+
   /**
    * Send a message and wait for a response
    * @param contentType - Content type of the message
@@ -53,37 +56,31 @@ export class MCPClient {
     recipient: string,
     timeoutMs: number = 30000
   ): Promise<MCPResponseMessage<MCPContentTypeMap[R]>> {
-    const message = createMCPMessage(
-      contentType,
-      content,
-      this.clientId,
-      recipient
-    );
-    
+    const message = createMCPMessage(contentType, content, this.clientId, recipient);
+
     return new Promise((resolve, reject) => {
       // Set up timeout
       const timeout = setTimeout(() => {
         this.pendingResponses.delete(message.messageId);
         reject(new Error(`Timeout waiting for response to message ${message.messageId}`));
       }, timeoutMs);
-      
+
       // Store the pending response
       this.pendingResponses.set(message.messageId, {
         resolve,
         reject,
-        timeout
+        timeout,
       });
-      
+
       // Call processMessage as if this message was received
-      this.processMessage(message)
-        .catch(error => {
-          console.error(`Error processing outgoing message: ${error}`);
-          // If there was an error processing the message locally,
-          // we still keep the pending response as it might be processed externally
-        });
+      this.processMessage(message).catch((error) => {
+        console.error(`Error processing outgoing message: ${error}`);
+        // If there was an error processing the message locally,
+        // we still keep the pending response as it might be processed externally
+      });
     });
   }
-  
+
   /**
    * Send a message without waiting for a response
    * @param contentType - Content type of the message
@@ -96,22 +93,16 @@ export class MCPClient {
     content: MCPContentTypeMap[T],
     recipient: string
   ): MCPMessage<MCPContentTypeMap[T]> {
-    const message = createMCPMessage(
-      contentType,
-      content,
-      this.clientId,
-      recipient
-    );
-    
+    const message = createMCPMessage(contentType, content, this.clientId, recipient);
+
     // Call processMessage as if this message was received
-    this.processMessage(message)
-      .catch(error => {
-        console.error(`Error processing outgoing message: ${error}`);
-      });
-    
+    this.processMessage(message).catch((error) => {
+      console.error(`Error processing outgoing message: ${error}`);
+    });
+
     return message;
   }
-  
+
   /**
    * Receive and process a message
    * @param message - Message to process
@@ -119,86 +110,71 @@ export class MCPClient {
    */
   async processMessage(message: MCPMessage<any>): Promise<void> {
     console.log(`[MCP] Processing message ${message.messageId} of type ${message.contentType}`);
-    
+
     // Check if this is a response to a message we sent
-    if ('inResponseTo' in message) {
+    if ("inResponseTo" in message) {
       const responseMessage = message as MCPResponseMessage<any>;
       const pendingResponse = this.pendingResponses.get(responseMessage.inResponseTo);
-      
+
       if (pendingResponse) {
         clearTimeout(pendingResponse.timeout);
         this.pendingResponses.delete(responseMessage.inResponseTo);
-        
-        if (responseMessage.status === 'error') {
-          pendingResponse.reject(responseMessage.errorDetails || { message: 'Unknown error' });
+
+        if (responseMessage.status === "error") {
+          pendingResponse.reject(responseMessage.errorDetails || { message: "Unknown error" });
         } else {
           pendingResponse.resolve(responseMessage);
         }
         return;
       }
     }
-    
+
     // If the message is for us, find a handler
-    if (message.recipient === this.clientId || message.recipient === '*') {
+    if (message.recipient === this.clientId || message.recipient === "*") {
       const handler = this.handlers.get(message.contentType);
-      
+
       if (handler) {
         try {
           const result = await handler(message);
-          
+
           // Create and send a response
           const response = createMCPResponse(
             message,
             `${message.contentType}.response` as MCPContentTypes,
             result,
-            'success'
+            "success"
           );
-          
+
           // If this is a local message, the response needs to be processed locally too
-          this.processMessage(response)
-            .catch(error => {
-              console.error(`Error processing response message: ${error}`);
-            });
+          this.processMessage(response).catch((error) => {
+            console.error(`Error processing response message: ${error}`);
+          });
         } catch (error) {
           // Create and send an error response
-          const response = createMCPResponse(
-            message,
-            MCPContentTypes.ERROR,
-            null,
-            'error',
-            {
-              code: 'HANDLER_ERROR',
-              message: error.message,
-              details: error
-            }
-          );
-          
+          const response = createMCPResponse(message, MCPContentTypes.ERROR, null, "error", {
+            code: "HANDLER_ERROR",
+            message: error.message,
+            details: error,
+          });
+
           // If this is a local message, the response needs to be processed locally too
-          this.processMessage(response)
-            .catch(error => {
-              console.error(`Error processing error response message: ${error}`);
-            });
+          this.processMessage(response).catch((error) => {
+            console.error(`Error processing error response message: ${error}`);
+          });
         }
       } else {
         console.warn(`[MCP] No handler registered for content type ${message.contentType}`);
-        
+
         // Create and send an error response for unhandled content type
-        const response = createMCPResponse(
-          message,
-          MCPContentTypes.ERROR,
-          null,
-          'error',
-          {
-            code: 'UNHANDLED_CONTENT_TYPE',
-            message: `No handler registered for content type ${message.contentType}`,
-          }
-        );
-        
+        const response = createMCPResponse(message, MCPContentTypes.ERROR, null, "error", {
+          code: "UNHANDLED_CONTENT_TYPE",
+          message: `No handler registered for content type ${message.contentType}`,
+        });
+
         // If this is a local message, the response needs to be processed locally too
-        this.processMessage(response)
-          .catch(error => {
-            console.error(`Error processing unhandled content type response: ${error}`);
-          });
+        this.processMessage(response).catch((error) => {
+          console.error(`Error processing unhandled content type response: ${error}`);
+        });
       }
     }
   }

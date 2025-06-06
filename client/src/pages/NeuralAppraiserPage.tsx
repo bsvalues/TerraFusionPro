@@ -1,20 +1,33 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Brain, Zap, Activity, Settings, Play, Pause, RotateCcw, TrendingUp, Users, Database, Target, Sparkles } from "lucide-react";
+import {
+  Brain,
+  Zap,
+  Activity,
+  Settings,
+  Play,
+  Pause,
+  RotateCcw,
+  TrendingUp,
+  Users,
+  Database,
+  Target,
+  Sparkles,
+} from "lucide-react";
 
 interface NeuralAgent {
   id: string;
   name: string;
-  type: 'Residential' | 'Commercial' | 'Rural' | 'Mixed-Use';
+  type: "Residential" | "Commercial" | "Rural" | "Mixed-Use";
   experience: number;
   accuracy: number;
   overridePattern: string;
   sessionCount: number;
-  status: 'Training' | 'Active' | 'Tuning' | 'Deployed';
+  status: "Training" | "Active" | "Tuning" | "Deployed";
 }
 
 interface TrainingSession {
@@ -25,99 +38,99 @@ interface TrainingSession {
   accuracy: number;
   overrides: number;
   learningPoints: string[];
-  status: 'Completed' | 'Running' | 'Failed';
+  status: "Completed" | "Running" | "Failed";
 }
 
 export default function NeuralAppraiserPage() {
-  const [activeAgent, setActiveAgent] = useState<string>('agent-001');
+  const [activeAgent, setActiveAgent] = useState<string>("agent-001");
   const [isTraining, setIsTraining] = useState(false);
 
   const neuralAgents: NeuralAgent[] = [
     {
-      id: 'agent-001',
-      name: 'WA-Residential-Alpha',
-      type: 'Residential',
+      id: "agent-001",
+      name: "WA-Residential-Alpha",
+      type: "Residential",
       experience: 97.4,
       accuracy: 94.2,
-      overridePattern: 'Zoning-sensitive with condition-adjustment preference',
+      overridePattern: "Zoning-sensitive with condition-adjustment preference",
       sessionCount: 2847,
-      status: 'Active'
+      status: "Active",
     },
     {
-      id: 'agent-002',
-      name: 'WA-Commercial-Beta',
-      type: 'Commercial',
+      id: "agent-002",
+      name: "WA-Commercial-Beta",
+      type: "Commercial",
       experience: 89.1,
       accuracy: 91.7,
-      overridePattern: 'Market-trend focused with CAP rate emphasis',
+      overridePattern: "Market-trend focused with CAP rate emphasis",
       sessionCount: 1923,
-      status: 'Training'
+      status: "Training",
     },
     {
-      id: 'agent-003',
-      name: 'WA-Rural-Gamma',
-      type: 'Rural',
+      id: "agent-003",
+      name: "WA-Rural-Gamma",
+      type: "Rural",
       experience: 92.8,
       accuracy: 88.4,
-      overridePattern: 'Agricultural consideration with water rights integration',
+      overridePattern: "Agricultural consideration with water rights integration",
       sessionCount: 1456,
-      status: 'Deployed'
+      status: "Deployed",
     },
     {
-      id: 'agent-004',
-      name: 'WA-MixedUse-Delta',
-      type: 'Mixed-Use',
+      id: "agent-004",
+      name: "WA-MixedUse-Delta",
+      type: "Mixed-Use",
       experience: 85.3,
       accuracy: 86.9,
-      overridePattern: 'Development potential with highest-best-use analysis',
+      overridePattern: "Development potential with highest-best-use analysis",
       sessionCount: 987,
-      status: 'Tuning'
-    }
+      status: "Tuning",
+    },
   ];
 
   const trainingSessions: TrainingSession[] = [
     {
-      id: 'session-001',
-      agentId: 'agent-001',
-      scenario: 'King County SFR with ADU potential',
-      duration: '14m 23s',
+      id: "session-001",
+      agentId: "agent-001",
+      scenario: "King County SFR with ADU potential",
+      duration: "14m 23s",
       accuracy: 96.7,
       overrides: 3,
       learningPoints: [
-        'Zoning overlay consideration for ADU development',
-        'Market adjustment for proximity to transit',
-        'Condition assessment from aerial imagery'
+        "Zoning overlay consideration for ADU development",
+        "Market adjustment for proximity to transit",
+        "Condition assessment from aerial imagery",
       ],
-      status: 'Completed'
+      status: "Completed",
     },
     {
-      id: 'session-002',
-      agentId: 'agent-002',
-      scenario: 'Spokane commercial retail strip',
-      duration: '22m 41s',
+      id: "session-002",
+      agentId: "agent-002",
+      scenario: "Spokane commercial retail strip",
+      duration: "22m 41s",
       accuracy: 89.2,
       overrides: 5,
       learningPoints: [
-        'CAP rate variance in secondary markets',
-        'Vacancy impact on rental income approach',
-        'Local market tenant quality assessment'
+        "CAP rate variance in secondary markets",
+        "Vacancy impact on rental income approach",
+        "Local market tenant quality assessment",
       ],
-      status: 'Completed'
+      status: "Completed",
     },
     {
-      id: 'session-003',
-      agentId: 'agent-003',
-      scenario: 'Yakima Valley agricultural with water rights',
-      duration: '18m 15s',
+      id: "session-003",
+      agentId: "agent-003",
+      scenario: "Yakima Valley agricultural with water rights",
+      duration: "18m 15s",
       accuracy: 91.4,
       overrides: 2,
       learningPoints: [
-        'Water rights valuation complexity',
-        'Soil classification impact on productivity',
-        'Climate change consideration for long-term value'
+        "Water rights valuation complexity",
+        "Soil classification impact on productivity",
+        "Climate change consideration for long-term value",
       ],
-      status: 'Running'
-    }
+      status: "Running",
+    },
   ];
 
   const systemMetrics = {
@@ -126,7 +139,7 @@ export default function NeuralAppraiserPage() {
     completedSessions: 8234,
     averageAccuracy: 92.6,
     overridePatternLearning: 97.4,
-    neuralModelVersion: '3.6.1'
+    neuralModelVersion: "3.6.1",
   };
 
   const startTraining = () => {
@@ -136,11 +149,19 @@ export default function NeuralAppraiserPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Active': case 'Deployed': case 'Completed': return 'bg-green-100 text-green-800';
-      case 'Training': case 'Running': return 'bg-blue-100 text-blue-800';
-      case 'Tuning': return 'bg-yellow-100 text-yellow-800';
-      case 'Failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Active":
+      case "Deployed":
+      case "Completed":
+        return "bg-green-100 text-green-800";
+      case "Training":
+      case "Running":
+        return "bg-blue-100 text-blue-800";
+      case "Tuning":
+        return "bg-yellow-100 text-yellow-800";
+      case "Failed":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -149,8 +170,12 @@ export default function NeuralAppraiserPage() {
       <div className="flex items-center space-x-4">
         <Brain className="w-8 h-8 text-purple-600" />
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Neural Appraiser Modeling Engine (NAME)</h1>
-          <p className="text-gray-600">Digital twin agents learning from 72,000+ real-world appraisal forms</p>
+          <h1 className="text-3xl font-bold text-gray-900">
+            Neural Appraiser Modeling Engine (NAME)
+          </h1>
+          <p className="text-gray-600">
+            Digital twin agents learning from 72,000+ real-world appraisal forms
+          </p>
         </div>
       </div>
 
@@ -162,7 +187,9 @@ export default function NeuralAppraiserPage() {
             <Database className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-purple-600">{systemMetrics.totalTrainingForms.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-purple-600">
+              {systemMetrics.totalTrainingForms.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">Real WA forms</p>
           </CardContent>
         </Card>
@@ -184,7 +211,9 @@ export default function NeuralAppraiserPage() {
             <Activity className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{systemMetrics.completedSessions.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {systemMetrics.completedSessions.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">Completed</p>
           </CardContent>
         </Card>
@@ -195,7 +224,9 @@ export default function NeuralAppraiserPage() {
             <Target className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-orange-600">{systemMetrics.averageAccuracy}%</div>
+            <div className="text-2xl font-bold text-orange-600">
+              {systemMetrics.averageAccuracy}%
+            </div>
             <p className="text-xs text-muted-foreground">Average</p>
           </CardContent>
         </Card>
@@ -206,7 +237,9 @@ export default function NeuralAppraiserPage() {
             <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{systemMetrics.overridePatternLearning}%</div>
+            <div className="text-2xl font-bold text-red-600">
+              {systemMetrics.overridePatternLearning}%
+            </div>
             <p className="text-xs text-muted-foreground">Pattern tuned</p>
           </CardContent>
         </Card>
@@ -217,7 +250,9 @@ export default function NeuralAppraiserPage() {
             <Sparkles className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{systemMetrics.neuralModelVersion}</div>
+            <div className="text-2xl font-bold text-indigo-600">
+              {systemMetrics.neuralModelVersion}
+            </div>
             <p className="text-xs text-muted-foreground">Latest</p>
           </CardContent>
         </Card>
@@ -235,15 +270,19 @@ export default function NeuralAppraiserPage() {
           <Card>
             <CardHeader>
               <CardTitle>Digital Twin Appraiser Agents</CardTitle>
-              <CardDescription>Autonomous valuation agents trained on real-world WA appraisal patterns</CardDescription>
+              <CardDescription>
+                Autonomous valuation agents trained on real-world WA appraisal patterns
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 {neuralAgents.map((agent) => (
-                  <div 
-                    key={agent.id} 
+                  <div
+                    key={agent.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      activeAgent === agent.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200 hover:border-gray-300'
+                      activeAgent === agent.id
+                        ? "border-purple-500 bg-purple-50"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                     onClick={() => setActiveAgent(agent.id)}
                   >
@@ -255,9 +294,7 @@ export default function NeuralAppraiserPage() {
                             <div className="font-medium">{agent.name}</div>
                             <div className="text-sm text-gray-600">{agent.type} Specialist</div>
                           </div>
-                          <Badge className={getStatusColor(agent.status)}>
-                            {agent.status}
-                          </Badge>
+                          <Badge className={getStatusColor(agent.status)}>{agent.status}</Badge>
                         </div>
                         <div className="text-sm text-gray-700 ml-8">
                           <strong>Override Pattern:</strong> {agent.overridePattern}
@@ -307,7 +344,9 @@ export default function NeuralAppraiserPage() {
                   )}
                 </Button>
               </CardTitle>
-              <CardDescription>Real-time neural appraiser training with scenario-based learning</CardDescription>
+              <CardDescription>
+                Real-time neural appraiser training with scenario-based learning
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -317,21 +356,22 @@ export default function NeuralAppraiserPage() {
                       <div className="space-y-2">
                         <div className="flex items-center space-x-2">
                           <Badge variant="outline">{session.id}</Badge>
-                          <Badge className={getStatusColor(session.status)}>
-                            {session.status}
-                          </Badge>
+                          <Badge className={getStatusColor(session.status)}>{session.status}</Badge>
                           <span className="text-sm text-gray-600">
-                            Agent: {neuralAgents.find(a => a.id === session.agentId)?.name}
+                            Agent: {neuralAgents.find((a) => a.id === session.agentId)?.name}
                           </span>
                         </div>
                         <div>
                           <div className="font-medium">{session.scenario}</div>
                           <div className="text-sm text-gray-600">
-                            Duration: {session.duration} | Accuracy: {session.accuracy}% | Overrides: {session.overrides}
+                            Duration: {session.duration} | Accuracy: {session.accuracy}% |
+                            Overrides: {session.overrides}
                           </div>
                         </div>
                         <div className="ml-0">
-                          <div className="text-sm font-medium text-gray-700 mb-1">Learning Points:</div>
+                          <div className="text-sm font-medium text-gray-700 mb-1">
+                            Learning Points:
+                          </div>
                           <ul className="text-sm text-gray-600 space-y-1">
                             {session.learningPoints.map((point, index) => (
                               <li key={index} className="flex items-start">

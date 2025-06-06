@@ -1,29 +1,29 @@
-import React, { useEffect } from 'react';
-import { createStackNavigator } from '@react-navigation/stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { NavigationContainer } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
-import { Platform, Text, View, TouchableOpacity } from 'react-native';
+import React, { useEffect } from "react";
+import { createStackNavigator } from "@react-navigation/stack";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { NavigationContainer } from "@react-navigation/native";
+import { Ionicons } from "@expo/vector-icons";
+import { Platform, Text, View, TouchableOpacity } from "react-native";
 
 // Screens
-import HomeScreen from '../screens/HomeScreen';
-import PropertyDetailsScreen from '../screens/PropertyDetailsScreen';
-import FieldNotesScreen from '../screens/FieldNotesScreen';
-import PropertyComparisonDashboard from '../screens/PropertyComparisonDashboard';
-import PhotoEnhancementScreen from '../screens/PhotoEnhancementScreen';
-import ARMeasurementScreen from '../screens/ARMeasurementScreen';
-import ReportGenerationScreen from '../screens/ReportGenerationScreen';
-import PropertyShareScreen from '../screens/PropertyShareScreen';
-import SettingsScreen from '../screens/SettingsScreen';
-import ProfileScreen from '../screens/ProfileScreen';
-import LoginScreen from '../screens/LoginScreen';
-import SignupScreen from '../screens/SignupScreen';
+import HomeScreen from "../screens/HomeScreen";
+import PropertyDetailsScreen from "../screens/PropertyDetailsScreen";
+import FieldNotesScreen from "../screens/FieldNotesScreen";
+import PropertyComparisonDashboard from "../screens/PropertyComparisonDashboard";
+import PhotoEnhancementScreen from "../screens/PhotoEnhancementScreen";
+import ARMeasurementScreen from "../screens/ARMeasurementScreen";
+import ReportGenerationScreen from "../screens/ReportGenerationScreen";
+import PropertyShareScreen from "../screens/PropertyShareScreen";
+import SettingsScreen from "../screens/SettingsScreen";
+import ProfileScreen from "../screens/ProfileScreen";
+import LoginScreen from "../screens/LoginScreen";
+import SignupScreen from "../screens/SignupScreen";
 
 // Hooks
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from "../hooks/useAuth";
 
 // Constants
-import * as Colors from '../constants/Colors';
+import * as Colors from "../constants/Colors";
 
 // Create navigators
 const Stack = createStackNavigator();
@@ -35,8 +35,8 @@ const TabBarCustomButton = ({ children, onPress }: any) => {
     <TouchableOpacity
       style={{
         top: -20,
-        justifyContent: 'center',
-        alignItems: 'center',
+        justifyContent: "center",
+        alignItems: "center",
       }}
       onPress={onPress}
     >
@@ -82,27 +82,27 @@ const MainTabNavigator = () => {
         headerShown: false,
         tabBarIcon: ({ focused, color, size }) => {
           let iconName;
-          
-          if (route.name === 'Home') {
-            iconName = focused ? 'home' : 'home-outline';
-          } else if (route.name === 'Properties') {
-            iconName = focused ? 'business' : 'business-outline';
-          } else if (route.name === 'Add') {
-            iconName = 'add';
+
+          if (route.name === "Home") {
+            iconName = focused ? "home" : "home-outline";
+          } else if (route.name === "Properties") {
+            iconName = focused ? "business" : "business-outline";
+          } else if (route.name === "Add") {
+            iconName = "add";
             return <Ionicons name={iconName} size={30} color={Colors.white} />;
-          } else if (route.name === 'Reports') {
-            iconName = focused ? 'document-text' : 'document-text-outline';
-          } else if (route.name === 'Profile') {
-            iconName = focused ? 'person' : 'person-outline';
+          } else if (route.name === "Reports") {
+            iconName = focused ? "document-text" : "document-text-outline";
+          } else if (route.name === "Profile") {
+            iconName = focused ? "person" : "person-outline";
           }
-          
+
           return <Ionicons name={iconName} size={size} color={color} />;
         },
         tabBarActiveTintColor: Colors.primary,
         tabBarInactiveTintColor: Colors.textLight,
         tabBarStyle: {
           height: 70,
-          paddingBottom: Platform.OS === 'ios' ? 20 : 10,
+          paddingBottom: Platform.OS === "ios" ? 20 : 10,
           backgroundColor: Colors.white,
           borderTopWidth: 1,
           borderTopColor: Colors.border,
@@ -257,14 +257,14 @@ const ProfileNavigator = () => {
 // Root Navigator
 const AppNavigator = () => {
   const { user, isLoading } = useAuth();
-  
+
   if (isLoading) {
     return (
       <View
         style={{
           flex: 1,
-          justifyContent: 'center',
-          alignItems: 'center',
+          justifyContent: "center",
+          alignItems: "center",
           backgroundColor: Colors.background,
         }}
       >
@@ -272,7 +272,7 @@ const AppNavigator = () => {
       </View>
     );
   }
-  
+
   return (
     <NavigationContainer>
       <Stack.Navigator

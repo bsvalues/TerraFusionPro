@@ -3,14 +3,16 @@
 ## 🎯 Quick Start Deployment
 
 ### Prerequisites Checklist
+
 - [ ] Docker & Docker Compose installed
-- [ ] Node.js 20+ and npm installed  
+- [ ] Node.js 20+ and npm installed
 - [ ] Python 3.11+ installed
 - [ ] PostgreSQL 15+ accessible
 - [ ] API keys for AI services ready
 - [ ] SSL certificates prepared (for HTTPS)
 
 ### 1. Initial Setup (5 minutes)
+
 ```bash
 # Clone and enter directory
 git clone <repository-url>
@@ -25,7 +27,9 @@ chmod +x devops-kit/scripts/deploy.sh
 ```
 
 ### 2. Configure Environment Variables
+
 Edit `.env` file with your actual values:
+
 ```bash
 # Required for basic operation
 DATABASE_URL=postgresql://user:password@database:5432/terrafusion
@@ -38,6 +42,7 @@ ANTHROPIC_API_KEY=sk-ant-your_anthropic_key_here
 ```
 
 ### 3. Deploy to Production (10 minutes)
+
 ```bash
 # Run automated deployment
 ./devops-kit/scripts/deploy.sh production
@@ -47,6 +52,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 ```
 
 ### 4. Verify Deployment
+
 ```bash
 # Check all services are running
 docker-compose -f docker-compose.prod.yml ps
@@ -60,6 +66,7 @@ curl http://localhost/ai/health
 ## 🏗️ Manual Deployment Steps
 
 ### Database Setup
+
 ```bash
 # Start PostgreSQL
 docker-compose -f docker-compose.prod.yml up -d database
@@ -75,6 +82,7 @@ docker-compose -f docker-compose.prod.yml run --rm backend npm run db:seed
 ```
 
 ### Service Startup Order
+
 ```bash
 # 1. Infrastructure services
 docker-compose -f docker-compose.prod.yml up -d database redis
@@ -96,19 +104,21 @@ docker-compose -f docker-compose.prod.yml up -d prometheus grafana
 
 After successful deployment, access these URLs:
 
-| Service | URL | Purpose |
-|---------|-----|---------|
-| **Frontend** | http://localhost | Main application interface |
-| **API** | http://localhost/api | REST API endpoints |
-| **AI Engine** | http://localhost/ai | AI valuation services |
-| **WebSocket** | ws://localhost/basic-ws | Real-time communication |
-| **Grafana** | http://localhost:3000 | Monitoring dashboard |
-| **Prometheus** | http://localhost:9090 | Metrics collection |
+| Service        | URL                     | Purpose                    |
+| -------------- | ----------------------- | -------------------------- |
+| **Frontend**   | http://localhost        | Main application interface |
+| **API**        | http://localhost/api    | REST API endpoints         |
+| **AI Engine**  | http://localhost/ai     | AI valuation services      |
+| **WebSocket**  | ws://localhost/basic-ws | Real-time communication    |
+| **Grafana**    | http://localhost:3000   | Monitoring dashboard       |
+| **Prometheus** | http://localhost:9090   | Metrics collection         |
 
 ## 🔧 Configuration Details
 
 ### Feature Flags
+
 Enable/disable features in `.env`:
+
 ```bash
 FEATURE_AI_VALUATIONS=true
 FEATURE_MLS_INTEGRATION=false
@@ -118,6 +128,7 @@ FEATURE_MOBILE_SYNC=false
 ```
 
 ### Security Configuration
+
 ```bash
 # JWT Configuration
 JWT_SECRET=your_256_bit_secret
@@ -132,6 +143,7 @@ SSL_KEY_PATH=/etc/ssl/certs/private.key
 ```
 
 ### Performance Tuning
+
 ```bash
 # Database Connection Pool
 DB_POOL_MIN=2
@@ -149,6 +161,7 @@ RATE_LIMIT_MAX=100
 ## 📊 Monitoring & Health Checks
 
 ### Built-in Health Endpoints
+
 ```bash
 # Application health
 curl http://localhost/health
@@ -156,7 +169,7 @@ curl http://localhost/health
 # API health
 curl http://localhost/api/health
 
-# AI engine health  
+# AI engine health
 curl http://localhost/ai/health
 
 # Database health
@@ -164,9 +177,11 @@ docker-compose -f docker-compose.prod.yml exec database pg_isready
 ```
 
 ### Monitoring Setup
+
 The platform includes Prometheus + Grafana for monitoring:
 
 1. **Prometheus** (http://localhost:9090)
+
    - Metrics collection
    - Alert rule management
    - Query interface
@@ -177,6 +192,7 @@ The platform includes Prometheus + Grafana for monitoring:
    - Performance analytics
 
 ### Log Management
+
 ```bash
 # View all service logs
 docker-compose -f docker-compose.prod.yml logs
@@ -192,6 +208,7 @@ docker-compose -f docker-compose.prod.yml logs -f
 ## 🛡️ Security Hardening
 
 ### SSL/TLS Setup
+
 ```bash
 # Generate self-signed certificate (development)
 openssl req -x509 -newkey rsa:4096 -keyout ssl/private.key -out ssl/certificate.crt -days 365 -nodes
@@ -201,6 +218,7 @@ certbot certonly --standalone -d yourdomain.com
 ```
 
 ### Firewall Configuration
+
 ```bash
 # Allow only necessary ports
 ufw allow 22    # SSH
@@ -210,6 +228,7 @@ ufw enable
 ```
 
 ### Database Security
+
 ```bash
 # Use strong passwords
 POSTGRES_PASSWORD=$(openssl rand -base64 32)
@@ -221,6 +240,7 @@ PGSSLMODE=require
 ## 🔄 Backup & Recovery
 
 ### Automated Backups
+
 ```bash
 # Enable backup in environment
 BACKUP_ENABLED=true
@@ -229,6 +249,7 @@ BACKUP_RETENTION_DAYS=30
 ```
 
 ### Manual Backup
+
 ```bash
 # Database backup
 docker-compose -f docker-compose.prod.yml exec database pg_dump -U terrafusion terrafusion > backup_$(date +%Y%m%d).sql
@@ -241,6 +262,7 @@ cp .env .env.backup
 ```
 
 ### Recovery Procedure
+
 ```bash
 # Restore database
 docker-compose -f docker-compose.prod.yml exec -T database psql -U terrafusion terrafusion < backup.sql
@@ -252,6 +274,7 @@ tar -xzf uploads_backup.tar.gz
 ## 🚀 Scaling Considerations
 
 ### Horizontal Scaling
+
 ```bash
 # Scale backend services
 docker-compose -f docker-compose.prod.yml up -d --scale backend=3
@@ -261,6 +284,7 @@ docker-compose -f docker-compose.prod.yml up -d --scale backend=3
 ```
 
 ### Database Scaling
+
 ```bash
 # Read replicas for database
 # Configure master-slave replication
@@ -268,6 +292,7 @@ docker-compose -f docker-compose.prod.yml up -d --scale backend=3
 ```
 
 ### Caching Strategy
+
 ```bash
 # Redis clustering
 # CDN for static assets
@@ -279,6 +304,7 @@ docker-compose -f docker-compose.prod.yml up -d --scale backend=3
 ### Common Issues
 
 **1. Database Connection Failed**
+
 ```bash
 # Check database status
 docker-compose -f docker-compose.prod.yml ps database
@@ -288,6 +314,7 @@ docker-compose -f docker-compose.prod.yml exec backend npm run db:check
 ```
 
 **2. AI Service Unavailable**
+
 ```bash
 # Check API keys
 echo $OPENAI_API_KEY
@@ -297,6 +324,7 @@ docker-compose -f docker-compose.prod.yml restart ai-engine
 ```
 
 **3. WebSocket Connection Issues**
+
 ```bash
 # Check nginx configuration
 docker-compose -f docker-compose.prod.yml exec nginx nginx -t
@@ -306,6 +334,7 @@ curl -H "Upgrade: websocket" -H "Connection: Upgrade" http://localhost/basic-ws
 ```
 
 ### Getting Help
+
 - Check logs: `docker-compose -f docker-compose.prod.yml logs`
 - Review configuration: `cat .env`
 - Test connectivity: Run health checks

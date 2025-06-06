@@ -39,14 +39,12 @@ The system uses a specialized approach with multiple AI services:
 class PhotoEnhancementService {
   // Enhance property photo using AI
   public async enhancePropertyPhoto(
-    base64Image: string, 
+    base64Image: string,
     options: PhotoEnhancementOptions = {}
   ): Promise<EnhancedPhotoResult>;
 
   // Get enhancement recommendations based on image analysis
-  public async getRecommendedEnhancements(
-    base64Image: string
-  ): Promise<PhotoEnhancementOptions>;
+  public async getRecommendedEnhancements(base64Image: string): Promise<PhotoEnhancementOptions>;
 
   // Analyze property photo to detect features
   private async analyzePhotoWithAnthropic(

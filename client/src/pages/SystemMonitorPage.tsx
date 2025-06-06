@@ -1,14 +1,14 @@
-import React, { useEffect, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Button } from '@/components/ui/button';
-import { ConnectionStatus } from '@/components/ui/connection-status';
-import { AlertCircle, CheckCircle2, Database, RefreshCw, Server, Zap, Brain } from 'lucide-react';
-import { AppraisalModelInsights } from '@/components/monitoring/AppraisalModelInsights';
-import { useWebSocket } from '@/contexts/WebSocketContext';
+import React, { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Button } from "@/components/ui/button";
+import { ConnectionStatus } from "@/components/ui/connection-status";
+import { AlertCircle, CheckCircle2, Database, RefreshCw, Server, Zap, Brain } from "lucide-react";
+import { AppraisalModelInsights } from "@/components/monitoring/AppraisalModelInsights";
+import { useWebSocket } from "@/contexts/WebSocketContext";
 
 interface SystemHealth {
   status: string;
@@ -58,23 +58,23 @@ interface SystemHealth {
 }
 
 export default function SystemMonitorPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const { connected, connectionMode } = useWebSocket();
   const [refreshInterval, setRefreshInterval] = useState(10000); // 10 seconds
 
   // Fetch the system health data
   const { data, isLoading, isError, error, refetch, dataUpdatedAt } = useQuery<SystemHealth>({
-    queryKey: ['/health/details'],
-    refetchInterval: refreshInterval
+    queryKey: ["/health/details"],
+    refetchInterval: refreshInterval,
   });
 
   // Format bytes to human-readable format
   const formatBytes = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes';
+    if (bytes === 0) return "0 Bytes";
     const k = 1024;
-    const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+    const sizes = ["Bytes", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   // Format date to a readable format
@@ -89,18 +89,18 @@ export default function SystemMonitorPage() {
     const hours = Math.floor((seconds % 86400) / 3600);
     const minutes = Math.floor((seconds % 3600) / 60);
     const remainingSeconds = Math.floor(seconds % 60);
-    
+
     return `${days}d ${hours}h ${minutes}m ${remainingSeconds}s`;
   };
 
   // Get status badge for a component
   const getStatusBadge = (status: string) => {
     switch (status) {
-      case 'healthy':
+      case "healthy":
         return <Badge className="bg-green-500">Healthy</Badge>;
-      case 'degraded':
+      case "degraded":
         return <Badge className="bg-yellow-500">Degraded</Badge>;
-      case 'unhealthy':
+      case "unhealthy":
         return <Badge className="bg-red-500">Unhealthy</Badge>;
       default:
         return <Badge className="bg-gray-500">{status}</Badge>;
@@ -110,11 +110,11 @@ export default function SystemMonitorPage() {
   // Get status icon for a component
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'healthy':
+      case "healthy":
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
-      case 'degraded':
+      case "degraded":
         return <AlertCircle className="h-5 w-5 text-yellow-500" />;
-      case 'unhealthy':
+      case "unhealthy":
         return <AlertCircle className="h-5 w-5 text-red-500" />;
       default:
         return <AlertCircle className="h-5 w-5 text-gray-500" />;
@@ -128,14 +128,14 @@ export default function SystemMonitorPage() {
           <h1 className="text-3xl font-bold">System Monitor</h1>
           <div className="flex gap-2 items-center">
             <span className="text-sm text-gray-500">
-              Last updated: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : 'Never'}
+              Last updated: {dataUpdatedAt ? new Date(dataUpdatedAt).toLocaleTimeString() : "Never"}
             </span>
             <Button onClick={() => refetch()} variant="outline" size="icon">
               <RefreshCw className="h-4 w-4" />
             </Button>
             <div className="flex items-center gap-2">
               <span className="text-sm text-gray-500">Auto-refresh:</span>
-              <select 
+              <select
                 className="text-sm bg-gray-100 border border-gray-200 rounded px-2 py-1"
                 value={refreshInterval}
                 onChange={(e) => setRefreshInterval(Number(e.target.value))}
@@ -164,9 +164,13 @@ export default function SystemMonitorPage() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-2">
                 <AlertCircle className="h-5 w-5 text-red-500" />
-                <h3 className="text-lg font-medium text-red-700">Error loading system health data</h3>
+                <h3 className="text-lg font-medium text-red-700">
+                  Error loading system health data
+                </h3>
               </div>
-              <p className="mt-2 text-red-600">{error instanceof Error ? error.message : 'Unknown error'}</p>
+              <p className="mt-2 text-red-600">
+                {error instanceof Error ? error.message : "Unknown error"}
+              </p>
               <Button onClick={() => refetch()} className="mt-4" variant="outline">
                 Retry
               </Button>
@@ -214,11 +218,11 @@ export default function SystemMonitorPage() {
                         <span className="font-medium">{formatDate(data.timestamp)}</span>
                       </div>
                       <div className="mt-2 pt-2 border-t">
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
-                          className="text-xs p-0 h-auto" 
-                          onClick={() => setActiveTab('ai-models')}
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs p-0 h-auto"
+                          onClick={() => setActiveTab("ai-models")}
                         >
                           <Brain className="h-3.5 w-3.5 mr-1 text-primary" />
                           View AI Model Status
@@ -278,16 +282,22 @@ export default function SystemMonitorPage() {
                         <span>Status:</span>
                         <div className="flex items-center gap-1">
                           {getStatusIcon(data.components.webSocketServer.status)}
-                          <span className="font-medium">{data.components.webSocketServer.status}</span>
+                          <span className="font-medium">
+                            {data.components.webSocketServer.status}
+                          </span>
                         </div>
                       </div>
                       <div className="flex justify-between items-center">
                         <span>Active Connections:</span>
-                        <span className="font-medium">{data.components.webSocketServer.connections}</span>
+                        <span className="font-medium">
+                          {data.components.webSocketServer.connections}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center">
                         <span>Listening:</span>
-                        <span className="font-medium">{data.components.webSocketServer.listening ? 'Yes' : 'No'}</span>
+                        <span className="font-medium">
+                          {data.components.webSocketServer.listening ? "Yes" : "No"}
+                        </span>
                       </div>
                       <div className="flex justify-between items-center mt-2 pt-2 border-t">
                         <span>Client Connection:</span>
@@ -312,24 +322,35 @@ export default function SystemMonitorPage() {
                   <div className="flex flex-col gap-4">
                     <div>
                       <div className="flex justify-between mb-1">
-                        <span className="text-sm">Memory Usage: {data.metrics.memory.usagePercent}%</span>
                         <span className="text-sm">
-                          {formatBytes(data.metrics.memory.used)} / {formatBytes(data.metrics.memory.total)}
+                          Memory Usage: {data.metrics.memory.usagePercent}%
+                        </span>
+                        <span className="text-sm">
+                          {formatBytes(data.metrics.memory.used)} /{" "}
+                          {formatBytes(data.metrics.memory.total)}
                         </span>
                       </div>
-                      <Progress value={parseFloat(data.metrics.memory.usagePercent)} className="h-2" />
+                      <Progress
+                        value={parseFloat(data.metrics.memory.usagePercent)}
+                        className="h-2"
+                      />
                     </div>
-                    
+
                     <div>
                       <div className="flex justify-between mb-1">
                         <span className="text-sm">Heap Usage</span>
                         <span className="text-sm">
-                          {formatBytes(data.metrics.process.memoryUsage.heapUsed)} / {formatBytes(data.metrics.process.memoryUsage.heapTotal)}
+                          {formatBytes(data.metrics.process.memoryUsage.heapUsed)} /{" "}
+                          {formatBytes(data.metrics.process.memoryUsage.heapTotal)}
                         </span>
                       </div>
-                      <Progress 
-                        value={(data.metrics.process.memoryUsage.heapUsed / data.metrics.process.memoryUsage.heapTotal) * 100} 
-                        className="h-2" 
+                      <Progress
+                        value={
+                          (data.metrics.process.memoryUsage.heapUsed /
+                            data.metrics.process.memoryUsage.heapTotal) *
+                          100
+                        }
+                        className="h-2"
                       />
                     </div>
                   </div>
@@ -350,35 +371,49 @@ export default function SystemMonitorPage() {
                       <div className="space-y-4">
                         <div>
                           <div className="flex justify-between mb-1">
-                            <span className="text-sm">Memory Usage: {data.metrics.memory.usagePercent}%</span>
                             <span className="text-sm">
-                              {formatBytes(data.metrics.memory.used)} / {formatBytes(data.metrics.memory.total)}
+                              Memory Usage: {data.metrics.memory.usagePercent}%
+                            </span>
+                            <span className="text-sm">
+                              {formatBytes(data.metrics.memory.used)} /{" "}
+                              {formatBytes(data.metrics.memory.total)}
                             </span>
                           </div>
-                          <Progress value={parseFloat(data.metrics.memory.usagePercent)} className="h-2" />
+                          <Progress
+                            value={parseFloat(data.metrics.memory.usagePercent)}
+                            className="h-2"
+                          />
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mt-4">
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Total Memory</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.memory.total)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.memory.total)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Free Memory</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.memory.free)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.memory.free)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Used Memory</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.memory.used)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.memory.used)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Usage Percent</div>
-                            <div className="text-lg font-medium">{data.metrics.memory.usagePercent}%</div>
+                            <div className="text-lg font-medium">
+                              {data.metrics.memory.usagePercent}%
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-lg font-medium mb-3">Process Memory</h3>
                       <div className="space-y-4">
@@ -386,31 +421,44 @@ export default function SystemMonitorPage() {
                           <div className="flex justify-between mb-1">
                             <span className="text-sm">Heap Usage</span>
                             <span className="text-sm">
-                              {formatBytes(data.metrics.process.memoryUsage.heapUsed)} / {formatBytes(data.metrics.process.memoryUsage.heapTotal)}
+                              {formatBytes(data.metrics.process.memoryUsage.heapUsed)} /{" "}
+                              {formatBytes(data.metrics.process.memoryUsage.heapTotal)}
                             </span>
                           </div>
-                          <Progress 
-                            value={(data.metrics.process.memoryUsage.heapUsed / data.metrics.process.memoryUsage.heapTotal) * 100} 
-                            className="h-2" 
+                          <Progress
+                            value={
+                              (data.metrics.process.memoryUsage.heapUsed /
+                                data.metrics.process.memoryUsage.heapTotal) *
+                              100
+                            }
+                            className="h-2"
                           />
                         </div>
-                        
+
                         <div className="grid grid-cols-2 gap-4 mt-4">
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">RSS</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.process.memoryUsage.rss)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.process.memoryUsage.rss)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Heap Total</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.process.memoryUsage.heapTotal)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.process.memoryUsage.heapTotal)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Heap Used</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.process.memoryUsage.heapUsed)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.process.memoryUsage.heapUsed)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">External</div>
-                            <div className="text-lg font-medium">{formatBytes(data.metrics.process.memoryUsage.external)}</div>
+                            <div className="text-lg font-medium">
+                              {formatBytes(data.metrics.process.memoryUsage.external)}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -438,20 +486,26 @@ export default function SystemMonitorPage() {
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Load Average (1m)</div>
-                            <div className="text-lg font-medium">{data.metrics.cpu.loadAvg[0].toFixed(2)}</div>
+                            <div className="text-lg font-medium">
+                              {data.metrics.cpu.loadAvg[0].toFixed(2)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Load Average (5m)</div>
-                            <div className="text-lg font-medium">{data.metrics.cpu.loadAvg[1].toFixed(2)}</div>
+                            <div className="text-lg font-medium">
+                              {data.metrics.cpu.loadAvg[1].toFixed(2)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Load Average (15m)</div>
-                            <div className="text-lg font-medium">{data.metrics.cpu.loadAvg[2].toFixed(2)}</div>
+                            <div className="text-lg font-medium">
+                              {data.metrics.cpu.loadAvg[2].toFixed(2)}
+                            </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-lg font-medium mb-3">Process Information</h3>
                       <div className="space-y-4">
@@ -462,15 +516,21 @@ export default function SystemMonitorPage() {
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Uptime</div>
-                            <div className="text-lg font-medium">{formatUptime(data.metrics.uptime)}</div>
+                            <div className="text-lg font-medium">
+                              {formatUptime(data.metrics.uptime)}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Node.js Version</div>
-                            <div className="text-lg font-medium">{data.metrics.process.nodeVersion}</div>
+                            <div className="text-lg font-medium">
+                              {data.metrics.process.nodeVersion}
+                            </div>
                           </div>
                           <div className="bg-gray-50 p-3 rounded">
                             <div className="text-sm text-gray-500">Network Interfaces</div>
-                            <div className="text-lg font-medium">{data.metrics.network.interfaces}</div>
+                            <div className="text-lg font-medium">
+                              {data.metrics.network.interfaces}
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -497,16 +557,24 @@ export default function SystemMonitorPage() {
                       <div className="bg-gray-50 p-4 rounded border border-gray-200">
                         <div className="flex items-center gap-2 mb-3">
                           {getStatusIcon(data.components.database.status)}
-                          <span className="font-medium">Status: {data.components.database.status}</span>
+                          <span className="font-medium">
+                            Status: {data.components.database.status}
+                          </span>
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span>Response Time:</span>
-                            <span className="font-medium">{data.components.database.responseTime}</span>
+                            <span className="font-medium">
+                              {data.components.database.responseTime}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Last Query:</span>
-                            <span className="font-medium">{data.components.database.timestamp ? formatDate(data.components.database.timestamp) : 'N/A'}</span>
+                            <span className="font-medium">
+                              {data.components.database.timestamp
+                                ? formatDate(data.components.database.timestamp)
+                                : "N/A"}
+                            </span>
                           </div>
                           {data.components.database.error && (
                             <div className="mt-3 text-red-500 text-sm bg-red-50 p-2 rounded">
@@ -517,28 +585,34 @@ export default function SystemMonitorPage() {
                         </div>
                       </div>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-lg font-medium mb-3">WebSocket Connections</h3>
                       <div className="bg-gray-50 p-4 rounded border border-gray-200">
                         <div className="flex items-center gap-2 mb-3">
                           {getStatusIcon(data.components.webSocketServer.status)}
-                          <span className="font-medium">Status: {data.components.webSocketServer.status}</span>
+                          <span className="font-medium">
+                            Status: {data.components.webSocketServer.status}
+                          </span>
                         </div>
                         <div className="space-y-2">
                           <div className="flex justify-between">
                             <span>Active Connections:</span>
-                            <span className="font-medium">{data.components.webSocketServer.connections}</span>
+                            <span className="font-medium">
+                              {data.components.webSocketServer.connections}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Server Listening:</span>
-                            <span className="font-medium">{data.components.webSocketServer.listening ? 'Yes' : 'No'}</span>
+                            <span className="font-medium">
+                              {data.components.webSocketServer.listening ? "Yes" : "No"}
+                            </span>
                           </div>
                           <div className="flex justify-between">
                             <span>Current Client Status:</span>
                             <div className="font-medium flex items-center gap-1">
-                              <div 
-                                className={`h-2 w-2 rounded-full ${connected ? 'bg-green-500' : 'bg-red-500'}`}
+                              <div
+                                className={`h-2 w-2 rounded-full ${connected ? "bg-green-500" : "bg-red-500"}`}
                               ></div>
                               {connectionMode}
                             </div>

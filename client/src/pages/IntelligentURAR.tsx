@@ -1,52 +1,58 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Brain, 
-  Save, 
-  CheckCircle, 
-  AlertCircle, 
-  MapPin, 
-  Camera, 
-  FileText, 
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Brain,
+  Save,
+  CheckCircle,
+  AlertCircle,
+  MapPin,
+  Camera,
+  FileText,
   Calculator,
   Lightbulb,
   Eye,
   Clock,
-  Users
-} from 'lucide-react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+  Users,
+} from "lucide-react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 // URAR Form Schema
 const urarSchema = z.object({
   // Subject Property Information
   subjectProperty: z.object({
-    address: z.string().min(1, 'Property address is required'),
-    city: z.string().min(1, 'City is required'),
-    state: z.string().min(2, 'State is required'),
-    zipCode: z.string().min(5, 'Valid ZIP code is required'),
-    county: z.string().min(1, 'County is required'),
+    address: z.string().min(1, "Property address is required"),
+    city: z.string().min(1, "City is required"),
+    state: z.string().min(2, "State is required"),
+    zipCode: z.string().min(5, "Valid ZIP code is required"),
+    county: z.string().min(1, "County is required"),
     legalDescription: z.string().optional(),
     assessorParcelNumber: z.string().optional(),
     taxYear: z.string().optional(),
     realEstateTaxes: z.string().optional(),
   }),
-  
+
   // Property Rights & Occupancy
   propertyRights: z.object({
-    propertyRights: z.enum(['fee_simple', 'leasehold', 'other']),
-    occupancy: z.enum(['owner', 'tenant', 'vacant']),
-    propertyType: z.enum(['single_family', 'condo', 'townhouse', 'coop', 'pud']),
+    propertyRights: z.enum(["fee_simple", "leasehold", "other"]),
+    occupancy: z.enum(["owner", "tenant", "vacant"]),
+    propertyType: z.enum(["single_family", "condo", "townhouse", "coop", "pud"]),
   }),
 
   // Site Data
@@ -65,7 +71,7 @@ const urarSchema = z.object({
     generalDescription: z.object({
       unitsOneFamily: z.string().optional(),
       units2To4Family: z.string().optional(),
-      existingProposed: z.enum(['existing', 'proposed', 'under_construction']),
+      existingProposed: z.enum(["existing", "proposed", "under_construction"]),
       designStyle: z.string().optional(),
       yearBuilt: z.string().optional(),
       effectiveAge: z.string().optional(),
@@ -83,11 +89,13 @@ const urarSchema = z.object({
       crawlSpace: z.boolean().optional(),
       fullBasement: z.boolean().optional(),
       partialBasement: z.boolean().optional(),
-      basement: z.object({
-        area: z.string().optional(),
-        finished: z.string().optional(),
-        unfinished: z.string().optional(),
-      }).optional(),
+      basement: z
+        .object({
+          area: z.string().optional(),
+          finished: z.string().optional(),
+          unfinished: z.string().optional(),
+        })
+        .optional(),
     }),
     insulation: z.object({
       roof: z.string().optional(),
@@ -140,8 +148,8 @@ const urarSchema = z.object({
 
   // Analysis Fields
   analysis: z.object({
-    overallCondition: z.enum(['excellent', 'good', 'average', 'fair', 'poor']),
-    overallQuality: z.enum(['excellent', 'good', 'average', 'fair', 'poor']),
+    overallCondition: z.enum(["excellent", "good", "average", "fair", "poor"]),
+    overallQuality: z.enum(["excellent", "good", "average", "fair", "poor"]),
     additionalFeatures: z.string().optional(),
     functionalUtility: z.string().optional(),
     heatingCoolingAdequacy: z.string().optional(),
@@ -159,47 +167,47 @@ interface AIFormSuggestion {
 }
 
 const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
-  const [currentSection, setCurrentSection] = useState('property');
+  const [currentSection, setCurrentSection] = useState("property");
   const [completionPercentage, setCompletionPercentage] = useState(0);
   const [aiSuggestions, setAiSuggestions] = useState<AIFormSuggestion[]>([]);
   const [showAiAssistant, setShowAiAssistant] = useState(true);
-  
+
   const queryClient = useQueryClient();
-  
+
   const form = useForm<UrarFormData>({
     resolver: zodResolver(urarSchema),
-    mode: 'onChange',
+    mode: "onChange",
   });
 
   // Auto-save functionality
   const { mutate: saveForm } = useMutation({
     mutationFn: async (data: Partial<UrarFormData>) => {
-      const response = await fetch('/api/forms/urar/save', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/forms/urar/save", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ propertyId, formData: data }),
       });
-      if (!response.ok) throw new Error('Failed to save form');
+      if (!response.ok) throw new Error("Failed to save form");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/forms/urar', propertyId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/forms/urar", propertyId] });
     },
   });
 
   // Get AI suggestions for current field
   const { mutate: getAiSuggestions } = useMutation({
     mutationFn: async (fieldName: string) => {
-      const response = await fetch('/api/ai/form-suggestions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          propertyId, 
-          fieldName, 
-          currentData: form.getValues() 
+      const response = await fetch("/api/ai/form-suggestions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          propertyId,
+          fieldName,
+          currentData: form.getValues(),
         }),
       });
-      if (!response.ok) throw new Error('Failed to get AI suggestions');
+      if (!response.ok) throw new Error("Failed to get AI suggestions");
       return response.json();
     },
     onSuccess: (suggestions) => {
@@ -218,7 +226,7 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
         data.subjectProperty?.zipCode,
         data.subjectProperty?.county,
       ].filter(Boolean);
-      
+
       const percentage = Math.round((requiredFields.length / 5) * 100);
       setCompletionPercentage(percentage);
 
@@ -240,13 +248,13 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
       saveForm(data as any); // Cast to any for now to avoid TypeScript strict checking
       // Navigate to next step or show completion message
     } catch (error) {
-      console.error('Failed to submit form:', error);
+      console.error("Failed to submit form:", error);
     }
   };
 
   const applyAiSuggestion = (suggestion: AIFormSuggestion) => {
     form.setValue(suggestion.field as any, suggestion.suggestion);
-    setAiSuggestions(prev => prev.filter(s => s.field !== suggestion.field));
+    setAiSuggestions((prev) => prev.filter((s) => s.field !== suggestion.field));
   };
 
   return (
@@ -305,11 +313,11 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
                           <Label htmlFor="address">Property Address *</Label>
-                          <Input 
-                            id="address" 
-                            {...form.register('subjectProperty.address')}
+                          <Input
+                            id="address"
+                            {...form.register("subjectProperty.address")}
                             placeholder="Enter full property address"
-                            onFocus={() => getAiSuggestions('subjectProperty.address')}
+                            onFocus={() => getAiSuggestions("subjectProperty.address")}
                           />
                           {form.formState.errors.subjectProperty?.address && (
                             <p className="text-sm text-red-600 mt-1">
@@ -319,51 +327,51 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                         </div>
                         <div>
                           <Label htmlFor="city">City *</Label>
-                          <Input 
-                            id="city" 
-                            {...form.register('subjectProperty.city')}
+                          <Input
+                            id="city"
+                            {...form.register("subjectProperty.city")}
                             placeholder="City"
                           />
                         </div>
                         <div>
                           <Label htmlFor="state">State *</Label>
-                          <Input 
-                            id="state" 
-                            {...form.register('subjectProperty.state')}
+                          <Input
+                            id="state"
+                            {...form.register("subjectProperty.state")}
                             placeholder="State"
                           />
                         </div>
                         <div>
                           <Label htmlFor="zipCode">ZIP Code *</Label>
-                          <Input 
-                            id="zipCode" 
-                            {...form.register('subjectProperty.zipCode')}
+                          <Input
+                            id="zipCode"
+                            {...form.register("subjectProperty.zipCode")}
                             placeholder="ZIP Code"
                           />
                         </div>
                         <div>
                           <Label htmlFor="county">County *</Label>
-                          <Input 
-                            id="county" 
-                            {...form.register('subjectProperty.county')}
+                          <Input
+                            id="county"
+                            {...form.register("subjectProperty.county")}
                             placeholder="County"
                           />
                         </div>
                         <div>
                           <Label htmlFor="assessorParcelNumber">Assessor's Parcel Number</Label>
-                          <Input 
-                            id="assessorParcelNumber" 
-                            {...form.register('subjectProperty.assessorParcelNumber')}
+                          <Input
+                            id="assessorParcelNumber"
+                            {...form.register("subjectProperty.assessorParcelNumber")}
                             placeholder="APN"
                           />
                         </div>
                       </div>
-                      
+
                       <div>
                         <Label htmlFor="legalDescription">Legal Description</Label>
-                        <Textarea 
-                          id="legalDescription" 
-                          {...form.register('subjectProperty.legalDescription')}
+                        <Textarea
+                          id="legalDescription"
+                          {...form.register("subjectProperty.legalDescription")}
                           placeholder="Enter legal description"
                           rows={3}
                         />
@@ -375,7 +383,11 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                           <div>
                             <Label htmlFor="propertyRights">Property Rights</Label>
-                            <Select onValueChange={(value) => form.setValue('propertyRights.propertyRights', value as any)}>
+                            <Select
+                              onValueChange={(value) =>
+                                form.setValue("propertyRights.propertyRights", value as any)
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select property rights" />
                               </SelectTrigger>
@@ -388,7 +400,11 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                           </div>
                           <div>
                             <Label htmlFor="occupancy">Occupancy</Label>
-                            <Select onValueChange={(value) => form.setValue('propertyRights.occupancy', value as any)}>
+                            <Select
+                              onValueChange={(value) =>
+                                form.setValue("propertyRights.occupancy", value as any)
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select occupancy" />
                               </SelectTrigger>
@@ -401,7 +417,11 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                           </div>
                           <div>
                             <Label htmlFor="propertyType">Property Type</Label>
-                            <Select onValueChange={(value) => form.setValue('propertyRights.propertyType', value as any)}>
+                            <Select
+                              onValueChange={(value) =>
+                                form.setValue("propertyRights.propertyType", value as any)
+                              }
+                            >
                               <SelectTrigger>
                                 <SelectValue placeholder="Select property type" />
                               </SelectTrigger>
@@ -438,7 +458,9 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                       <CardTitle>Improvements</CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <p className="text-gray-600">Improvements section will be implemented here...</p>
+                      <p className="text-gray-600">
+                        Improvements section will be implemented here...
+                      </p>
                     </CardContent>
                   </Card>
                 </TabsContent>
@@ -491,9 +513,9 @@ const IntelligentURAR: React.FC<{ propertyId?: number }> = ({ propertyId }) => {
                         </div>
                         <p className="text-sm text-gray-700 mb-2">{suggestion.suggestion}</p>
                         <p className="text-xs text-gray-500 mb-3">{suggestion.reasoning}</p>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
+                        <Button
+                          size="sm"
+                          variant="outline"
                           onClick={() => applyAiSuggestion(suggestion)}
                           className="w-full"
                         >

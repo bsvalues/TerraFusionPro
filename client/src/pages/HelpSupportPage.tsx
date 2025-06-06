@@ -1,25 +1,44 @@
-import React, { useState } from 'react';
-import { PageLayout } from '@/components/layout/page-layout';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Textarea } from '@/components/ui/textarea';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from '@/components/ui/sheet';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useToast } from '@/hooks/use-toast';
-import { 
-  Search, 
-  HelpCircle, 
-  Book, 
-  VideoIcon, 
-  Headphones, 
-  MessageSquare, 
-  Mail, 
-  FileText, 
-  Phone, 
-  ArrowUpRight, 
+import React, { useState } from "react";
+import { PageLayout } from "@/components/layout/page-layout";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useToast } from "@/hooks/use-toast";
+import {
+  Search,
+  HelpCircle,
+  Book,
+  VideoIcon,
+  Headphones,
+  MessageSquare,
+  Mail,
+  FileText,
+  Phone,
+  ArrowUpRight,
   Lightbulb,
   ArrowRight,
   ExternalLink,
@@ -27,42 +46,50 @@ import {
   ThumbsDown,
   SendIcon,
   CirclePlay,
-  BookOpenCheck
-} from 'lucide-react';
+  BookOpenCheck,
+} from "lucide-react";
 
 // FAQ data
 const faqs = [
   {
     question: "How do I create a new property appraisal?",
-    answer: "You can create a new property appraisal by clicking the 'New Report' button on the dashboard, or by selecting 'New Order' from the sidebar menu. You can also import appraisal orders from email by using the 'Email Order' feature."
+    answer:
+      "You can create a new property appraisal by clicking the 'New Report' button on the dashboard, or by selecting 'New Order' from the sidebar menu. You can also import appraisal orders from email by using the 'Email Order' feature.",
   },
   {
     question: "How do I add comparable properties to my report?",
-    answer: "Navigate to the 'Comparables' page from the sidebar or through the workflow. Click on 'Add Comparable' and you can either manually enter property details or search for properties from connected MLS databases. You can also import comparables from spreadsheets."
+    answer:
+      "Navigate to the 'Comparables' page from the sidebar or through the workflow. Click on 'Add Comparable' and you can either manually enter property details or search for properties from connected MLS databases. You can also import comparables from spreadsheets.",
   },
   {
     question: "Can I use TerraFusion offline?",
-    answer: "Yes, TerraFusion has offline capabilities. Make sure 'Save Data Locally' is enabled in your Settings. You can work offline, and your changes will automatically sync when you're back online. The TerraField mobile app also has robust offline support for field inspections."
+    answer:
+      "Yes, TerraFusion has offline capabilities. Make sure 'Save Data Locally' is enabled in your Settings. You can work offline, and your changes will automatically sync when you're back online. The TerraField mobile app also has robust offline support for field inspections.",
   },
   {
     question: "How do I sync data with the TerraField mobile app?",
-    answer: "Make sure both your web platform and mobile app are signed in with the same account. Navigate to 'Field Sync' in the sidebar and click 'Sync Now'. You can also set up automatic syncing in the Settings page. Any photos or measurements taken on the mobile app will automatically appear in your web platform."
+    answer:
+      "Make sure both your web platform and mobile app are signed in with the same account. Navigate to 'Field Sync' in the sidebar and click 'Sync Now'. You can also set up automatic syncing in the Settings page. Any photos or measurements taken on the mobile app will automatically appear in your web platform.",
   },
   {
     question: "How do I generate a PDF or XML report?",
-    answer: "Go to the 'Reports' page, select the appraisal you want to export, and click on 'Generate Report'. You can select between PDF and XML formats. Before generation, you can run a compliance check to ensure all required fields are completed."
+    answer:
+      "Go to the 'Reports' page, select the appraisal you want to export, and click on 'Generate Report'. You can select between PDF and XML formats. Before generation, you can run a compliance check to ensure all required fields are completed.",
   },
   {
     question: "How does the AI valuation feature work?",
-    answer: "The AI valuation assistant analyzes your subject property and comparables to suggest adjustments and estimate value. It uses machine learning models trained on historical appraisal data. To use it, go to 'AI Valuation' in the sidebar, enter your property details, and click 'Generate Valuation'."
+    answer:
+      "The AI valuation assistant analyzes your subject property and comparables to suggest adjustments and estimate value. It uses machine learning models trained on historical appraisal data. To use it, go to 'AI Valuation' in the sidebar, enter your property details, and click 'Generate Valuation'.",
   },
   {
     question: "How secure is my data in TerraFusion?",
-    answer: "TerraFusion uses bank-level encryption (256-bit AES) for all data at rest and in transit. We implement role-based access controls, two-factor authentication, and regular security audits. All personal information is handled in compliance with privacy regulations."
+    answer:
+      "TerraFusion uses bank-level encryption (256-bit AES) for all data at rest and in transit. We implement role-based access controls, two-factor authentication, and regular security audits. All personal information is handled in compliance with privacy regulations.",
   },
   {
     question: "Can I share appraisal reports with clients?",
-    answer: "Yes, you can share reports securely. Navigate to the report, click 'Share', and generate a secure link with an optional expiration date and view limits. You can control exactly what information is visible to the recipient."
+    answer:
+      "Yes, you can share reports securely. Navigate to the report, click 'Share', and generate a secure link with an optional expiration date and view limits. You can control exactly what information is visible to the recipient.",
   },
 ];
 
@@ -74,7 +101,7 @@ const videoTutorials = [
     description: "Learn the basics of navigating and using TerraFusion Platform",
     duration: "8:45",
     thumbnail: "https://placehold.co/300x169",
-    views: 2548
+    views: 2548,
   },
   {
     id: "video2",
@@ -82,7 +109,7 @@ const videoTutorials = [
     description: "Step-by-step guide to creating a comprehensive appraisal report",
     duration: "12:30",
     thumbnail: "https://placehold.co/300x169",
-    views: 1892
+    views: 1892,
   },
   {
     id: "video3",
@@ -90,7 +117,7 @@ const videoTutorials = [
     description: "Learn techniques for selecting and adjusting comparable properties",
     duration: "15:20",
     thumbnail: "https://placehold.co/300x169",
-    views: 1345
+    views: 1345,
   },
   {
     id: "video4",
@@ -98,7 +125,7 @@ const videoTutorials = [
     description: "Harness the power of AI to improve your valuations",
     duration: "10:15",
     thumbnail: "https://placehold.co/300x169",
-    views: 2103
+    views: 2103,
   },
   {
     id: "video5",
@@ -106,7 +133,7 @@ const videoTutorials = [
     description: "Using the TerraField mobile app for property inspections",
     duration: "9:50",
     thumbnail: "https://placehold.co/300x169",
-    views: 1678
+    views: 1678,
   },
   {
     id: "video6",
@@ -114,8 +141,8 @@ const videoTutorials = [
     description: "Ensuring your reports meet all regulatory requirements",
     duration: "14:10",
     thumbnail: "https://placehold.co/300x169",
-    views: 1254
-  }
+    views: 1254,
+  },
 ];
 
 // Help articles data
@@ -125,78 +152,80 @@ const helpArticles = [
     title: "Complete Guide to UAD Compliance",
     description: "Understand all requirements for Uniform Appraisal Dataset compliance",
     category: "Compliance",
-    readTime: "12 min read"
+    readTime: "12 min read",
   },
   {
     id: "article2",
     title: "Property Sketching Best Practices",
     description: "Tips and techniques for creating accurate property sketches",
     category: "Sketches",
-    readTime: "8 min read"
+    readTime: "8 min read",
   },
   {
     id: "article3",
     title: "Comparable Selection Methodology",
     description: "How to select the most appropriate comparable properties",
     category: "Comparables",
-    readTime: "15 min read"
+    readTime: "15 min read",
   },
   {
     id: "article4",
     title: "Understanding Adjustment Factors",
     description: "Comprehensive guide to property valuation adjustments",
     category: "Adjustments",
-    readTime: "18 min read"
+    readTime: "18 min read",
   },
   {
     id: "article5",
     title: "Photo Requirements for Appraisals",
     description: "Guidelines for taking and managing property photos",
     category: "Photos",
-    readTime: "10 min read"
+    readTime: "10 min read",
   },
   {
     id: "article6",
     title: "Market Condition Analysis",
     description: "How to analyze and document current market conditions",
     category: "Market Analysis",
-    readTime: "14 min read"
+    readTime: "14 min read",
   },
   {
     id: "article7",
     title: "TerraFusion Keyboard Shortcuts",
     description: "Boost your productivity with these keyboard shortcuts",
     category: "Productivity",
-    readTime: "5 min read"
+    readTime: "5 min read",
   },
   {
     id: "article8",
     title: "Data Synchronization Guide",
     description: "How to ensure your data is properly synced across devices",
     category: "Data Management",
-    readTime: "7 min read"
-  }
+    readTime: "7 min read",
+  },
 ];
 
 export default function HelpSupportPage() {
   const { toast } = useToast();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [supportMessage, setSupportMessage] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
+  const [supportMessage, setSupportMessage] = useState("");
   const [showChatSupport, setShowChatSupport] = useState(false);
-  const [chatMessages, setChatMessages] = useState<{
-    id: number;
-    sender: 'user' | 'support';
-    message: string;
-    timestamp: Date;
-  }[]>([
+  const [chatMessages, setChatMessages] = useState<
+    {
+      id: number;
+      sender: "user" | "support";
+      message: string;
+      timestamp: Date;
+    }[]
+  >([
     {
       id: 1,
-      sender: 'support',
+      sender: "support",
       message: "Hello! I'm your TerraFusion support assistant. How can I help you today?",
-      timestamp: new Date()
-    }
+      timestamp: new Date(),
+    },
   ]);
-  
+
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     toast({
@@ -205,46 +234,50 @@ export default function HelpSupportPage() {
     });
     // In a real app, this would trigger a search API call
   };
-  
+
   const handleSendSupportMessage = () => {
-    if (supportMessage.trim() === '') return;
-    
+    if (supportMessage.trim() === "") return;
+
     // Add user message
-    setChatMessages(prev => [...prev, {
-      id: prev.length + 1,
-      sender: 'user',
-      message: supportMessage,
-      timestamp: new Date()
-    }]);
-    
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: prev.length + 1,
+        sender: "user",
+        message: supportMessage,
+        timestamp: new Date(),
+      },
+    ]);
+
     // Clear input
-    setSupportMessage('');
-    
+    setSupportMessage("");
+
     // Simulate response after a delay
     setTimeout(() => {
-      setChatMessages(prev => [...prev, {
-        id: prev.length + 1,
-        sender: 'support',
-        message: "Thank you for your message. Our support team will review your question and get back to you shortly. In the meantime, you might find helpful information in our documentation or FAQ section.",
-        timestamp: new Date()
-      }]);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: prev.length + 1,
+          sender: "support",
+          message:
+            "Thank you for your message. Our support team will review your question and get back to you shortly. In the meantime, you might find helpful information in our documentation or FAQ section.",
+          timestamp: new Date(),
+        },
+      ]);
     }, 1000);
   };
-  
+
   return (
     <PageLayout
       title="Help & Support"
       description="Get help, access documentation, and contact support"
       actions={
         <div className="flex items-center gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => setShowChatSupport(true)}
-          >
+          <Button variant="outline" onClick={() => setShowChatSupport(true)}>
             <MessageSquare className="mr-2 h-4 w-4" />
             Live Chat
           </Button>
-          <Button 
+          <Button
             variant="default"
             onClick={() => {
               toast({
@@ -274,11 +307,13 @@ export default function HelpSupportPage() {
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
               </div>
-              <Button type="submit" className="ml-2">Search</Button>
+              <Button type="submit" className="ml-2">
+                Search
+              </Button>
             </form>
           </CardContent>
         </Card>
-        
+
         {/* Help Tabs */}
         <Tabs defaultValue="faq" className="w-full">
           <TabsList className="grid grid-cols-4 w-full">
@@ -299,7 +334,7 @@ export default function HelpSupportPage() {
               Contact Us
             </TabsTrigger>
           </TabsList>
-          
+
           {/* FAQ Tab */}
           <TabsContent value="faq" className="space-y-4">
             <Card>
@@ -313,9 +348,7 @@ export default function HelpSupportPage() {
                 <Accordion type="single" collapsible className="w-full">
                   {faqs.map((faq, index) => (
                     <AccordionItem key={index} value={`item-${index}`}>
-                      <AccordionTrigger className="text-left">
-                        {faq.question}
-                      </AccordionTrigger>
+                      <AccordionTrigger className="text-left">{faq.question}</AccordionTrigger>
                       <AccordionContent>
                         <div className="pt-2 pb-4">
                           <p className="text-muted-foreground">{faq.answer}</p>
@@ -351,7 +384,7 @@ export default function HelpSupportPage() {
               </CardFooter>
             </Card>
           </TabsContent>
-          
+
           {/* Help Articles Tab */}
           <TabsContent value="articles" className="space-y-4">
             <Card>
@@ -364,15 +397,16 @@ export default function HelpSupportPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   {helpArticles.map((article) => (
-                    <Card key={article.id} className="cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden">
+                    <Card
+                      key={article.id}
+                      className="cursor-pointer hover:bg-muted/50 transition-colors overflow-hidden"
+                    >
                       <CardHeader className="p-4">
                         <div className="flex justify-between items-start mb-1">
                           <span className="text-xs font-medium bg-primary/10 text-primary px-2 py-0.5 rounded">
                             {article.category}
                           </span>
-                          <span className="text-xs text-muted-foreground">
-                            {article.readTime}
-                          </span>
+                          <span className="text-xs text-muted-foreground">{article.readTime}</span>
                         </div>
                         <CardTitle className="text-base">{article.title}</CardTitle>
                         <CardDescription className="line-clamp-2">
@@ -401,7 +435,7 @@ export default function HelpSupportPage() {
               </CardFooter>
             </Card>
           </TabsContent>
-          
+
           {/* Video Tutorials Tab */}
           <TabsContent value="videos" className="space-y-4">
             <Card>
@@ -414,15 +448,22 @@ export default function HelpSupportPage() {
               <CardContent>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {videoTutorials.map((video) => (
-                    <div key={video.id} className="group overflow-hidden rounded-lg border bg-card text-card-foreground">
+                    <div
+                      key={video.id}
+                      className="group overflow-hidden rounded-lg border bg-card text-card-foreground"
+                    >
                       <div className="relative aspect-video">
-                        <img 
-                          src={video.thumbnail} 
-                          alt={video.title} 
+                        <img
+                          src={video.thumbnail}
+                          alt={video.title}
                           className="object-cover w-full h-full"
                         />
                         <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button variant="outline" size="icon" className="rounded-full bg-background/80 text-primary">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            className="rounded-full bg-background/80 text-primary"
+                          >
                             <CirclePlay className="h-6 w-6" />
                           </Button>
                         </div>
@@ -455,7 +496,7 @@ export default function HelpSupportPage() {
               </CardFooter>
             </Card>
           </TabsContent>
-          
+
           {/* Contact Tab */}
           <TabsContent value="contact" className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -470,12 +511,15 @@ export default function HelpSupportPage() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Submit a support ticket and receive a response within 24 hours.
                   </p>
-                  <Button className="w-full" onClick={() => {
-                    toast({
-                      title: "Support ticket page",
-                      description: "Redirecting to email support form."
-                    });
-                  }}>
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      toast({
+                        title: "Support ticket page",
+                        description: "Redirecting to email support form.",
+                      });
+                    }}
+                  >
                     Contact via Email
                   </Button>
                 </CardContent>
@@ -483,7 +527,7 @@ export default function HelpSupportPage() {
                   support@terrafusion.com
                 </CardFooter>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -495,10 +539,7 @@ export default function HelpSupportPage() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Chat with our support team in real-time during business hours.
                   </p>
-                  <Button 
-                    className="w-full" 
-                    onClick={() => setShowChatSupport(true)}
-                  >
+                  <Button className="w-full" onClick={() => setShowChatSupport(true)}>
                     Start Live Chat
                   </Button>
                 </CardContent>
@@ -506,7 +547,7 @@ export default function HelpSupportPage() {
                   Available Monday-Friday: 9am-6pm EST
                 </CardFooter>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center">
@@ -518,12 +559,12 @@ export default function HelpSupportPage() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Call us directly for urgent assistance or complex issues.
                   </p>
-                  <Button 
+                  <Button
                     className="w-full"
                     onClick={() => {
                       toast({
                         title: "Phone Support",
-                        description: "Calling support line..."
+                        description: "Calling support line...",
                       });
                     }}
                   >
@@ -535,7 +576,7 @@ export default function HelpSupportPage() {
                 </CardFooter>
               </Card>
             </div>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>Submit a Support Request</CardTitle>
@@ -547,20 +588,28 @@ export default function HelpSupportPage() {
                 <form className="space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <label htmlFor="name" className="text-sm font-medium">Your Name</label>
+                      <label htmlFor="name" className="text-sm font-medium">
+                        Your Name
+                      </label>
                       <Input id="name" placeholder="John Appraiser" />
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="email" className="text-sm font-medium">Email Address</label>
+                      <label htmlFor="email" className="text-sm font-medium">
+                        Email Address
+                      </label>
                       <Input id="email" type="email" placeholder="john@example.com" />
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="subject" className="text-sm font-medium">Subject</label>
+                      <label htmlFor="subject" className="text-sm font-medium">
+                        Subject
+                      </label>
                       <Input id="subject" placeholder="Brief description of your issue" />
                     </div>
                     <div className="space-y-2">
-                      <label htmlFor="priority" className="text-sm font-medium">Priority Level</label>
-                      <select 
+                      <label htmlFor="priority" className="text-sm font-medium">
+                        Priority Level
+                      </label>
+                      <select
                         id="priority"
                         className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
                       >
@@ -572,15 +621,19 @@ export default function HelpSupportPage() {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="message" className="text-sm font-medium">Message</label>
-                    <Textarea 
-                      id="message" 
-                      placeholder="Please provide details about your issue or question..." 
+                    <label htmlFor="message" className="text-sm font-medium">
+                      Message
+                    </label>
+                    <Textarea
+                      id="message"
+                      placeholder="Please provide details about your issue or question..."
                       rows={5}
                     />
                   </div>
                   <div className="space-y-2">
-                    <label htmlFor="attachments" className="text-sm font-medium">Attachments (optional)</label>
+                    <label htmlFor="attachments" className="text-sm font-medium">
+                      Attachments (optional)
+                    </label>
                     <Input id="attachments" type="file" className="cursor-pointer" multiple />
                     <p className="text-xs text-muted-foreground">
                       You can attach screenshots or relevant files (max 10MB each)
@@ -590,19 +643,21 @@ export default function HelpSupportPage() {
               </CardContent>
               <CardFooter className="flex justify-between">
                 <Button variant="outline">Cancel</Button>
-                <Button onClick={() => {
-                  toast({
-                    title: "Support request submitted",
-                    description: "We'll get back to you within 24 hours.",
-                  });
-                }}>
+                <Button
+                  onClick={() => {
+                    toast({
+                      title: "Support request submitted",
+                      description: "We'll get back to you within 24 hours.",
+                    });
+                  }}
+                >
                   Submit Support Request
                 </Button>
               </CardFooter>
             </Card>
           </TabsContent>
         </Tabs>
-        
+
         {/* Quick Help Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <Card>
@@ -623,7 +678,7 @@ export default function HelpSupportPage() {
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
@@ -642,7 +697,7 @@ export default function HelpSupportPage() {
               </Button>
             </CardFooter>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-lg flex items-center">
@@ -663,40 +718,38 @@ export default function HelpSupportPage() {
           </Card>
         </div>
       </div>
-      
+
       {/* Live Chat Sheet */}
       <Sheet open={showChatSupport} onOpenChange={setShowChatSupport}>
         <SheetContent className="sm:max-w-md flex flex-col h-full">
           <SheetHeader className="mb-4">
             <SheetTitle>TerraFusion Support</SheetTitle>
-            <SheetDescription>
-              Chat with our support team in real-time
-            </SheetDescription>
+            <SheetDescription>Chat with our support team in real-time</SheetDescription>
           </SheetHeader>
           <div className="flex-1 overflow-auto mb-4 pr-2 -mr-2">
             {chatMessages.map((msg) => (
-              <div 
-                key={msg.id} 
-                className={`mb-4 flex ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}
+              <div
+                key={msg.id}
+                className={`mb-4 flex ${msg.sender === "user" ? "justify-end" : "justify-start"}`}
               >
-                {msg.sender === 'support' && (
+                {msg.sender === "support" && (
                   <Avatar className="h-8 w-8 mr-2">
                     <AvatarImage src="/support-avatar.png" />
                     <AvatarFallback className="bg-primary/20 text-primary">TF</AvatarFallback>
                   </Avatar>
                 )}
-                <div className={`
+                <div
+                  className={`
                   max-w-[80%] rounded-lg px-3 py-2 text-sm
-                  ${msg.sender === 'user' 
-                    ? 'bg-primary text-primary-foreground' 
-                    : 'bg-muted'}
-                `}>
+                  ${msg.sender === "user" ? "bg-primary text-primary-foreground" : "bg-muted"}
+                `}
+                >
                   <p>{msg.message}</p>
                   <p className="text-[10px] opacity-70 mt-1 text-right">
-                    {msg.timestamp.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+                    {msg.timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                   </p>
                 </div>
-                {msg.sender === 'user' && (
+                {msg.sender === "user" && (
                   <Avatar className="h-8 w-8 ml-2">
                     <AvatarFallback className="bg-muted">JA</AvatarFallback>
                   </Avatar>
@@ -705,12 +758,12 @@ export default function HelpSupportPage() {
             ))}
           </div>
           <div className="flex items-center">
-            <Input 
-              placeholder="Type your message..." 
+            <Input
+              placeholder="Type your message..."
               value={supportMessage}
               onChange={(e) => setSupportMessage(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter' && !e.shiftKey) {
+                if (e.key === "Enter" && !e.shiftKey) {
                   e.preventDefault();
                   handleSendSupportMessage();
                 }

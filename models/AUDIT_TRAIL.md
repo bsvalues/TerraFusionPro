@@ -16,18 +16,18 @@ The Model Inference Audit Trail is a comprehensive tracking system for monitorin
 
 The audit trail is stored in a CSV file at `models/audit_logs/inference_audit_log.csv` with the following columns:
 
-| Column | Description |
-|--------|-------------|
-| `timestamp` | UTC timestamp of when the inference was made |
-| `filename` | The filename of the uploaded image |
-| `model_name` | Name of the model (e.g., "condition_model") |
-| `model_version` | Version of the model (e.g., "1.0.0", "2.0.0") |
-| `score` | The predicted condition score (1.0-5.0) |
-| `confidence` | Confidence level of the prediction (optional) |
-| `execution_time_ms` | Time taken for inference in milliseconds |
-| `fallback_used` | Whether a fallback model was used (true/false) |
-| `user_id` | Identifier for the user who uploaded the image (optional) |
-| `metadata` | Additional information about the inference |
+| Column              | Description                                               |
+| ------------------- | --------------------------------------------------------- |
+| `timestamp`         | UTC timestamp of when the inference was made              |
+| `filename`          | The filename of the uploaded image                        |
+| `model_name`        | Name of the model (e.g., "condition_model")               |
+| `model_version`     | Version of the model (e.g., "1.0.0", "2.0.0")             |
+| `score`             | The predicted condition score (1.0-5.0)                   |
+| `confidence`        | Confidence level of the prediction (optional)             |
+| `execution_time_ms` | Time taken for inference in milliseconds                  |
+| `fallback_used`     | Whether a fallback model was used (true/false)            |
+| `user_id`           | Identifier for the user who uploaded the image (optional) |
+| `metadata`          | Additional information about the inference                |
 
 ## Monitoring and Analysis
 

@@ -1,12 +1,26 @@
-import React from 'react';
-import { useParams } from 'wouter';
-import { useQuery } from '@tanstack/react-query';
-import { getQueryFn } from '@/lib/queryClient';
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
-import { Loader2, Share2, User, CalendarRange, Lock, Calendar, Ruler, Bed, Bath, Map, Trees, Car, DollarSign } from 'lucide-react';
+import React from "react";
+import { useParams } from "wouter";
+import { useQuery } from "@tanstack/react-query";
+import { getQueryFn } from "@/lib/queryClient";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import {
+  Loader2,
+  Share2,
+  User,
+  CalendarRange,
+  Lock,
+  Calendar,
+  Ruler,
+  Bed,
+  Bath,
+  Map,
+  Trees,
+  Car,
+  DollarSign,
+} from "lucide-react";
 
 // Define types for the shared property data
 interface Photo {
@@ -86,14 +100,14 @@ interface SharedPropertyResponse {
 
 export default function SharedPropertyPage() {
   const { token } = useParams();
-  
+
   // Fetch the shared property data
   const { data, isLoading, error } = useQuery<SharedPropertyResponse>({
     queryKey: [`/api/shared/${token}`],
     queryFn: getQueryFn(),
     enabled: !!token,
   });
-  
+
   if (isLoading) {
     return (
       <div className="container max-w-4xl mx-auto py-8 px-4">
@@ -108,30 +122,28 @@ export default function SharedPropertyPage() {
       </div>
     );
   }
-  
+
   if (error || !data) {
     return (
       <div className="container max-w-4xl mx-auto py-8 px-4">
         <Card className="w-full">
           <CardHeader>
             <CardTitle>Property Not Found</CardTitle>
-            <CardDescription>
-              This shared property link is invalid or has expired.
-            </CardDescription>
+            <CardDescription>This shared property link is invalid or has expired.</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-muted-foreground">
-              The share link may have reached its view limit or expiration date,
-              or it has been deleted by the property owner.
+              The share link may have reached its view limit or expiration date, or it has been
+              deleted by the property owner.
             </p>
           </CardContent>
         </Card>
       </div>
     );
   }
-  
+
   const { property, creator, shareLink } = data;
-  
+
   return (
     <div className="container max-w-4xl mx-auto py-8 px-4">
       <Card className="w-full mb-4">
@@ -145,13 +157,17 @@ export default function SharedPropertyPage() {
               </div>
             </div>
             <div className="flex flex-col gap-2">
-              <Badge variant={property.propertyType?.toLowerCase()?.includes('family') ? 'default' : 'outline'}>
-                {property.propertyType || 'Residential'}
+              <Badge
+                variant={
+                  property.propertyType?.toLowerCase()?.includes("family") ? "default" : "outline"
+                }
+              >
+                {property.propertyType || "Residential"}
               </Badge>
             </div>
           </div>
         </CardHeader>
-        
+
         <CardContent className="space-y-4">
           <div className="flex flex-wrap gap-2 text-sm text-muted-foreground">
             <div className="flex items-center">
@@ -167,68 +183,70 @@ export default function SharedPropertyPage() {
             {shareLink.viewsLimit && (
               <div className="flex items-center">
                 <Lock className="h-4 w-4 mr-1" />
-                <span>View {shareLink.viewCount} of {shareLink.viewsLimit}</span>
+                <span>
+                  View {shareLink.viewCount} of {shareLink.viewsLimit}
+                </span>
               </div>
             )}
           </div>
-          
+
           <Separator />
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
             {/* Primary details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Property Details</h3>
               <div className="space-y-2">
-                <InfoItem 
+                <InfoItem
                   icon={<Calendar className="h-4 w-4 text-muted-foreground" />}
                   label="Year Built"
-                  value={property.yearBuilt ? property.yearBuilt.toString() : 'Unknown'}
+                  value={property.yearBuilt ? property.yearBuilt.toString() : "Unknown"}
                 />
-                <InfoItem 
+                <InfoItem
                   icon={<Ruler className="h-4 w-4 text-muted-foreground" />}
                   label="Square Footage"
-                  value={property.grossLivingArea ? `${property.grossLivingArea} sqft` : 'Unknown'}
+                  value={property.grossLivingArea ? `${property.grossLivingArea} sqft` : "Unknown"}
                 />
-                <InfoItem 
+                <InfoItem
                   icon={<Bed className="h-4 w-4 text-muted-foreground" />}
                   label="Bedrooms"
-                  value={property.bedrooms || 'Unknown'}
+                  value={property.bedrooms || "Unknown"}
                 />
-                <InfoItem 
+                <InfoItem
                   icon={<Bath className="h-4 w-4 text-muted-foreground" />}
                   label="Bathrooms"
-                  value={property.bathrooms || 'Unknown'}
+                  value={property.bathrooms || "Unknown"}
                 />
               </div>
             </div>
-            
+
             {/* Secondary details */}
             <div className="space-y-4">
               <h3 className="text-lg font-medium">Additional Information</h3>
               <div className="space-y-2">
                 {property.lotSize && (
-                  <InfoItem 
+                  <InfoItem
                     icon={<Trees className="h-4 w-4 text-muted-foreground" />}
                     label="Lot Size"
-                    value={`${property.lotSize} ${property.lotSize < 5 ? 'acres' : 'sqft'}`}
+                    value={`${property.lotSize} ${property.lotSize < 5 ? "acres" : "sqft"}`}
                   />
                 )}
                 {property.garageSize && (
-                  <InfoItem 
+                  <InfoItem
                     icon={<Car className="h-4 w-4 text-muted-foreground" />}
                     label="Garage"
-                    value={`${property.garageSize} car${property.garageSize > 1 ? 's' : ''}`}
+                    value={`${property.garageSize} car${property.garageSize > 1 ? "s" : ""}`}
                   />
                 )}
                 {property.zoning && (
-                  <InfoItem 
+                  <InfoItem
                     icon={<Map className="h-4 w-4 text-muted-foreground" />}
                     label="Zoning"
                     value={property.zoning}
                   />
                 )}
                 {property.taxAssessment && (
-                  <InfoItem 
+                  <InfoItem
                     icon={<DollarSign className="h-4 w-4 text-muted-foreground" />}
                     label="Tax Assessment"
                     value={`$${property.taxAssessment.toLocaleString()}`}
@@ -237,7 +255,7 @@ export default function SharedPropertyPage() {
               </div>
             </div>
           </div>
-          
+
           {/* Additional sections based on share permissions */}
           {shareLink.includePhotos && property.photos && property.photos.length > 0 && (
             <>
@@ -247,9 +265,9 @@ export default function SharedPropertyPage() {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
                   {property.photos.map((photo: Photo, index: number) => (
                     <div key={index} className="aspect-video relative rounded-md overflow-hidden">
-                      <img 
-                        src={photo.photoUrl} 
-                        alt={photo.photoTitle} 
+                      <img
+                        src={photo.photoUrl}
+                        alt={photo.photoTitle}
                         className="object-cover w-full h-full"
                       />
                     </div>
@@ -258,38 +276,42 @@ export default function SharedPropertyPage() {
               </div>
             </>
           )}
-          
-          {shareLink.includeComparables && property.comparables && property.comparables.length > 0 && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <h3 className="text-lg font-medium">Comparable Properties</h3>
-                <div className="grid grid-cols-1 gap-4">
-                  {property.comparables.map((comp: Comparable, index: number) => (
-                    <Card key={index} className="overflow-hidden">
-                      <CardContent className="p-4">
-                        <div className="flex justify-between items-start">
-                          <div>
-                            <h4 className="font-medium">{comp.address}</h4>
-                            <p className="text-sm text-muted-foreground">
-                              {comp.city}, {comp.state} {comp.zipCode}
-                            </p>
+
+          {shareLink.includeComparables &&
+            property.comparables &&
+            property.comparables.length > 0 && (
+              <>
+                <Separator />
+                <div className="space-y-4">
+                  <h3 className="text-lg font-medium">Comparable Properties</h3>
+                  <div className="grid grid-cols-1 gap-4">
+                    {property.comparables.map((comp: Comparable, index: number) => (
+                      <Card key={index} className="overflow-hidden">
+                        <CardContent className="p-4">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <h4 className="font-medium">{comp.address}</h4>
+                              <p className="text-sm text-muted-foreground">
+                                {comp.city}, {comp.state} {comp.zipCode}
+                              </p>
+                            </div>
+                            <div className="text-right">
+                              <p className="font-medium">${comp.price.toLocaleString()}</p>
+                              <p className="text-sm text-muted-foreground">
+                                {comp.saleDate
+                                  ? new Date(comp.saleDate).toLocaleDateString()
+                                  : "Unknown date"}
+                              </p>
+                            </div>
                           </div>
-                          <div className="text-right">
-                            <p className="font-medium">${comp.price.toLocaleString()}</p>
-                            <p className="text-sm text-muted-foreground">
-                              {comp.saleDate ? new Date(comp.saleDate).toLocaleDateString() : 'Unknown date'}
-                            </p>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  ))}
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            </>
-          )}
-          
+              </>
+            )}
+
           {shareLink.includeValuation && property.valuationData && (
             <>
               <Separator />
@@ -305,14 +327,15 @@ export default function SharedPropertyPage() {
                     </div>
                     <Separator className="my-3" />
                     <p className="text-sm text-muted-foreground">
-                      {property.valuationData.valueDescription || 'Based on current market conditions and comparable properties.'}
+                      {property.valuationData.valueDescription ||
+                        "Based on current market conditions and comparable properties."}
                     </p>
                   </CardContent>
                 </Card>
               </div>
             </>
           )}
-          
+
           {shareLink.allowReports && property.reports && property.reports.length > 0 && (
             <>
               <Separator />
@@ -320,14 +343,16 @@ export default function SharedPropertyPage() {
                 <h3 className="text-lg font-medium">Appraisal Reports</h3>
                 <div className="grid grid-cols-1 gap-3">
                   {property.reports.map((report: Report, index: number) => (
-                    <Button 
-                      key={index} 
-                      variant="outline" 
+                    <Button
+                      key={index}
+                      variant="outline"
                       className="justify-between"
-                      onClick={() => window.open(report.reportUrl, '_blank')}
+                      onClick={() => window.open(report.reportUrl, "_blank")}
                     >
-                      <span>{report.reportType} - {new Date(report.reportDate).toLocaleDateString()}</span>
-                      <span>${report.appraisalValue?.toLocaleString() || 'N/A'}</span>
+                      <span>
+                        {report.reportType} - {new Date(report.reportDate).toLocaleDateString()}
+                      </span>
+                      <span>${report.appraisalValue?.toLocaleString() || "N/A"}</span>
                     </Button>
                   ))}
                 </div>
@@ -336,10 +361,11 @@ export default function SharedPropertyPage() {
           )}
         </CardContent>
       </Card>
-      
+
       <div className="text-center text-xs text-muted-foreground mt-6">
         <p>
-          This information was shared via TerraField. The content may be confidential and intended solely for the recipient.
+          This information was shared via TerraField. The content may be confidential and intended
+          solely for the recipient.
         </p>
       </div>
     </div>
@@ -347,7 +373,15 @@ export default function SharedPropertyPage() {
 }
 
 // Export InfoItem component for reuse
-export function InfoItem({ icon, label, value }: { icon?: React.ReactNode; label: string; value: string | number }) {
+export function InfoItem({
+  icon,
+  label,
+  value,
+}: {
+  icon?: React.ReactNode;
+  label: string;
+  value: string | number;
+}) {
   return (
     <div className="flex items-center space-x-2">
       {icon && icon}

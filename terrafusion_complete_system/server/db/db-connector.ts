@@ -1,11 +1,11 @@
-import { Pool, neonConfig } from '@neondatabase/serverless';
-import ws from 'ws';
-import { drizzle } from 'drizzle-orm/neon-serverless';
-import * as schema from '@shared/schema';
+import { Pool, neonConfig } from "@neondatabase/serverless";
+import ws from "ws";
+import { drizzle } from "drizzle-orm/neon-serverless";
+import * as schema from "@shared/schema";
 
 /**
  * Resilient Database Connector for TerraFusion Platform
- * 
+ *
  * This module:
  * 1. Handles database connection retries with exponential backoff
  * 2. Properly configures Neon for Replit environment
@@ -37,11 +37,11 @@ let heartbeatInterval: NodeJS.Timeout | null = null;
  */
 function getDatabaseUrl(): string {
   const databaseUrl = process.env.DATABASE_URL;
-  
+
   if (!databaseUrl) {
-    throw new Error('DATABASE_URL must be set. Check your environment variables.');
+    throw new Error("DATABASE_URL must be set. Check your environment variables.");
   }
-  
+
   return databaseUrl;
 }
 
@@ -53,52 +53,54 @@ export async function createPool(retries = 0): Promise<Pool> {
   if (globalPool) {
     return globalPool;
   }
-  
+
   try {
-    console.log('🔌 Connecting to database...');
-    
+    console.log("🔌 Connecting to database...");
+
     // Create pool
-    const pool = new Pool({ 
+    const pool = new Pool({
       connectionString: getDatabaseUrl(),
       // Replit environment can have unstable connections, so set a reasonable timeout
       connect_timeout: 10,
       // Keep idle connections alive
       idleTimeoutMillis: 120000, // 2 minutes
       // Limit pool size to avoid overwhelming the connection limit
-      max: 5
+      max: 5,
     });
-    
+
     // Test connection
-    await pool.query('SELECT NOW()');
-    
-    console.log('✅ Database connection established');
-    
+    await pool.query("SELECT NOW()");
+
+    console.log("✅ Database connection established");
+
     // Store pool as singleton
     globalPool = pool;
-    
+
     // Set up heartbeat
     setupHeartbeat(pool);
-    
+
     return pool;
   } catch (error) {
-    console.error(`❌ Database connection failed (attempt ${retries + 1}/${MAX_RETRIES}):`, error.message);
-    
+    console.error(
+      `❌ Database connection failed (attempt ${retries + 1}/${MAX_RETRIES}):`,
+      error.message
+    );
+
     // If we've reached the maximum number of retries, throw the error
     if (retries >= MAX_RETRIES) {
-      throw new Error(`Failed to connect to database after ${MAX_RETRIES} attempts: ${error.message}`);
+      throw new Error(
+        `Failed to connect to database after ${MAX_RETRIES} attempts: ${error.message}`
+      );
     }
-    
+
     // Calculate delay with exponential backoff
-    const delay = Math.min(
-      INITIAL_RETRY_DELAY_MS * Math.pow(2, retries),
-      MAX_RETRY_DELAY_MS
-    );
-    
+    const delay = Math.min(INITIAL_RETRY_DELAY_MS * Math.pow(2, retries), MAX_RETRY_DELAY_MS);
+
     console.log(`🔄 Retrying in ${delay}ms...`);
-    
+
     // Wait for delay
-    await new Promise(resolve => setTimeout(resolve, delay));
-    
+    await new Promise((resolve) => setTimeout(resolve, delay));
+
     // Retry
     return createPool(retries + 1);
   }
@@ -112,20 +114,20 @@ export async function createDb(): Promise<ReturnType<typeof drizzle>> {
   if (globalDb) {
     return globalDb;
   }
-  
+
   try {
     // Get or create pool
     const pool = await createPool();
-    
+
     // Create Drizzle instance
     const db = drizzle(pool, { schema });
-    
+
     // Store db as singleton
     globalDb = db;
-    
+
     return db;
   } catch (error) {
-    console.error('❌ Failed to create Drizzle instance:', error);
+    console.error("❌ Failed to create Drizzle instance:", error);
     throw error;
   }
 }
@@ -138,16 +140,16 @@ function setupHeartbeat(pool: Pool) {
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
   }
-  
+
   // Set up new heartbeat to ping database every minute
   heartbeatInterval = setInterval(async () => {
     try {
-      await pool.query('SELECT 1');
+      await pool.query("SELECT 1");
     } catch (error) {
-      console.error('❌ Heartbeat query failed:', error.message);
+      console.error("❌ Heartbeat query failed:", error.message);
     }
   }, 60000);
-  
+
   // Ensure heartbeat doesn't keep process alive
   heartbeatInterval.unref();
 }
@@ -156,21 +158,21 @@ function setupHeartbeat(pool: Pool) {
  * Clean up database connections
  */
 export async function cleanup(): Promise<void> {
-  console.log('🧹 Cleaning up database connections...');
-  
+  console.log("🧹 Cleaning up database connections...");
+
   // Clear heartbeat
   if (heartbeatInterval) {
     clearInterval(heartbeatInterval);
     heartbeatInterval = null;
   }
-  
+
   // Close pool
   if (globalPool) {
     try {
       await globalPool.end();
-      console.log('✅ Database pool closed');
+      console.log("✅ Database pool closed");
     } catch (error) {
-      console.error('❌ Error closing database pool:', error);
+      console.error("❌ Error closing database pool:", error);
     } finally {
       globalPool = null;
       globalDb = null;
@@ -179,9 +181,9 @@ export async function cleanup(): Promise<void> {
 }
 
 // Handle process termination
-process.on('SIGTERM', cleanup);
-process.on('SIGINT', cleanup);
+process.on("SIGTERM", cleanup);
+process.on("SIGINT", cleanup);
 
 // Expose singleton instances
-export const getPool = async () => globalPool || await createPool();
-export const getDb = async () => globalDb || await createDb();
+export const getPool = async () => globalPool || (await createPool());
+export const getDb = async () => globalDb || (await createDb());

@@ -2,31 +2,29 @@
  * AgentAssistantShapConnector Component
  * Connects the Agent Assistant Panel to the SHAP explanation system
  */
-import { useEffect, useState } from 'react';
-import { shapWebSocketClient, ShapData } from '@/lib/shapWebSocket';
-import { 
-  Card, 
+import { useEffect, useState } from "react";
+import { shapWebSocketClient, ShapData } from "@/lib/shapWebSocket";
+import {
+  Card,
   CardContent,
   CardHeader,
   CardTitle,
   CardDescription,
-  CardFooter 
-} from '@/components/ui/card';
-import { Progress } from '@/components/ui/progress';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { 
-  BarChart3, 
-  AlertCircle, 
-  Info, 
-  Settings, 
-  Download, 
-  RefreshCw 
-} from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
-import { Label } from '@/components/ui/label';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+  CardFooter,
+} from "@/components/ui/card";
+import { Progress } from "@/components/ui/progress";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { BarChart3, AlertCircle, Info, Settings, Download, RefreshCw } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface AgentAssistantShapConnectorProps {
   propertyId?: number;
@@ -39,9 +37,9 @@ interface AgentAssistantShapConnectorProps {
 export function AgentAssistantShapConnector({
   propertyId,
   imageUrl,
-  condition = 'good',
-  modelVersion = 'latest',
-  onInsightGenerated
+  condition = "good",
+  modelVersion = "latest",
+  onInsightGenerated,
 }: AgentAssistantShapConnectorProps) {
   // SHAP connection states
   const [connected, setConnected] = useState(false);
@@ -56,18 +54,18 @@ export function AgentAssistantShapConnector({
     connectToShapWebSocket();
 
     // Set up event listeners for SHAP WebSocket
-    shapWebSocketClient.on('connection_established', handleConnectionEstablished);
-    shapWebSocketClient.on('shap_update', handleShapUpdate);
-    shapWebSocketClient.on('error', handleError);
-    shapWebSocketClient.on('disconnected', handleDisconnected);
+    shapWebSocketClient.on("connection_established", handleConnectionEstablished);
+    shapWebSocketClient.on("shap_update", handleShapUpdate);
+    shapWebSocketClient.on("error", handleError);
+    shapWebSocketClient.on("disconnected", handleDisconnected);
 
     // Clean up event listeners on unmount
     return () => {
-      shapWebSocketClient.off('connection_established', handleConnectionEstablished);
-      shapWebSocketClient.off('shap_update', handleShapUpdate);
-      shapWebSocketClient.off('error', handleError);
-      shapWebSocketClient.off('disconnected', handleDisconnected);
-      
+      shapWebSocketClient.off("connection_established", handleConnectionEstablished);
+      shapWebSocketClient.off("shap_update", handleShapUpdate);
+      shapWebSocketClient.off("error", handleError);
+      shapWebSocketClient.off("disconnected", handleDisconnected);
+
       // Disconnect WebSocket on unmount
       if (shapWebSocketClient.isConnected()) {
         shapWebSocketClient.disconnect();
@@ -98,8 +96,8 @@ export function AgentAssistantShapConnector({
       setError(null);
       await shapWebSocketClient.connect();
     } catch (err) {
-      setError('Failed to connect to the explanation service. Insights will be limited.');
-      console.error('[Agent Assistant] SHAP connection error:', err);
+      setError("Failed to connect to the explanation service. Insights will be limited.");
+      console.error("[Agent Assistant] SHAP connection error:", err);
     } finally {
       setConnecting(false);
     }
@@ -109,10 +107,10 @@ export function AgentAssistantShapConnector({
    * Handle SHAP WebSocket connection established
    */
   const handleConnectionEstablished = (data: any) => {
-    console.log('[Agent Assistant] Connected to SHAP service:', data);
+    console.log("[Agent Assistant] Connected to SHAP service:", data);
     setConnected(true);
     setError(null);
-    
+
     // Request SHAP explanation if we have condition or image URL
     if (condition || imageUrl) {
       requestShapExplanation();
@@ -123,13 +121,13 @@ export function AgentAssistantShapConnector({
    * Handle SHAP update from WebSocket
    */
   const handleShapUpdate = (message: any) => {
-    console.log('[Agent Assistant] Received SHAP data:', message);
-    
+    console.log("[Agent Assistant] Received SHAP data:", message);
+
     if (message.data) {
-      if (typeof message.data === 'object' && 'condition' in message.data) {
+      if (typeof message.data === "object" && "condition" in message.data) {
         // Single condition data
         setShapData(message.data as ShapData);
-      } else if (typeof message.data === 'object') {
+      } else if (typeof message.data === "object") {
         // Multiple conditions data
         // Find the one matching our current condition
         const conditionData = message.data[condition];
@@ -144,8 +142,8 @@ export function AgentAssistantShapConnector({
    * Handle error from SHAP WebSocket
    */
   const handleError = (error: any) => {
-    setError(`Error: ${error.error || 'Unknown error in explanation service'}`);
-    console.error('[Agent Assistant] SHAP error:', error);
+    setError(`Error: ${error.error || "Unknown error in explanation service"}`);
+    console.error("[Agent Assistant] SHAP error:", error);
   };
 
   /**
@@ -153,23 +151,28 @@ export function AgentAssistantShapConnector({
    */
   const handleDisconnected = () => {
     setConnected(false);
-    console.log('[Agent Assistant] Disconnected from SHAP service');
+    console.log("[Agent Assistant] Disconnected from SHAP service");
   };
 
   /**
    * Request SHAP explanation for current property
    */
   const requestShapExplanation = async () => {
-    console.log(`[Agent Assistant] Requesting SHAP explanation for: ${condition}, version: ${modelVersion}`);
+    console.log(
+      `[Agent Assistant] Requesting SHAP explanation for: ${condition}, version: ${modelVersion}`
+    );
     setExplanationRequested(true);
     setError(null);
-    
+
     try {
       // Our updated shapWebSocketClient will handle connection failures gracefully
-      await shapWebSocketClient.requestShapForCondition(condition || 'good', modelVersion || 'latest');
+      await shapWebSocketClient.requestShapForCondition(
+        condition || "good",
+        modelVersion || "latest"
+      );
     } catch (error) {
-      console.error('[Agent Assistant] Error requesting SHAP explanation:', error);
-      setError('Could not connect to SHAP service. Using offline analysis mode.');
+      console.error("[Agent Assistant] Error requesting SHAP explanation:", error);
+      setError("Could not connect to SHAP service. Using offline analysis mode.");
     }
   };
 
@@ -181,46 +184,56 @@ export function AgentAssistantShapConnector({
     const sortedFeatures = [...data.features]
       .map((feature, index) => ({ feature, value: data.values[index] }))
       .sort((a, b) => Math.abs(b.value) - Math.abs(a.value));
-    
+
     // Generate insights
     const newInsights: string[] = [];
-    
+
     // Overall condition insight
-    newInsights.push(`This property has an overall condition score of ${data.final_score.toFixed(1)}/5.0, indicating ${getConditionDescription(data.final_score)}.`);
-    
+    newInsights.push(
+      `This property has an overall condition score of ${data.final_score.toFixed(1)}/5.0, indicating ${getConditionDescription(data.final_score)}.`
+    );
+
     // Top positive feature
-    const topPositive = sortedFeatures.find(f => f.value > 0);
+    const topPositive = sortedFeatures.find((f) => f.value > 0);
     if (topPositive) {
-      newInsights.push(`The ${topPositive.feature.toLowerCase()} is a key strength, improving the condition score by ${topPositive.value.toFixed(2)} points.`);
+      newInsights.push(
+        `The ${topPositive.feature.toLowerCase()} is a key strength, improving the condition score by ${topPositive.value.toFixed(2)} points.`
+      );
     }
-    
+
     // Top negative feature
-    const topNegative = sortedFeatures.find(f => f.value < 0);
+    const topNegative = sortedFeatures.find((f) => f.value < 0);
     if (topNegative) {
-      newInsights.push(`The ${topNegative.feature.toLowerCase()} is an area of concern, decreasing the condition score by ${Math.abs(topNegative.value).toFixed(2)} points.`);
+      newInsights.push(
+        `The ${topNegative.feature.toLowerCase()} is an area of concern, decreasing the condition score by ${Math.abs(topNegative.value).toFixed(2)} points.`
+      );
     }
-    
+
     // Add recommendation based on the worst feature
     if (topNegative) {
-      newInsights.push(`Recommendation: Consider improvements to the ${topNegative.feature.toLowerCase()} to increase the property's value assessment.`);
+      newInsights.push(
+        `Recommendation: Consider improvements to the ${topNegative.feature.toLowerCase()} to increase the property's value assessment.`
+      );
     }
-    
+
     // Model version insight
     if (data.model_version) {
-      newInsights.push(`This analysis was performed using model version ${data.model_version}, which is ${modelVersion === 'latest' ? 'the latest available version' : 'a previous model version'}.`);
+      newInsights.push(
+        `This analysis was performed using model version ${data.model_version}, which is ${modelVersion === "latest" ? "the latest available version" : "a previous model version"}.`
+      );
     }
-    
+
     setInsights(newInsights);
-    
+
     // Call the callback if provided
     if (onInsightGenerated) {
       onInsightGenerated({
         condition_score: data.final_score,
         condition_category: getConditionCategory(data.final_score),
-        key_strengths: sortedFeatures.filter(f => f.value > 0).map(f => f.feature),
-        key_concerns: sortedFeatures.filter(f => f.value < 0).map(f => f.feature),
+        key_strengths: sortedFeatures.filter((f) => f.value > 0).map((f) => f.feature),
+        key_concerns: sortedFeatures.filter((f) => f.value < 0).map((f) => f.feature),
         recommendations: topNegative ? [`Improve ${topNegative.feature}`] : [],
-        model_version: data.model_version || modelVersion
+        model_version: data.model_version || modelVersion,
       });
     }
   };
@@ -305,9 +318,9 @@ export function AgentAssistantShapConnector({
               <p className="text-sm text-muted-foreground">
                 Select a property image or condition to view AI analysis
               </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={requestShapExplanation}
                 disabled={!connected}
               >
@@ -336,17 +349,13 @@ export function AgentAssistantShapConnector({
               <CardTitle className="text-lg">
                 Overall Score: {shapData.final_score.toFixed(1)}/5.0
               </CardTitle>
-              <CardDescription>
-                {getConditionDescription(shapData.final_score)}
-              </CardDescription>
+              <CardDescription>{getConditionDescription(shapData.final_score)}</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
                 <Accordion type="single" collapsible defaultValue="features">
                   <AccordionItem value="features">
-                    <AccordionTrigger>
-                      Feature Breakdown
-                    </AccordionTrigger>
+                    <AccordionTrigger>Feature Breakdown</AccordionTrigger>
                     <AccordionContent>
                       <div className="space-y-3 pt-2">
                         {shapData.features.map((feature, index) => (
@@ -356,26 +365,33 @@ export function AgentAssistantShapConnector({
                               <TooltipProvider>
                                 <Tooltip>
                                   <TooltipTrigger asChild>
-                                    <span className={`text-sm ${getFeatureColor(shapData.values[index])}`}>
+                                    <span
+                                      className={`text-sm ${getFeatureColor(shapData.values[index])}`}
+                                    >
                                       {formatShapValue(shapData.values[index])}
                                     </span>
                                   </TooltipTrigger>
                                   <TooltipContent>
                                     <p>
-                                      {shapData.values[index] >= 0 
-                                        ? `Increases score by ${shapData.values[index].toFixed(2)}` 
+                                      {shapData.values[index] >= 0
+                                        ? `Increases score by ${shapData.values[index].toFixed(2)}`
                                         : `Decreases score by ${Math.abs(shapData.values[index]).toFixed(2)}`}
                                     </p>
                                   </TooltipContent>
                                 </Tooltip>
                               </TooltipProvider>
                             </div>
-                            <Progress 
+                            <Progress
                               value={getProgressValue(shapData.values[index])}
-                              className={shapData.values[index] >= 0 ? "bg-green-100" : "bg-blue-100"}
+                              className={
+                                shapData.values[index] >= 0 ? "bg-green-100" : "bg-blue-100"
+                              }
                               // Apply the color through a custom CSS class name
                               style={{
-                                ["--progress-fill-color" as any]: shapData.values[index] >= 0 ? "var(--green-500)" : "var(--blue-500)",
+                                ["--progress-fill-color" as any]:
+                                  shapData.values[index] >= 0
+                                    ? "var(--green-500)"
+                                    : "var(--blue-500)",
                               }}
                             />
                           </div>
@@ -383,11 +399,9 @@ export function AgentAssistantShapConnector({
                       </div>
                     </AccordionContent>
                   </AccordionItem>
-                  
+
                   <AccordionItem value="insights">
-                    <AccordionTrigger>
-                      Key Insights
-                    </AccordionTrigger>
+                    <AccordionTrigger>Key Insights</AccordionTrigger>
                     <AccordionContent>
                       <ul className="space-y-2 pt-2">
                         {insights.map((insight, index) => (
@@ -402,9 +416,7 @@ export function AgentAssistantShapConnector({
 
                   {shapData.model_version && (
                     <AccordionItem value="model-info">
-                      <AccordionTrigger>
-                        Model Information
-                      </AccordionTrigger>
+                      <AccordionTrigger>Model Information</AccordionTrigger>
                       <AccordionContent>
                         <div className="grid grid-cols-2 gap-2 text-xs pt-2">
                           <div>
@@ -430,37 +442,35 @@ export function AgentAssistantShapConnector({
                 </Accordion>
               </div>
             </CardContent>
-            
+
             <CardFooter className="flex justify-between pt-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={requestShapExplanation}
-              >
+              <Button variant="outline" size="sm" onClick={requestShapExplanation}>
                 <RefreshCw className="mr-2 h-3 w-3" />
                 Refresh
               </Button>
-              
+
               <Button
                 variant="outline"
                 size="sm"
                 onClick={() => {
                   const exportData = {
-                    property_id: propertyId || 'sample',
+                    property_id: propertyId || "sample",
                     image_url: imageUrl,
                     condition: condition,
                     model_version: shapData.model_version || modelVersion,
                     timestamp: new Date().toISOString(),
                     shap_data: shapData,
-                    insights: insights
+                    insights: insights,
                   };
-                  
-                  const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+
+                  const blob = new Blob([JSON.stringify(exportData, null, 2)], {
+                    type: "application/json",
+                  });
                   const url = URL.createObjectURL(blob);
-                  
-                  const a = document.createElement('a');
+
+                  const a = document.createElement("a");
                   a.href = url;
-                  a.download = `condition_analysis_${new Date().toISOString().split('T')[0]}.json`;
+                  a.download = `condition_analysis_${new Date().toISOString().split("T")[0]}.json`;
                   document.body.appendChild(a);
                   a.click();
                   document.body.removeChild(a);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,10 +9,10 @@ import {
   ViewStyle,
   TextStyle,
   Platform,
-} from 'react-native';
-import { MaterialCommunityIcons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
+} from "react-native";
+import { MaterialCommunityIcons } from "@expo/vector-icons";
+import * as Location from "expo-location";
+import MapView, { Marker, PROVIDER_GOOGLE } from "react-native-maps";
 
 /**
  * Location coordinates
@@ -84,69 +84,67 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
 }) => {
   const [loading, setLoading] = useState(false);
   const [permissionStatus, setPermissionStatus] = useState<Location.PermissionStatus | null>(null);
-  
+
   // Request location permissions
   useEffect(() => {
     const getLocationPermission = async () => {
       const { status } = await Location.requestForegroundPermissionsAsync();
       setPermissionStatus(status);
-      
-      if (status !== 'granted') {
+
+      if (status !== "granted") {
         Alert.alert(
-          'Permission Required',
-          'Location permission is needed to capture property coordinates.',
-          [{ text: 'OK' }]
+          "Permission Required",
+          "Location permission is needed to capture property coordinates.",
+          [{ text: "OK" }]
         );
       }
     };
-    
+
     getLocationPermission();
   }, []);
-  
+
   // Get current location
   const getCurrentLocation = async () => {
     if (disabled || disableEditing) return;
-    
+
     try {
       setLoading(true);
-      
+
       // Check permissions
-      if (permissionStatus !== 'granted') {
+      if (permissionStatus !== "granted") {
         const { status } = await Location.requestForegroundPermissionsAsync();
         setPermissionStatus(status);
-        
-        if (status !== 'granted') {
-          Alert.alert(
-            'Permission Denied',
-            'Location permission is required for this feature.',
-            [{ text: 'OK' }]
-          );
+
+        if (status !== "granted") {
+          Alert.alert("Permission Denied", "Location permission is required for this feature.", [
+            { text: "OK" },
+          ]);
           setLoading(false);
           return;
         }
       }
-      
+
       // Get location
       const location = await Location.getCurrentPositionAsync({
-        accuracy: Location.Accuracy.High
+        accuracy: Location.Accuracy.High,
       });
-      
+
       const coordinates: Coordinates = {
         latitude: location.coords.latitude,
         longitude: location.coords.longitude,
         accuracy: location.coords.accuracy,
       };
-      
+
       // Geocode location to get address if enabled
       let address: LocationAddress | undefined;
-      
+
       if (geocodeAddress) {
         try {
           const geocodeResult = await Location.reverseGeocodeAsync({
             latitude: coordinates.latitude,
             longitude: coordinates.longitude,
           });
-          
+
           if (geocodeResult && geocodeResult.length > 0) {
             const geocode = geocodeResult[0];
             address = {
@@ -160,59 +158,57 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
                 geocode.city,
                 geocode.region,
                 geocode.postalCode,
-                geocode.country
-              ].filter(Boolean).join(', '),
+                geocode.country,
+              ]
+                .filter(Boolean)
+                .join(", "),
             };
           }
         } catch (error) {
-          console.warn('Error geocoding location:', error);
+          console.warn("Error geocoding location:", error);
         }
       }
-      
+
       // Create location data
       const locationData: LocationData = {
         coordinates,
         address,
         timestamp: Date.now(),
       };
-      
+
       onChange(locationData);
     } catch (error) {
-      console.error('Error getting location:', error);
-      Alert.alert(
-        'Error',
-        'Unable to get current location. Please try again.',
-        [{ text: 'OK' }]
-      );
+      console.error("Error getting location:", error);
+      Alert.alert("Error", "Unable to get current location. Please try again.", [{ text: "OK" }]);
     } finally {
       setLoading(false);
     }
   };
-  
+
   // Clear location
   const clearLocation = () => {
     if (disabled || disableEditing) return;
     onChange(null);
   };
-  
+
   // Move marker on map
   const onMapMarkerDragEnd = (e: any) => {
     if (disabled || disableEditing) return;
-    
+
     const coordinates: Coordinates = {
       latitude: e.nativeEvent.coordinate.latitude,
       longitude: e.nativeEvent.coordinate.longitude,
     };
-    
+
     // Update location with new coordinates
     const locationData: LocationData = {
       coordinates,
       address: value?.address, // Keep existing address
       timestamp: Date.now(),
     };
-    
+
     onChange(locationData);
-    
+
     // Geocode new location if enabled
     if (geocodeAddress) {
       (async () => {
@@ -221,7 +217,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             latitude: coordinates.latitude,
             longitude: coordinates.longitude,
           });
-          
+
           if (geocodeResult && geocodeResult.length > 0) {
             const geocode = geocodeResult[0];
             const address: LocationAddress = {
@@ -235,26 +231,28 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
                 geocode.city,
                 geocode.region,
                 geocode.postalCode,
-                geocode.country
-              ].filter(Boolean).join(', '),
+                geocode.country,
+              ]
+                .filter(Boolean)
+                .join(", "),
             };
-            
+
             // Update with new address
             const updatedLocationData: LocationData = {
               coordinates,
               address,
               timestamp: Date.now(),
             };
-            
+
             onChange(updatedLocationData);
           }
         } catch (error) {
-          console.warn('Error geocoding location:', error);
+          console.warn("Error geocoding location:", error);
         }
       })();
     }
   };
-  
+
   return (
     <View style={[styles.container, containerStyle]}>
       <View style={styles.labelContainer}>
@@ -263,7 +261,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
           {required && <Text style={styles.required}> *</Text>}
         </Text>
       </View>
-      
+
       <View style={styles.locationContainer}>
         {/* Location Actions */}
         <View style={styles.actionRow}>
@@ -271,7 +269,7 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             style={[
               styles.actionButton,
               loading && styles.loadingButton,
-              (disabled || disableEditing) && styles.disabledButton
+              (disabled || disableEditing) && styles.disabledButton,
             ]}
             onPress={getCurrentLocation}
             disabled={loading || disabled || disableEditing}
@@ -282,16 +280,13 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
               <MaterialCommunityIcons name="crosshairs-gps" size={18} color="#fff" />
             )}
             <Text style={styles.actionButtonText}>
-              {loading ? 'Getting Location...' : 'Get Current Location'}
+              {loading ? "Getting Location..." : "Get Current Location"}
             </Text>
           </TouchableOpacity>
-          
+
           {value && (
             <TouchableOpacity
-              style={[
-                styles.clearButton,
-                (disabled || disableEditing) && styles.disabledButton
-              ]}
+              style={[styles.clearButton, (disabled || disableEditing) && styles.disabledButton]}
               onPress={clearLocation}
               disabled={disabled || disableEditing}
             >
@@ -299,25 +294,21 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
             </TouchableOpacity>
           )}
         </View>
-        
+
         {/* Location Display */}
         {value && (
           <View style={styles.locationInfoContainer}>
             <View style={styles.coordinatesContainer}>
               <View style={styles.coordinateItem}>
                 <Text style={styles.coordinateLabel}>Latitude</Text>
-                <Text style={styles.coordinateValue}>
-                  {value.coordinates.latitude.toFixed(6)}
-                </Text>
+                <Text style={styles.coordinateValue}>{value.coordinates.latitude.toFixed(6)}</Text>
               </View>
-              
+
               <View style={styles.coordinateItem}>
                 <Text style={styles.coordinateLabel}>Longitude</Text>
-                <Text style={styles.coordinateValue}>
-                  {value.coordinates.longitude.toFixed(6)}
-                </Text>
+                <Text style={styles.coordinateValue}>{value.coordinates.longitude.toFixed(6)}</Text>
               </View>
-              
+
               {value.coordinates.accuracy && (
                 <View style={styles.coordinateItem}>
                   <Text style={styles.coordinateLabel}>Accuracy</Text>
@@ -327,16 +318,16 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
                 </View>
               )}
             </View>
-            
+
             {value.address && (
               <View style={styles.addressContainer}>
                 <Text style={styles.addressLabel}>Address</Text>
                 <Text style={styles.addressValue}>
-                  {value.address.formattedAddress || 'Address not available'}
+                  {value.address.formattedAddress || "Address not available"}
                 </Text>
               </View>
             )}
-            
+
             {/* Map View */}
             {showMap && (
               <View style={[styles.mapContainer, { height: mapHeight }]}>
@@ -367,40 +358,32 @@ export const LocationPicker: React.FC<LocationPickerProps> = ({
                     description={value.address?.formattedAddress}
                   />
                 </MapView>
-                
+
                 {!disabled && !disableEditing && (
                   <View style={styles.mapInstructions}>
-                    <Text style={styles.mapInstructionsText}>
-                      Drag the pin to adjust location
-                    </Text>
+                    <Text style={styles.mapInstructionsText}>Drag the pin to adjust location</Text>
                   </View>
                 )}
               </View>
             )}
           </View>
         )}
-        
+
         {/* Empty State */}
         {!value && !loading && (
           <View style={styles.emptyState}>
             <MaterialCommunityIcons name="map-marker-off" size={32} color="#bdc3c7" />
-            <Text style={styles.emptyStateText}>
-              No location captured
-            </Text>
+            <Text style={styles.emptyStateText}>No location captured</Text>
             <Text style={styles.emptyStateSubtext}>
               Tap "Get Current Location" to capture property coordinates
             </Text>
           </View>
         )}
       </View>
-      
-      {helperText && !error && (
-        <Text style={styles.helperText}>{helperText}</Text>
-      )}
-      
-      {error && (
-        <Text style={styles.errorText}>{error}</Text>
-      )}
+
+      {helperText && !error && <Text style={styles.helperText}>{helperText}</Text>}
+
+      {error && <Text style={styles.errorText}>{error}</Text>}
     </View>
   );
 };
@@ -414,139 +397,139 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
   },
   required: {
-    color: '#e74c3c',
+    color: "#e74c3c",
   },
   locationContainer: {
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     borderRadius: 12,
-    backgroundColor: '#f9f9f9',
+    backgroundColor: "#f9f9f9",
     padding: 12,
-    overflow: 'hidden',
+    overflow: "hidden",
   },
   actionRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginBottom: 12,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#3498db',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#3498db",
     paddingHorizontal: 16,
     paddingVertical: 10,
     borderRadius: 8,
     flex: 1,
-    justifyContent: 'center',
+    justifyContent: "center",
   },
   actionButtonText: {
-    color: '#fff',
-    fontWeight: '500',
+    color: "#fff",
+    fontWeight: "500",
     marginLeft: 8,
   },
   loadingButton: {
-    backgroundColor: '#7f8c8d',
+    backgroundColor: "#7f8c8d",
   },
   disabledButton: {
-    backgroundColor: '#bdc3c7',
+    backgroundColor: "#bdc3c7",
   },
   clearButton: {
-    backgroundColor: '#e74c3c',
+    backgroundColor: "#e74c3c",
     width: 42,
     height: 42,
     borderRadius: 8,
     marginLeft: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   locationInfoContainer: {
     marginBottom: 8,
   },
   coordinatesContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginBottom: 12,
   },
   coordinateItem: {
-    width: '33%',
+    width: "33%",
     marginBottom: 8,
   },
   coordinateLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
   },
   coordinateValue: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#333',
+    fontWeight: "500",
+    color: "#333",
   },
   addressContainer: {
     marginBottom: 12,
     padding: 12,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   addressLabel: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginBottom: 4,
   },
   addressValue: {
     fontSize: 14,
-    color: '#333',
+    color: "#333",
   },
   mapContainer: {
     borderRadius: 8,
-    overflow: 'hidden',
+    overflow: "hidden",
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
   },
   map: {
     ...StyleSheet.absoluteFillObject,
   },
   mapInstructions: {
-    position: 'absolute',
+    position: "absolute",
     bottom: 8,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    alignSelf: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 16,
   },
   mapInstructionsText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 12,
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 24,
   },
   emptyStateText: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#7f8c8d',
+    fontWeight: "500",
+    color: "#7f8c8d",
     marginTop: 12,
   },
   emptyStateSubtext: {
     fontSize: 14,
-    color: '#95a5a6',
+    color: "#95a5a6",
     marginTop: 4,
-    textAlign: 'center',
+    textAlign: "center",
   },
   helperText: {
     fontSize: 12,
-    color: '#7f8c8d',
+    color: "#7f8c8d",
     marginTop: 4,
   },
   errorText: {
     fontSize: 12,
-    color: '#e74c3c',
+    color: "#e74c3c",
     marginTop: 4,
   },
 });

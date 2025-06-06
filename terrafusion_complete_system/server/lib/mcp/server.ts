@@ -1,11 +1,11 @@
-import { 
-  MCPMessage, 
-  MCPResponseMessage, 
+import {
+  MCPMessage,
+  MCPResponseMessage,
   MCPContentTypes,
   MCPContentTypeMap,
-  createMCPResponse
-} from './types';
-import { MCPClient } from './client';
+  createMCPResponse,
+} from "./types";
+import { MCPClient } from "./client";
 
 /**
  * MCP Server for handling messages from multiple clients
@@ -14,15 +14,15 @@ export class MCPServer {
   private serverId: string;
   private clients: Map<string, MCPClient> = new Map();
   private handlers: Map<string, (message: MCPMessage<any>) => Promise<any>> = new Map();
-  
+
   /**
    * Create a new MCP server
    * @param serverId - Unique identifier for this server
    */
-  constructor(serverId: string = 'mcp-server') {
+  constructor(serverId: string = "mcp-server") {
     this.serverId = serverId;
   }
-  
+
   /**
    * Register a client with this server
    * @param client - Client to register
@@ -31,7 +31,7 @@ export class MCPServer {
   registerClient(client: MCPClient, clientId: string): void {
     this.clients.set(clientId, client);
   }
-  
+
   /**
    * Register a handler for a specific content type
    * @param contentType - Content type to handle
@@ -43,47 +43,49 @@ export class MCPServer {
   ): void {
     this.handlers.set(contentType, handler as any);
   }
-  
+
   /**
    * Process a message received by the server
    * @param message - Message to process
    * @returns Promise that resolves with the response
    */
   async processMessage(message: MCPMessage<any>): Promise<MCPResponseMessage<any>> {
-    console.log(`[MCP Server] Processing message ${message.messageId} of type ${message.contentType}`);
-    
+    console.log(
+      `[MCP Server] Processing message ${message.messageId} of type ${message.contentType}`
+    );
+
     try {
       // Find a handler for this content type
       const handler = this.handlers.get(message.contentType);
-      
+
       if (handler) {
         // Process the message with the handler
         const result = await handler(message);
-        
+
         // Create and return the response
         const response = createMCPResponse(
           message,
           `${message.contentType}.response` as MCPContentTypes,
           result,
-          'success'
+          "success"
         );
-        
+
         // If the message had a specific recipient, route the response
-        if (message.recipient !== this.serverId && message.recipient !== '*') {
+        if (message.recipient !== this.serverId && message.recipient !== "*") {
           const targetClient = this.clients.get(message.recipient);
-          
+
           if (targetClient) {
             // Route the response to the target client
             await targetClient.processMessage(response);
           }
         }
-        
+
         return response;
       } else {
         // If the message is for a specific client, forward it
-        if (message.recipient !== this.serverId && message.recipient !== '*') {
+        if (message.recipient !== this.serverId && message.recipient !== "*") {
           const targetClient = this.clients.get(message.recipient);
-          
+
           if (targetClient) {
             // Forward the message to the target client
             await targetClient.processMessage(message);
@@ -91,44 +93,32 @@ export class MCPServer {
               message,
               `${message.contentType}.response` as MCPContentTypes,
               { forwarded: true },
-              'success'
+              "success"
             );
           }
         }
-        
+
         // If we got here, we couldn't handle the message
         console.warn(`[MCP Server] No handler registered for content type ${message.contentType}`);
-        
+
         // Create and return an error response
-        return createMCPResponse(
-          message,
-          MCPContentTypes.ERROR,
-          null,
-          'error',
-          {
-            code: 'UNHANDLED_CONTENT_TYPE',
-            message: `No handler registered for content type ${message.contentType}`,
-          }
-        );
+        return createMCPResponse(message, MCPContentTypes.ERROR, null, "error", {
+          code: "UNHANDLED_CONTENT_TYPE",
+          message: `No handler registered for content type ${message.contentType}`,
+        });
       }
     } catch (error) {
       console.error(`[MCP Server] Error processing message: ${error}`);
-      
+
       // Create and return an error response
-      return createMCPResponse(
-        message,
-        MCPContentTypes.ERROR,
-        null,
-        'error',
-        {
-          code: 'PROCESSING_ERROR',
-          message: error.message,
-          details: error
-        }
-      );
+      return createMCPResponse(message, MCPContentTypes.ERROR, null, "error", {
+        code: "PROCESSING_ERROR",
+        message: error.message,
+        details: error,
+      });
     }
   }
-  
+
   /**
    * Broadcast a message to all registered clients
    * @param contentType - Content type of the message
@@ -143,40 +133,38 @@ export class MCPServer {
       messageId: `${this.serverId}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       timestamp: Date.now(),
       sender: this.serverId,
-      recipient: '*',
+      recipient: "*",
       contentType,
       content,
-      metadata: {}
+      metadata: {},
     };
-    
+
     const responses: MCPResponseMessage<any>[] = [];
-    
+
     // Process message with all clients
     for (const [clientId, client] of this.clients.entries()) {
       try {
         await client.processMessage(message);
-        responses.push(createMCPResponse(
-          message,
-          `${contentType}.response` as MCPContentTypes,
-          { status: 'received' },
-          'success'
-        ));
+        responses.push(
+          createMCPResponse(
+            message,
+            `${contentType}.response` as MCPContentTypes,
+            { status: "received" },
+            "success"
+          )
+        );
       } catch (error) {
         console.error(`[MCP Server] Error broadcasting to client ${clientId}: ${error}`);
-        responses.push(createMCPResponse(
-          message,
-          MCPContentTypes.ERROR,
-          null,
-          'error',
-          {
-            code: 'BROADCAST_ERROR',
+        responses.push(
+          createMCPResponse(message, MCPContentTypes.ERROR, null, "error", {
+            code: "BROADCAST_ERROR",
             message: `Error broadcasting to client ${clientId}: ${error.message}`,
-            details: error
-          }
-        ));
+            details: error,
+          })
+        );
       }
     }
-    
+
     return responses;
   }
 }

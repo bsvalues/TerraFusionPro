@@ -11,39 +11,39 @@
 export function createWebSocketConnection(path) {
   try {
     // Only create WebSocket if window is defined (client-side)
-    if (typeof window !== 'undefined') {
-      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host || '';
-      
+    if (typeof window !== "undefined") {
+      const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
+      const host = window.location.host || "";
+
       // Validate host before creating WebSocket
       if (!host) {
-        console.warn('WebSocket connection failed: Invalid host');
+        console.warn("WebSocket connection failed: Invalid host");
         return null;
       }
-      
+
       const wsUrl = `${protocol}//${host}${path}`;
       console.log(`Creating WebSocket connection to: ${wsUrl}`);
-      
+
       const socket = new WebSocket(wsUrl);
-      
+
       // Add error handlers
       socket.onopen = () => {
         console.log(`WebSocket connection established: ${wsUrl}`);
       };
-      
+
       socket.onerror = (error) => {
         console.error(`WebSocket error: ${error}`);
       };
-      
+
       socket.onclose = (event) => {
         console.log(`WebSocket connection closed: ${event.code} ${event.reason}`);
       };
-      
+
       return socket;
     }
   } catch (error) {
-    console.error('Failed to create WebSocket connection:', error);
+    console.error("Failed to create WebSocket connection:", error);
   }
-  
+
   return null;
 }

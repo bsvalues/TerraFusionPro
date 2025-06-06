@@ -22,22 +22,22 @@ export default function SimpleLegacyImporter() {
         sale_price_usd: 425000,
         gla_sqft: 2125,
         sale_date: "2023-05-15",
-        source_table: "sqlite_demo"
+        source_table: "sqlite_demo",
       },
       {
-        address: "456 Oak Avenue, Portland, OR", 
+        address: "456 Oak Avenue, Portland, OR",
         sale_price_usd: 385000,
         gla_sqft: 1950,
         sale_date: "2023-06-22",
-        source_table: "sqlite_demo"
+        source_table: "sqlite_demo",
       },
       {
         address: "789 Pine Road, Vancouver, WA",
         sale_price_usd: 310000,
         gla_sqft: 1650,
         sale_date: "2023-07-10",
-        source_table: "sqlite_demo"
-      }
+        source_table: "sqlite_demo",
+      },
     ];
 
     let index = 0;
@@ -49,7 +49,7 @@ export default function SimpleLegacyImporter() {
         return;
       }
 
-      setStreamData(prev => [mockData[index], ...prev]);
+      setStreamData((prev) => [mockData[index], ...prev]);
       setStatus(`Processing record ${index + 1} of ${mockData.length}`);
       index++;
     }, 1000);
@@ -70,7 +70,7 @@ export default function SimpleLegacyImporter() {
         {/* File Upload Section */}
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 mb-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">Upload Files</h2>
-          
+
           <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center">
             <input
               ref={fileInputRef}
@@ -80,20 +80,30 @@ export default function SimpleLegacyImporter() {
               onChange={handleFileSelect}
               className="hidden"
             />
-            
+
             <div className="mb-4">
-              <svg className="w-12 h-12 mx-auto text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+              <svg
+                className="w-12 h-12 mx-auto text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                />
               </svg>
             </div>
-            
+
             <p className="text-lg font-medium text-gray-900 mb-2">
               Drop files here or click to browse
             </p>
             <p className="text-sm text-gray-500 mb-4">
               Supports SQLite, CSV, XML, and ZIP archives
             </p>
-            
+
             <button
               onClick={() => fileInputRef.current?.click()}
               className="px-6 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
@@ -124,17 +134,17 @@ export default function SimpleLegacyImporter() {
                 <h2 className="text-xl font-semibold text-gray-900">Live Import Stream</h2>
                 <p className="text-sm text-gray-500 mt-1">{status}</p>
               </div>
-              
+
               <button
                 onClick={startDemoStream}
                 disabled={isStreaming}
                 className={`px-4 py-2 rounded-md text-sm font-medium ${
-                  isStreaming 
-                    ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                    : 'bg-green-600 text-white hover:bg-green-700'
+                  isStreaming
+                    ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+                    : "bg-green-600 text-white hover:bg-green-700"
                 }`}
               >
-                {isStreaming ? 'Processing...' : 'Start Demo Import'}
+                {isStreaming ? "Processing..." : "Start Demo Import"}
               </button>
             </div>
           </div>
@@ -142,8 +152,18 @@ export default function SimpleLegacyImporter() {
           <div className="max-h-96 overflow-y-auto">
             {streamData.length === 0 && !isStreaming ? (
               <div className="text-center py-12 text-gray-500">
-                <svg className="w-12 h-12 mx-auto mb-4 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                <svg
+                  className="w-12 h-12 mx-auto mb-4 opacity-50"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"
+                  />
                 </svg>
                 <p>No imported records yet. Start a demo import to see live data streaming.</p>
               </div>
@@ -159,7 +179,10 @@ export default function SimpleLegacyImporter() {
 
                 {/* Data Rows */}
                 {streamData.map((record, index) => (
-                  <div key={index} className="border-b p-3 grid grid-cols-4 gap-3 text-sm hover:bg-gray-50">
+                  <div
+                    key={index}
+                    className="border-b p-3 grid grid-cols-4 gap-3 text-sm hover:bg-gray-50"
+                  >
                     <div className="font-medium text-gray-900">{record.address}</div>
                     <div className="text-right font-semibold text-green-700">
                       ${record.sale_price_usd?.toLocaleString()}
@@ -195,7 +218,10 @@ export default function SimpleLegacyImporter() {
                 <div>
                   <span className="text-gray-500">Average Price:</span>
                   <span className="ml-2 font-semibold">
-                    ${Math.round(streamData.reduce((sum, r) => sum + r.sale_price_usd, 0) / streamData.length).toLocaleString()}
+                    $
+                    {Math.round(
+                      streamData.reduce((sum, r) => sum + r.sale_price_usd, 0) / streamData.length
+                    ).toLocaleString()}
                   </span>
                 </div>
                 <div>

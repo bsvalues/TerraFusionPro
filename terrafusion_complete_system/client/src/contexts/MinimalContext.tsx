@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState, ReactNode } from "react";
 
 // Define a simple type with no external dependencies
 interface MinimalContextType {
@@ -13,7 +13,7 @@ const MinimalContext = createContext<MinimalContextType | undefined>(undefined);
 export function useMinimal() {
   const context = useContext(MinimalContext);
   if (context === undefined) {
-    throw new Error('useMinimal must be used within a MinimalProvider');
+    throw new Error("useMinimal must be used within a MinimalProvider");
   }
   return context;
 }
@@ -24,16 +24,12 @@ interface MinimalProviderProps {
 }
 
 export function MinimalProvider({ children }: MinimalProviderProps) {
-  const [userName, setUserName] = useState<string>('John Doe');
+  const [userName, setUserName] = useState<string>("John Doe");
 
   const value = {
     userName,
-    setUserName
+    setUserName,
   };
 
-  return (
-    <MinimalContext.Provider value={value}>
-      {children}
-    </MinimalContext.Provider>
-  );
+  return <MinimalContext.Provider value={value}>{children}</MinimalContext.Provider>;
 }

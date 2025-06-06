@@ -1,10 +1,15 @@
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../components/ui/card';
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '../components/ui/accordion';
-import { CheckCircle2, XCircle, AlertTriangle } from 'lucide-react';
+import { Button } from "../components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "../components/ui/card";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "../components/ui/accordion";
+import { CheckCircle2, XCircle, AlertTriangle } from "lucide-react";
 
 // Define types for compliance checking
-type CheckStatus = 'error' | 'warning' | 'success';
+type CheckStatus = "error" | "warning" | "success";
 
 interface ComplianceCheck {
   id: string;
@@ -19,83 +24,84 @@ interface ComplianceCheck {
 export default function CompliancePage() {
   const demoComplianceChecks: ComplianceCheck[] = [
     {
-      id: 'uad-1', 
-      category: 'UAD Compliance',
-      rule: 'Property Condition Rating',
-      status: 'error',
-      description: 'Property condition rating must be C1, C2, C3, C4, C5, or C6.',
-      location: 'Improvements Section, Page 1'
+      id: "uad-1",
+      category: "UAD Compliance",
+      rule: "Property Condition Rating",
+      status: "error",
+      description: "Property condition rating must be C1, C2, C3, C4, C5, or C6.",
+      location: "Improvements Section, Page 1",
     },
     {
-      id: 'uad-2',
-      category: 'UAD Compliance',
-      rule: 'Quality Rating Format',
-      status: 'warning',
-      description: 'Property quality rating should follow Q1-Q6 format per UAD guidelines.',
-      location: 'Improvements Section, Page 1'
+      id: "uad-2",
+      category: "UAD Compliance",
+      rule: "Quality Rating Format",
+      status: "warning",
+      description: "Property quality rating should follow Q1-Q6 format per UAD guidelines.",
+      location: "Improvements Section, Page 1",
     },
     {
-      id: 'uad-3',
-      category: 'UAD Compliance',
-      rule: 'View Rating',
-      status: 'success',
-      description: 'View rating follows required format.',
-      location: 'Site Section, Page 1'
+      id: "uad-3",
+      category: "UAD Compliance",
+      rule: "View Rating",
+      status: "success",
+      description: "View rating follows required format.",
+      location: "Site Section, Page 1",
     },
     {
-      id: 'gse-1',
-      category: 'GSE Requirements',
-      rule: 'Market Conditions',
-      status: 'error',
-      description: 'Market conditions analysis must include at least three comparable pending sales.',
-      location: 'Market Conditions Addendum'
+      id: "gse-1",
+      category: "GSE Requirements",
+      rule: "Market Conditions",
+      status: "error",
+      description:
+        "Market conditions analysis must include at least three comparable pending sales.",
+      location: "Market Conditions Addendum",
     },
     {
-      id: 'gse-2',
-      category: 'GSE Requirements',
-      rule: 'Comparable Sales Distance',
-      status: 'warning',
-      description: 'One or more comparable sales exceed recommended distance from subject.',
-      location: 'Sales Comparison Approach'
+      id: "gse-2",
+      category: "GSE Requirements",
+      rule: "Comparable Sales Distance",
+      status: "warning",
+      description: "One or more comparable sales exceed recommended distance from subject.",
+      location: "Sales Comparison Approach",
     },
     {
-      id: 'gse-3',
-      category: 'GSE Requirements',
-      rule: 'Sales History',
-      status: 'success',
-      description: 'Required 3-year sales history for subject property is present.',
-      location: 'Sales History Section, Page 1'
+      id: "gse-3",
+      category: "GSE Requirements",
+      rule: "Sales History",
+      status: "success",
+      description: "Required 3-year sales history for subject property is present.",
+      location: "Sales History Section, Page 1",
     },
     {
-      id: 'form-1',
-      category: 'Form Completeness',
-      rule: 'Required Fields',
-      status: 'success',
-      description: 'All required fields have been completed.',
-      location: 'Throughout Form'
+      id: "form-1",
+      category: "Form Completeness",
+      rule: "Required Fields",
+      status: "success",
+      description: "All required fields have been completed.",
+      location: "Throughout Form",
     },
     {
-      id: 'form-2',
-      category: 'Form Completeness',
-      rule: 'Signature/Date',
-      status: 'warning',
-      description: 'Digital signature date does not match report date.',
-      location: 'Certification Section'
-    }
+      id: "form-2",
+      category: "Form Completeness",
+      rule: "Signature/Date",
+      status: "warning",
+      description: "Digital signature date does not match report date.",
+      location: "Certification Section",
+    },
   ];
 
   // Count issues by type
-  const errorCount = demoComplianceChecks.filter(check => check.status === 'error').length;
-  const warningCount = demoComplianceChecks.filter(check => check.status === 'warning').length;
-  const successCount = demoComplianceChecks.filter(check => check.status === 'success').length;
-  
+  const errorCount = demoComplianceChecks.filter((check) => check.status === "error").length;
+  const warningCount = demoComplianceChecks.filter((check) => check.status === "warning").length;
+  const successCount = demoComplianceChecks.filter((check) => check.status === "success").length;
+
   const getIconByStatus = (status: CheckStatus) => {
-    switch(status) {
-      case 'error':
+    switch (status) {
+      case "error":
         return <XCircle className="h-5 w-5 text-red-500" />;
-      case 'warning':
+      case "warning":
         return <AlertTriangle className="h-5 w-5 text-amber-500" />;
-      case 'success':
+      case "success":
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;
       default:
         return null;
@@ -122,7 +128,7 @@ export default function CompliancePage() {
             <p className="text-sm text-red-600">Must be resolved before submission</p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-amber-50 border-amber-200">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center">
@@ -135,7 +141,7 @@ export default function CompliancePage() {
             <p className="text-sm text-amber-600">Review recommended</p>
           </CardContent>
         </Card>
-        
+
         <Card className="bg-green-50 border-green-200">
           <CardHeader className="pb-2">
             <CardTitle className="flex items-center">
@@ -164,93 +170,84 @@ export default function CompliancePage() {
               <AccordionContent>
                 <div className="space-y-4 mt-2">
                   {demoComplianceChecks
-                    .filter(check => check.category === 'UAD Compliance')
-                    .map(check => (
-                      <div 
+                    .filter((check) => check.category === "UAD Compliance")
+                    .map((check) => (
+                      <div
                         key={check.id}
                         className={`p-3 rounded-md border flex items-start ${
-                          check.status === 'error' 
-                            ? 'bg-red-50 border-red-200' 
-                            : check.status === 'warning'
-                              ? 'bg-amber-50 border-amber-200'
-                              : 'bg-green-50 border-green-200'
+                          check.status === "error"
+                            ? "bg-red-50 border-red-200"
+                            : check.status === "warning"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-green-50 border-green-200"
                         }`}
                       >
-                        <div className="mt-0.5 mr-3">
-                          {getIconByStatus(check.status)}
-                        </div>
+                        <div className="mt-0.5 mr-3">{getIconByStatus(check.status)}</div>
                         <div>
                           <h3 className="font-medium">{check.rule}</h3>
                           <p className="text-sm text-gray-600">{check.description}</p>
                           <p className="text-xs text-gray-500 mt-1">Location: {check.location}</p>
                         </div>
                       </div>
-                    ))
-                  }
+                    ))}
                 </div>
               </AccordionContent>
             </AccordionItem>
-            
+
             <AccordionItem value="gse">
               <AccordionTrigger>GSE Requirements</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4 mt-2">
                   {demoComplianceChecks
-                    .filter(check => check.category === 'GSE Requirements')
-                    .map(check => (
-                      <div 
+                    .filter((check) => check.category === "GSE Requirements")
+                    .map((check) => (
+                      <div
                         key={check.id}
                         className={`p-3 rounded-md border flex items-start ${
-                          check.status === 'error' 
-                            ? 'bg-red-50 border-red-200' 
-                            : check.status === 'warning'
-                              ? 'bg-amber-50 border-amber-200'
-                              : 'bg-green-50 border-green-200'
+                          check.status === "error"
+                            ? "bg-red-50 border-red-200"
+                            : check.status === "warning"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-green-50 border-green-200"
                         }`}
                       >
-                        <div className="mt-0.5 mr-3">
-                          {getIconByStatus(check.status)}
-                        </div>
+                        <div className="mt-0.5 mr-3">{getIconByStatus(check.status)}</div>
                         <div>
                           <h3 className="font-medium">{check.rule}</h3>
                           <p className="text-sm text-gray-600">{check.description}</p>
                           <p className="text-xs text-gray-500 mt-1">Location: {check.location}</p>
                         </div>
                       </div>
-                    ))
-                  }
+                    ))}
                 </div>
               </AccordionContent>
             </AccordionItem>
-            
+
             <AccordionItem value="form">
               <AccordionTrigger>Form Completeness</AccordionTrigger>
               <AccordionContent>
                 <div className="space-y-4 mt-2">
                   {demoComplianceChecks
-                    .filter(check => check.category === 'Form Completeness')
-                    .map(check => (
-                      <div 
+                    .filter((check) => check.category === "Form Completeness")
+                    .map((check) => (
+                      <div
                         key={check.id}
                         className={`p-3 rounded-md border flex items-start ${
-                          check.status === 'error' 
-                            ? 'bg-red-50 border-red-200' 
-                            : check.status === 'warning'
-                              ? 'bg-amber-50 border-amber-200'
-                              : 'bg-green-50 border-green-200'
+                          check.status === "error"
+                            ? "bg-red-50 border-red-200"
+                            : check.status === "warning"
+                              ? "bg-amber-50 border-amber-200"
+                              : "bg-green-50 border-green-200"
                         }`}
                       >
-                        <div className="mt-0.5 mr-3">
-                          {getIconByStatus(check.status)}
-                        </div>
+                        <div className="mt-0.5 mr-3">{getIconByStatus(check.status)}</div>
                         <div>
                           <h3 className="font-medium">{check.rule}</h3>
                           <p className="text-sm text-gray-600">{check.description}</p>
                           <p className="text-xs text-gray-500 mt-1">Location: {check.location}</p>
                         </div>
                       </div>
-                    ))
-                  }
+                    ))}
                 </div>
               </AccordionContent>
             </AccordionItem>

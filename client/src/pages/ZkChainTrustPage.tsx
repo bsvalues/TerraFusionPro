@@ -1,20 +1,31 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Shield, Lock, Eye, CheckCircle, AlertTriangle, Hash, Database, Activity, Clock, Users } from "lucide-react";
+import {
+  Shield,
+  Lock,
+  Eye,
+  CheckCircle,
+  AlertTriangle,
+  Hash,
+  Database,
+  Activity,
+  Clock,
+  Users,
+} from "lucide-react";
 
 interface ProofRecord {
   id: string;
-  type: 'Comp Override' | 'Agent Insertion' | 'Zoning Prediction' | 'Valuation Adjustment';
+  type: "Comp Override" | "Agent Insertion" | "Zoning Prediction" | "Valuation Adjustment";
   propertyId: string;
   timestamp: string;
   zkProofHash: string;
-  verificationStatus: 'Verified' | 'Pending' | 'Failed';
+  verificationStatus: "Verified" | "Pending" | "Failed";
   auditorAccess: boolean;
-  dataPrivacy: 'Protected' | 'Public' | 'Restricted';
+  dataPrivacy: "Protected" | "Public" | "Restricted";
   rollupBatch: string;
 }
 
@@ -38,84 +49,84 @@ interface ZkMetrics {
 }
 
 export default function ZkChainTrustPage() {
-  const [selectedRecord, setSelectedRecord] = useState<string>('');
-  const [verificationMode, setVerificationMode] = useState<'auditor' | 'public'>('public');
+  const [selectedRecord, setSelectedRecord] = useState<string>("");
+  const [verificationMode, setVerificationMode] = useState<"auditor" | "public">("public");
 
   const recentProofs: ProofRecord[] = [
     {
-      id: 'ZK-001847',
-      type: 'Comp Override',
-      propertyId: 'PROP-98052-1234',
-      timestamp: '2025-05-29T23:45:00Z',
-      zkProofHash: 'zk_9f8e7d6c5b4a3210fedcba9876543210',
-      verificationStatus: 'Verified',
+      id: "ZK-001847",
+      type: "Comp Override",
+      propertyId: "PROP-98052-1234",
+      timestamp: "2025-05-29T23:45:00Z",
+      zkProofHash: "zk_9f8e7d6c5b4a3210fedcba9876543210",
+      verificationStatus: "Verified",
       auditorAccess: true,
-      dataPrivacy: 'Protected',
-      rollupBatch: 'BATCH-20250529-047'
+      dataPrivacy: "Protected",
+      rollupBatch: "BATCH-20250529-047",
     },
     {
-      id: 'ZK-001848',
-      type: 'Agent Insertion',
-      propertyId: 'PROP-99301-5678',
-      timestamp: '2025-05-29T23:42:00Z',
-      zkProofHash: 'zk_8e7d6c5b4a321098765432109876fedc',
-      verificationStatus: 'Verified',
+      id: "ZK-001848",
+      type: "Agent Insertion",
+      propertyId: "PROP-99301-5678",
+      timestamp: "2025-05-29T23:42:00Z",
+      zkProofHash: "zk_8e7d6c5b4a321098765432109876fedc",
+      verificationStatus: "Verified",
       auditorAccess: true,
-      dataPrivacy: 'Protected',
-      rollupBatch: 'BATCH-20250529-047'
+      dataPrivacy: "Protected",
+      rollupBatch: "BATCH-20250529-047",
     },
     {
-      id: 'ZK-001849',
-      type: 'Zoning Prediction',
-      propertyId: 'PROP-98004-9012',
-      timestamp: '2025-05-29T23:38:00Z',
-      zkProofHash: 'zk_7d6c5b4a32109876543210987654321f',
-      verificationStatus: 'Verified',
+      id: "ZK-001849",
+      type: "Zoning Prediction",
+      propertyId: "PROP-98004-9012",
+      timestamp: "2025-05-29T23:38:00Z",
+      zkProofHash: "zk_7d6c5b4a32109876543210987654321f",
+      verificationStatus: "Verified",
       auditorAccess: false,
-      dataPrivacy: 'Public',
-      rollupBatch: 'BATCH-20250529-047'
+      dataPrivacy: "Public",
+      rollupBatch: "BATCH-20250529-047",
     },
     {
-      id: 'ZK-001850',
-      type: 'Valuation Adjustment',
-      propertyId: 'PROP-98661-3456',
-      timestamp: '2025-05-29T23:35:00Z',
-      zkProofHash: 'zk_6c5b4a321098765432109876543210fe',
-      verificationStatus: 'Pending',
+      id: "ZK-001850",
+      type: "Valuation Adjustment",
+      propertyId: "PROP-98661-3456",
+      timestamp: "2025-05-29T23:35:00Z",
+      zkProofHash: "zk_6c5b4a321098765432109876543210fe",
+      verificationStatus: "Pending",
       auditorAccess: true,
-      dataPrivacy: 'Restricted',
-      rollupBatch: 'BATCH-20250529-046'
-    }
+      dataPrivacy: "Restricted",
+      rollupBatch: "BATCH-20250529-046",
+    },
   ];
 
   const auditTrails: AuditTrail[] = [
     {
-      id: 'AUDIT-2847',
-      action: 'Comparable property override due to unique zoning variance',
-      actor: 'WA-Appraiser-1247',
-      timestamp: '2025-05-29T23:45:00Z',
-      justification: 'Property has ADU development rights not reflected in standard comps',
-      proofHash: 'zk_9f8e7d6c5b4a3210fedcba9876543210',
-      sensitiveDataMasked: true
+      id: "AUDIT-2847",
+      action: "Comparable property override due to unique zoning variance",
+      actor: "WA-Appraiser-1247",
+      timestamp: "2025-05-29T23:45:00Z",
+      justification: "Property has ADU development rights not reflected in standard comps",
+      proofHash: "zk_9f8e7d6c5b4a3210fedcba9876543210",
+      sensitiveDataMasked: true,
     },
     {
-      id: 'AUDIT-2848',
-      action: 'AI agent valuation model insertion for rural property',
-      actor: 'TF-Agent-Neural-003',
-      timestamp: '2025-05-29T23:42:00Z',
-      justification: 'Water rights valuation requires specialized agricultural model',
-      proofHash: 'zk_8e7d6c5b4a321098765432109876fedc',
-      sensitiveDataMasked: true
+      id: "AUDIT-2848",
+      action: "AI agent valuation model insertion for rural property",
+      actor: "TF-Agent-Neural-003",
+      timestamp: "2025-05-29T23:42:00Z",
+      justification: "Water rights valuation requires specialized agricultural model",
+      proofHash: "zk_8e7d6c5b4a321098765432109876fedc",
+      sensitiveDataMasked: true,
     },
     {
-      id: 'AUDIT-2849',
-      action: 'Zoning development probability forecast update',
-      actor: 'TF-ZoningAI-Core',
-      timestamp: '2025-05-29T23:38:00Z',
-      justification: 'Municipal budget allocation indicates infrastructure investment',
-      proofHash: 'zk_7d6c5b4a32109876543210987654321f',
-      sensitiveDataMasked: false
-    }
+      id: "AUDIT-2849",
+      action: "Zoning development probability forecast update",
+      actor: "TF-ZoningAI-Core",
+      timestamp: "2025-05-29T23:38:00Z",
+      justification: "Municipal budget allocation indicates infrastructure investment",
+      proofHash: "zk_7d6c5b4a32109876543210987654321f",
+      sensitiveDataMasked: false,
+    },
   ];
 
   const zkMetrics: ZkMetrics = {
@@ -124,24 +135,32 @@ export default function ZkChainTrustPage() {
     rollupBatches: 1247,
     compressionRatio: 87.3,
     auditorVerifications: 12847,
-    privacyPreservingQueries: 45621
+    privacyPreservingQueries: 45621,
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Verified': return 'bg-green-100 text-green-800';
-      case 'Pending': return 'bg-yellow-100 text-yellow-800';
-      case 'Failed': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Verified":
+        return "bg-green-100 text-green-800";
+      case "Pending":
+        return "bg-yellow-100 text-yellow-800";
+      case "Failed":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getPrivacyColor = (privacy: string) => {
     switch (privacy) {
-      case 'Protected': return 'bg-blue-100 text-blue-800';
-      case 'Public': return 'bg-green-100 text-green-800';
-      case 'Restricted': return 'bg-red-100 text-red-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Protected":
+        return "bg-blue-100 text-blue-800";
+      case "Public":
+        return "bg-green-100 text-green-800";
+      case "Restricted":
+        return "bg-red-100 text-red-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
@@ -159,7 +178,9 @@ export default function ZkChainTrustPage() {
         <Shield className="w-8 h-8 text-green-600" />
         <div>
           <h1 className="text-3xl font-bold text-gray-900">zkChain of Trust (ZCT)</h1>
-          <p className="text-gray-600">Zero-knowledge proof verification for appraisal integrity without data exposure</p>
+          <p className="text-gray-600">
+            Zero-knowledge proof verification for appraisal integrity without data exposure
+          </p>
         </div>
       </div>
 
@@ -171,7 +192,9 @@ export default function ZkChainTrustPage() {
             <Hash className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-green-600">{zkMetrics.totalProofs.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-green-600">
+              {zkMetrics.totalProofs.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">Generated</p>
           </CardContent>
         </Card>
@@ -182,7 +205,9 @@ export default function ZkChainTrustPage() {
             <CheckCircle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-blue-600">{zkMetrics.verifiedProofs.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-blue-600">
+              {zkMetrics.verifiedProofs.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">99.7% rate</p>
           </CardContent>
         </Card>
@@ -215,7 +240,9 @@ export default function ZkChainTrustPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-indigo-600">{zkMetrics.auditorVerifications.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-indigo-600">
+              {zkMetrics.auditorVerifications.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">Verifications</p>
           </CardContent>
         </Card>
@@ -226,7 +253,9 @@ export default function ZkChainTrustPage() {
             <Eye className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{zkMetrics.privacyPreservingQueries.toLocaleString()}</div>
+            <div className="text-2xl font-bold text-red-600">
+              {zkMetrics.privacyPreservingQueries.toLocaleString()}
+            </div>
             <p className="text-xs text-muted-foreground">Protected</p>
           </CardContent>
         </Card>
@@ -237,17 +266,17 @@ export default function ZkChainTrustPage() {
         <div className="flex items-center space-x-2">
           <span className="text-sm font-medium">Verification Mode:</span>
           <Button
-            variant={verificationMode === 'public' ? 'default' : 'outline'}
+            variant={verificationMode === "public" ? "default" : "outline"}
             size="sm"
-            onClick={() => setVerificationMode('public')}
+            onClick={() => setVerificationMode("public")}
           >
             <Eye className="w-4 h-4 mr-2" />
             Public
           </Button>
           <Button
-            variant={verificationMode === 'auditor' ? 'default' : 'outline'}
+            variant={verificationMode === "auditor" ? "default" : "outline"}
             size="sm"
-            onClick={() => setVerificationMode('auditor')}
+            onClick={() => setVerificationMode("auditor")}
           >
             <Shield className="w-4 h-4 mr-2" />
             Auditor
@@ -274,10 +303,12 @@ export default function ZkChainTrustPage() {
             <CardContent>
               <div className="space-y-4">
                 {recentProofs.map((proof) => (
-                  <div 
-                    key={proof.id} 
+                  <div
+                    key={proof.id}
                     className={`p-4 border rounded-lg cursor-pointer transition-colors ${
-                      selectedRecord === proof.id ? 'border-green-500 bg-green-50' : 'border-gray-200 hover:border-gray-300'
+                      selectedRecord === proof.id
+                        ? "border-green-500 bg-green-50"
+                        : "border-gray-200 hover:border-gray-300"
                     }`}
                     onClick={() => setSelectedRecord(proof.id)}
                   >
@@ -294,7 +325,7 @@ export default function ZkChainTrustPage() {
                             {proof.dataPrivacy}
                           </Badge>
                         </div>
-                        
+
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                           <div>
                             <span className="text-gray-600">Property ID:</span>
@@ -303,7 +334,9 @@ export default function ZkChainTrustPage() {
                           <div>
                             <span className="text-gray-600">ZK Proof Hash:</span>
                             <div className="font-mono text-xs bg-gray-100 p-1 rounded">
-                              {verificationMode === 'auditor' ? proof.zkProofHash : maskHash(proof.zkProofHash)}
+                              {verificationMode === "auditor"
+                                ? proof.zkProofHash
+                                : maskHash(proof.zkProofHash)}
                             </div>
                           </div>
                           <div>
@@ -311,7 +344,7 @@ export default function ZkChainTrustPage() {
                             <div className="font-medium">{proof.rollupBatch}</div>
                           </div>
                         </div>
-                        
+
                         <div className="flex items-center space-x-4 text-sm text-gray-600">
                           <div className="flex items-center space-x-1">
                             <Clock className="w-4 h-4" />
@@ -325,7 +358,7 @@ export default function ZkChainTrustPage() {
                           )}
                         </div>
                       </div>
-                      
+
                       <Button variant="outline" size="sm">
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Verify
@@ -361,12 +394,12 @@ export default function ZkChainTrustPage() {
                           </Badge>
                         )}
                       </div>
-                      
+
                       <div>
                         <div className="font-medium text-gray-900">{trail.action}</div>
                         <div className="text-sm text-gray-600 mt-1">{trail.justification}</div>
                       </div>
-                      
+
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
                         <div>
                           <span className="text-gray-600">Timestamp:</span>
@@ -375,7 +408,9 @@ export default function ZkChainTrustPage() {
                         <div>
                           <span className="text-gray-600">Proof Hash:</span>
                           <div className="font-mono text-xs bg-gray-100 p-1 rounded">
-                            {verificationMode === 'auditor' ? trail.proofHash : maskHash(trail.proofHash)}
+                            {verificationMode === "auditor"
+                              ? trail.proofHash
+                              : maskHash(trail.proofHash)}
                           </div>
                         </div>
                       </div>
@@ -463,7 +498,9 @@ export default function ZkChainTrustPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
                 <div>
                   <div className="text-green-800 font-medium">100% Proof Compliant</div>
-                  <div className="text-green-600">All comp overrides and agent insertions verified</div>
+                  <div className="text-green-600">
+                    All comp overrides and agent insertions verified
+                  </div>
                 </div>
                 <div>
                   <div className="text-green-800 font-medium">Regulator Ready</div>

@@ -12,7 +12,13 @@ import { MarketAnalysisDashboard } from "@/components/MarketAnalysisDashboard";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { AlertCircle, FileBarChart, HelpCircle, Table } from "lucide-react";
@@ -22,42 +28,42 @@ export function ComparablePropertiesPage() {
   const { reportId } = useParams();
   const parsedReportId = reportId ? parseInt(reportId) : undefined;
   const { toast } = useToast();
-  
+
   const [selectedComparableId, setSelectedComparableId] = useState<number | undefined>(undefined);
   const [selectedModelId, setSelectedModelId] = useState<number | undefined>(undefined);
   const [activeViewTab, setActiveViewTab] = useState<string>("adjustments");
-  
+
   // Get report data
   const { data: report, isLoading: isLoadingReport } = useQuery({
-    queryKey: ['/api/appraisal-reports', parsedReportId],
+    queryKey: ["/api/appraisal-reports", parsedReportId],
     queryFn: async () => {
       if (!parsedReportId) return null;
       const response = await apiRequest(`/api/appraisal-reports/${parsedReportId}`);
       return response.json();
     },
-    enabled: !!parsedReportId
+    enabled: !!parsedReportId,
   });
 
   // Get property data
   const { data: property, isLoading: isLoadingProperty } = useQuery({
-    queryKey: ['/api/properties', report?.propertyId],
+    queryKey: ["/api/properties", report?.propertyId],
     queryFn: async () => {
       if (!report?.propertyId) return null;
       const response = await apiRequest(`/api/properties/${report.propertyId}`);
       return response.json();
     },
-    enabled: !!report?.propertyId
+    enabled: !!report?.propertyId,
   });
 
   // Get comparables
   const { data: comparables, isLoading: isLoadingComparables } = useQuery({
-    queryKey: ['/api/reports', parsedReportId, 'comparables'],
+    queryKey: ["/api/reports", parsedReportId, "comparables"],
     queryFn: async () => {
       if (!parsedReportId) return [];
       const response = await apiRequest(`/api/reports/${parsedReportId}/comparables`);
       return response.json();
     },
-    enabled: !!parsedReportId
+    enabled: !!parsedReportId,
   });
 
   // Get adjustment models
@@ -68,7 +74,7 @@ export function ComparablePropertiesPage() {
     if (comparables?.length > 0 && !selectedComparableId) {
       setSelectedComparableId(comparables[0].id);
     }
-    
+
     // Set initial model if we have them but none selected
     if (models?.length > 0 && !selectedModelId) {
       setSelectedModelId(models[0].id);
@@ -83,8 +89,8 @@ export function ComparablePropertiesPage() {
     });
   };
 
-  const selectedComparable = comparables?.find(c => c.id === selectedComparableId);
-  const selectedModel = models?.find(m => m.id === selectedModelId);
+  const selectedComparable = comparables?.find((c) => c.id === selectedComparableId);
+  const selectedModel = models?.find((m) => m.id === selectedModelId);
 
   const isLoading = isLoadingReport || isLoadingProperty || isLoadingComparables || isLoadingModels;
 
@@ -159,7 +165,7 @@ export function ComparablePropertiesPage() {
           </Button>
         </div>
       </div>
-      
+
       <Tabs defaultValue="adjustments" value={activeViewTab} onValueChange={setActiveViewTab}>
         <div className="flex justify-between items-center mb-6">
           <TabsList>
@@ -172,10 +178,10 @@ export function ComparablePropertiesPage() {
               Market Analysis
             </TabsTrigger>
           </TabsList>
-          
+
           {activeViewTab === "adjustments" && comparables?.length > 0 && (
-            <Select 
-              value={selectedComparableId?.toString()} 
+            <Select
+              value={selectedComparableId?.toString()}
               onValueChange={(value) => setSelectedComparableId(parseInt(value))}
             >
               <SelectTrigger className="w-[250px]">
@@ -202,7 +208,7 @@ export function ComparablePropertiesPage() {
                 onSelectModel={handleModelSelect}
               />
             </div>
-            
+
             <div className="md:col-span-2">
               {selectedComparable && selectedModel && property ? (
                 <ComparableAdjustments
@@ -214,19 +220,19 @@ export function ComparablePropertiesPage() {
                 <Card>
                   <CardContent className="p-8 text-center">
                     <AlertCircle className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
-                    <p>Select a comparable property and adjustment model to view or manage adjustments</p>
+                    <p>
+                      Select a comparable property and adjustment model to view or manage
+                      adjustments
+                    </p>
                   </CardContent>
                 </Card>
               )}
             </div>
           </div>
         </TabsContent>
-        
+
         <TabsContent value="market-analysis" className="mt-0">
-          <MarketAnalysisDashboard 
-            reportId={parsedReportId!}
-            property={property as Property}
-          />
+          <MarketAnalysisDashboard reportId={parsedReportId!} property={property as Property} />
         </TabsContent>
       </Tabs>
     </div>

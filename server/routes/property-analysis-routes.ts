@@ -12,23 +12,23 @@ const router = express.Router();
 router.post("/", async (req, res) => {
   try {
     const propertyData = req.body;
-    
+
     // Validate required fields
     if (!propertyData || !propertyData.address) {
       return res.status(400).json({
-        error: "Property data including address is required"
+        error: "Property data including address is required",
       });
     }
-    
+
     // Generate AI valuation for the property
     const analysisResult = await generatePropertyValuation(propertyData);
-    
+
     return res.json(analysisResult);
   } catch (error) {
     console.error("Error analyzing property:", error);
     return res.status(500).json({
       error: "Failed to analyze property",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });
@@ -44,9 +44,9 @@ router.get("/specific/stardust", async (req, res) => {
     const propertyData = {
       address: {
         street: "406 Stardust Ct",
-        city: "Grandview", 
-        state: "WA", 
-        zipCode: "98930"
+        city: "Grandview",
+        state: "WA",
+        zipCode: "98930",
       },
       propertyType: "Single Family",
       bedrooms: 4,
@@ -54,23 +54,19 @@ router.get("/specific/stardust", async (req, res) => {
       squareFeet: 1850,
       yearBuilt: 1995,
       lotSize: 0.17,
-      features: [
-        { name: "Garage" },
-        { name: "Fireplace" },
-        { name: "Patio" }
-      ],
-      condition: "Good"
+      features: [{ name: "Garage" }, { name: "Fireplace" }, { name: "Patio" }],
+      condition: "Good",
     };
-    
+
     // Generate valuation using the same method as POST endpoint
     const analysisResult = await generatePropertyValuation(propertyData);
-    
+
     return res.json(analysisResult);
   } catch (error) {
     console.error("Error analyzing Stardust property:", error);
     return res.status(500).json({
       error: "Failed to analyze Stardust property",
-      message: error instanceof Error ? error.message : "Unknown error"
+      message: error instanceof Error ? error.message : "Unknown error",
     });
   }
 });

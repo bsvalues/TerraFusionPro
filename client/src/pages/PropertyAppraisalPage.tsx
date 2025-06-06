@@ -1,9 +1,9 @@
-import React, { useState } from 'react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { useRealtime } from '../contexts/RealtimeContext';
-import PropertyAppraisalReport from '../components/property-appraisal/PropertyAppraisalReport';
+import React, { useState } from "react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { useRealtime } from "../contexts/RealtimeContext";
+import PropertyAppraisalReport from "../components/property-appraisal/PropertyAppraisalReport";
 
 import {
   Card,
@@ -32,7 +32,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircleIcon, Building2Icon, HomeIcon } from 'lucide-react';
+import { AlertCircleIcon, Building2Icon, HomeIcon } from "lucide-react";
 
 // Define form schema
 const formSchema = z.object({
@@ -55,14 +55,14 @@ const formSchema = z.object({
 
 // Component for PropertyAppraisalPage
 const PropertyAppraisalPage: React.FC = () => {
-  const { 
-    connected, 
+  const {
+    connected,
     connectionState,
     protocol,
     propertyAnalysisResult,
     propertyAnalysisLoading,
     propertyAnalysisError,
-    sendPropertyAnalysisRequest 
+    sendPropertyAnalysisRequest,
   } = useRealtime();
 
   // Define form with react-hook-form and zod validation
@@ -99,16 +99,11 @@ const PropertyAppraisalPage: React.FC = () => {
           <Card>
             <CardHeader>
               <CardTitle>Property Information</CardTitle>
-              <CardDescription>
-                Enter the property details to analyze
-              </CardDescription>
+              <CardDescription>Enter the property details to analyze</CardDescription>
             </CardHeader>
             <CardContent>
               <Form {...form}>
-                <form
-                  onSubmit={form.handleSubmit(onSubmit)}
-                  className="space-y-4"
-                >
+                <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                   <FormField
                     control={form.control}
                     name="address"
@@ -174,10 +169,7 @@ const PropertyAppraisalPage: React.FC = () => {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Property Type</FormLabel>
-                          <Select
-                            onValueChange={field.onChange}
-                            defaultValue={field.value}
-                          >
+                          <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
                               <SelectTrigger>
                                 <SelectValue placeholder="Select type" />
@@ -229,7 +221,7 @@ const PropertyAppraisalPage: React.FC = () => {
                     </AlertDescription>
                   </Alert>
                 )}
-                
+
                 <div className="text-xs text-muted-foreground">
                   <div className="flex items-center justify-between border-t pt-2">
                     <span>Connection Status:</span>

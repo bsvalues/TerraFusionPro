@@ -40,7 +40,7 @@ const config = {
     enabled: true,
     trackChanges: true,
     requireApproval: false,
-  }
+  },
 };
 
 export default config;

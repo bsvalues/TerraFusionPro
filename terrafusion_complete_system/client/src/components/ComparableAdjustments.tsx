@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { 
-  AdjustmentModel, 
-  Comparable, 
-  ModelAdjustment, 
-  Property 
-} from "@shared/schema";
+import { AdjustmentModel, Comparable, ModelAdjustment, Property } from "@shared/schema";
 import { useAdjustmentModels } from "@/hooks/useAdjustmentModels";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Input } from "@/components/ui/input";
 import { AlertCircle, Check, Edit, Plus, Trash2 } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -26,7 +28,7 @@ export function ComparableAdjustments({
   subjectProperty,
   comparable,
   selectedModel,
-  readOnly = false
+  readOnly = false,
 }: ComparableAdjustmentsProps) {
   const { toast } = useToast();
   const [editingAdjustmentId, setEditingAdjustmentId] = useState<number | null>(null);
@@ -34,7 +36,7 @@ export function ComparableAdjustments({
   const [newAdjustmentAmount, setNewAdjustmentAmount] = useState<string>("");
   const [newAdjustmentDescription, setNewAdjustmentDescription] = useState<string>("");
   const [isAddingAdjustment, setIsAddingAdjustment] = useState(false);
-  
+
   const {
     getComparableAdjustments,
     createAdjustment,
@@ -42,15 +44,15 @@ export function ComparableAdjustments({
     updateAdjustment,
     isUpdatingAdjustment,
     deleteAdjustment,
-    isDeletingAdjustment
+    isDeletingAdjustment,
   } = useAdjustmentModels();
 
-  const { 
-    data: adjustmentsData, 
-    isLoading: isLoadingAdjustments 
-  } = getComparableAdjustments(comparable.id, selectedModel.id);
+  const { data: adjustmentsData, isLoading: isLoadingAdjustments } = getComparableAdjustments(
+    comparable.id,
+    selectedModel.id
+  );
 
-  const adjustments = adjustmentsData as ModelAdjustment[] || [];
+  const adjustments = (adjustmentsData as ModelAdjustment[]) || [];
 
   // Calculate total adjustments
   const totalAdjustment = adjustments.reduce((sum, adj) => {
@@ -65,38 +67,41 @@ export function ComparableAdjustments({
       toast({
         title: "Missing Information",
         description: "Adjustment type and amount are required",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
-      await createAdjustment({
-        modelId: selectedModel.id,
-        comparableId: comparable.id,
-        adjustmentType: newAdjustmentType,
-        amount: newAdjustmentAmount,
-        description: newAdjustmentDescription || null,
-      }, {
-        onSuccess: () => {
-          setNewAdjustmentType("");
-          setNewAdjustmentAmount("");
-          setNewAdjustmentDescription("");
-          setIsAddingAdjustment(false);
-          toast({
-            title: "Adjustment Added",
-            description: "The adjustment has been added successfully",
-          });
+      await createAdjustment(
+        {
+          modelId: selectedModel.id,
+          comparableId: comparable.id,
+          adjustmentType: newAdjustmentType,
+          amount: newAdjustmentAmount,
+          description: newAdjustmentDescription || null,
         },
-        onError: (error) => {
-          toast({
-            title: "Failed to Add Adjustment",
-            description: "There was an error adding the adjustment",
-            variant: "destructive"
-          });
-          console.error("Error adding adjustment:", error);
+        {
+          onSuccess: () => {
+            setNewAdjustmentType("");
+            setNewAdjustmentAmount("");
+            setNewAdjustmentDescription("");
+            setIsAddingAdjustment(false);
+            toast({
+              title: "Adjustment Added",
+              description: "The adjustment has been added successfully",
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Failed to Add Adjustment",
+              description: "There was an error adding the adjustment",
+              variant: "destructive",
+            });
+            console.error("Error adding adjustment:", error);
+          },
         }
-      });
+      );
     } catch (error) {
       console.error("Error adding adjustment:", error);
     }
@@ -104,23 +109,26 @@ export function ComparableAdjustments({
 
   const handleUpdateAdjustment = async (id: number, data: any) => {
     try {
-      await updateAdjustment({ id, data }, {
-        onSuccess: () => {
-          setEditingAdjustmentId(null);
-          toast({
-            title: "Adjustment Updated",
-            description: "The adjustment has been updated successfully",
-          });
-        },
-        onError: (error) => {
-          toast({
-            title: "Failed to Update Adjustment",
-            description: "There was an error updating the adjustment",
-            variant: "destructive"
-          });
-          console.error("Error updating adjustment:", error);
+      await updateAdjustment(
+        { id, data },
+        {
+          onSuccess: () => {
+            setEditingAdjustmentId(null);
+            toast({
+              title: "Adjustment Updated",
+              description: "The adjustment has been updated successfully",
+            });
+          },
+          onError: (error) => {
+            toast({
+              title: "Failed to Update Adjustment",
+              description: "There was an error updating the adjustment",
+              variant: "destructive",
+            });
+            console.error("Error updating adjustment:", error);
+          },
         }
-      });
+      );
     } catch (error) {
       console.error("Error updating adjustment:", error);
     }
@@ -139,10 +147,10 @@ export function ComparableAdjustments({
           toast({
             title: "Failed to Delete Adjustment",
             description: "There was an error deleting the adjustment",
-            variant: "destructive"
+            variant: "destructive",
           });
           console.error("Error deleting adjustment:", error);
-        }
+        },
       });
     } catch (error) {
       console.error("Error deleting adjustment:", error);
@@ -178,8 +186,8 @@ export function ComparableAdjustments({
             <AlertCircle className="w-10 h-10 mb-4" />
             <p>No adjustments defined for this comparable</p>
             {!readOnly && (
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="mt-4"
                 onClick={() => setIsAddingAdjustment(true)}
               >
@@ -200,34 +208,42 @@ export function ComparableAdjustments({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {adjustments.map(adjustment => (
+                {adjustments.map((adjustment) => (
                   <TableRow key={adjustment.id}>
                     {editingAdjustmentId === adjustment.id ? (
                       <>
                         <TableCell>
                           <Input
                             value={adjustment.adjustmentType}
-                            onChange={(e) => handleUpdateAdjustment(adjustment.id, { adjustmentType: e.target.value })}
+                            onChange={(e) =>
+                              handleUpdateAdjustment(adjustment.id, {
+                                adjustmentType: e.target.value,
+                              })
+                            }
                           />
                         </TableCell>
                         <TableCell>
                           <Input
                             value={adjustment.description || ""}
-                            onChange={(e) => handleUpdateAdjustment(adjustment.id, { description: e.target.value })}
+                            onChange={(e) =>
+                              handleUpdateAdjustment(adjustment.id, { description: e.target.value })
+                            }
                           />
                         </TableCell>
                         <TableCell className="text-right">
                           <Input
                             type="number"
                             value={adjustment.amount}
-                            onChange={(e) => handleUpdateAdjustment(adjustment.id, { amount: e.target.value })}
+                            onChange={(e) =>
+                              handleUpdateAdjustment(adjustment.id, { amount: e.target.value })
+                            }
                             className="text-right"
                           />
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end space-x-2">
-                            <Button 
-                              variant="ghost" 
+                            <Button
+                              variant="ghost"
                               size="icon"
                               onClick={() => setEditingAdjustmentId(null)}
                             >
@@ -246,15 +262,15 @@ export function ComparableAdjustments({
                         {!readOnly && (
                           <TableCell className="text-right">
                             <div className="flex justify-end space-x-2">
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 onClick={() => setEditingAdjustmentId(adjustment.id)}
                               >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button 
-                                variant="ghost" 
+                              <Button
+                                variant="ghost"
                                 size="icon"
                                 onClick={() => handleDeleteAdjustment(adjustment.id)}
                                 disabled={isDeletingAdjustment}
@@ -268,7 +284,7 @@ export function ComparableAdjustments({
                     )}
                   </TableRow>
                 ))}
-                
+
                 {isAddingAdjustment && (
                   <TableRow>
                     <TableCell>
@@ -296,16 +312,16 @@ export function ComparableAdjustments({
                     </TableCell>
                     <TableCell className="text-right">
                       <div className="flex justify-end space-x-2">
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={handleAddAdjustment}
                           disabled={isCreatingAdjustment}
                         >
                           <Check className="h-4 w-4" />
                         </Button>
-                        <Button 
-                          variant="ghost" 
+                        <Button
+                          variant="ghost"
                           size="icon"
                           onClick={() => setIsAddingAdjustment(false)}
                         >
@@ -318,28 +334,25 @@ export function ComparableAdjustments({
 
                 {/* Total row */}
                 <TableRow className="font-medium">
-                  <TableCell colSpan={2} className="text-right">Total Adjustments:</TableCell>
-                  <TableCell className="text-right">
-                    ${totalAdjustment.toLocaleString()}
+                  <TableCell colSpan={2} className="text-right">
+                    Total Adjustments:
                   </TableCell>
+                  <TableCell className="text-right">${totalAdjustment.toLocaleString()}</TableCell>
                   {!readOnly && <TableCell></TableCell>}
                 </TableRow>
                 <TableRow className="font-medium">
-                  <TableCell colSpan={2} className="text-right">Adjusted Price:</TableCell>
-                  <TableCell className="text-right">
-                    ${adjustedPrice.toLocaleString()}
+                  <TableCell colSpan={2} className="text-right">
+                    Adjusted Price:
                   </TableCell>
+                  <TableCell className="text-right">${adjustedPrice.toLocaleString()}</TableCell>
                   {!readOnly && <TableCell></TableCell>}
                 </TableRow>
               </TableBody>
             </Table>
-            
+
             {!readOnly && !isAddingAdjustment && (
               <div className="mt-4 flex justify-end">
-                <Button 
-                  variant="outline"
-                  onClick={() => setIsAddingAdjustment(true)}
-                >
+                <Button variant="outline" onClick={() => setIsAddingAdjustment(true)}>
                   <Plus className="mr-2 h-4 w-4" />
                   Add Adjustment
                 </Button>

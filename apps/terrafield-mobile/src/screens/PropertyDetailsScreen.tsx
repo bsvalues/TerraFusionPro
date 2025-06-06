@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,12 +8,12 @@ import {
   Image,
   ActivityIndicator,
   RefreshControl,
-  useWindowDimensions
-} from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useRoute, useNavigation } from '@react-navigation/native';
-import { ApiService } from '../services/ApiService';
-import * as Colors from '../constants/Colors';
+  useWindowDimensions,
+} from "react-native";
+import { Feather } from "@expo/vector-icons";
+import { useRoute, useNavigation } from "@react-navigation/native";
+import { ApiService } from "../services/ApiService";
+import * as Colors from "../constants/Colors";
 
 // Property type definition
 interface Property {
@@ -80,52 +80,52 @@ const PropertyDetailsScreen: React.FC = () => {
   // Feature cards
   const features: FeatureCard[] = [
     {
-      id: 'field_notes',
-      title: 'Field Notes',
-      icon: 'file-text',
-      description: 'Collaborative notes for this property',
-      screen: 'FieldNotes',
-      badge: 'New',
+      id: "field_notes",
+      title: "Field Notes",
+      icon: "file-text",
+      description: "Collaborative notes for this property",
+      screen: "FieldNotes",
+      badge: "New",
       color: Colors.primary,
     },
     {
-      id: 'photo_enhancement',
-      title: 'Enhance Photos',
-      icon: 'image',
-      description: 'AI-powered photo improvements',
-      screen: 'PhotoEnhancement',
+      id: "photo_enhancement",
+      title: "Enhance Photos",
+      icon: "image",
+      description: "AI-powered photo improvements",
+      screen: "PhotoEnhancement",
       color: Colors.info,
     },
     {
-      id: 'ar_measurement',
-      title: 'AR Measurement',
-      icon: 'maximize',
-      description: 'Measure with augmented reality',
-      screen: 'ARMeasurement',
+      id: "ar_measurement",
+      title: "AR Measurement",
+      icon: "maximize",
+      description: "Measure with augmented reality",
+      screen: "ARMeasurement",
       color: Colors.success,
     },
     {
-      id: 'report_generation',
-      title: 'Generate Report',
-      icon: 'file',
-      description: 'Create appraisal report',
-      screen: 'ReportGeneration',
+      id: "report_generation",
+      title: "Generate Report",
+      icon: "file",
+      description: "Create appraisal report",
+      screen: "ReportGeneration",
       color: Colors.warning,
     },
     {
-      id: 'property_comparison',
-      title: 'Compare',
-      icon: 'bar-chart-2',
-      description: 'Compare with similar properties',
-      screen: 'PropertyComparison',
-      color: '#9C27B0',
+      id: "property_comparison",
+      title: "Compare",
+      icon: "bar-chart-2",
+      description: "Compare with similar properties",
+      screen: "PropertyComparison",
+      color: "#9C27B0",
     },
     {
-      id: 'property_share',
-      title: 'Share',
-      icon: 'share-2',
-      description: 'Share property details securely',
-      screen: 'PropertyShare',
+      id: "property_share",
+      title: "Share",
+      icon: "share-2",
+      description: "Share property details securely",
+      screen: "PropertyShare",
       color: Colors.accent,
     },
   ];
@@ -138,7 +138,7 @@ const PropertyDetailsScreen: React.FC = () => {
   // Set header title
   useEffect(() => {
     navigation.setOptions({
-      title: params.propertyAddress || 'Property Details',
+      title: params.propertyAddress || "Property Details",
     });
   }, [navigation, params.propertyAddress]);
 
@@ -147,37 +147,38 @@ const PropertyDetailsScreen: React.FC = () => {
     setLoading(true);
     try {
       const response = await apiService.get(`/api/properties/${params.propertyId}`);
-      
+
       if (response) {
         setProperty(response);
       }
     } catch (error) {
-      console.error('Error loading property details:', error);
-      
+      console.error("Error loading property details:", error);
+
       // For demo purposes, set some sample data if API fails
       setProperty({
         id: params.propertyId,
-        address: params.propertyAddress || '123 Main Street',
-        city: 'Springfield',
-        state: 'IL',
-        zipCode: '12345',
-        propertyType: 'Single Family',
+        address: params.propertyAddress || "123 Main Street",
+        city: "Springfield",
+        state: "IL",
+        zipCode: "12345",
+        propertyType: "Single Family",
         bedrooms: 4,
         bathrooms: 2.5,
         squareFeet: 2400,
         yearBuilt: 1995,
         lotSize: 0.25,
-        parcelId: 'ABC123456',
+        parcelId: "ABC123456",
         lastUpdated: new Date().toISOString(),
-        owner: 'John Smith',
-        taxId: '123-45-6789',
-        zoning: 'Residential',
-        floodZone: 'X',
-        description: 'Beautiful single family home in a quiet neighborhood with recent renovations and modern appliances.',
+        owner: "John Smith",
+        taxId: "123-45-6789",
+        zoning: "Residential",
+        floodZone: "X",
+        description:
+          "Beautiful single family home in a quiet neighborhood with recent renovations and modern appliances.",
         valuationHistory: [
-          { date: '2023-01-15', value: 420000, source: 'County Tax Assessment' },
-          { date: '2022-06-10', value: 405000, source: 'Appraisal' },
-          { date: '2021-12-05', value: 380000, source: 'Market Analysis' },
+          { date: "2023-01-15", value: 420000, source: "County Tax Assessment" },
+          { date: "2022-06-10", value: 405000, source: "Appraisal" },
+          { date: "2021-12-05", value: 380000, source: "Market Analysis" },
         ],
       });
     } finally {
@@ -197,41 +198,41 @@ const PropertyDetailsScreen: React.FC = () => {
     if (!property) return;
 
     let params = { ...feature.params };
-    
+
     switch (feature.screen) {
-      case 'FieldNotes':
+      case "FieldNotes":
         params = {
           ...params,
           parcelId: property.parcelId,
           propertyAddress: property.address,
         };
         break;
-      case 'PhotoEnhancement':
-      case 'ARMeasurement':
-      case 'ReportGeneration':
-      case 'PropertyShare':
+      case "PhotoEnhancement":
+      case "ARMeasurement":
+      case "ReportGeneration":
+      case "PropertyShare":
         params = {
           ...params,
           propertyId: property.id,
           propertyAddress: property.address,
         };
         break;
-      case 'PropertyComparison':
+      case "PropertyComparison":
         params = {
           ...params,
           propertyIds: [property.id],
         };
         break;
     }
-    
+
     navigation.navigate(feature.screen as never, params as never);
   };
 
   // Format currency
   const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -239,10 +240,10 @@ const PropertyDetailsScreen: React.FC = () => {
   // Format date
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
   };
 
@@ -252,7 +253,7 @@ const PropertyDetailsScreen: React.FC = () => {
       key={feature.id}
       style={[
         styles.featureCard,
-        { backgroundColor: feature.color + '10' }, // 10% opacity
+        { backgroundColor: feature.color + "10" }, // 10% opacity
       ]}
       onPress={() => navigateToFeature(feature)}
     >
@@ -298,10 +299,7 @@ const PropertyDetailsScreen: React.FC = () => {
         <Text style={styles.errorMessage}>
           We couldn't find the property you're looking for. Please try again later.
         </Text>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
           <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
@@ -311,18 +309,12 @@ const PropertyDetailsScreen: React.FC = () => {
   return (
     <ScrollView
       style={styles.container}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-      }
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
     >
       {/* Property Image */}
       <View style={styles.imageContainer}>
         {property.image ? (
-          <Image
-            source={{ uri: property.image }}
-            style={styles.propertyImage}
-            resizeMode="cover"
-          />
+          <Image source={{ uri: property.image }} style={styles.propertyImage} resizeMode="cover" />
         ) : (
           <View style={styles.propertyImagePlaceholder}>
             <Feather name="home" size={64} color={Colors.textLight} />
@@ -341,9 +333,7 @@ const PropertyDetailsScreen: React.FC = () => {
         </Text>
 
         {/* Features Grid */}
-        <View style={styles.featuresGrid}>
-          {features.map(renderFeatureCard)}
-        </View>
+        <View style={styles.featuresGrid}>{features.map(renderFeatureCard)}</View>
 
         {/* Property Specs */}
         <View style={styles.section}>
@@ -434,9 +424,7 @@ const PropertyDetailsScreen: React.FC = () => {
         )}
 
         {/* Last Updated */}
-        <Text style={styles.lastUpdated}>
-          Last updated: {formatDate(property.lastUpdated)}
-        </Text>
+        <Text style={styles.lastUpdated}>Last updated: {formatDate(property.lastUpdated)}</Text>
       </View>
     </ScrollView>
   );
@@ -449,8 +437,8 @@ const styles = StyleSheet.create({
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.background,
   },
   loadingText: {
@@ -460,14 +448,14 @@ const styles = StyleSheet.create({
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
     backgroundColor: Colors.background,
   },
   errorTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.errorText,
     marginTop: 12,
     marginBottom: 8,
@@ -475,7 +463,7 @@ const styles = StyleSheet.create({
   errorMessage: {
     fontSize: 14,
     color: Colors.textLight,
-    textAlign: 'center',
+    textAlign: "center",
     marginBottom: 20,
   },
   backButton: {
@@ -487,28 +475,28 @@ const styles = StyleSheet.create({
   },
   backButtonText: {
     color: Colors.white,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   imageContainer: {
     height: 240,
-    position: 'relative',
+    position: "relative",
   },
   propertyImage: {
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   propertyImagePlaceholder: {
-    width: '100%',
-    height: '100%',
-    justifyContent: 'center',
-    alignItems: 'center',
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
     backgroundColor: Colors.lightPrimary,
   },
   propertyTypeTag: {
-    position: 'absolute',
+    position: "absolute",
     top: 16,
     left: 16,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: "rgba(0, 0, 0, 0.6)",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 4,
@@ -516,14 +504,14 @@ const styles = StyleSheet.create({
   propertyTypeText: {
     color: Colors.white,
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   detailsContainer: {
     padding: 20,
   },
   propertyAddress: {
     fontSize: 24,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.text,
     marginBottom: 4,
   },
@@ -533,17 +521,17 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   featuresGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -6,
     marginBottom: 24,
   },
   featureCard: {
-    width: '31%',
+    width: "31%",
     margin: 4,
     padding: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
     shadowColor: Colors.shadow,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -554,18 +542,18 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginBottom: 8,
   },
   featureTitle: {
     fontSize: 12,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
-    textAlign: 'center',
+    textAlign: "center",
   },
   featureBadge: {
-    position: 'absolute',
+    position: "absolute",
     top: 4,
     right: 4,
     paddingHorizontal: 6,
@@ -575,7 +563,7 @@ const styles = StyleSheet.create({
   },
   featureBadgeText: {
     fontSize: 8,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.white,
   },
   section: {
@@ -591,20 +579,20 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
     marginBottom: 16,
   },
   propertySpecs: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+    flexDirection: "row",
+    flexWrap: "wrap",
     marginHorizontal: -8,
   },
   propertySpecItem: {
-    width: '33%',
+    width: "33%",
     paddingHorizontal: 8,
     marginBottom: 16,
-    alignItems: 'center',
+    alignItems: "center",
   },
   propertySpecLabel: {
     fontSize: 12,
@@ -613,7 +601,7 @@ const styles = StyleSheet.create({
   },
   propertySpecValue: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
     marginTop: 2,
   },
@@ -621,7 +609,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   detailRow: {
-    flexDirection: 'row',
+    flexDirection: "row",
     paddingVertical: 8,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
@@ -635,7 +623,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     color: Colors.text,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   description: {
     fontSize: 14,
@@ -646,9 +634,9 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   valuationItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: Colors.border,
@@ -658,7 +646,7 @@ const styles = StyleSheet.create({
   },
   valuationDate: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: "600",
     color: Colors.text,
   },
   valuationSource: {
@@ -668,13 +656,13 @@ const styles = StyleSheet.create({
   },
   valuationValue: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: "700",
     color: Colors.success,
   },
   lastUpdated: {
     fontSize: 12,
     color: Colors.textLight,
-    textAlign: 'center',
+    textAlign: "center",
     marginTop: 8,
     marginBottom: 16,
   },

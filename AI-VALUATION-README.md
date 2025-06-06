@@ -11,10 +11,12 @@ The AI valuation integration follows a "Neural Spine" architecture:
 1. **Backend AI Engine**: The core valuation engine resides in `backend/valuation_engine.py` and leverages both neural network models and heuristic approaches for accurate property valuations.
 
 2. **API Layer**: Valuation services are exposed through dedicated endpoints in the Express server:
+
    - `GET /api/ai/value/:propertyId` - Get valuation by property ID
    - `POST /api/ai/value` - Get valuation by providing property details
 
 3. **Frontend Components**: Valuation data is displayed in the UI using:
+
    - `PropertyValuationSection.tsx` - Shows valuation details on property pages
    - `AIValuationPage.tsx` - Dedicated page for AI valuation features
 

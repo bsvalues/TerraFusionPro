@@ -1,10 +1,10 @@
-import axios from 'axios';
-import FormData from 'form-data';
-import fs from 'fs';
-import path from 'path';
+import axios from "axios";
+import FormData from "form-data";
+import fs from "fs";
+import path from "path";
 
 // Base URL for API requests
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "http://localhost:5000/api";
 
 // Test IDs to associate with test orders
 const TEST_USER_ID = 1;
@@ -17,20 +17,20 @@ async function createOrder() {
     const orderData = {
       userId: Number(TEST_USER_ID),
       propertyId: Number(TEST_PROPERTY_ID),
-      orderType: 'appraisal',
-      status: 'pending',
-      priority: 'high',
-      notes: 'Test order created via API'
+      orderType: "appraisal",
+      status: "pending",
+      priority: "high",
+      notes: "Test order created via API",
     };
-    
+
     // Sending JSON request for order creation
-    console.log('Creating order with data:', orderData);
+    console.log("Creating order with data:", orderData);
     const response = await axios.post(`${API_BASE_URL}/orders`, orderData);
-    
-    console.log('Order created successfully:', response.data);
+
+    console.log("Order created successfully:", response.data);
     return response.data.order.id;
   } catch (error) {
-    console.error('Error creating order:', error.response?.data || error.message);
+    console.error("Error creating order:", error.response?.data || error.message);
     return null;
   }
 }
@@ -39,9 +39,9 @@ async function createOrder() {
 async function getOrders() {
   try {
     const response = await axios.get(`${API_BASE_URL}/orders`);
-    console.log('All orders:', response.data);
+    console.log("All orders:", response.data);
   } catch (error) {
-    console.error('Error fetching orders:', error.response?.data || error.message);
+    console.error("Error fetching orders:", error.response?.data || error.message);
   }
 }
 
@@ -49,9 +49,9 @@ async function getOrders() {
 async function getOrderById(id: number) {
   try {
     const response = await axios.get(`${API_BASE_URL}/orders/${id}`);
-    console.log('Order details:', response.data);
+    console.log("Order details:", response.data);
   } catch (error) {
-    console.error('Error fetching order:', error.response?.data || error.message);
+    console.error("Error fetching order:", error.response?.data || error.message);
   }
 }
 
@@ -59,20 +59,20 @@ async function getOrderById(id: number) {
 async function updateOrder(id: number) {
   try {
     const formData = new FormData();
-    
+
     // Add updated data
-    formData.append('notes', 'Updated notes for test order');
-    formData.append('priority', 'medium');
-    
+    formData.append("notes", "Updated notes for test order");
+    formData.append("priority", "medium");
+
     const response = await axios.put(`${API_BASE_URL}/orders/${id}`, formData, {
       headers: {
-        ...formData.getHeaders()
-      }
+        ...formData.getHeaders(),
+      },
     });
-    
-    console.log('Order updated successfully:', response.data);
+
+    console.log("Order updated successfully:", response.data);
   } catch (error) {
-    console.error('Error updating order:', error.response?.data || error.message);
+    console.error("Error updating order:", error.response?.data || error.message);
   }
 }
 
@@ -80,13 +80,13 @@ async function updateOrder(id: number) {
 async function updateOrderStatus(id: number) {
   try {
     const response = await axios.patch(`${API_BASE_URL}/orders/${id}/status`, {
-      status: 'in_progress',
-      notes: 'Order processing started'
+      status: "in_progress",
+      notes: "Order processing started",
     });
-    
-    console.log('Order status updated successfully:', response.data);
+
+    console.log("Order status updated successfully:", response.data);
   } catch (error) {
-    console.error('Error updating order status:', error.response?.data || error.message);
+    console.error("Error updating order status:", error.response?.data || error.message);
   }
 }
 
@@ -94,13 +94,13 @@ async function updateOrderStatus(id: number) {
 async function createPaymentIntent(orderId: number) {
   try {
     const response = await axios.post(`${API_BASE_URL}/orders/payment-intent`, {
-      amount: 350.00,
-      orderId
+      amount: 350.0,
+      orderId,
     });
-    
-    console.log('Payment intent created:', response.data);
+
+    console.log("Payment intent created:", response.data);
   } catch (error) {
-    console.error('Error creating payment intent:', error.response?.data || error.message);
+    console.error("Error creating payment intent:", error.response?.data || error.message);
   }
 }
 
@@ -108,45 +108,45 @@ async function createPaymentIntent(orderId: number) {
 async function deleteOrder(id: number) {
   try {
     const response = await axios.delete(`${API_BASE_URL}/orders/${id}`);
-    console.log('Order deleted successfully:', response.data);
+    console.log("Order deleted successfully:", response.data);
   } catch (error) {
-    console.error('Error deleting order:', error.response?.data || error.message);
+    console.error("Error deleting order:", error.response?.data || error.message);
   }
 }
 
 // Main test function
 async function runTests() {
-  console.log('Starting order operation tests...');
-  
+  console.log("Starting order operation tests...");
+
   // Create an order
   const orderId = await createOrder();
   if (!orderId) {
-    console.log('Terminating tests due to order creation failure');
+    console.log("Terminating tests due to order creation failure");
     return;
   }
-  
+
   // Get all orders
   await getOrders();
-  
+
   // Get the created order
   await getOrderById(orderId);
-  
+
   // Update the order
   await updateOrder(orderId);
-  
+
   // Update order status
   await updateOrderStatus(orderId);
-  
+
   // Create a payment intent
   await createPaymentIntent(orderId);
-  
+
   // Get the updated order
   await getOrderById(orderId);
-  
+
   // Delete the order (comment out if you want to keep it)
   // await deleteOrder(orderId);
-  
-  console.log('Order operation tests completed');
+
+  console.log("Order operation tests completed");
 }
 
 // Run the tests

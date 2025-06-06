@@ -1,8 +1,8 @@
-import React from 'react';
-import { CheckCircle2, ArrowRight, Undo2 } from 'lucide-react';
+import React from "react";
+import { CheckCircle2, ArrowRight, Undo2 } from "lucide-react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
-import { cn } from '@/lib/utils';
+import { cn } from "@/lib/utils";
 
 interface SuccessStateProps {
   title?: string;
@@ -16,19 +16,19 @@ interface SuccessStateProps {
 }
 
 export function SuccessState({
-  title = 'Success',
+  title = "Success",
   message,
   className,
   onContinue,
-  continueText = 'Continue',
+  continueText = "Continue",
   onUndo,
-  undoText = 'Undo',
-  showActions = true
+  undoText = "Undo",
+  showActions = true,
 }: SuccessStateProps) {
   return (
-    <Alert 
+    <Alert
       className={cn(
-        "flex flex-col items-start border-green-200 bg-green-50 text-green-800", 
+        "flex flex-col items-start border-green-200 bg-green-50 text-green-800",
         className
       )}
     >
@@ -37,21 +37,17 @@ export function SuccessState({
           <CheckCircle2 className="h-5 w-5 text-green-500" />
         </div>
         <div className="flex-1">
-          <AlertTitle className="text-base font-medium text-green-800">
-            {title}
-          </AlertTitle>
-          <AlertDescription className="mt-1 text-green-700">
-            {message}
-          </AlertDescription>
+          <AlertTitle className="text-base font-medium text-green-800">{title}</AlertTitle>
+          <AlertDescription className="mt-1 text-green-700">{message}</AlertDescription>
         </div>
       </div>
-      
+
       {showActions && (
         <div className="flex mt-3 ml-8 space-x-3">
           {onUndo && (
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="flex items-center border-green-300 hover:bg-green-100 hover:text-green-900"
               onClick={onUndo}
             >
@@ -59,11 +55,11 @@ export function SuccessState({
               {undoText}
             </Button>
           )}
-          
+
           {onContinue && (
-            <Button 
-              variant="default" 
-              size="sm" 
+            <Button
+              variant="default"
+              size="sm"
               className="flex items-center bg-green-600 hover:bg-green-700"
               onClick={onContinue}
             >

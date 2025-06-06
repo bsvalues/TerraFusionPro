@@ -21,10 +21,7 @@ export function ResizablePanels({
   const mins = minSizes || Array(children.length).fill(10);
 
   return (
-    <ResizablePanelGroup
-      direction={direction}
-      className={className}
-    >
+    <ResizablePanelGroup direction={direction} className={className}>
       {children.map((child, index) => (
         <>
           <ResizablePanel
@@ -35,12 +32,9 @@ export function ResizablePanels({
           >
             {child}
           </ResizablePanel>
-          {index < children.length - 1 && (
-            <ResizableHandle key={`handle-${index}`} />
-          )}
+          {index < children.length - 1 && <ResizableHandle key={`handle-${index}`} />}
         </>
       ))}
     </ResizablePanelGroup>
   );
 }
-

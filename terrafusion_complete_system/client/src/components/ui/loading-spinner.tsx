@@ -1,24 +1,26 @@
-import React from 'react';
-import { cn } from '@/lib/utils';
+import React from "react";
+import { cn } from "@/lib/utils";
 
 interface LoadingSpinnerProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   className?: string;
 }
 
-export function LoadingSpinner({ size = 'md', className }: LoadingSpinnerProps) {
+export function LoadingSpinner({ size = "md", className }: LoadingSpinnerProps) {
   const sizeClasses = {
-    sm: 'h-5 w-5 border-2',
-    md: 'h-8 w-8 border-3',
-    lg: 'h-12 w-12 border-4',
+    sm: "h-5 w-5 border-2",
+    md: "h-8 w-8 border-3",
+    lg: "h-12 w-12 border-4",
   };
 
   return (
     <div className={cn("flex justify-center p-4", className)}>
-      <div className={cn(
-        "animate-spin border-primary border-t-transparent rounded-full",
-        sizeClasses[size]
-      )}></div>
+      <div
+        className={cn(
+          "animate-spin border-primary border-t-transparent rounded-full",
+          sizeClasses[size]
+        )}
+      ></div>
     </div>
   );
 }

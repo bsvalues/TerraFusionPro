@@ -58,16 +58,16 @@ Each migration updates the `schema_version` table with a new version number. The
 
 ```sql
 -- Check if column exists with old name and not with new name
-DO $$ 
+DO $$
 BEGIN
     IF EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'my_table' 
+        SELECT FROM information_schema.columns
+        WHERE table_name = 'my_table'
         AND column_name = 'old_name'
         AND table_schema = 'public'
     ) AND NOT EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'my_table' 
+        SELECT FROM information_schema.columns
+        WHERE table_name = 'my_table'
         AND column_name = 'new_name'
         AND table_schema = 'public'
     ) THEN
@@ -89,11 +89,11 @@ CREATE TABLE IF NOT EXISTS new_table (
 ### Adding a New Column
 
 ```sql
-DO $$ 
+DO $$
 BEGIN
     IF NOT EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'my_table' 
+        SELECT FROM information_schema.columns
+        WHERE table_name = 'my_table'
         AND column_name = 'new_column'
         AND table_schema = 'public'
     ) THEN

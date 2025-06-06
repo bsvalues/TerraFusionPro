@@ -1,20 +1,27 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { DollarSign, Home, ArrowRight, Loader2, Plus, Trash } from 'lucide-react';
-import { useWebSocket } from '../contexts/WebSocketContext';
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
+import React, { useState, useEffect } from "react";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { DollarSign, Home, ArrowRight, Loader2, Plus, Trash } from "lucide-react";
+import { useWebSocket } from "../contexts/WebSocketContext";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
   SelectValue,
-} from '@/components/ui/select';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
+} from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Separator } from "@/components/ui/separator";
 
 /**
  * TerraFusion Property Dashboard - Full Component
@@ -22,17 +29,17 @@ import { Separator } from '@/components/ui/separator';
  */
 const PropertyDashboard = () => {
   const [isLoading, setIsLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState('input');
+  const [activeTab, setActiveTab] = useState("input");
   const [showComparables, setShowComparables] = useState(false);
   const { sendMessage, lastMessage } = useWebSocket();
-  
+
   // Property data state with correct TypeScript typing
   const [propertyData, setPropertyData] = useState({
     address: {
       street: "",
       city: "",
       state: "",
-      zipCode: ""
+      zipCode: "",
     },
     propertyType: "Single Family",
     bedrooms: 3,
@@ -40,13 +47,13 @@ const PropertyDashboard = () => {
     squareFeet: 1500,
     yearBuilt: 2000,
     lotSize: 0.15,
-    features: [] as string[],  // Explicitly type features as string array
-    condition: "Average"
+    features: [] as string[], // Explicitly type features as string array
+    condition: "Average",
   });
-  
+
   // New feature to add
   const [newFeature, setNewFeature] = useState("");
-  
+
   // Define result type for property analysis
   interface PropertyAnalysisResult {
     property: {
@@ -66,7 +73,7 @@ const PropertyDashboard = () => {
       condition: string;
     };
     estimatedValue: number;
-    confidenceLevel: 'High' | 'Medium' | 'Low';
+    confidenceLevel: "High" | "Medium" | "Low";
     valueRange: {
       min: number;
       max: number;
@@ -90,113 +97,113 @@ const PropertyDashboard = () => {
       distanceFromSubject: string;
     }>;
   }
-  
+
   // Analysis results
   const [result, setResult] = useState<PropertyAnalysisResult | null>(null);
 
   // Process WebSocket messages
   useEffect(() => {
-    if (lastMessage && lastMessage.type === 'property-analysis') {
+    if (lastMessage && lastMessage.type === "property-analysis") {
       setResult(lastMessage.data);
       setIsLoading(false);
-      setActiveTab('results');
+      setActiveTab("results");
     }
   }, [lastMessage]);
 
   // Handle property data changes
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    
-    if (name.includes('.')) {
-      const [parent, child] = name.split('.');
-      setPropertyData(prev => ({
+
+    if (name.includes(".")) {
+      const [parent, child] = name.split(".");
+      setPropertyData((prev) => ({
         ...prev,
         [parent]: {
-          ...prev[parent as keyof typeof prev] as Record<string, any>,
-          [child]: value
-        }
+          ...(prev[parent as keyof typeof prev] as Record<string, any>),
+          [child]: value,
+        },
       }));
     } else {
-      setPropertyData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        [name]: value
+        [name]: value,
       }));
     }
   };
-  
+
   // Handle number input changes with validation
   const handleNumberChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const numberValue = parseFloat(value);
-    
+
     if (!isNaN(numberValue)) {
-      setPropertyData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        [name]: numberValue
+        [name]: numberValue,
       }));
     }
   };
-  
+
   // Handle feature additions
   const addFeature = () => {
     if (newFeature.trim() !== "") {
-      setPropertyData(prev => ({
+      setPropertyData((prev) => ({
         ...prev,
-        features: [...prev.features, newFeature.trim()]
+        features: [...prev.features, newFeature.trim()],
       }));
       setNewFeature("");
     }
   };
-  
+
   // Handle feature removals
   const removeFeature = (index: number) => {
-    setPropertyData(prev => ({
+    setPropertyData((prev) => ({
       ...prev,
-      features: prev.features.filter((_, i) => i !== index)
+      features: prev.features.filter((_, i) => i !== index),
     }));
   };
-  
+
   // Analyze the property
   const analyzeProperty = async () => {
     if (!propertyData.address.street || !propertyData.address.city || !propertyData.address.state) {
       alert("Please provide at least the street, city, and state information.");
       return;
     }
-    
+
     setIsLoading(true);
-    
+
     try {
-      console.log('Analyzing property:', propertyData);
-      
+      console.log("Analyzing property:", propertyData);
+
       // Send property data to server via WebSocket for analysis
       sendMessage({
-        type: 'analyze-property',
-        data: propertyData
+        type: "analyze-property",
+        data: propertyData,
       });
-      
+
       // If WebSocket isn't working, fallback to direct API call
       if (!sendMessage) {
-        console.log('WebSocket not available, using direct API call');
-        
-        const response = await fetch('/api/property-analysis', {
-          method: 'POST',
+        console.log("WebSocket not available, using direct API call");
+
+        const response = await fetch("/api/property-analysis", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
+            "Content-Type": "application/json",
           },
           body: JSON.stringify(propertyData),
         });
-        
+
         if (response.ok) {
           const analysisResult = await response.json();
           setResult(analysisResult);
           setIsLoading(false);
-          setActiveTab('results');
+          setActiveTab("results");
         } else {
-          throw new Error('API request failed');
+          throw new Error("API request failed");
         }
       }
     } catch (error) {
-      console.error('Error analyzing property:', error);
+      console.error("Error analyzing property:", error);
       setIsLoading(false);
       alert("There was an error analyzing the property. Please try again.");
     }
@@ -204,10 +211,10 @@ const PropertyDashboard = () => {
 
   // Format currency values
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      maximumFractionDigits: 0
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
     }).format(value);
   };
 
@@ -219,14 +226,18 @@ const PropertyDashboard = () => {
 
   return (
     <div className="container py-10">
-      <h1 className="text-3xl font-bold mb-6 text-center">TerraFusion Professional Property Analysis</h1>
-      
+      <h1 className="text-3xl font-bold mb-6 text-center">
+        TerraFusion Professional Property Analysis
+      </h1>
+
       <Tabs value={activeTab} onValueChange={setActiveTab} className="mb-6">
         <TabsList className="grid w-full grid-cols-2">
           <TabsTrigger value="input">Property Input</TabsTrigger>
-          <TabsTrigger value="results" disabled={!result}>Analysis Results</TabsTrigger>
+          <TabsTrigger value="results" disabled={!result}>
+            Analysis Results
+          </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="input" className="space-y-6 mt-6">
           <Card>
             <CardHeader>
@@ -246,37 +257,37 @@ const PropertyDashboard = () => {
                   <div className="grid grid-cols-1 gap-4">
                     <div>
                       <Label htmlFor="street">Street</Label>
-                      <Input 
-                        id="street" 
-                        name="address.street" 
-                        value={propertyData.address.street} 
+                      <Input
+                        id="street"
+                        name="address.street"
+                        value={propertyData.address.street}
                         onChange={handleChange}
                         placeholder="Enter street address"
                       />
                     </div>
-                    
+
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <Label htmlFor="city">City</Label>
-                        <Input 
-                          id="city" 
-                          name="address.city" 
-                          value={propertyData.address.city} 
+                        <Input
+                          id="city"
+                          name="address.city"
+                          value={propertyData.address.city}
                           onChange={handleChange}
                           placeholder="City"
                         />
                       </div>
                       <div>
                         <Label htmlFor="state">State</Label>
-                        <Select 
-                          value={propertyData.address.state} 
+                        <Select
+                          value={propertyData.address.state}
                           onValueChange={(value) => {
-                            setPropertyData(prev => ({
+                            setPropertyData((prev) => ({
                               ...prev,
                               address: {
                                 ...prev.address,
-                                state: value
-                              }
+                                state: value,
+                              },
                             }));
                           }}
                         >
@@ -339,10 +350,10 @@ const PropertyDashboard = () => {
                       </div>
                       <div>
                         <Label htmlFor="zipCode">Zip Code</Label>
-                        <Input 
-                          id="zipCode" 
-                          name="address.zipCode" 
-                          value={propertyData.address.zipCode} 
+                        <Input
+                          id="zipCode"
+                          name="address.zipCode"
+                          value={propertyData.address.zipCode}
                           onChange={handleChange}
                           placeholder="Zip Code"
                         />
@@ -350,22 +361,22 @@ const PropertyDashboard = () => {
                     </div>
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Property Characteristics */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Property Characteristics</h3>
-                  
+
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="propertyType">Property Type</Label>
-                      <Select 
-                        value={propertyData.propertyType} 
+                      <Select
+                        value={propertyData.propertyType}
                         onValueChange={(value) => {
-                          setPropertyData(prev => ({
+                          setPropertyData((prev) => ({
                             ...prev,
-                            propertyType: value
+                            propertyType: value,
                           }));
                         }}
                       >
@@ -382,15 +393,15 @@ const PropertyDashboard = () => {
                         </SelectContent>
                       </Select>
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="condition">Condition</Label>
-                      <Select 
-                        value={propertyData.condition} 
+                      <Select
+                        value={propertyData.condition}
                         onValueChange={(value) => {
-                          setPropertyData(prev => ({
+                          setPropertyData((prev) => ({
                             ...prev,
-                            condition: value
+                            condition: value,
                           }));
                         }}
                       >
@@ -408,86 +419,86 @@ const PropertyDashboard = () => {
                       </Select>
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-4 gap-4">
                     <div>
                       <Label htmlFor="bedrooms">Bedrooms</Label>
-                      <Input 
-                        id="bedrooms" 
-                        name="bedrooms" 
-                        type="number" 
+                      <Input
+                        id="bedrooms"
+                        name="bedrooms"
+                        type="number"
                         min="0"
-                        value={propertyData.bedrooms} 
+                        value={propertyData.bedrooms}
                         onChange={handleNumberChange}
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="bathrooms">Bathrooms</Label>
-                      <Input 
-                        id="bathrooms" 
-                        name="bathrooms" 
-                        type="number" 
+                      <Input
+                        id="bathrooms"
+                        name="bathrooms"
+                        type="number"
                         min="0"
                         step="0.5"
-                        value={propertyData.bathrooms} 
+                        value={propertyData.bathrooms}
                         onChange={handleNumberChange}
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="squareFeet">Square Feet</Label>
-                      <Input 
-                        id="squareFeet" 
-                        name="squareFeet" 
-                        type="number" 
+                      <Input
+                        id="squareFeet"
+                        name="squareFeet"
+                        type="number"
                         min="0"
-                        value={propertyData.squareFeet} 
+                        value={propertyData.squareFeet}
                         onChange={handleNumberChange}
                       />
                     </div>
-                    
+
                     <div>
                       <Label htmlFor="yearBuilt">Year Built</Label>
-                      <Input 
-                        id="yearBuilt" 
-                        name="yearBuilt" 
-                        type="number" 
+                      <Input
+                        id="yearBuilt"
+                        name="yearBuilt"
+                        type="number"
                         min="1800"
                         max={new Date().getFullYear()}
-                        value={propertyData.yearBuilt} 
+                        value={propertyData.yearBuilt}
                         onChange={handleNumberChange}
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <Label htmlFor="lotSize">Lot Size (acres)</Label>
-                    <Input 
-                      id="lotSize" 
-                      name="lotSize" 
-                      type="number" 
+                    <Input
+                      id="lotSize"
+                      name="lotSize"
+                      type="number"
                       min="0"
                       step="0.01"
-                      value={propertyData.lotSize} 
+                      value={propertyData.lotSize}
                       onChange={handleNumberChange}
                     />
                   </div>
                 </div>
-                
+
                 <Separator />
-                
+
                 {/* Features Section */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-medium">Property Features</h3>
-                  
+
                   <div className="flex gap-2">
-                    <Input 
-                      value={newFeature} 
+                    <Input
+                      value={newFeature}
                       onChange={(e) => setNewFeature(e.target.value)}
                       placeholder="Add a feature (e.g., Garage, Pool, Fireplace)"
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') {
+                        if (e.key === "Enter") {
                           e.preventDefault();
                           addFeature();
                         }
@@ -497,15 +508,15 @@ const PropertyDashboard = () => {
                       <Plus className="h-4 w-4" />
                     </Button>
                   </div>
-                  
+
                   <div className="flex flex-wrap gap-2 mt-2">
                     {propertyData.features.length > 0 ? (
                       propertyData.features.map((feature, index) => (
                         <Badge key={index} variant="secondary" className="px-3 py-1">
                           {feature}
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             className="h-4 w-4 p-0 ml-2"
                             onClick={() => removeFeature(index)}
                           >
@@ -521,7 +532,7 @@ const PropertyDashboard = () => {
               </div>
             </CardContent>
             <CardFooter>
-              <Button 
+              <Button
                 className="w-full bg-primary text-white font-medium"
                 onClick={analyzeProperty}
                 disabled={isLoading}
@@ -533,7 +544,7 @@ const PropertyDashboard = () => {
                   </>
                 ) : (
                   <>
-                    Analyze Property 
+                    Analyze Property
                     <ArrowRight className="ml-2 h-4 w-4" />
                   </>
                 )}
@@ -541,7 +552,7 @@ const PropertyDashboard = () => {
             </CardFooter>
           </Card>
         </TabsContent>
-        
+
         <TabsContent value="results" className="space-y-6 mt-6">
           {result && (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -553,10 +564,9 @@ const PropertyDashboard = () => {
                     {result.property.address.street || "Property Details"}
                   </CardTitle>
                   <CardDescription>
-                    {result.property.address.city && result.property.address.state 
-                      ? `${result.property.address.city}, ${result.property.address.state} ${result.property.address.zipCode || ''}`
-                      : "Property Information"
-                    }
+                    {result.property.address.city && result.property.address.state
+                      ? `${result.property.address.city}, ${result.property.address.state} ${result.property.address.zipCode || ""}`
+                      : "Property Information"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
@@ -571,7 +581,7 @@ const PropertyDashboard = () => {
                         <p className="font-medium">{result.property.condition}</p>
                       </div>
                     </div>
-                    
+
                     <div className="grid grid-cols-4 gap-3">
                       <div>
                         <span className="text-sm text-muted-foreground">Beds</span>
@@ -590,18 +600,20 @@ const PropertyDashboard = () => {
                         <p className="font-medium">{result.property.yearBuilt}</p>
                       </div>
                     </div>
-                    
+
                     <div>
                       <span className="text-sm text-muted-foreground">Lot Size</span>
                       <p className="font-medium">{result.property.lotSize} acres</p>
                     </div>
-                    
+
                     <div>
                       <span className="text-sm text-muted-foreground">Features</span>
                       <div className="flex flex-wrap gap-2 mt-1">
                         {result.property.features.length > 0 ? (
                           result.property.features.map((feature: string, index: number) => (
-                            <Badge key={index} variant="outline">{feature}</Badge>
+                            <Badge key={index} variant="outline">
+                              {feature}
+                            </Badge>
                           ))
                         ) : (
                           <p className="text-sm text-muted-foreground">No features listed</p>
@@ -611,18 +623,18 @@ const PropertyDashboard = () => {
                   </div>
                 </CardContent>
                 <CardFooter>
-                  <Button 
-                    className="w-full" 
+                  <Button
+                    className="w-full"
                     variant="secondary"
                     onClick={() => {
-                      setActiveTab('input');
+                      setActiveTab("input");
                     }}
                   >
                     Edit Property Details
                   </Button>
                 </CardFooter>
               </Card>
-              
+
               {/* Valuation Results Card */}
               <Card className="bg-green-50">
                 <CardHeader>
@@ -638,58 +650,85 @@ const PropertyDashboard = () => {
                   <div className="space-y-6">
                     <div className="text-center">
                       <h3 className="text-xl font-medium mb-1">Estimated Value</h3>
-                      <div className="text-4xl font-bold text-primary">{formatCurrency(result.estimatedValue)}</div>
+                      <div className="text-4xl font-bold text-primary">
+                        {formatCurrency(result.estimatedValue)}
+                      </div>
                       <p className="text-sm text-muted-foreground mt-1">
-                        Range: {formatCurrency(result.valueRange.min)} - {formatCurrency(result.valueRange.max)}
+                        Range: {formatCurrency(result.valueRange.min)} -{" "}
+                        {formatCurrency(result.valueRange.max)}
                       </p>
-                      <Badge className="mt-2" variant={
-                        result.confidenceLevel === 'High' ? 'default' : 
-                        result.confidenceLevel === 'Medium' ? 'secondary' : 
-                        'outline'
-                      }>
+                      <Badge
+                        className="mt-2"
+                        variant={
+                          result.confidenceLevel === "High"
+                            ? "default"
+                            : result.confidenceLevel === "Medium"
+                              ? "secondary"
+                              : "outline"
+                        }
+                      >
                         {result.confidenceLevel} Confidence
                       </Badge>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-lg font-medium mb-2">Value Adjustments</h3>
                       <div className="space-y-2">
-                        {result.adjustments.map((adjustment: {factor: string, description: string, amount: number, reasoning: string}, index: number) => (
-                          <div key={index} className="flex justify-between border-b pb-2">
-                            <div>
-                              <p className="font-medium">{adjustment.factor}</p>
-                              <p className="text-sm text-muted-foreground">{adjustment.description}</p>
+                        {result.adjustments.map(
+                          (
+                            adjustment: {
+                              factor: string;
+                              description: string;
+                              amount: number;
+                              reasoning: string;
+                            },
+                            index: number
+                          ) => (
+                            <div key={index} className="flex justify-between border-b pb-2">
+                              <div>
+                                <p className="font-medium">{adjustment.factor}</p>
+                                <p className="text-sm text-muted-foreground">
+                                  {adjustment.description}
+                                </p>
+                              </div>
+                              <div
+                                className={
+                                  adjustment.amount >= 0 ? "text-green-600" : "text-red-600"
+                                }
+                              >
+                                {adjustment.amount >= 0 ? "+" : ""}
+                                {formatCurrency(adjustment.amount)}
+                              </div>
                             </div>
-                            <div className={adjustment.amount >= 0 ? "text-green-600" : "text-red-600"}>
-                              {adjustment.amount >= 0 ? "+" : ""}{formatCurrency(adjustment.amount)}
-                            </div>
-                          </div>
-                        ))}
+                          )
+                        )}
                       </div>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-lg font-medium mb-2">Market Analysis</h3>
                       <p className="text-sm">{result.marketAnalysis}</p>
                     </div>
-                    
+
                     <div>
                       <h3 className="text-lg font-medium mb-2">Comparable Analysis</h3>
                       <p className="text-sm">{result.comparableAnalysis}</p>
                     </div>
-                    
+
                     <div className="text-center">
-                      <Button 
-                        variant="outline" 
+                      <Button
+                        variant="outline"
                         onClick={() => setShowComparables(!showComparables)}
                       >
-                        {showComparables ? "Hide Comparable Properties" : "View Comparable Properties"}
+                        {showComparables
+                          ? "Hide Comparable Properties"
+                          : "View Comparable Properties"}
                       </Button>
                     </div>
                   </div>
                 </CardContent>
               </Card>
-              
+
               {/* Comparable Properties Card */}
               {showComparables && result.comparables && (
                 <Card className="lg:col-span-2">
@@ -715,27 +754,35 @@ const PropertyDashboard = () => {
                           </tr>
                         </thead>
                         <tbody>
-                          {result.comparables && result.comparables.map((comp: {
-                            address: string;
-                            salePrice: number;
-                            saleDate: string;
-                            bedrooms: number;
-                            bathrooms: number;
-                            squareFeet: number;
-                            yearBuilt: number;
-                            distanceFromSubject: string;
-                          }, index: number) => (
-                            <tr key={index} className="border-b">
-                              <td className="p-2">{comp.address}</td>
-                              <td className="p-2 font-medium">{formatCurrency(comp.salePrice)}</td>
-                              <td className="p-2">{comp.saleDate}</td>
-                              <td className="p-2">{comp.bedrooms}</td>
-                              <td className="p-2">{comp.bathrooms}</td>
-                              <td className="p-2">{comp.squareFeet}</td>
-                              <td className="p-2">{comp.yearBuilt}</td>
-                              <td className="p-2">{comp.distanceFromSubject}</td>
-                            </tr>
-                          ))}
+                          {result.comparables &&
+                            result.comparables.map(
+                              (
+                                comp: {
+                                  address: string;
+                                  salePrice: number;
+                                  saleDate: string;
+                                  bedrooms: number;
+                                  bathrooms: number;
+                                  squareFeet: number;
+                                  yearBuilt: number;
+                                  distanceFromSubject: string;
+                                },
+                                index: number
+                              ) => (
+                                <tr key={index} className="border-b">
+                                  <td className="p-2">{comp.address}</td>
+                                  <td className="p-2 font-medium">
+                                    {formatCurrency(comp.salePrice)}
+                                  </td>
+                                  <td className="p-2">{comp.saleDate}</td>
+                                  <td className="p-2">{comp.bedrooms}</td>
+                                  <td className="p-2">{comp.bathrooms}</td>
+                                  <td className="p-2">{comp.squareFeet}</td>
+                                  <td className="p-2">{comp.yearBuilt}</td>
+                                  <td className="p-2">{comp.distanceFromSubject}</td>
+                                </tr>
+                              )
+                            )}
                         </tbody>
                       </table>
                     </div>

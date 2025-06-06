@@ -1,7 +1,7 @@
-import Anthropic from '@anthropic-ai/sdk';
-import { promises as fs } from 'fs';
-import path from 'path';
-import crypto from 'crypto';
+import Anthropic from "@anthropic-ai/sdk";
+import { promises as fs } from "fs";
+import path from "path";
+import crypto from "crypto";
 
 // Initialize Anthropic client
 const anthropic = new Anthropic({
@@ -27,24 +27,22 @@ export interface PropertyPhotoAnalysis {
 
 /**
  * Analyzes a property photograph using Anthropic's Claude model
- * 
+ *
  * @param imageBuffer - The buffer containing the image data
  * @returns Object containing analysis results
  */
-export async function analyzePropertyPhotoWithAnthropic(
-  imageBuffer: Buffer
-): Promise<{ 
+export async function analyzePropertyPhotoWithAnthropic(imageBuffer: Buffer): Promise<{
   success: boolean;
   analysis?: PropertyPhotoAnalysis;
   message?: string;
 }> {
   try {
     // Convert buffer to base64 for Anthropic API
-    const base64Image = imageBuffer.toString('base64');
-    
+    const base64Image = imageBuffer.toString("base64");
+
     // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025. Do not change this unless explicitly requested by the user.
     const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: "claude-3-7-sonnet-20250219",
       max_tokens: 1000,
       system: `You are an expert real estate appraiser with extensive experience in evaluating properties from photographs.
 Analyze the provided property image in detail for appraisal purposes.
@@ -68,79 +66,77 @@ Focus exclusively on what is visible in the image. If something cannot be determ
 Your analysis must be factual, objective, and based solely on the photograph.`,
       messages: [
         {
-          role: 'user',
+          role: "user",
           content: [
             {
-              type: 'text',
-              text: 'Please analyze this property photograph for an appraisal report.'
+              type: "text",
+              text: "Please analyze this property photograph for an appraisal report.",
             },
             {
-              type: 'image',
+              type: "image",
               source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: base64Image
-              }
-            }
-          ]
-        }
-      ]
+                type: "base64",
+                media_type: "image/jpeg",
+                data: base64Image,
+              },
+            },
+          ],
+        },
+      ],
     });
 
     try {
       // Parse the JSON response
       const contentBlock = response.content[0];
       // Check if the content is of text type
-      if ('type' in contentBlock && contentBlock.type === 'text') {
+      if ("type" in contentBlock && contentBlock.type === "text") {
         const analysis = JSON.parse(contentBlock.text);
-        
+
         return {
           success: true,
-          analysis
+          analysis,
         };
       } else {
-        throw new Error('Unexpected response format from Anthropic API');
+        throw new Error("Unexpected response format from Anthropic API");
       }
     } catch (error) {
       // Handle case where response wasn't proper JSON
       return {
         success: false,
-        message: 'Failed to parse analysis results',
+        message: "Failed to parse analysis results",
         analysis: {
-          description: 'Analysis failed',
-          propertyType: 'Unknown',
+          description: "Analysis failed",
+          propertyType: "Unknown",
           visibleFeatures: [],
           estimatedValue: {
-            range: 'Unable to determine',
+            range: "Unable to determine",
             confidence: 0,
-            factors: []
+            factors: [],
           },
           condition: {
             rating: 0,
-            notes: ['Analysis failed']
+            notes: ["Analysis failed"],
           },
-          recommendations: ['Try again with a clearer image']
-        }
+          recommendations: ["Try again with a clearer image"],
+        },
       };
     }
   } catch (error) {
-    console.error('Error analyzing photo with Anthropic:', error);
+    console.error("Error analyzing photo with Anthropic:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }
 
 /**
  * Performs a detailed appraisal property inspection using Anthropic's Claude
- * 
+ *
  * @param imageBuffer - The buffer containing the image data
  * @returns Detailed property inspection report
  */
-export async function detailedPropertyInspection(
-  imageBuffer: Buffer
-): Promise<{ 
+export async function detailedPropertyInspection(imageBuffer: Buffer): Promise<{
   success: boolean;
   inspectionReport?: {
     exterior: {
@@ -168,11 +164,11 @@ export async function detailedPropertyInspection(
 }> {
   try {
     // Convert buffer to base64 for Anthropic API
-    const base64Image = imageBuffer.toString('base64');
-    
+    const base64Image = imageBuffer.toString("base64");
+
     // the newest Anthropic model is "claude-3-7-sonnet-20250219" which was released February 24, 2025. Do not change this unless explicitly requested by the user.
     const response = await anthropic.messages.create({
-      model: 'claude-3-7-sonnet-20250219',
+      model: "claude-3-7-sonnet-20250219",
       max_tokens: 1500,
       system: `You are an expert real estate inspector with deep experience in property valuation and appraisal.
 Provide a detailed inspection report based on the property photograph.
@@ -203,51 +199,51 @@ If the image shows only exterior or only interior, populate only the relevant se
 Be specific about what you can observe and state when something cannot be determined from the available image.`,
       messages: [
         {
-          role: 'user',
+          role: "user",
           content: [
             {
-              type: 'text',
-              text: 'Please provide a detailed property inspection report based on this photograph.'
+              type: "text",
+              text: "Please provide a detailed property inspection report based on this photograph.",
             },
             {
-              type: 'image',
+              type: "image",
               source: {
-                type: 'base64',
-                media_type: 'image/jpeg',
-                data: base64Image
-              }
-            }
-          ]
-        }
-      ]
+                type: "base64",
+                media_type: "image/jpeg",
+                data: base64Image,
+              },
+            },
+          ],
+        },
+      ],
     });
 
     try {
       // Parse the JSON response
       const contentBlock = response.content[0];
       // Check if the content is of text type
-      if ('type' in contentBlock && contentBlock.type === 'text') {
+      if ("type" in contentBlock && contentBlock.type === "text") {
         const inspectionReport = JSON.parse(contentBlock.text);
-        
+
         return {
           success: true,
-          inspectionReport
+          inspectionReport,
         };
       } else {
-        throw new Error('Unexpected response format from Anthropic API');
+        throw new Error("Unexpected response format from Anthropic API");
       }
     } catch (error) {
       // Handle case where response wasn't proper JSON
       return {
         success: false,
-        message: 'Failed to parse inspection results',
+        message: "Failed to parse inspection results",
       };
     }
   } catch (error) {
-    console.error('Error performing property inspection:', error);
+    console.error("Error performing property inspection:", error);
     return {
       success: false,
-      message: error instanceof Error ? error.message : 'Unknown error occurred'
+      message: error instanceof Error ? error.message : "Unknown error occurred",
     };
   }
 }

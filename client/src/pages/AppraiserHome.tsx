@@ -1,17 +1,17 @@
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Card, CardContent, CardHeader, CardTitle, CardFooter } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { AppraiserPageLayout } from '@/components/layout/appraiser-page-layout';
-import NotificationPanel, { Notification } from '@/components/notifications/NotificationPanel';
-import { useState, useEffect } from 'react';
-import { 
-  Plus, 
-  FileText, 
-  ArrowRight, 
-  Clock, 
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { AppraiserPageLayout } from "@/components/layout/appraiser-page-layout";
+import NotificationPanel, { Notification } from "@/components/notifications/NotificationPanel";
+import { useState, useEffect } from "react";
+import {
+  Plus,
+  FileText,
+  ArrowRight,
+  Clock,
   ChevronRight,
   Clipboard,
   ClipboardList,
@@ -29,8 +29,8 @@ import {
   BarChart,
   LayoutDashboard,
   Smartphone,
-  Settings
-} from 'lucide-react';
+  Settings,
+} from "lucide-react";
 
 // Type for the status badge component
 type StatusBadgeProps = {
@@ -41,7 +41,7 @@ type StatusBadgeProps = {
 const StatusBadge = ({ status }: StatusBadgeProps) => {
   let bgColor = "bg-neutral-100";
   let textColor = "text-neutral-700";
-  
+
   if (status === "In Progress") {
     bgColor = "bg-blue-100";
     textColor = "text-blue-700";
@@ -55,7 +55,7 @@ const StatusBadge = ({ status }: StatusBadgeProps) => {
     bgColor = "bg-red-100";
     textColor = "text-red-700";
   }
-  
+
   return (
     <span className={`text-xs font-medium px-2.5 py-0.5 rounded-full ${bgColor} ${textColor}`}>
       {status}
@@ -72,7 +72,7 @@ const EXAMPLE_REPORTS = [
     dueDate: "2025-05-15",
     status: "In Progress",
     type: "URAR 1004",
-    progress: 35
+    progress: 35,
   },
   {
     id: 2,
@@ -81,7 +81,7 @@ const EXAMPLE_REPORTS = [
     dueDate: "2025-05-16",
     status: "Due Soon",
     type: "Condo 1073",
-    progress: 15
+    progress: 15,
   },
   {
     id: 3,
@@ -90,7 +90,7 @@ const EXAMPLE_REPORTS = [
     dueDate: "2025-05-13",
     status: "Overdue",
     type: "URAR 1004",
-    progress: 65
+    progress: 65,
   },
   {
     id: 4,
@@ -99,8 +99,8 @@ const EXAMPLE_REPORTS = [
     dueDate: "2025-05-22",
     status: "In Progress",
     type: "Manufactured Home 1004C",
-    progress: 85
-  }
+    progress: 85,
+  },
 ];
 
 // Example notifications data
@@ -110,22 +110,22 @@ const EXAMPLE_NOTIFICATIONS: Notification[] = [
     message: "You have been assigned a new appraisal order for 789 Pine Lane.",
     date: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString(), // 2 hours ago
     read: false,
-    type: "alert" // Using allowed types from Notification interface
+    type: "alert", // Using allowed types from Notification interface
   },
   {
     id: "2",
     message: "Client requested revisions for order #APO-2025-0031 (345 Maple Road).",
     date: new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString(), // Yesterday
     read: false,
-    type: "reminder"
+    type: "reminder",
   },
   {
     id: "3",
     message: "Order #APO-2025-0029 was successfully submitted to the client.",
     date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // 2 days ago
     read: true,
-    type: "update"
-  }
+    type: "update",
+  },
 ];
 
 // Main AppraiserHome Component
@@ -134,35 +134,35 @@ export default function AppraiserHome() {
   const [activeTab, setActiveTab] = useState("dashboard");
   const [activeReports, setActiveReports] = useState(EXAMPLE_REPORTS);
   const [notifications, setNotifications] = useState(EXAMPLE_NOTIFICATIONS);
-  
+
   // Handler for marking notification as read
   const handleMarkAsRead = (id: string) => {
-    setNotifications(prevNotifications => 
-      prevNotifications.map(notification => 
+    setNotifications((prevNotifications) =>
+      prevNotifications.map((notification) =>
         notification.id === id ? { ...notification, read: true } : notification
       )
     );
   };
-  
+
   // Handler for marking all notifications as read
   const handleMarkAllAsRead = () => {
-    setNotifications(prevNotifications => 
-      prevNotifications.map(notification => ({ ...notification, read: true }))
+    setNotifications((prevNotifications) =>
+      prevNotifications.map((notification) => ({ ...notification, read: true }))
     );
   };
-  
+
   // Handler for dismissing a notification
   const handleDismissNotification = (id: string) => {
-    setNotifications(prevNotifications => 
-      prevNotifications.filter(notification => notification.id !== id)
+    setNotifications((prevNotifications) =>
+      prevNotifications.filter((notification) => notification.id !== id)
     );
   };
-  
+
   // Log when the component renders (for debugging)
   useEffect(() => {
     console.log("AppraiserHome component rendering");
   }, []);
-  
+
   return (
     <AppraiserPageLayout
       title="TerraFusion Pro"
@@ -171,53 +171,53 @@ export default function AppraiserHome() {
       appraisalTips={[
         {
           title: "AI Order Processing",
-          content: "Use the AI order processing feature to automatically extract property details from emails and PDFs.",
-          type: "ai"
+          content:
+            "Use the AI order processing feature to automatically extract property details from emails and PDFs.",
+          type: "ai",
         },
         {
           title: "Field Updates Available",
-          content: "TerraField mobile app has new updates for field data collection with improved photo enhancements.",
-          type: "info"
-        }
+          content:
+            "TerraField mobile app has new updates for field data collection with improved photo enhancements.",
+          type: "info",
+        },
       ]}
       quickActions={[
         {
           label: "Import Order",
-          onClick: () => setLocation('/email-order'),
+          onClick: () => setLocation("/email-order"),
           icon: <MailPlus className="h-4 w-4" />,
-          variant: "default"
+          variant: "default",
         },
         {
           label: "View Assignments",
-          onClick: () => setLocation('/assignments'),
+          onClick: () => setLocation("/assignments"),
           icon: <ClipboardList className="h-4 w-4" />,
-          variant: "outline"
+          variant: "outline",
         },
         {
           label: "Mobile Sync",
-          onClick: () => setLocation('/photo-sync-test'),
+          onClick: () => setLocation("/photo-sync-test"),
           icon: <Smartphone className="h-4 w-4" />,
-          variant: "outline"
+          variant: "outline",
         },
         {
           label: "Settings",
-          onClick: () => setLocation('/settings'),
+          onClick: () => setLocation("/settings"),
           icon: <Settings className="h-4 w-4" />,
-          variant: "outline"
-        }
+          variant: "outline",
+        },
       ]}
       actions={
         <div className="flex gap-2">
-          <Button 
+          <Button
             variant="outline"
-            onClick={() => setLocation('/settings')}
+            onClick={() => setLocation("/settings")}
             className="hidden md:flex"
           >
             Settings
           </Button>
-          <Button 
-            onClick={() => setLocation('/email-order')}
-          >
+          <Button onClick={() => setLocation("/email-order")}>
             <MailPlus className="h-4 w-4 mr-2" />
             Import Order
           </Button>
@@ -230,14 +230,14 @@ export default function AppraiserHome() {
           <div className="bg-primary text-white p-4 rounded-t-md">
             <h2 className="text-xl font-bold">TerraFusion Property Analysis</h2>
             <p className="text-sm opacity-90">AI-powered property valuation and analytics</p>
-            <Button 
-              className="mt-4 bg-white text-primary hover:bg-gray-100" 
-              onClick={() => window.location.href = '/property-analyzer'}
+            <Button
+              className="mt-4 bg-white text-primary hover:bg-gray-100"
+              onClick={() => (window.location.href = "/property-analyzer")}
             >
               Open New Property Analyzer
             </Button>
           </div>
-          
+
           <div className="p-6">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-4">
@@ -245,19 +245,19 @@ export default function AppraiserHome() {
                 <div className="space-y-3">
                   <div>
                     <label className="block text-sm font-medium mb-1">Street Address</label>
-                    <input 
-                      type="text" 
+                    <input
+                      type="text"
                       className="w-full p-2 border rounded-md"
                       placeholder="Enter property address"
                       defaultValue="406 Stardust Ct"
                     />
                   </div>
-                  
+
                   <div className="grid grid-cols-3 gap-2">
                     <div>
                       <label className="block text-sm font-medium mb-1">City</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         className="w-full p-2 border rounded-md"
                         placeholder="City"
                         defaultValue="Grandview"
@@ -274,54 +274,54 @@ export default function AppraiserHome() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Zip</label>
-                      <input 
-                        type="text" 
+                      <input
+                        type="text"
                         className="w-full p-2 border rounded-md"
                         placeholder="Zip Code"
                         defaultValue="99347"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-sm font-medium mb-1">Bedrooms</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         className="w-full p-2 border rounded-md"
                         defaultValue="3"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Bathrooms</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         className="w-full p-2 border rounded-md"
                         defaultValue="2"
                         step="0.5"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="grid grid-cols-2 gap-2">
                     <div>
                       <label className="block text-sm font-medium mb-1">Square Feet</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         className="w-full p-2 border rounded-md"
                         defaultValue="1850"
                       />
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Year Built</label>
-                      <input 
-                        type="number" 
+                      <input
+                        type="number"
                         className="w-full p-2 border rounded-md"
                         defaultValue="1997"
                       />
                     </div>
                   </div>
-                  
+
                   <div>
                     <label className="block text-sm font-medium mb-1">Condition</label>
                     <select className="w-full p-2 border rounded-md" defaultValue="Good">
@@ -333,18 +333,18 @@ export default function AppraiserHome() {
                     </select>
                   </div>
                 </div>
-                
-                <Button 
+
+                <Button
                   className="w-full bg-primary hover:bg-primary/90 mt-4"
-                  onClick={() => window.location.href = '/property-analysis-new'}
+                  onClick={() => (window.location.href = "/property-analysis-new")}
                 >
                   Access Full Property Analysis
                 </Button>
               </div>
-              
+
               <div className="border-t pt-6 md:border-t-0 md:pt-0 md:border-l md:pl-6">
                 <h3 className="text-lg font-medium mb-4">Recent Analysis Results</h3>
-                
+
                 <div className="space-y-4">
                   <div className="border rounded-md p-4">
                     <div className="flex justify-between items-start">
@@ -352,7 +352,9 @@ export default function AppraiserHome() {
                         <p className="font-medium">406 Stardust Ct</p>
                         <p className="text-sm text-gray-600">Grandview, WA 99347</p>
                       </div>
-                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">Completed</Badge>
+                      <Badge className="bg-green-100 text-green-800 hover:bg-green-100">
+                        Completed
+                      </Badge>
                     </div>
                     <div className="mt-3 grid grid-cols-2 gap-2 text-sm">
                       <div>
@@ -368,7 +370,7 @@ export default function AppraiserHome() {
                       View Details
                     </Button>
                   </div>
-                  
+
                   <div className="border rounded-md p-4">
                     <div className="flex justify-between items-start">
                       <div>
@@ -396,7 +398,7 @@ export default function AppraiserHome() {
             </div>
           </div>
         </div>
-        
+
         {/* Hero Section - Focused on appraiser's workflow needs */}
         <div className="py-6">
           <div className="grid gap-6 md:grid-cols-3 lg:grid-cols-4">
@@ -414,7 +416,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">1. Order Intake</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <Building2 className="h-5 w-5" />
@@ -422,7 +424,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">2. Property Research</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <Image className="h-5 w-5" />
@@ -430,7 +432,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">3. Inspection & Photos</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <ArrowUpDown className="h-5 w-5" />
@@ -438,7 +440,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">4. Comps Selection</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <PencilRuler className="h-5 w-5" />
@@ -446,7 +448,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">5. Sketch & Form Entry</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <LineChart className="h-5 w-5" />
@@ -454,7 +456,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">6. Analysis & Reconciliation</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <FileText className="h-5 w-5" />
@@ -462,7 +464,7 @@ export default function AppraiserHome() {
                     <span className="text-sm font-medium">7. Report Generation</span>
                     <ChevronRight className="h-4 w-4 ml-auto text-muted-foreground" />
                   </div>
-                  
+
                   <div className="flex items-center gap-2">
                     <div className="bg-primary/10 p-1.5 rounded-full text-primary">
                       <Send className="h-5 w-5" />
@@ -479,7 +481,7 @@ export default function AppraiserHome() {
                 </Button>
               </CardFooter>
             </Card>
-            
+
             {/* Active Assignments Card */}
             <Card className="col-span-full md:col-span-2 lg:col-span-3">
               <CardHeader className="pb-2">
@@ -512,9 +514,9 @@ export default function AppraiserHome() {
                           <Clock className="h-4 w-4 mr-1" />
                           <span>Due: {new Date(report.dueDate).toLocaleDateString()}</span>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="sm" 
+                        <Button
+                          variant="ghost"
+                          size="sm"
                           className="text-xs"
                           onClick={() => setLocation(`/report/${report.id}`)}
                         >
@@ -527,7 +529,7 @@ export default function AppraiserHome() {
                 </div>
               </CardContent>
               <CardFooter className="justify-end">
-                <Button variant="outline" size="sm" onClick={() => setLocation('/assignments')}>
+                <Button variant="outline" size="sm" onClick={() => setLocation("/assignments")}>
                   View All Assignments
                   <ChevronRight className="h-4 w-4 ml-1" />
                 </Button>
@@ -535,7 +537,7 @@ export default function AppraiserHome() {
             </Card>
           </div>
         </div>
-        
+
         {/* AI-Powered Tools Section */}
         <div>
           <h2 className="text-2xl font-semibold mb-6">AI-Powered Tools</h2>
@@ -548,15 +550,22 @@ export default function AppraiserHome() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Automatically extract property details from emails and PDFs.</p>
+                <p className="text-sm text-muted-foreground">
+                  Automatically extract property details from emails and PDFs.
+                </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" size="sm" onClick={() => setLocation('/email-order')} className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/email-order")}
+                  className="w-full"
+                >
                   Process Order
                 </Button>
               </CardFooter>
             </Card>
-            
+
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -565,15 +574,22 @@ export default function AppraiserHome() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">AI-powered comparable property selection and analysis.</p>
+                <p className="text-sm text-muted-foreground">
+                  AI-powered comparable property selection and analysis.
+                </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" size="sm" onClick={() => setLocation('/comps-search')} className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/comps-search")}
+                  className="w-full"
+                >
                   Find Comps
                 </Button>
               </CardFooter>
             </Card>
-            
+
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -582,15 +598,22 @@ export default function AppraiserHome() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Intelligent form completion and validation assistance.</p>
+                <p className="text-sm text-muted-foreground">
+                  Intelligent form completion and validation assistance.
+                </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" size="sm" onClick={() => setLocation('/form')} className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/form")}
+                  className="w-full"
+                >
                   Open Forms
                 </Button>
               </CardFooter>
             </Card>
-            
+
             <Card className="bg-primary/5 border-primary/20">
               <CardHeader className="pb-2">
                 <CardTitle className="flex items-center gap-2 text-base">
@@ -599,17 +622,24 @@ export default function AppraiserHome() {
                 </CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-sm text-muted-foreground">Predictive analytics for market trends and forecasting.</p>
+                <p className="text-sm text-muted-foreground">
+                  Predictive analytics for market trends and forecasting.
+                </p>
               </CardContent>
               <CardFooter>
-                <Button variant="outline" size="sm" onClick={() => setLocation('/market-analysis')} className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setLocation("/market-analysis")}
+                  className="w-full"
+                >
                   Analyze Market
                 </Button>
               </CardFooter>
             </Card>
           </div>
         </div>
-        
+
         {/* Quick Tasks & Notifications Section */}
         <div className="grid gap-6 md:grid-cols-2">
           <Card>
@@ -618,47 +648,71 @@ export default function AppraiserHome() {
             </CardHeader>
             <CardContent className="space-y-2">
               <div className="grid grid-cols-2 gap-2">
-                <Button variant="outline" className="justify-start h-auto py-3" onClick={() => setLocation('/sketch')}>
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => setLocation("/sketch")}
+                >
                   <PencilRuler className="h-4 w-4 mr-2" />
                   <div className="text-left">
                     <div className="font-medium text-xs">Create Sketch</div>
                     <div className="text-xs text-muted-foreground">Draw property sketches</div>
                   </div>
                 </Button>
-                
-                <Button variant="outline" className="justify-start h-auto py-3" onClick={() => setLocation('/photos')}>
+
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => setLocation("/photos")}
+                >
                   <Image className="h-4 w-4 mr-2" />
                   <div className="text-left">
                     <div className="font-medium text-xs">Manage Photos</div>
                     <div className="text-xs text-muted-foreground">Upload and organize images</div>
                   </div>
                 </Button>
-                
-                <Button variant="outline" className="justify-start h-auto py-3" onClick={() => setLocation('/comps')}>
+
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => setLocation("/comps")}
+                >
                   <Building2 className="h-4 w-4 mr-2" />
                   <div className="text-left">
                     <div className="font-medium text-xs">Comparable Grid</div>
                     <div className="text-xs text-muted-foreground">Edit and adjust comps</div>
                   </div>
                 </Button>
-                
-                <Button variant="outline" className="justify-start h-auto py-3" onClick={() => setLocation('/reports')}>
+
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => setLocation("/reports")}
+                >
                   <FileText className="h-4 w-4 mr-2" />
                   <div className="text-left">
                     <div className="font-medium text-xs">Generate Report</div>
                     <div className="text-xs text-muted-foreground">Create final PDF</div>
                   </div>
                 </Button>
-                
-                <Button variant="outline" className="justify-start h-auto py-3" onClick={() => setLocation('/reviews')}>
+
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => setLocation("/reviews")}
+                >
                   <CheckCircle2 className="h-4 w-4 mr-2" />
                   <div className="text-left">
                     <div className="font-medium text-xs">Review Assistant</div>
                     <div className="text-xs text-muted-foreground">AI quality check</div>
                   </div>
                 </Button>
-                
-                <Button variant="outline" className="justify-start h-auto py-3" onClick={() => setLocation('/crdt-test')}>
+
+                <Button
+                  variant="outline"
+                  className="justify-start h-auto py-3"
+                  onClick={() => setLocation("/crdt-test")}
+                >
                   <Smartphone className="h-4 w-4 mr-2" />
                   <div className="text-left">
                     <div className="font-medium text-xs">Mobile Sync</div>
@@ -668,13 +722,13 @@ export default function AppraiserHome() {
               </div>
             </CardContent>
           </Card>
-          
+
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-lg">Notifications</CardTitle>
             </CardHeader>
             <CardContent>
-              <NotificationPanel 
+              <NotificationPanel
                 notifications={notifications}
                 onMarkAsRead={handleMarkAsRead}
                 onMarkAllAsRead={handleMarkAllAsRead}
@@ -683,7 +737,7 @@ export default function AppraiserHome() {
             </CardContent>
           </Card>
         </div>
-        
+
         {/* Productivity Dashboard */}
         <div>
           <h2 className="text-2xl font-semibold mb-6">Productivity Dashboard</h2>
@@ -693,7 +747,7 @@ export default function AppraiserHome() {
               <TabsTrigger value="weekly">Weekly</TabsTrigger>
               <TabsTrigger value="monthly">Monthly</TabsTrigger>
             </TabsList>
-            
+
             <TabsContent value="daily" className="p-0">
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
@@ -707,19 +761,21 @@ export default function AppraiserHome() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Avg. Completion Time</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="text-3xl font-bold">3.5 <span className="text-base font-normal text-muted-foreground">hrs</span></div>
+                      <div className="text-3xl font-bold">
+                        3.5 <span className="text-base font-normal text-muted-foreground">hrs</span>
+                      </div>
                       <Progress value={65} className="h-2" />
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Orders Received</CardTitle>
@@ -733,7 +789,7 @@ export default function AppraiserHome() {
                 </Card>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="weekly" className="p-0">
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
@@ -747,19 +803,21 @@ export default function AppraiserHome() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Avg. Completion Time</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="text-3xl font-bold">4.2 <span className="text-base font-normal text-muted-foreground">hrs</span></div>
+                      <div className="text-3xl font-bold">
+                        4.2 <span className="text-base font-normal text-muted-foreground">hrs</span>
+                      </div>
                       <Progress value={78} className="h-2" />
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Orders Received</CardTitle>
@@ -773,7 +831,7 @@ export default function AppraiserHome() {
                 </Card>
               </div>
             </TabsContent>
-            
+
             <TabsContent value="monthly" className="p-0">
               <div className="grid gap-4 md:grid-cols-3">
                 <Card>
@@ -787,19 +845,21 @@ export default function AppraiserHome() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Avg. Completion Time</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-2">
-                      <div className="text-3xl font-bold">4.5 <span className="text-base font-normal text-muted-foreground">hrs</span></div>
+                      <div className="text-3xl font-bold">
+                        4.5 <span className="text-base font-normal text-muted-foreground">hrs</span>
+                      </div>
                       <Progress value={82} className="h-2" />
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-base">Orders Received</CardTitle>

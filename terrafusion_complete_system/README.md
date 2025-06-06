@@ -13,6 +13,7 @@ The AI valuation system consists of the following components:
 1. **PropertyValuationModel** - Core engine that implements both heuristic and machine learning approaches for property valuation, located in `backend/valuation_engine.py`.
 
 2. **Valuation API Endpoints** - RESTful API endpoints that expose the valuation model:
+
    - `GET /api/ai/value/:property_id` - Get valuation by property ID
    - `POST /api/ai/value` - Get valuation by providing property details
 
@@ -70,7 +71,7 @@ The AI valuation system uses a hybrid approach combining:
 #### Example 1: Getting valuation by property ID
 
 ```javascript
-const response = await fetch('/api/ai/value/1');
+const response = await fetch("/api/ai/value/1");
 const valuation = await response.json();
 console.log(`Estimated Value: ${valuation.estimatedValue}`);
 ```
@@ -80,30 +81,27 @@ console.log(`Estimated Value: ${valuation.estimatedValue}`);
 ```javascript
 const propertyDetails = {
   address: {
-    street: '123 Main St',
-    city: 'Anytown',
-    state: 'CA',
-    zipCode: '12345'
+    street: "123 Main St",
+    city: "Anytown",
+    state: "CA",
+    zipCode: "12345",
   },
-  propertyType: 'single-family',
+  propertyType: "single-family",
   bedrooms: 3,
   bathrooms: 2,
   squareFeet: 1800,
   yearBuilt: 1990,
   lotSize: 0.25,
-  features: [
-    { name: 'Fireplace' },
-    { name: 'Hardwood Floors' }
-  ],
-  condition: 'Good'
+  features: [{ name: "Fireplace" }, { name: "Hardwood Floors" }],
+  condition: "Good",
 };
 
-const response = await fetch('/api/ai/value', {
-  method: 'POST',
+const response = await fetch("/api/ai/value", {
+  method: "POST",
   headers: {
-    'Content-Type': 'application/json'
+    "Content-Type": "application/json",
   },
-  body: JSON.stringify(propertyDetails)
+  body: JSON.stringify(propertyDetails),
 });
 
 const valuation = await response.json();

@@ -1,12 +1,12 @@
-import { AgentBase, AgentTask } from '../interfaces/agent';
-import { BaseAgent } from './base-agent';
-import { ValuationAgent } from '../agents/valuation-agent';
-import { DataProcessingAgent } from '../agents/data-processing-agent';
-import { TerminologyAgent } from '../agents/terminology-agent';
+import { AgentBase, AgentTask } from "../interfaces/agent";
+import { BaseAgent } from "./base-agent";
+import { ValuationAgent } from "../agents/valuation-agent";
+import { DataProcessingAgent } from "../agents/data-processing-agent";
+import { TerminologyAgent } from "../agents/terminology-agent";
 
 /**
  * Agent Coordinator
- * 
+ *
  * Responsible for coordinating tasks between different AI agents
  * and ensuring they work together effectively.
  */
@@ -18,7 +18,7 @@ export class AgentCoordinator {
   private constructor() {
     this.agents = new Map<string, AgentBase>();
     this.logger = console;
-    
+
     // Register built-in agents
     this.registerBuiltInAgents();
   }
@@ -68,7 +68,7 @@ export class AgentCoordinator {
       if (!agent) {
         throw new Error(`Agent with ID ${agentId} not found`);
       }
-      return await agent.processTask(task) as R;
+      return (await agent.processTask(task)) as R;
     }
 
     // Find the best agent for this task type
@@ -77,7 +77,7 @@ export class AgentCoordinator {
       throw new Error(`No agent found for task type: ${task.type}`);
     }
 
-    return await bestAgent.processTask(task) as R;
+    return (await bestAgent.processTask(task)) as R;
   }
 
   /**
@@ -103,13 +103,13 @@ export class AgentCoordinator {
   private registerBuiltInAgents(): void {
     // Register the valuation agent
     this.registerAgent(new ValuationAgent());
-    
+
     // Register the data processing agent
     this.registerAgent(new DataProcessingAgent());
-    
+
     // Register the terminology agent
     this.registerAgent(new TerminologyAgent());
-    
+
     // Add more built-in agents as needed
   }
 }

@@ -73,8 +73,8 @@ yarn start
 
 The mobile app communicates with the following server endpoints:
 
-- [Photo synchronization](<http://localhost:8080/api/sync/reports/:reportId/photos>)
-- [Parcel notes synchronization](<http://localhost:8080/api/sync/parcels/:parcelId/notes>)
+- [Photo synchronization](http://localhost:8080/api/sync/reports/:reportId/photos)
+- [Parcel notes synchronization](http://localhost:8080/api/sync/parcels/:parcelId/notes)
 
 All synchronization requests include CRDT updates encoded as Base64 strings.
 
@@ -115,3 +115,4 @@ cargo run --release -- run
 ```bash
 curl http://localhost:8080/api/health
 curl http://localhost:8080/api/agents
+```

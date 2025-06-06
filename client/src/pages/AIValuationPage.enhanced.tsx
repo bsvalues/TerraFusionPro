@@ -1,54 +1,104 @@
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { z } from 'zod';
-import { Button } from '../components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from '../components/ui/card';
-import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '../components/ui/form';
-import { Input } from '../components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Textarea } from '../components/ui/textarea';
-import { Separator } from '../components/ui/separator';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
-import { Badge } from '../components/ui/badge';
-import { Progress } from '../components/ui/progress';
-import { BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, PieChart, Pie } from 'recharts';
-import { AlertTriangle, ArrowBigDown, ArrowBigUp, CheckCircle2, Info, Zap, Home, MapPin, Calendar, Square } from 'lucide-react';
+import { useState } from "react";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+import { Button } from "../components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+  CardFooter,
+} from "../components/ui/card";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "../components/ui/form";
+import { Input } from "../components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../components/ui/select";
+import { Textarea } from "../components/ui/textarea";
+import { Separator } from "../components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "../components/ui/tabs";
+import { Badge } from "../components/ui/badge";
+import { Progress } from "../components/ui/progress";
+import {
+  BarChart,
+  Bar,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+} from "recharts";
+import {
+  AlertTriangle,
+  ArrowBigDown,
+  ArrowBigUp,
+  CheckCircle2,
+  Info,
+  Zap,
+  Home,
+  MapPin,
+  Calendar,
+  Square,
+} from "lucide-react";
 
 // Define the form schema
 const propertyFormSchema = z.object({
-  address: z.string().min(1, 'Address is required'),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  zipCode: z.string().min(5, 'Zip code must be at least 5 characters'),
-  propertyType: z.string().min(1, 'Property type is required'),
-  yearBuilt: z.coerce.number().min(1800, 'Year built must be after 1800').max(new Date().getFullYear(), `Year built must be before ${new Date().getFullYear() + 1}`),
-  grossLivingArea: z.coerce.number().min(100, 'Gross living area must be at least 100 sq ft'),
-  lotSize: z.coerce.number().min(100, 'Lot size must be at least 100 sq ft'),
-  bedrooms: z.coerce.number().min(0, 'Bedrooms must be at least 0'),
-  bathrooms: z.coerce.number().min(0, 'Bathrooms must be at least 0'),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
+  propertyType: z.string().min(1, "Property type is required"),
+  yearBuilt: z.coerce
+    .number()
+    .min(1800, "Year built must be after 1800")
+    .max(new Date().getFullYear(), `Year built must be before ${new Date().getFullYear() + 1}`),
+  grossLivingArea: z.coerce.number().min(100, "Gross living area must be at least 100 sq ft"),
+  lotSize: z.coerce.number().min(100, "Lot size must be at least 100 sq ft"),
+  bedrooms: z.coerce.number().min(0, "Bedrooms must be at least 0"),
+  bathrooms: z.coerce.number().min(0, "Bathrooms must be at least 0"),
   features: z.string().optional(),
   condition: z.string().optional(),
   quality: z.string().optional(),
 });
 
 const comparableFormSchema = z.object({
-  address: z.string().min(1, 'Address is required'),
-  city: z.string().min(1, 'City is required'),
-  state: z.string().min(1, 'State is required'),
-  zipCode: z.string().min(5, 'Zip code must be at least 5 characters'),
-  propertyType: z.string().min(1, 'Property type is required'),
-  yearBuilt: z.coerce.number().min(1800, 'Year built must be after 1800').max(new Date().getFullYear(), `Year built must be before ${new Date().getFullYear() + 1}`),
-  grossLivingArea: z.coerce.number().min(100, 'Gross living area must be at least 100 sq ft'),
-  lotSize: z.coerce.number().min(100, 'Lot size must be at least 100 sq ft'),
-  bedrooms: z.coerce.number().min(0, 'Bedrooms must be at least 0'),
-  bathrooms: z.coerce.number().min(0, 'Bathrooms must be at least 0'),
+  address: z.string().min(1, "Address is required"),
+  city: z.string().min(1, "City is required"),
+  state: z.string().min(1, "State is required"),
+  zipCode: z.string().min(5, "Zip code must be at least 5 characters"),
+  propertyType: z.string().min(1, "Property type is required"),
+  yearBuilt: z.coerce
+    .number()
+    .min(1800, "Year built must be after 1800")
+    .max(new Date().getFullYear(), `Year built must be before ${new Date().getFullYear() + 1}`),
+  grossLivingArea: z.coerce.number().min(100, "Gross living area must be at least 100 sq ft"),
+  lotSize: z.coerce.number().min(100, "Lot size must be at least 100 sq ft"),
+  bedrooms: z.coerce.number().min(0, "Bedrooms must be at least 0"),
+  bathrooms: z.coerce.number().min(0, "Bathrooms must be at least 0"),
   features: z.string().optional(),
   condition: z.string().optional(),
   quality: z.string().optional(),
-  salePrice: z.coerce.number().min(1, 'Sale price is required'),
-  saleDate: z.string().min(1, 'Sale date is required'),
-  distanceFromSubject: z.coerce.number().min(0, 'Distance must be at least 0 miles'),
+  salePrice: z.coerce.number().min(1, "Sale price is required"),
+  saleDate: z.string().min(1, "Sale date is required"),
+  distanceFromSubject: z.coerce.number().min(0, "Distance must be at least 0 miles"),
 });
 
 // Define types for API response
@@ -61,7 +111,7 @@ interface MarketAdjustment {
 
 interface AIValuationResponse {
   estimatedValue: number;
-  confidenceLevel: 'high' | 'medium' | 'low';
+  confidenceLevel: "high" | "medium" | "low";
   valueRange: {
     min: number;
     max: number;
@@ -83,19 +133,19 @@ export default function EnhancedAIValuationPage() {
   const subjectForm = useForm<z.infer<typeof propertyFormSchema>>({
     resolver: zodResolver(propertyFormSchema),
     defaultValues: {
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      propertyType: 'Single Family',
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      propertyType: "Single Family",
       yearBuilt: 2000,
       grossLivingArea: 2000,
       lotSize: 5000,
       bedrooms: 3,
       bathrooms: 2,
-      features: '',
-      condition: 'Average',
-      quality: 'Average',
+      features: "",
+      condition: "Average",
+      quality: "Average",
     },
   });
 
@@ -103,21 +153,21 @@ export default function EnhancedAIValuationPage() {
   const comparableForm = useForm<z.infer<typeof comparableFormSchema>>({
     resolver: zodResolver(comparableFormSchema),
     defaultValues: {
-      address: '',
-      city: '',
-      state: '',
-      zipCode: '',
-      propertyType: 'Single Family',
+      address: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      propertyType: "Single Family",
       yearBuilt: 2000,
       grossLivingArea: 2000,
       lotSize: 5000,
       bedrooms: 3,
       bathrooms: 2,
-      features: '',
-      condition: 'Average',
-      quality: 'Average',
+      features: "",
+      condition: "Average",
+      quality: "Average",
       salePrice: 0,
-      saleDate: new Date().toISOString().split('T')[0],
+      saleDate: new Date().toISOString().split("T")[0],
       distanceFromSubject: 0.5,
     },
   });
@@ -133,8 +183,8 @@ export default function EnhancedAIValuationPage() {
     setComparables([...comparables, data]);
     comparableForm.reset({
       ...comparableForm.getValues(),
-      address: '',
-      salePrice: 0
+      address: "",
+      salePrice: 0,
     });
   };
 
@@ -149,42 +199,42 @@ export default function EnhancedAIValuationPage() {
   const runValuation = async () => {
     try {
       setIsLoading(true);
-      
+
       const subjectData = subjectForm.getValues();
       const subjectProperty = {
         ...subjectData,
-        features: subjectData.features ? subjectData.features.split(',').map(f => f.trim()) : [],
+        features: subjectData.features ? subjectData.features.split(",").map((f) => f.trim()) : [],
       };
-      
-      const comparableProperties = comparables.map(comp => ({
+
+      const comparableProperties = comparables.map((comp) => ({
         ...comp,
-        features: comp.features ? comp.features.split(',').map(f => f.trim()) : [],
+        features: comp.features ? comp.features.split(",").map((f) => f.trim()) : [],
       }));
-      
-      const response = await fetch('/api/ai/automated-valuation', {
-        method: 'POST',
+
+      const response = await fetch("/api/ai/automated-valuation", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           subjectProperty,
           comparableProperties,
           useRealAI: true,
-          aiProvider: aiProvider
+          aiProvider: aiProvider,
         }),
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         throw new Error(`Failed to perform valuation: ${errorText}`);
       }
-      
+
       const result = await response.json();
       setValuationResult(result);
       setActiveTab("results");
     } catch (error) {
-      console.error('Error performing valuation:', error);
-      alert('An error occurred while performing the valuation. Please try again.');
+      console.error("Error performing valuation:", error);
+      alert("An error occurred while performing the valuation. Please try again.");
     } finally {
       setIsLoading(false);
     }
@@ -192,9 +242,9 @@ export default function EnhancedAIValuationPage() {
 
   // Format currency
   const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
+    return new Intl.NumberFormat("en-US", {
+      style: "currency",
+      currency: "USD",
       maximumFractionDigits: 0,
     }).format(value);
   };
@@ -202,15 +252,21 @@ export default function EnhancedAIValuationPage() {
   return (
     <div className="container mx-auto py-8">
       <h1 className="text-3xl font-bold mb-2">AI-Powered Property Valuation</h1>
-      <p className="text-muted-foreground mb-8">Generate accurate property valuations using advanced AI models</p>
-      
+      <p className="text-muted-foreground mb-8">
+        Generate accurate property valuations using advanced AI models
+      </p>
+
       <Tabs defaultValue="subject" value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="subject">Subject Property</TabsTrigger>
-          <TabsTrigger value="comparable" disabled={!subjectForm.formState.isValid}>Comparable Properties</TabsTrigger>
-          <TabsTrigger value="results" disabled={!valuationResult}>Valuation Results</TabsTrigger>
+          <TabsTrigger value="comparable" disabled={!subjectForm.formState.isValid}>
+            Comparable Properties
+          </TabsTrigger>
+          <TabsTrigger value="results" disabled={!valuationResult}>
+            Valuation Results
+          </TabsTrigger>
         </TabsList>
-        
+
         {/* Subject Property Form */}
         <TabsContent value="subject">
           <Card>
@@ -237,7 +293,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="city"
@@ -251,7 +307,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="state"
@@ -265,7 +321,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="zipCode"
@@ -279,7 +335,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="propertyType"
@@ -303,7 +359,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="yearBuilt"
@@ -317,7 +373,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="grossLivingArea"
@@ -331,7 +387,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="lotSize"
@@ -345,7 +401,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="bedrooms"
@@ -359,7 +415,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="bathrooms"
@@ -373,7 +429,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="features"
@@ -383,14 +439,12 @@ export default function EnhancedAIValuationPage() {
                           <FormControl>
                             <Input placeholder="Fireplace, Deck, Garage" {...field} />
                           </FormControl>
-                          <FormDescription>
-                            Enter features separated by commas
-                          </FormDescription>
+                          <FormDescription>Enter features separated by commas</FormDescription>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="condition"
@@ -415,7 +469,7 @@ export default function EnhancedAIValuationPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={subjectForm.control}
                       name="quality"
@@ -441,7 +495,7 @@ export default function EnhancedAIValuationPage() {
                       )}
                     />
                   </div>
-                  
+
                   <div className="flex justify-end">
                     <Button type="submit" disabled={!subjectForm.formState.isValid}>
                       Continue to Comparables
@@ -452,7 +506,7 @@ export default function EnhancedAIValuationPage() {
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Comparable Properties Form */}
         <TabsContent value="comparable">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
@@ -465,7 +519,10 @@ export default function EnhancedAIValuationPage() {
               </CardHeader>
               <CardContent>
                 <Form {...comparableForm}>
-                  <form onSubmit={comparableForm.handleSubmit(onComparableSubmit)} className="space-y-6">
+                  <form
+                    onSubmit={comparableForm.handleSubmit(onComparableSubmit)}
+                    className="space-y-6"
+                  >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <FormField
                         control={comparableForm.control}
@@ -480,7 +537,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="city"
@@ -494,7 +551,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="state"
@@ -508,7 +565,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="zipCode"
@@ -522,7 +579,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="propertyType"
@@ -546,7 +603,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="yearBuilt"
@@ -560,7 +617,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="grossLivingArea"
@@ -574,7 +631,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="lotSize"
@@ -588,7 +645,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="bedrooms"
@@ -602,7 +659,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="bathrooms"
@@ -616,7 +673,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="features"
@@ -630,7 +687,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="condition"
@@ -655,7 +712,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="quality"
@@ -680,7 +737,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="salePrice"
@@ -694,7 +751,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="saleDate"
@@ -708,7 +765,7 @@ export default function EnhancedAIValuationPage() {
                           </FormItem>
                         )}
                       />
-                      
+
                       <FormField
                         control={comparableForm.control}
                         name="distanceFromSubject"
@@ -723,7 +780,7 @@ export default function EnhancedAIValuationPage() {
                         )}
                       />
                     </div>
-                    
+
                     <div className="flex justify-end">
                       <Button type="submit" disabled={!comparableForm.formState.isValid}>
                         Add Comparable
@@ -733,13 +790,11 @@ export default function EnhancedAIValuationPage() {
                 </Form>
               </CardContent>
             </Card>
-            
+
             <Card>
               <CardHeader>
                 <CardTitle>AI Configuration</CardTitle>
-                <CardDescription>
-                  Select the AI model to use for valuation
-                </CardDescription>
+                <CardDescription>Select the AI model to use for valuation</CardDescription>
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
@@ -759,26 +814,34 @@ export default function EnhancedAIValuationPage() {
                       Auto-select will choose the most appropriate model for property valuation
                     </p>
                   </div>
-                  
+
                   <Separator />
-                  
+
                   <div className="pt-4">
-                    <h3 className="text-sm font-semibold mb-2">Added Comparables ({comparables.length})</h3>
+                    <h3 className="text-sm font-semibold mb-2">
+                      Added Comparables ({comparables.length})
+                    </h3>
                     {comparables.length === 0 ? (
-                      <div className="text-sm text-muted-foreground">
-                        No comparables added yet
-                      </div>
+                      <div className="text-sm text-muted-foreground">No comparables added yet</div>
                     ) : (
                       <div className="space-y-2">
                         {comparables.map((comp, index) => (
-                          <div key={index} className="border rounded-md p-3 flex justify-between items-center">
+                          <div
+                            key={index}
+                            className="border rounded-md p-3 flex justify-between items-center"
+                          >
                             <div>
                               <div className="font-medium">{comp.address}</div>
                               <div className="text-sm text-muted-foreground">
-                                {formatCurrency(comp.salePrice)} · {comp.bedrooms} bd · {comp.bathrooms} ba · {comp.grossLivingArea} sqft
+                                {formatCurrency(comp.salePrice)} · {comp.bedrooms} bd ·{" "}
+                                {comp.bathrooms} ba · {comp.grossLivingArea} sqft
                               </div>
                             </div>
-                            <Button variant="ghost" size="sm" onClick={() => removeComparable(index)}>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => removeComparable(index)}
+                            >
                               Remove
                             </Button>
                           </div>
@@ -795,8 +858,8 @@ export default function EnhancedAIValuationPage() {
                       Add at least one comparable property to run the valuation
                     </div>
                   ) : (
-                    <Button 
-                      onClick={runValuation} 
+                    <Button
+                      onClick={runValuation}
                       disabled={comparables.length === 0 || isLoading}
                       className="w-full"
                     >
@@ -807,7 +870,7 @@ export default function EnhancedAIValuationPage() {
               </CardFooter>
             </Card>
           </div>
-          
+
           {comparables.length > 0 && (
             <Card className="bg-muted/30">
               <CardHeader>
@@ -831,9 +894,13 @@ export default function EnhancedAIValuationPage() {
                       <tr key={index} className="border-b">
                         <td className="py-3 px-3">{comp.address}</td>
                         <td className="py-3 px-3">{formatCurrency(comp.salePrice)}</td>
-                        <td className="py-3 px-3">{new Date(comp.saleDate).toLocaleDateString()}</td>
+                        <td className="py-3 px-3">
+                          {new Date(comp.saleDate).toLocaleDateString()}
+                        </td>
                         <td className="py-3 px-3">{comp.grossLivingArea.toLocaleString()}</td>
-                        <td className="py-3 px-3">{comp.bedrooms} / {comp.bathrooms}</td>
+                        <td className="py-3 px-3">
+                          {comp.bedrooms} / {comp.bathrooms}
+                        </td>
                         <td className="py-3 px-3">{comp.yearBuilt}</td>
                         <td className="py-3 px-3">{comp.distanceFromSubject} mi</td>
                       </tr>
@@ -844,7 +911,7 @@ export default function EnhancedAIValuationPage() {
             </Card>
           )}
         </TabsContent>
-        
+
         {/* Valuation Results */}
         <TabsContent value="results">
           {valuationResult ? (
@@ -852,7 +919,9 @@ export default function EnhancedAIValuationPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card className="bg-primary md:col-span-2">
                   <CardHeader>
-                    <CardTitle className="text-center text-primary-foreground">AI-Estimated Market Value</CardTitle>
+                    <CardTitle className="text-center text-primary-foreground">
+                      AI-Estimated Market Value
+                    </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="text-center">
@@ -860,28 +929,44 @@ export default function EnhancedAIValuationPage() {
                         {formatCurrency(valuationResult.estimatedValue)}
                       </div>
                       <div className="text-xl text-primary-foreground/80">
-                        Range: {formatCurrency(valuationResult.valueRange.min)} - {formatCurrency(valuationResult.valueRange.max)}
+                        Range: {formatCurrency(valuationResult.valueRange.min)} -{" "}
+                        {formatCurrency(valuationResult.valueRange.max)}
                       </div>
                       <div className="mt-4 flex justify-center items-center">
-                        <Badge variant={
-                          valuationResult.confidenceLevel === 'high' ? 'default' : 
-                          valuationResult.confidenceLevel === 'medium' ? 'secondary' : 'outline'
-                        } className="text-sm py-1 px-4">
-                          {valuationResult.confidenceLevel === 'high' && <CheckCircle2 className="h-4 w-4 mr-1" />}
-                          {valuationResult.confidenceLevel === 'medium' && <Info className="h-4 w-4 mr-1" />}
-                          {valuationResult.confidenceLevel === 'low' && <AlertTriangle className="h-4 w-4 mr-1" />}
-                          {valuationResult.confidenceLevel.charAt(0).toUpperCase() + valuationResult.confidenceLevel.slice(1)} Confidence
+                        <Badge
+                          variant={
+                            valuationResult.confidenceLevel === "high"
+                              ? "default"
+                              : valuationResult.confidenceLevel === "medium"
+                                ? "secondary"
+                                : "outline"
+                          }
+                          className="text-sm py-1 px-4"
+                        >
+                          {valuationResult.confidenceLevel === "high" && (
+                            <CheckCircle2 className="h-4 w-4 mr-1" />
+                          )}
+                          {valuationResult.confidenceLevel === "medium" && (
+                            <Info className="h-4 w-4 mr-1" />
+                          )}
+                          {valuationResult.confidenceLevel === "low" && (
+                            <AlertTriangle className="h-4 w-4 mr-1" />
+                          )}
+                          {valuationResult.confidenceLevel.charAt(0).toUpperCase() +
+                            valuationResult.confidenceLevel.slice(1)}{" "}
+                          Confidence
                         </Badge>
                       </div>
                     </div>
                   </CardContent>
                   <CardFooter className="justify-center pb-6">
                     <div className="text-primary-foreground/80 text-sm flex items-center">
-                      <Zap className="h-4 w-4 mr-1" /> Generated using multi-model AI valuation analysis
+                      <Zap className="h-4 w-4 mr-1" /> Generated using multi-model AI valuation
+                      analysis
                     </div>
                   </CardFooter>
                 </Card>
-                
+
                 <Card>
                   <CardHeader className="pb-2">
                     <CardTitle className="text-lg">Value Distribution</CardTitle>
@@ -892,9 +977,17 @@ export default function EnhancedAIValuationPage() {
                         <PieChart>
                           <Pie
                             data={[
-                              { name: 'Min', value: valuationResult.valueRange.min },
-                              { name: 'Target', value: valuationResult.estimatedValue - valuationResult.valueRange.min },
-                              { name: 'Max', value: valuationResult.valueRange.max - valuationResult.estimatedValue }
+                              { name: "Min", value: valuationResult.valueRange.min },
+                              {
+                                name: "Target",
+                                value:
+                                  valuationResult.estimatedValue - valuationResult.valueRange.min,
+                              },
+                              {
+                                name: "Max",
+                                value:
+                                  valuationResult.valueRange.max - valuationResult.estimatedValue,
+                              },
                             ]}
                             cx="50%"
                             cy="50%"
@@ -914,17 +1007,31 @@ export default function EnhancedAIValuationPage() {
                     <div className="mt-2">
                       <div className="flex items-center justify-between text-sm">
                         <span>Confidence Range:</span>
-                        <span>{Math.round((valuationResult.valueRange.max - valuationResult.valueRange.min) / valuationResult.estimatedValue * 100)}%</span>
+                        <span>
+                          {Math.round(
+                            ((valuationResult.valueRange.max - valuationResult.valueRange.min) /
+                              valuationResult.estimatedValue) *
+                              100
+                          )}
+                          %
+                        </span>
                       </div>
-                      <Progress 
-                        value={100 - Math.round((valuationResult.valueRange.max - valuationResult.valueRange.min) / valuationResult.estimatedValue * 100)} 
+                      <Progress
+                        value={
+                          100 -
+                          Math.round(
+                            ((valuationResult.valueRange.max - valuationResult.valueRange.min) /
+                              valuationResult.estimatedValue) *
+                              100
+                          )
+                        }
                         className="mt-1"
                       />
                     </div>
                   </CardContent>
                 </Card>
               </div>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card>
                   <CardHeader>
@@ -936,7 +1043,7 @@ export default function EnhancedAIValuationPage() {
                     </div>
                   </CardContent>
                 </Card>
-                
+
                 <Card>
                   <CardHeader>
                     <CardTitle>Comparable Analysis</CardTitle>
@@ -948,7 +1055,7 @@ export default function EnhancedAIValuationPage() {
                   </CardContent>
                 </Card>
               </div>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Value Adjustments</CardTitle>
@@ -960,7 +1067,7 @@ export default function EnhancedAIValuationPage() {
                   <div className="h-[300px] px-4 pb-6">
                     <ResponsiveContainer width="100%" height="100%">
                       <BarChart
-                        data={valuationResult.adjustments.map(a => ({
+                        data={valuationResult.adjustments.map((a) => ({
                           name: a.factor,
                           value: a.amount,
                           description: a.description,
@@ -979,16 +1086,16 @@ export default function EnhancedAIValuationPage() {
                         <Tooltip formatter={(value) => formatCurrency(Number(value))} />
                         <Bar dataKey="value" fill="#3b82f6">
                           {valuationResult.adjustments.map((entry, index) => (
-                            <Cell 
-                              key={`cell-${index}`} 
-                              fill={entry.amount >= 0 ? '#4ade80' : '#f87171'} 
+                            <Cell
+                              key={`cell-${index}`}
+                              fill={entry.amount >= 0 ? "#4ade80" : "#f87171"}
                             />
                           ))}
                         </Bar>
                       </BarChart>
                     </ResponsiveContainer>
                   </div>
-                  
+
                   <div className="overflow-x-auto">
                     <table className="w-full border-collapse">
                       <thead>
@@ -1006,11 +1113,16 @@ export default function EnhancedAIValuationPage() {
                             <td className="py-3 px-4">{adjustment.description}</td>
                             <td className="py-3 px-4 text-right">
                               <div className="flex items-center justify-end">
-                                {adjustment.amount >= 0 ? 
-                                  <ArrowBigUp className="text-green-500 h-5 w-5 mr-1" /> : 
+                                {adjustment.amount >= 0 ? (
+                                  <ArrowBigUp className="text-green-500 h-5 w-5 mr-1" />
+                                ) : (
                                   <ArrowBigDown className="text-red-500 h-5 w-5 mr-1" />
-                                }
-                                <span className={adjustment.amount >= 0 ? "text-green-600" : "text-red-600"}>
+                                )}
+                                <span
+                                  className={
+                                    adjustment.amount >= 0 ? "text-green-600" : "text-red-600"
+                                  }
+                                >
                                   {formatCurrency(Math.abs(adjustment.amount))}
                                 </span>
                               </div>
@@ -1023,7 +1135,7 @@ export default function EnhancedAIValuationPage() {
                   </div>
                 </CardContent>
               </Card>
-              
+
               <Card>
                 <CardHeader>
                   <CardTitle>Valuation Methodology</CardTitle>
@@ -1046,7 +1158,8 @@ export default function EnhancedAIValuationPage() {
               </div>
               <h3 className="text-lg font-medium mb-2">No Valuation Results</h3>
               <p className="text-sm text-muted-foreground mb-6">
-                Please complete the subject property details and add comparable properties, then run the valuation.
+                Please complete the subject property details and add comparable properties, then run
+                the valuation.
               </p>
               <Button onClick={() => setActiveTab("subject")}>Start Valuation</Button>
             </div>

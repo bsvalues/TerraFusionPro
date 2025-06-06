@@ -1,6 +1,6 @@
 /**
  * Import Service for Appraisal Data
- * 
+ *
  * Handles the process of importing appraisal data from different file formats.
  * Coordinates file parsing, data extraction, and database storage.
  */
@@ -46,7 +46,7 @@ export class ImportService {
   async processFile(request: ImportRequest): Promise<ImportResult> {
     const { userId, filename, originalFilename, mimeType } = request;
     const warnings: string[] = [];
-    
+
     // Create an import record to track progress
     const importId = uuidv4();
     const importResult = await storage.createFileImportResult({
@@ -66,7 +66,7 @@ export class ImportService {
       // Determine the file type and get the appropriate parser
       const fileContent = fs.readFileSync(filename, "utf8");
       const parser = this.parserRegistry.getParserForFile(originalFilename, fileContent);
-      
+
       if (!parser) {
         throw new Error(`Unsupported file format: ${originalFilename}`);
       }
@@ -74,11 +74,11 @@ export class ImportService {
       // Parse the file
       console.log(`Parsing file ${originalFilename} with ${parser.name} parser`);
       const parseResults = await parser.parse(fileContent);
-      
+
       // Update import record with initial parsing results
       await this.updateImportStatus(importId, {
         entitiesExtracted: parseResults.length,
-        warnings: parseResults.warnings || []
+        warnings: parseResults.warnings || [],
       });
 
       // Process each extracted entity
@@ -90,58 +90,61 @@ export class ImportService {
             const propertyData = entity.data as PropertyData;
             const property = await storage.createProperty({
               userId,
-              ...propertyData
+              ...propertyData,
             });
-            
+
             entitiesProcessed++;
             console.log(`Created property: ${property.address}`);
-          } 
-          else if (entity.type === "report") {
+          } else if (entity.type === "report") {
             // Process report data
             const reportData = entity.data as ReportData;
             // Ensure we have required fields
             if (!reportData.propertyId) {
-              warnings.push(`Report data missing propertyId, skipping: ${JSON.stringify(reportData)}`);
+              warnings.push(
+                `Report data missing propertyId, skipping: ${JSON.stringify(reportData)}`
+              );
               continue;
             }
-            
+
             const report = await storage.createAppraisalReport({
               userId,
-              ...reportData
+              ...reportData,
             });
-            
+
             entitiesProcessed++;
             console.log(`Created report: ${report.id}`);
-          }
-          else if (entity.type === "comparable") {
+          } else if (entity.type === "comparable") {
             // Process comparable data
             const comparableData = entity.data as ComparableData;
             // Ensure we have required fields
             if (!comparableData.reportId) {
-              warnings.push(`Comparable data missing reportId, skipping: ${JSON.stringify(comparableData)}`);
+              warnings.push(
+                `Comparable data missing reportId, skipping: ${JSON.stringify(comparableData)}`
+              );
               continue;
             }
-            
+
             const comparable = await storage.createComparable({
-              ...comparableData
+              ...comparableData,
             });
-            
+
             entitiesProcessed++;
             console.log(`Created comparable: ${comparable.address}`);
-          }
-          else if (entity.type === "adjustment") {
+          } else if (entity.type === "adjustment") {
             // Process adjustment data
             const adjustmentData = entity.data as AdjustmentData;
             // Ensure we have required fields
             if (!adjustmentData.reportId || !adjustmentData.comparableId) {
-              warnings.push(`Adjustment data missing reportId or comparableId, skipping: ${JSON.stringify(adjustmentData)}`);
+              warnings.push(
+                `Adjustment data missing reportId or comparableId, skipping: ${JSON.stringify(adjustmentData)}`
+              );
               continue;
             }
-            
+
             const adjustment = await storage.createAdjustment({
-              ...adjustmentData
+              ...adjustmentData,
             });
-            
+
             entitiesProcessed++;
             console.log(`Created adjustment: ${adjustment.adjustmentType}`);
           }
@@ -156,23 +159,23 @@ export class ImportService {
       await this.updateImportStatus(importId, {
         status: "completed",
         entitiesExtracted: entitiesProcessed,
-        warnings
+        warnings,
       });
 
       return {
         importId,
-        warnings
+        warnings,
       };
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       console.error("Error processing file:", error);
-      
+
       // Update the import result record with the error
       await this.updateImportStatus(importId, {
         status: "failed",
-        errors: [errorMessage]
+        errors: [errorMessage],
       });
-      
+
       // Rethrow to be caught by the caller
       throw error;
     } finally {
@@ -190,7 +193,7 @@ export class ImportService {
    */
   private determineFileType(filename: string, mimeType: string): string {
     const extension = path.extname(filename).toLowerCase();
-    
+
     if (extension === ".pdf" || mimeType === "application/pdf") {
       return "pdf";
     } else if (extension === ".xml" || mimeType === "application/xml" || mimeType === "text/xml") {
@@ -209,7 +212,10 @@ export class ImportService {
   /**
    * Update the status of an import
    */
-  private async updateImportStatus(importId: string, update: FileImportResultUpdate): Promise<void> {
+  private async updateImportStatus(
+    importId: string,
+    update: FileImportResultUpdate
+  ): Promise<void> {
     await storage.updateFileImportResult(importId, update);
   }
 

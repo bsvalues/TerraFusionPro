@@ -1,9 +1,15 @@
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { MapPin, TrendingUp, TrendingDown, AlertTriangle, Calendar } from 'lucide-react';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { MapPin, TrendingUp, TrendingDown, AlertTriangle, Calendar } from "lucide-react";
 
 interface ZoningForecast {
   zipCode: string;
@@ -13,76 +19,84 @@ interface ZoningForecast {
     category: string;
     change: number;
     confidence: number;
-    trend: 'up' | 'down' | 'stable';
+    trend: "up" | "down" | "stable";
   }[];
   riskFactors: string[];
   opportunities: string[];
 }
 
 export default function ZoningAIMapPage() {
-  const [selectedZip, setSelectedZip] = useState('75201');
-  const [timeframe, setTimeframe] = useState('24-month');
+  const [selectedZip, setSelectedZip] = useState("75201");
+  const [timeframe, setTimeframe] = useState("24-month");
   const [forecast, setForecast] = useState<ZoningForecast | null>(null);
 
   useEffect(() => {
     // In production, this would fetch from a real zoning prediction API
     const mockForecast: ZoningForecast = {
       zipCode: selectedZip,
-      region: selectedZip === '75201' ? 'Dallas Downtown' : selectedZip === '98052' ? 'Redmond, WA' : 'Selected Area',
+      region:
+        selectedZip === "75201"
+          ? "Dallas Downtown"
+          : selectedZip === "98052"
+            ? "Redmond, WA"
+            : "Selected Area",
       timeframe,
       predictions: [
         {
-          category: 'Mixed-use Development',
+          category: "Mixed-use Development",
           change: 23,
           confidence: 87,
-          trend: 'up'
+          trend: "up",
         },
         {
-          category: 'Single Family Residential',
+          category: "Single Family Residential",
           change: -17,
           confidence: 72,
-          trend: 'down'
+          trend: "down",
         },
         {
-          category: 'Commercial Retail',
+          category: "Commercial Retail",
           change: 8,
           confidence: 65,
-          trend: 'up'
+          trend: "up",
         },
         {
-          category: 'Industrial/Warehouse',
+          category: "Industrial/Warehouse",
           change: -5,
           confidence: 58,
-          trend: 'down'
-        }
+          trend: "down",
+        },
       ],
       riskFactors: [
-        'Pending city council zoning review scheduled Q2 2024',
-        'Transit development may impact residential zoning',
-        'New environmental regulations under consideration'
+        "Pending city council zoning review scheduled Q2 2024",
+        "Transit development may impact residential zoning",
+        "New environmental regulations under consideration",
       ],
       opportunities: [
-        'Mixed-use incentives through 2025',
-        'Tax benefits for green building compliance',
-        'Fast-track permitting for affordable housing'
-      ]
+        "Mixed-use incentives through 2025",
+        "Tax benefits for green building compliance",
+        "Fast-track permitting for affordable housing",
+      ],
     };
-    
+
     setForecast(mockForecast);
   }, [selectedZip, timeframe]);
 
   const getTrendIcon = (trend: string) => {
     switch (trend) {
-      case 'up': return <TrendingUp className="w-4 h-4 text-green-600" />;
-      case 'down': return <TrendingDown className="w-4 h-4 text-red-600" />;
-      default: return <span className="w-4 h-4 text-gray-600">→</span>;
+      case "up":
+        return <TrendingUp className="w-4 h-4 text-green-600" />;
+      case "down":
+        return <TrendingDown className="w-4 h-4 text-red-600" />;
+      default:
+        return <span className="w-4 h-4 text-gray-600">→</span>;
     }
   };
 
   const getChangeColor = (change: number) => {
-    if (change > 0) return 'text-green-600';
-    if (change < 0) return 'text-red-600';
-    return 'text-gray-600';
+    if (change > 0) return "text-green-600";
+    if (change < 0) return "text-red-600";
+    return "text-gray-600";
   };
 
   return (
@@ -90,9 +104,7 @@ export default function ZoningAIMapPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold">Zoning AI Forecast Map</h1>
-          <p className="text-muted-foreground">
-            AI-powered zoning predictions with GIS overlay
-          </p>
+          <p className="text-muted-foreground">AI-powered zoning predictions with GIS overlay</p>
         </div>
         <Badge variant="outline" className="px-3 py-1">
           <MapPin className="w-4 h-4 mr-2" />
@@ -104,9 +116,7 @@ export default function ZoningAIMapPage() {
       <Card>
         <CardHeader>
           <CardTitle>Forecast Parameters</CardTitle>
-          <CardDescription>
-            Select area and timeframe for zoning predictions
-          </CardDescription>
+          <CardDescription>Select area and timeframe for zoning predictions</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="flex gap-4">
@@ -146,9 +156,7 @@ export default function ZoningAIMapPage() {
       <Card>
         <CardHeader>
           <CardTitle>Interactive Zoning Map</CardTitle>
-          <CardDescription>
-            GIS overlay with AI-predicted zoning changes
-          </CardDescription>
+          <CardDescription>GIS overlay with AI-predicted zoning changes</CardDescription>
         </CardHeader>
         <CardContent>
           <div className="h-96 bg-gray-100 rounded-lg flex items-center justify-center">
@@ -182,19 +190,21 @@ export default function ZoningAIMapPage() {
             <CardContent>
               <div className="space-y-4">
                 {forecast.predictions.map((prediction, index) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div
+                    key={index}
+                    className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                  >
                     <div className="flex items-center gap-3">
                       {getTrendIcon(prediction.trend)}
                       <div>
                         <p className="font-medium">{prediction.category}</p>
-                        <p className="text-sm text-gray-600">
-                          {prediction.confidence}% confidence
-                        </p>
+                        <p className="text-sm text-gray-600">{prediction.confidence}% confidence</p>
                       </div>
                     </div>
                     <div className="text-right">
                       <p className={`text-lg font-bold ${getChangeColor(prediction.change)}`}>
-                        {prediction.change > 0 ? '+' : ''}{prediction.change}%
+                        {prediction.change > 0 ? "+" : ""}
+                        {prediction.change}%
                       </p>
                       <p className="text-xs text-gray-500">projected change</p>
                     </div>
@@ -250,15 +260,9 @@ export default function ZoningAIMapPage() {
       <Card>
         <CardContent className="pt-6">
           <div className="flex gap-4">
-            <Button>
-              Export Forecast Report
-            </Button>
-            <Button variant="outline">
-              Set Alert Notifications
-            </Button>
-            <Button variant="outline">
-              Historical Analysis
-            </Button>
+            <Button>Export Forecast Report</Button>
+            <Button variant="outline">Set Alert Notifications</Button>
+            <Button variant="outline">Historical Analysis</Button>
           </div>
         </CardContent>
       </Card>

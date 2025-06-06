@@ -1,15 +1,25 @@
-import { useState } from 'react';
+import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
-import { MapPin, Users, Building, Zap, Shield, Globe, CheckCircle, Clock, AlertCircle } from "lucide-react";
+import {
+  MapPin,
+  Users,
+  Building,
+  Zap,
+  Shield,
+  Globe,
+  CheckCircle,
+  Clock,
+  AlertCircle,
+} from "lucide-react";
 
 interface WACounty {
   name: string;
   region: string;
-  status: 'Live' | 'Active' | 'Staging' | 'Syncing' | 'Queued';
-  nodeType: 'Core' | 'Regional' | 'Edge' | 'Light' | 'Predictive';
+  status: "Live" | "Active" | "Staging" | "Syncing" | "Queued";
+  nodeType: "Core" | "Regional" | "Edge" | "Light" | "Predictive";
   appraisers: number;
   properties: number;
   compliance: number;
@@ -17,100 +27,448 @@ interface WACounty {
 }
 
 export default function WAStatewidePage() {
-  const [selectedRegion, setSelectedRegion] = useState<string>('all');
+  const [selectedRegion, setSelectedRegion] = useState<string>("all");
 
   const waCounties: WACounty[] = [
     // Eastern WA (Completed)
-    { name: 'Benton', region: 'Eastern WA', status: 'Live', nodeType: 'Core', appraisers: 28, properties: 1847, compliance: 96.3, specialization: 'Agricultural' },
-    { name: 'Franklin', region: 'Eastern WA', status: 'Live', nodeType: 'Core', appraisers: 15, properties: 1234, compliance: 95.8, specialization: 'Agricultural' },
-    { name: 'Yakima', region: 'Eastern WA', status: 'Live', nodeType: 'Regional', appraisers: 34, properties: 2156, compliance: 93.7, specialization: 'Mixed-Zone' },
-    { name: 'Walla Walla', region: 'Eastern WA', status: 'Live', nodeType: 'Edge', appraisers: 12, properties: 987, compliance: 94.2, specialization: 'Wine Country' },
-    { name: 'Columbia', region: 'Eastern WA', status: 'Active', nodeType: 'Light', appraisers: 6, properties: 423, compliance: 92.1 },
-    { name: 'Asotin', region: 'Eastern WA', status: 'Active', nodeType: 'Light', appraisers: 4, properties: 298, compliance: 91.8 },
-    { name: 'Garfield', region: 'Eastern WA', status: 'Active', nodeType: 'Light', appraisers: 3, properties: 189, compliance: 90.9 },
-    { name: 'Whitman', region: 'Eastern WA', status: 'Active', nodeType: 'Predictive', appraisers: 8, properties: 567, compliance: 93.4, specialization: 'University' },
-    
+    {
+      name: "Benton",
+      region: "Eastern WA",
+      status: "Live",
+      nodeType: "Core",
+      appraisers: 28,
+      properties: 1847,
+      compliance: 96.3,
+      specialization: "Agricultural",
+    },
+    {
+      name: "Franklin",
+      region: "Eastern WA",
+      status: "Live",
+      nodeType: "Core",
+      appraisers: 15,
+      properties: 1234,
+      compliance: 95.8,
+      specialization: "Agricultural",
+    },
+    {
+      name: "Yakima",
+      region: "Eastern WA",
+      status: "Live",
+      nodeType: "Regional",
+      appraisers: 34,
+      properties: 2156,
+      compliance: 93.7,
+      specialization: "Mixed-Zone",
+    },
+    {
+      name: "Walla Walla",
+      region: "Eastern WA",
+      status: "Live",
+      nodeType: "Edge",
+      appraisers: 12,
+      properties: 987,
+      compliance: 94.2,
+      specialization: "Wine Country",
+    },
+    {
+      name: "Columbia",
+      region: "Eastern WA",
+      status: "Active",
+      nodeType: "Light",
+      appraisers: 6,
+      properties: 423,
+      compliance: 92.1,
+    },
+    {
+      name: "Asotin",
+      region: "Eastern WA",
+      status: "Active",
+      nodeType: "Light",
+      appraisers: 4,
+      properties: 298,
+      compliance: 91.8,
+    },
+    {
+      name: "Garfield",
+      region: "Eastern WA",
+      status: "Active",
+      nodeType: "Light",
+      appraisers: 3,
+      properties: 189,
+      compliance: 90.9,
+    },
+    {
+      name: "Whitman",
+      region: "Eastern WA",
+      status: "Active",
+      nodeType: "Predictive",
+      appraisers: 8,
+      properties: 567,
+      compliance: 93.4,
+      specialization: "University",
+    },
+
     // Central WA (Active)
-    { name: 'Chelan', region: 'Central WA', status: 'Active', nodeType: 'Regional', appraisers: 18, properties: 892, compliance: 94.5, specialization: 'Recreation' },
-    { name: 'Kittitas', region: 'Central WA', status: 'Active', nodeType: 'Edge', appraisers: 9, properties: 456, compliance: 93.2 },
-    { name: 'Grant', region: 'Central WA', status: 'Active', nodeType: 'Regional', appraisers: 22, properties: 1456, compliance: 92.8, specialization: 'Agricultural' },
-    { name: 'Douglas', region: 'Central WA', status: 'Active', nodeType: 'Edge', appraisers: 7, properties: 334, compliance: 91.9 },
-    
+    {
+      name: "Chelan",
+      region: "Central WA",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 18,
+      properties: 892,
+      compliance: 94.5,
+      specialization: "Recreation",
+    },
+    {
+      name: "Kittitas",
+      region: "Central WA",
+      status: "Active",
+      nodeType: "Edge",
+      appraisers: 9,
+      properties: 456,
+      compliance: 93.2,
+    },
+    {
+      name: "Grant",
+      region: "Central WA",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 22,
+      properties: 1456,
+      compliance: 92.8,
+      specialization: "Agricultural",
+    },
+    {
+      name: "Douglas",
+      region: "Central WA",
+      status: "Active",
+      nodeType: "Edge",
+      appraisers: 7,
+      properties: 334,
+      compliance: 91.9,
+    },
+
     // Puget Metro (Hardened - Original Counties)
-    { name: 'King', region: 'Puget Metro', status: 'Live', nodeType: 'Core', appraisers: 187, properties: 8934, compliance: 98.2, specialization: 'Urban Dense' },
-    { name: 'Pierce', region: 'Puget Metro', status: 'Live', nodeType: 'Core', appraisers: 94, properties: 5678, compliance: 96.8, specialization: 'Suburban' },
-    { name: 'Snohomish', region: 'Puget Metro', status: 'Live', nodeType: 'Core', appraisers: 76, properties: 4321, compliance: 97.4, specialization: 'Mixed Urban' },
-    
+    {
+      name: "King",
+      region: "Puget Metro",
+      status: "Live",
+      nodeType: "Core",
+      appraisers: 187,
+      properties: 8934,
+      compliance: 98.2,
+      specialization: "Urban Dense",
+    },
+    {
+      name: "Pierce",
+      region: "Puget Metro",
+      status: "Live",
+      nodeType: "Core",
+      appraisers: 94,
+      properties: 5678,
+      compliance: 96.8,
+      specialization: "Suburban",
+    },
+    {
+      name: "Snohomish",
+      region: "Puget Metro",
+      status: "Live",
+      nodeType: "Core",
+      appraisers: 76,
+      properties: 4321,
+      compliance: 97.4,
+      specialization: "Mixed Urban",
+    },
+
     // Northwest WA (Live)
-    { name: 'Whatcom', region: 'Northwest WA', status: 'Live', nodeType: 'Regional', appraisers: 32, properties: 1876, compliance: 95.1, specialization: 'Border' },
-    { name: 'Skagit', region: 'Northwest WA', status: 'Live', nodeType: 'Regional', appraisers: 28, properties: 1432, compliance: 94.7, specialization: 'Agricultural' },
-    { name: 'Island', region: 'Northwest WA', status: 'Live', nodeType: 'Edge', appraisers: 14, properties: 789, compliance: 93.8, specialization: 'Island' },
-    { name: 'San Juan', region: 'Northwest WA', status: 'Live', nodeType: 'Edge', appraisers: 8, properties: 456, compliance: 92.6, specialization: 'Island Premium' },
-    
+    {
+      name: "Whatcom",
+      region: "Northwest WA",
+      status: "Live",
+      nodeType: "Regional",
+      appraisers: 32,
+      properties: 1876,
+      compliance: 95.1,
+      specialization: "Border",
+    },
+    {
+      name: "Skagit",
+      region: "Northwest WA",
+      status: "Live",
+      nodeType: "Regional",
+      appraisers: 28,
+      properties: 1432,
+      compliance: 94.7,
+      specialization: "Agricultural",
+    },
+    {
+      name: "Island",
+      region: "Northwest WA",
+      status: "Live",
+      nodeType: "Edge",
+      appraisers: 14,
+      properties: 789,
+      compliance: 93.8,
+      specialization: "Island",
+    },
+    {
+      name: "San Juan",
+      region: "Northwest WA",
+      status: "Live",
+      nodeType: "Edge",
+      appraisers: 8,
+      properties: 456,
+      compliance: 92.6,
+      specialization: "Island Premium",
+    },
+
     // Southwest WA (Federated)
-    { name: 'Clark', region: 'Southwest WA', status: 'Active', nodeType: 'Regional', appraisers: 89, properties: 4567, compliance: 96.1, specialization: 'Metro Adjacent' },
-    { name: 'Thurston', region: 'Southwest WA', status: 'Active', nodeType: 'Regional', appraisers: 45, properties: 2234, compliance: 95.3, specialization: 'Capital' },
-    { name: 'Lewis', region: 'Southwest WA', status: 'Active', nodeType: 'Edge', appraisers: 19, properties: 987, compliance: 93.9 },
-    { name: 'Cowlitz', region: 'Southwest WA', status: 'Staging', nodeType: 'Edge', appraisers: 16, properties: 876, compliance: 92.7 },
-    { name: 'Wahkiakum', region: 'Southwest WA', status: 'Staging', nodeType: 'Light', appraisers: 3, properties: 123, compliance: 89.4 },
-    
+    {
+      name: "Clark",
+      region: "Southwest WA",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 89,
+      properties: 4567,
+      compliance: 96.1,
+      specialization: "Metro Adjacent",
+    },
+    {
+      name: "Thurston",
+      region: "Southwest WA",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 45,
+      properties: 2234,
+      compliance: 95.3,
+      specialization: "Capital",
+    },
+    {
+      name: "Lewis",
+      region: "Southwest WA",
+      status: "Active",
+      nodeType: "Edge",
+      appraisers: 19,
+      properties: 987,
+      compliance: 93.9,
+    },
+    {
+      name: "Cowlitz",
+      region: "Southwest WA",
+      status: "Staging",
+      nodeType: "Edge",
+      appraisers: 16,
+      properties: 876,
+      compliance: 92.7,
+    },
+    {
+      name: "Wahkiakum",
+      region: "Southwest WA",
+      status: "Staging",
+      nodeType: "Light",
+      appraisers: 3,
+      properties: 123,
+      compliance: 89.4,
+    },
+
     // Peninsula & Coast (Synced)
-    { name: 'Jefferson', region: 'Peninsula & Coast', status: 'Active', nodeType: 'Edge', appraisers: 11, properties: 567, compliance: 93.1, specialization: 'Rural Coastal' },
-    { name: 'Grays Harbor', region: 'Peninsula & Coast', status: 'Active', nodeType: 'Regional', appraisers: 24, properties: 1234, compliance: 92.8, specialization: 'Timber' },
-    { name: 'Pacific', region: 'Peninsula & Coast', status: 'Active', nodeType: 'Edge', appraisers: 8, properties: 345, compliance: 91.6, specialization: 'Coastal' },
-    { name: 'Clallam', region: 'Peninsula & Coast', status: 'Staging', nodeType: 'Edge', appraisers: 15, properties: 789, compliance: 92.3, specialization: 'Peninsula' },
-    { name: 'Mason', region: 'Peninsula & Coast', status: 'Staging', nodeType: 'Edge', appraisers: 12, properties: 654, compliance: 91.8 },
-    
+    {
+      name: "Jefferson",
+      region: "Peninsula & Coast",
+      status: "Active",
+      nodeType: "Edge",
+      appraisers: 11,
+      properties: 567,
+      compliance: 93.1,
+      specialization: "Rural Coastal",
+    },
+    {
+      name: "Grays Harbor",
+      region: "Peninsula & Coast",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 24,
+      properties: 1234,
+      compliance: 92.8,
+      specialization: "Timber",
+    },
+    {
+      name: "Pacific",
+      region: "Peninsula & Coast",
+      status: "Active",
+      nodeType: "Edge",
+      appraisers: 8,
+      properties: 345,
+      compliance: 91.6,
+      specialization: "Coastal",
+    },
+    {
+      name: "Clallam",
+      region: "Peninsula & Coast",
+      status: "Staging",
+      nodeType: "Edge",
+      appraisers: 15,
+      properties: 789,
+      compliance: 92.3,
+      specialization: "Peninsula",
+    },
+    {
+      name: "Mason",
+      region: "Peninsula & Coast",
+      status: "Staging",
+      nodeType: "Edge",
+      appraisers: 12,
+      properties: 654,
+      compliance: 91.8,
+    },
+
     // Additional counties to complete all 39
-    { name: 'Okanogan', region: 'Central WA', status: 'Syncing', nodeType: 'Edge', appraisers: 13, properties: 678, compliance: 90.8, specialization: 'Remote' },
-    { name: 'Ferry', region: 'Central WA', status: 'Syncing', nodeType: 'Light', appraisers: 4, properties: 234, compliance: 89.7 },
-    { name: 'Stevens', region: 'Central WA', status: 'Syncing', nodeType: 'Edge', appraisers: 9, properties: 456, compliance: 90.4 },
-    { name: 'Pend Oreille', region: 'Central WA', status: 'Syncing', nodeType: 'Light', appraisers: 5, properties: 289, compliance: 89.2 },
-    { name: 'Lincoln', region: 'Eastern WA', status: 'Syncing', nodeType: 'Light', appraisers: 4, properties: 267, compliance: 88.9 },
-    { name: 'Adams', region: 'Eastern WA', status: 'Syncing', nodeType: 'Light', appraisers: 6, properties: 334, compliance: 89.6 },
-    { name: 'Spokane', region: 'Eastern WA', status: 'Active', nodeType: 'Regional', appraisers: 67, properties: 3456, compliance: 95.7, specialization: 'Urban Regional' },
-    { name: 'Kitsap', region: 'Puget Metro', status: 'Active', nodeType: 'Regional', appraisers: 42, properties: 2134, compliance: 94.8, specialization: 'Naval' },
-    { name: 'Skamania', region: 'Southwest WA', status: 'Queued', nodeType: 'Light', appraisers: 5, properties: 289, compliance: 87.3 }
+    {
+      name: "Okanogan",
+      region: "Central WA",
+      status: "Syncing",
+      nodeType: "Edge",
+      appraisers: 13,
+      properties: 678,
+      compliance: 90.8,
+      specialization: "Remote",
+    },
+    {
+      name: "Ferry",
+      region: "Central WA",
+      status: "Syncing",
+      nodeType: "Light",
+      appraisers: 4,
+      properties: 234,
+      compliance: 89.7,
+    },
+    {
+      name: "Stevens",
+      region: "Central WA",
+      status: "Syncing",
+      nodeType: "Edge",
+      appraisers: 9,
+      properties: 456,
+      compliance: 90.4,
+    },
+    {
+      name: "Pend Oreille",
+      region: "Central WA",
+      status: "Syncing",
+      nodeType: "Light",
+      appraisers: 5,
+      properties: 289,
+      compliance: 89.2,
+    },
+    {
+      name: "Lincoln",
+      region: "Eastern WA",
+      status: "Syncing",
+      nodeType: "Light",
+      appraisers: 4,
+      properties: 267,
+      compliance: 88.9,
+    },
+    {
+      name: "Adams",
+      region: "Eastern WA",
+      status: "Syncing",
+      nodeType: "Light",
+      appraisers: 6,
+      properties: 334,
+      compliance: 89.6,
+    },
+    {
+      name: "Spokane",
+      region: "Eastern WA",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 67,
+      properties: 3456,
+      compliance: 95.7,
+      specialization: "Urban Regional",
+    },
+    {
+      name: "Kitsap",
+      region: "Puget Metro",
+      status: "Active",
+      nodeType: "Regional",
+      appraisers: 42,
+      properties: 2134,
+      compliance: 94.8,
+      specialization: "Naval",
+    },
+    {
+      name: "Skamania",
+      region: "Southwest WA",
+      status: "Queued",
+      nodeType: "Light",
+      appraisers: 5,
+      properties: 289,
+      compliance: 87.3,
+    },
   ];
 
-  const regions = ['Eastern WA', 'Central WA', 'Puget Metro', 'Northwest WA', 'Southwest WA', 'Peninsula & Coast'];
+  const regions = [
+    "Eastern WA",
+    "Central WA",
+    "Puget Metro",
+    "Northwest WA",
+    "Southwest WA",
+    "Peninsula & Coast",
+  ];
 
-  const filteredCounties = selectedRegion === 'all' 
-    ? waCounties 
-    : waCounties.filter(county => county.region === selectedRegion);
+  const filteredCounties =
+    selectedRegion === "all"
+      ? waCounties
+      : waCounties.filter((county) => county.region === selectedRegion);
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'Live': return 'bg-green-100 text-green-800';
-      case 'Active': return 'bg-blue-100 text-blue-800';
-      case 'Staging': return 'bg-yellow-100 text-yellow-800';
-      case 'Syncing': return 'bg-purple-100 text-purple-800';
-      case 'Queued': return 'bg-gray-100 text-gray-800';
-      default: return 'bg-gray-100 text-gray-800';
+      case "Live":
+        return "bg-green-100 text-green-800";
+      case "Active":
+        return "bg-blue-100 text-blue-800";
+      case "Staging":
+        return "bg-yellow-100 text-yellow-800";
+      case "Syncing":
+        return "bg-purple-100 text-purple-800";
+      case "Queued":
+        return "bg-gray-100 text-gray-800";
+      default:
+        return "bg-gray-100 text-gray-800";
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'Live': return <CheckCircle className="w-4 h-4" />;
-      case 'Active': return <Zap className="w-4 h-4" />;
-      case 'Staging': return <Clock className="w-4 h-4" />;
-      case 'Syncing': return <AlertCircle className="w-4 h-4" />;
-      case 'Queued': return <Clock className="w-4 h-4" />;
-      default: return <Clock className="w-4 h-4" />;
+      case "Live":
+        return <CheckCircle className="w-4 h-4" />;
+      case "Active":
+        return <Zap className="w-4 h-4" />;
+      case "Staging":
+        return <Clock className="w-4 h-4" />;
+      case "Syncing":
+        return <AlertCircle className="w-4 h-4" />;
+      case "Queued":
+        return <Clock className="w-4 h-4" />;
+      default:
+        return <Clock className="w-4 h-4" />;
     }
   };
 
   const totalAppraisers = waCounties.reduce((sum, county) => sum + county.appraisers, 0);
   const totalProperties = waCounties.reduce((sum, county) => sum + county.properties, 0);
-  const averageCompliance = waCounties.reduce((sum, county) => sum + county.compliance, 0) / waCounties.length;
+  const averageCompliance =
+    waCounties.reduce((sum, county) => sum + county.compliance, 0) / waCounties.length;
 
   const statusCounts = {
-    live: waCounties.filter(c => c.status === 'Live').length,
-    active: waCounties.filter(c => c.status === 'Active').length,
-    staging: waCounties.filter(c => c.status === 'Staging').length,
-    syncing: waCounties.filter(c => c.status === 'Syncing').length,
-    queued: waCounties.filter(c => c.status === 'Queued').length
+    live: waCounties.filter((c) => c.status === "Live").length,
+    active: waCounties.filter((c) => c.status === "Active").length,
+    staging: waCounties.filter((c) => c.status === "Staging").length,
+    syncing: waCounties.filter((c) => c.status === "Syncing").length,
+    queued: waCounties.filter((c) => c.status === "Queued").length,
   };
 
   return (
@@ -199,29 +557,34 @@ export default function WAStatewidePage() {
               <div className="text-sm text-gray-600">Queued</div>
             </div>
           </div>
-          
+
           <div className="mt-4">
             <div className="flex justify-between text-sm mb-2">
               <span>Overall Deployment Progress</span>
-              <span>{Math.round(((statusCounts.live + statusCounts.active) / 39) * 100)}% Complete</span>
+              <span>
+                {Math.round(((statusCounts.live + statusCounts.active) / 39) * 100)}% Complete
+              </span>
             </div>
-            <Progress value={((statusCounts.live + statusCounts.active) / 39) * 100} className="h-2" />
+            <Progress
+              value={((statusCounts.live + statusCounts.active) / 39) * 100}
+              className="h-2"
+            />
           </div>
         </CardContent>
       </Card>
 
       {/* Regional Filter */}
       <div className="flex flex-wrap gap-2">
-        <Button 
-          variant={selectedRegion === 'all' ? 'default' : 'outline'} 
-          onClick={() => setSelectedRegion('all')}
+        <Button
+          variant={selectedRegion === "all" ? "default" : "outline"}
+          onClick={() => setSelectedRegion("all")}
         >
           All Regions
         </Button>
-        {regions.map(region => (
+        {regions.map((region) => (
           <Button
             key={region}
-            variant={selectedRegion === region ? 'default' : 'outline'}
+            variant={selectedRegion === region ? "default" : "outline"}
             onClick={() => setSelectedRegion(region)}
           >
             {region}
@@ -243,7 +606,9 @@ export default function WAStatewidePage() {
                   </div>
                 </Badge>
               </div>
-              <CardDescription>{county.region} • {county.nodeType} Node</CardDescription>
+              <CardDescription>
+                {county.region} • {county.nodeType} Node
+              </CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-3">
@@ -286,15 +651,16 @@ export default function WAStatewidePage() {
             <Button variant="outline">Begin Expansion to Oregon</Button>
             <Button variant="outline">Launch Interstate Mesh Network</Button>
           </div>
-          
+
           <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
             <div className="flex items-start space-x-3">
               <CheckCircle className="w-5 h-5 text-green-600 mt-0.5" />
               <div>
                 <h4 className="font-medium text-green-900">Washington State Deployment Complete</h4>
                 <p className="text-sm text-green-700 mt-1">
-                  TerraFusion sovereign valuation infrastructure successfully deployed across all 39 counties.
-                  System is operational with {totalAppraisers.toLocaleString()} appraisers managing {totalProperties.toLocaleString()} properties.
+                  TerraFusion sovereign valuation infrastructure successfully deployed across all 39
+                  counties. System is operational with {totalAppraisers.toLocaleString()} appraisers
+                  managing {totalProperties.toLocaleString()} properties.
                 </p>
                 <div className="mt-2 flex items-center space-x-4 text-xs text-green-600">
                   <span>• 72,113+ verifiable appraisal forms on ledger</span>

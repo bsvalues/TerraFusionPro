@@ -1,41 +1,47 @@
-import { useState, useEffect, useRef } from 'react';
-import { useLocation } from 'wouter';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { apiRequest } from '@/lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
-import { Button } from '@/components/ui/button';
-import { 
-  Card, 
-  CardContent, 
-  CardHeader, 
-  CardTitle, 
-  CardDescription, 
-  CardFooter 
-} from '@/components/ui/card';
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
+import { useState, useEffect, useRef } from "react";
+import { useLocation } from "wouter";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiRequest } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+  CardFooter,
+} from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
   DialogTitle,
-  DialogTrigger 
-} from '@/components/ui/dialog';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { 
-  Form, 
-  FormControl, 
-  FormDescription, 
-  FormField, 
-  FormItem, 
-  FormLabel, 
-  FormMessage 
-} from '@/components/ui/form';
-import { Input } from '@/components/ui/input';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Textarea } from '@/components/ui/textarea';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { 
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  Form,
+  FormControl,
+  FormDescription,
+  FormField,
+  FormItem,
+  FormLabel,
+  FormMessage,
+} from "@/components/ui/form";
+import { Input } from "@/components/ui/input";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
   Camera,
   Upload,
   Trash2,
@@ -45,11 +51,11 @@ import {
   Image as ImageIcon,
   Maximize,
   X,
-  Check
-} from 'lucide-react';
-import { z } from 'zod';
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
+  Check,
+} from "lucide-react";
+import { z } from "zod";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
 
 // Define the photo schema
 const photoSchema = z.object({
@@ -86,11 +92,11 @@ export default function PhotosPage() {
   const [error, setError] = useState<string | null>(null);
   const [offlineMode, setOfflineMode] = useState<boolean>(false);
   const [offlinePhotos, setOfflinePhotos] = useState<Photo[]>([]);
-  
+
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  
+
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
@@ -101,48 +107,48 @@ export default function PhotosPage() {
       const userAgent = navigator.userAgent || navigator.vendor;
       return /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i.test(userAgent);
     };
-    
+
     setIsMobile(checkMobile());
-    
+
     // Check if camera is available
     const checkCamera = async () => {
       try {
         const devices = await navigator.mediaDevices.enumerateDevices();
-        const cameras = devices.filter(device => device.kind === 'videoinput');
+        const cameras = devices.filter((device) => device.kind === "videoinput");
         setIsCameraAvailable(cameras.length > 0);
       } catch (err) {
         console.error("Error checking camera availability:", err);
         setIsCameraAvailable(false);
       }
     };
-    
+
     checkCamera();
-    
+
     // Check for network connectivity
     const handleOnline = () => setOfflineMode(false);
     const handleOffline = () => setOfflineMode(true);
-    
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
     setOfflineMode(!navigator.onLine);
-    
+
     // Initialize from local storage if in offline mode
     if (!navigator.onLine) {
-      const cachedPhotos = localStorage.getItem('offlinePhotos');
+      const cachedPhotos = localStorage.getItem("offlinePhotos");
       if (cachedPhotos) {
         setOfflinePhotos(JSON.parse(cachedPhotos));
       }
     }
-    
+
     return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
     };
   }, []);
 
   // Get report ID from URL if present
-  const reportIdFromUrl = new URLSearchParams(location.split('?')[1]).get('reportId');
-  
+  const reportIdFromUrl = new URLSearchParams(location.split("?")[1]).get("reportId");
+
   useEffect(() => {
     if (reportIdFromUrl) {
       setSelectedReportId(Number(reportIdFromUrl));
@@ -154,20 +160,20 @@ export default function PhotosPage() {
     resolver: zodResolver(photoSchema),
     defaultValues: {
       reportId: selectedReportId || 0,
-      type: '',
-      description: '',
-      notes: '',
-      imageData: '',
-    }
+      type: "",
+      description: "",
+      notes: "",
+      imageData: "",
+    },
   });
 
   // Fetch reports for selection
   const reportsQuery = useQuery({
-    queryKey: ['/api/reports'],
+    queryKey: ["/api/reports"],
     queryFn: async () => {
       if (offlineMode) return [];
       return apiRequest(`/api/reports`, {
-        method: 'GET',
+        method: "GET",
       });
     },
     enabled: !offlineMode,
@@ -175,11 +181,11 @@ export default function PhotosPage() {
 
   // Fetch photos for selected report
   const photosQuery = useQuery({
-    queryKey: ['/api/reports', selectedReportId, 'photos'],
+    queryKey: ["/api/reports", selectedReportId, "photos"],
     queryFn: async () => {
       if (offlineMode) return offlinePhotos;
       return apiRequest(`/api/reports/${selectedReportId}/photos`, {
-        method: 'GET',
+        method: "GET",
       });
     },
     enabled: !!selectedReportId && !offlineMode,
@@ -187,13 +193,13 @@ export default function PhotosPage() {
 
   // Fetch single photo for editing
   const photoQuery = useQuery({
-    queryKey: ['/api/photos', selectedPhotoId],
+    queryKey: ["/api/photos", selectedPhotoId],
     queryFn: async () => {
       if (offlineMode) {
-        return offlinePhotos.find(p => p.id === selectedPhotoId) || null;
+        return offlinePhotos.find((p) => p.id === selectedPhotoId) || null;
       }
       return apiRequest(`/api/photos/${selectedPhotoId}`, {
-        method: 'GET',
+        method: "GET",
       });
     },
     enabled: !!selectedPhotoId && isPhotoDialogOpen,
@@ -205,8 +211,8 @@ export default function PhotosPage() {
       photoForm.reset({
         reportId: photoQuery.data.reportId,
         type: photoQuery.data.type,
-        description: photoQuery.data.description || '',
-        notes: photoQuery.data.notes || '',
+        description: photoQuery.data.description || "",
+        notes: photoQuery.data.notes || "",
         imageData: photoQuery.data.imageData,
       });
       setPreviewImageData(photoQuery.data.imageData);
@@ -222,50 +228,50 @@ export default function PhotosPage() {
           id: selectedPhotoId || Date.now(),
           reportId: data.reportId,
           type: data.type,
-          description: data.description || '',
-          notes: data.notes || '',
+          description: data.description || "",
+          notes: data.notes || "",
           imageData: data.imageData,
           dateCreated: new Date().toISOString(),
         };
-        
+
         if (selectedPhotoId) {
           // Update existing
-          const updatedPhotos = offlinePhotos.map((p: Photo) => 
+          const updatedPhotos = offlinePhotos.map((p: Photo) =>
             p.id === selectedPhotoId ? newPhoto : p
           );
           setOfflinePhotos(updatedPhotos);
-          localStorage.setItem('offlinePhotos', JSON.stringify(updatedPhotos));
+          localStorage.setItem("offlinePhotos", JSON.stringify(updatedPhotos));
           return newPhoto;
         } else {
           // Create new
           const updatedPhotos = [...offlinePhotos, newPhoto];
           setOfflinePhotos(updatedPhotos);
-          localStorage.setItem('offlinePhotos', JSON.stringify(updatedPhotos));
+          localStorage.setItem("offlinePhotos", JSON.stringify(updatedPhotos));
           return newPhoto;
         }
       }
-      
+
       if (selectedPhotoId) {
         return apiRequest(`/api/photos/${selectedPhotoId}`, {
-          method: 'PUT',
+          method: "PUT",
           data,
         });
       } else {
-        return apiRequest('/api/photos', {
-          method: 'POST',
+        return apiRequest("/api/photos", {
+          method: "POST",
           data,
         });
       }
     },
     onSuccess: () => {
       if (!offlineMode) {
-        queryClient.invalidateQueries({ queryKey: ['/api/reports', selectedReportId, 'photos'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports", selectedReportId, "photos"] });
       }
-      
+
       setIsPhotoDialogOpen(false);
       setCaptureMode(false);
       setPreviewImageData(null);
-      
+
       toast({
         title: selectedPhotoId ? "Photo updated" : "Photo added",
         description: "Photo has been saved successfully.",
@@ -277,28 +283,28 @@ export default function PhotosPage() {
         description: "Failed to save photo. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Delete photo mutation
   const deletePhotoMutation = useMutation({
     mutationFn: async (id: number) => {
       if (offlineMode) {
-        const updatedPhotos = offlinePhotos.filter(p => p.id !== id);
+        const updatedPhotos = offlinePhotos.filter((p) => p.id !== id);
         setOfflinePhotos(updatedPhotos);
-        localStorage.setItem('offlinePhotos', JSON.stringify(updatedPhotos));
+        localStorage.setItem("offlinePhotos", JSON.stringify(updatedPhotos));
         return true;
       }
-      
+
       return apiRequest(`/api/photos/${id}`, {
-        method: 'DELETE',
+        method: "DELETE",
       });
     },
     onSuccess: () => {
       if (!offlineMode) {
-        queryClient.invalidateQueries({ queryKey: ['/api/reports', selectedReportId, 'photos'] });
+        queryClient.invalidateQueries({ queryKey: ["/api/reports", selectedReportId, "photos"] });
       }
-      
+
       toast({
         title: "Photo deleted",
         description: "Photo has been removed.",
@@ -310,7 +316,7 @@ export default function PhotosPage() {
         description: "Failed to delete photo. Please try again.",
         variant: "destructive",
       });
-    }
+    },
   });
 
   // Form submission handler
@@ -323,10 +329,10 @@ export default function PhotosPage() {
     setSelectedPhotoId(null);
     photoForm.reset({
       reportId: selectedReportId || 0,
-      type: '',
-      description: '',
-      notes: '',
-      imageData: '',
+      type: "",
+      description: "",
+      notes: "",
+      imageData: "",
     });
     setPreviewImageData(null);
     setIsPhotoDialogOpen(true);
@@ -346,7 +352,7 @@ export default function PhotosPage() {
 
   // Handler for deleting a photo
   const handleDeletePhoto = (id: number) => {
-    if (window.confirm('Are you sure you want to delete this photo?')) {
+    if (window.confirm("Are you sure you want to delete this photo?")) {
       deletePhotoMutation.mutate(id);
     }
   };
@@ -354,17 +360,17 @@ export default function PhotosPage() {
   // Handler for camera capture mode
   const startCameraCapture = async () => {
     setCaptureMode(true);
-    
+
     try {
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        const stream = await navigator.mediaDevices.getUserMedia({ 
-          video: { 
-            facingMode: 'environment',
+        const stream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            facingMode: "environment",
             width: { ideal: 1920 },
-            height: { ideal: 1080 }
-          } 
+            height: { ideal: 1080 },
+          },
         });
-        
+
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
           await videoRef.current.play();
@@ -386,28 +392,28 @@ export default function PhotosPage() {
     if (videoRef.current && canvasRef.current) {
       const video = videoRef.current;
       const canvas = canvasRef.current;
-      
+
       // Set canvas dimensions to match video dimensions
       canvas.width = video.videoWidth;
       canvas.height = video.videoHeight;
-      
+
       // Draw the video frame to the canvas
-      const ctx = canvas.getContext('2d');
+      const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-        
+
         // Convert canvas to data URL
-        const imageData = canvas.toDataURL('image/jpeg', 0.8);
+        const imageData = canvas.toDataURL("image/jpeg", 0.8);
         setPreviewImageData(imageData);
-        photoForm.setValue('imageData', imageData);
-        
+        photoForm.setValue("imageData", imageData);
+
         // Stop the camera stream
         const stream = video.srcObject as MediaStream;
         if (stream) {
-          stream.getTracks().forEach(track => track.stop());
+          stream.getTracks().forEach((track) => track.stop());
         }
         video.srcObject = null;
-        
+
         setCaptureMode(false);
       }
     }
@@ -421,7 +427,7 @@ export default function PhotosPage() {
       reader.onload = (e) => {
         const imageData = e.target?.result as string;
         setPreviewImageData(imageData);
-        photoForm.setValue('imageData', imageData);
+        photoForm.setValue("imageData", imageData);
       };
       reader.readAsDataURL(file);
     }
@@ -432,7 +438,7 @@ export default function PhotosPage() {
     if (videoRef.current) {
       const stream = videoRef.current.srcObject as MediaStream;
       if (stream) {
-        stream.getTracks().forEach(track => track.stop());
+        stream.getTracks().forEach((track) => track.stop());
       }
       videoRef.current.srcObject = null;
     }
@@ -447,11 +453,11 @@ export default function PhotosPage() {
           title: "Syncing",
           description: `Syncing ${offlinePhotos.length} photos from offline storage...`,
         });
-        
+
         try {
           for (const photo of offlinePhotos) {
-            await apiRequest('/api/photos', {
-              method: 'POST',
+            await apiRequest("/api/photos", {
+              method: "POST",
               data: {
                 reportId: photo.reportId,
                 type: photo.type,
@@ -461,14 +467,14 @@ export default function PhotosPage() {
               },
             });
           }
-          
+
           // Clear offline storage after successful sync
-          localStorage.removeItem('offlinePhotos');
+          localStorage.removeItem("offlinePhotos");
           setOfflinePhotos([]);
-          
+
           // Refresh data
-          queryClient.invalidateQueries({ queryKey: ['/api/reports', selectedReportId, 'photos'] });
-          
+          queryClient.invalidateQueries({ queryKey: ["/api/reports", selectedReportId, "photos"] });
+
           toast({
             title: "Sync Complete",
             description: "Your offline photos have been successfully synced.",
@@ -483,7 +489,7 @@ export default function PhotosPage() {
         }
       }
     };
-    
+
     if (!offlineMode && offlinePhotos.length > 0) {
       syncOfflineData();
     }
@@ -491,46 +497,68 @@ export default function PhotosPage() {
 
   // Photo type options
   const photoTypes = [
-    'Front Exterior',
-    'Rear Exterior',
-    'Side Exterior',
-    'Street View',
-    'Living Room',
-    'Kitchen',
-    'Master Bedroom',
-    'Bedroom',
-    'Bathroom',
-    'Dining Room',
-    'Family Room',
-    'Basement',
-    'Garage',
-    'Attic',
-    'Yard',
-    'Pool',
-    'Other'
+    "Front Exterior",
+    "Rear Exterior",
+    "Side Exterior",
+    "Street View",
+    "Living Room",
+    "Kitchen",
+    "Master Bedroom",
+    "Bedroom",
+    "Bathroom",
+    "Dining Room",
+    "Family Room",
+    "Basement",
+    "Garage",
+    "Attic",
+    "Yard",
+    "Pool",
+    "Other",
   ];
 
   // Group photos by type
   const getPhotosByType = () => {
-    const photos = offlineMode ? offlinePhotos : (photosQuery.data || []);
-    const exterior = photos.filter((p: Photo) => 
-      ['Front Exterior', 'Rear Exterior', 'Side Exterior', 'Street View'].includes(p.type)
+    const photos = offlineMode ? offlinePhotos : photosQuery.data || [];
+    const exterior = photos.filter((p: Photo) =>
+      ["Front Exterior", "Rear Exterior", "Side Exterior", "Street View"].includes(p.type)
     );
-    const interior = photos.filter((p: Photo) => 
-      ['Living Room', 'Kitchen', 'Master Bedroom', 'Bedroom', 'Bathroom', 'Dining Room', 'Family Room', 'Basement'].includes(p.type)
+    const interior = photos.filter((p: Photo) =>
+      [
+        "Living Room",
+        "Kitchen",
+        "Master Bedroom",
+        "Bedroom",
+        "Bathroom",
+        "Dining Room",
+        "Family Room",
+        "Basement",
+      ].includes(p.type)
     );
-    const other = photos.filter((p: Photo) => 
-      !['Front Exterior', 'Rear Exterior', 'Side Exterior', 'Street View', 
-        'Living Room', 'Kitchen', 'Master Bedroom', 'Bedroom', 'Bathroom', 'Dining Room', 'Family Room', 'Basement'].includes(p.type)
+    const other = photos.filter(
+      (p: Photo) =>
+        ![
+          "Front Exterior",
+          "Rear Exterior",
+          "Side Exterior",
+          "Street View",
+          "Living Room",
+          "Kitchen",
+          "Master Bedroom",
+          "Bedroom",
+          "Bathroom",
+          "Dining Room",
+          "Family Room",
+          "Basement",
+        ].includes(p.type)
     );
-    
+
     return { exterior, interior, other };
   };
 
   // Format date
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
   };
 
   // Loading state
@@ -551,11 +579,11 @@ export default function PhotosPage() {
             </div>
           )}
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
           {!offlineMode && reportsQuery.data && reportsQuery.data.length > 0 && (
-            <Select 
-              value={selectedReportId?.toString() || ''} 
+            <Select
+              value={selectedReportId?.toString() || ""}
               onValueChange={(value) => {
                 setSelectedReportId(Number(value));
                 navigate(`/photos?reportId=${value}`);
@@ -573,7 +601,7 @@ export default function PhotosPage() {
               </SelectContent>
             </Select>
           )}
-          
+
           <div className="flex gap-2">
             <Button
               onClick={handleAddPhoto}
@@ -582,7 +610,7 @@ export default function PhotosPage() {
             >
               <Plus className="mr-2 h-4 w-4" /> Add Photo
             </Button>
-            
+
             {isMobile && isCameraAvailable && (
               <Button
                 variant="secondary"
@@ -604,7 +632,7 @@ export default function PhotosPage() {
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       )}
-      
+
       {/* No report selected message */}
       {!selectedReportId && !offlineMode && (
         <Alert>
@@ -614,44 +642,43 @@ export default function PhotosPage() {
           </AlertDescription>
         </Alert>
       )}
-      
+
       {/* Loading state */}
-      {selectedReportId && !offlineMode && photosQuery.isLoading && (
-        <div>Loading photos...</div>
-      )}
+      {selectedReportId && !offlineMode && photosQuery.isLoading && <div>Loading photos...</div>}
 
       {/* No photos message */}
-      {selectedReportId && ((photosQuery.data && photosQuery.data.length === 0) || 
-                         (offlineMode && offlinePhotos.length === 0)) && (
-        <Card className="p-8 text-center">
-          <p className="text-muted-foreground mb-4">No photos have been added to this report yet.</p>
-          <div className="flex flex-col sm:flex-row gap-2 justify-center">
-            <Button onClick={handleAddPhoto}>
-              <Upload className="mr-2 h-4 w-4" /> Upload Photo
-            </Button>
-            {isMobile && isCameraAvailable && (
-              <Button variant="secondary" onClick={startCameraCapture}>
-                <Camera className="mr-2 h-4 w-4" /> Take Photo
+      {selectedReportId &&
+        ((photosQuery.data && photosQuery.data.length === 0) ||
+          (offlineMode && offlinePhotos.length === 0)) && (
+          <Card className="p-8 text-center">
+            <p className="text-muted-foreground mb-4">
+              No photos have been added to this report yet.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button onClick={handleAddPhoto}>
+                <Upload className="mr-2 h-4 w-4" /> Upload Photo
               </Button>
-            )}
-          </div>
-        </Card>
-      )}
-      
+              {isMobile && isCameraAvailable && (
+                <Button variant="secondary" onClick={startCameraCapture}>
+                  <Camera className="mr-2 h-4 w-4" /> Take Photo
+                </Button>
+              )}
+            </div>
+          </Card>
+        )}
+
       {/* Exterior Photos */}
       {exterior.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Exterior Photos</CardTitle>
-            <CardDescription>
-              {exterior.length} exterior photos
-            </CardDescription>
+            <CardDescription>{exterior.length} exterior photos</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {exterior.map((photo: Photo) => (
                 <div key={photo.id} className="border rounded-md p-2 space-y-2">
-                  <div 
+                  <div
                     className="h-48 rounded-md bg-cover bg-center cursor-pointer"
                     style={{ backgroundImage: `url(${photo.imageData})` }}
                     onClick={() => handleViewPhoto(photo)}
@@ -664,15 +691,11 @@ export default function PhotosPage() {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleEditPhoto(photo)}
-                      >
+                      <Button variant="ghost" size="icon" onClick={() => handleEditPhoto(photo)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => handleDeletePhoto(photo.id)}
                       >
@@ -686,21 +709,19 @@ export default function PhotosPage() {
           </CardContent>
         </Card>
       )}
-      
+
       {/* Interior Photos */}
       {interior.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Interior Photos</CardTitle>
-            <CardDescription>
-              {interior.length} interior photos
-            </CardDescription>
+            <CardDescription>{interior.length} interior photos</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {interior.map((photo: Photo) => (
                 <div key={photo.id} className="border rounded-md p-2 space-y-2">
-                  <div 
+                  <div
                     className="h-48 rounded-md bg-cover bg-center cursor-pointer"
                     style={{ backgroundImage: `url(${photo.imageData})` }}
                     onClick={() => handleViewPhoto(photo)}
@@ -713,15 +734,11 @@ export default function PhotosPage() {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleEditPhoto(photo)}
-                      >
+                      <Button variant="ghost" size="icon" onClick={() => handleEditPhoto(photo)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => handleDeletePhoto(photo.id)}
                       >
@@ -735,21 +752,19 @@ export default function PhotosPage() {
           </CardContent>
         </Card>
       )}
-      
+
       {/* Other Photos */}
       {other.length > 0 && (
         <Card>
           <CardHeader>
             <CardTitle>Other Photos</CardTitle>
-            <CardDescription>
-              {other.length} other photos
-            </CardDescription>
+            <CardDescription>{other.length} other photos</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
               {other.map((photo: Photo) => (
                 <div key={photo.id} className="border rounded-md p-2 space-y-2">
-                  <div 
+                  <div
                     className="h-48 rounded-md bg-cover bg-center cursor-pointer"
                     style={{ backgroundImage: `url(${photo.imageData})` }}
                     onClick={() => handleViewPhoto(photo)}
@@ -762,15 +777,11 @@ export default function PhotosPage() {
                       )}
                     </div>
                     <div className="flex gap-1">
-                      <Button 
-                        variant="ghost" 
-                        size="icon"
-                        onClick={() => handleEditPhoto(photo)}
-                      >
+                      <Button variant="ghost" size="icon" onClick={() => handleEditPhoto(photo)}>
                         <Edit className="h-4 w-4" />
                       </Button>
-                      <Button 
-                        variant="ghost" 
+                      <Button
+                        variant="ghost"
                         size="icon"
                         onClick={() => handleDeletePhoto(photo.id)}
                       >
@@ -784,28 +795,26 @@ export default function PhotosPage() {
           </CardContent>
         </Card>
       )}
-      
+
       {/* Photo Dialog */}
       <Dialog open={isPhotoDialogOpen} onOpenChange={setIsPhotoDialogOpen}>
         <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>
-              {selectedPhotoId ? 'Edit Photo' : 'Add Photo'}
-            </DialogTitle>
+            <DialogTitle>{selectedPhotoId ? "Edit Photo" : "Add Photo"}</DialogTitle>
             <DialogDescription>
-              {selectedPhotoId 
-                ? 'Update the details of this photo' 
-                : 'Upload or capture a new photo for your appraisal report'}
+              {selectedPhotoId
+                ? "Update the details of this photo"
+                : "Upload or capture a new photo for your appraisal report"}
             </DialogDescription>
           </DialogHeader>
-          
+
           {captureMode ? (
             <div className="space-y-4">
               <div className="relative border rounded-md overflow-hidden max-h-[50vh] flex justify-center">
-                <video 
-                  ref={videoRef} 
-                  className="w-full h-full object-contain" 
-                  autoPlay 
+                <video
+                  ref={videoRef}
+                  className="w-full h-full object-contain"
+                  autoPlay
                   playsInline
                 ></video>
               </div>
@@ -836,8 +845,10 @@ export default function PhotosPage() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent>
-                              {photoTypes.map(type => (
-                                <SelectItem key={type} value={type}>{type}</SelectItem>
+                              {photoTypes.map((type) => (
+                                <SelectItem key={type} value={type}>
+                                  {type}
+                                </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
@@ -845,7 +856,7 @@ export default function PhotosPage() {
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={photoForm.control}
                       name="description"
@@ -853,13 +864,17 @@ export default function PhotosPage() {
                         <FormItem>
                           <FormLabel>Description</FormLabel>
                           <FormControl>
-                            <Input placeholder="Main entrance view" {...field} value={field.value || ''} />
+                            <Input
+                              placeholder="Main entrance view"
+                              {...field}
+                              value={field.value || ""}
+                            />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     <FormField
                       control={photoForm.control}
                       name="notes"
@@ -867,17 +882,17 @@ export default function PhotosPage() {
                         <FormItem>
                           <FormLabel>Notes</FormLabel>
                           <FormControl>
-                            <Textarea 
-                              placeholder="Additional notes about this photo" 
-                              {...field} 
-                              value={field.value || ''}
+                            <Textarea
+                              placeholder="Additional notes about this photo"
+                              {...field}
+                              value={field.value || ""}
                             />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
                       )}
                     />
-                    
+
                     {!previewImageData && (
                       <div className="space-y-2">
                         <FormLabel>Upload Image</FormLabel>
@@ -888,22 +903,20 @@ export default function PhotosPage() {
                             onChange={handleFileUpload}
                             ref={fileInputRef}
                           />
-                          <FormMessage>
-                            {photoForm.formState.errors.imageData?.message}
-                          </FormMessage>
+                          <FormMessage>{photoForm.formState.errors.imageData?.message}</FormMessage>
                         </div>
                       </div>
                     )}
                   </div>
-                  
+
                   <div className="space-y-4">
                     {previewImageData ? (
                       <div className="space-y-2">
                         <FormLabel>Preview</FormLabel>
                         <div className="border rounded-md p-2 overflow-hidden">
-                          <img 
-                            src={previewImageData} 
-                            alt="Preview" 
+                          <img
+                            src={previewImageData}
+                            alt="Preview"
                             className="max-h-[300px] w-full object-contain rounded"
                           />
                         </div>
@@ -914,7 +927,7 @@ export default function PhotosPage() {
                             size="sm"
                             onClick={() => {
                               setPreviewImageData(null);
-                              photoForm.setValue('imageData', '');
+                              photoForm.setValue("imageData", "");
                             }}
                           >
                             <Trash2 className="mr-2 h-4 w-4" /> Remove
@@ -931,11 +944,11 @@ export default function PhotosPage() {
                     )}
                   </div>
                 </div>
-                
+
                 <DialogFooter>
-                  <Button 
-                    type="button" 
-                    variant="outline" 
+                  <Button
+                    type="button"
+                    variant="outline"
                     onClick={() => {
                       setIsPhotoDialogOpen(false);
                       setPreviewImageData(null);
@@ -943,25 +956,26 @@ export default function PhotosPage() {
                   >
                     Cancel
                   </Button>
-                  <Button 
+                  <Button
                     type="submit"
                     disabled={photoMutation.isPending || !photoForm.getValues().imageData}
                   >
-                    {photoMutation.isPending 
-                      ? "Saving..." 
-                      : selectedPhotoId ? "Update Photo" : "Add Photo"
-                    }
+                    {photoMutation.isPending
+                      ? "Saving..."
+                      : selectedPhotoId
+                        ? "Update Photo"
+                        : "Add Photo"}
                   </Button>
                 </DialogFooter>
               </form>
             </Form>
           )}
-          
+
           {/* Hidden canvas for camera capture */}
           <canvas ref={canvasRef} className="hidden"></canvas>
         </DialogContent>
       </Dialog>
-      
+
       {/* Photo Viewer Dialog */}
       <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
         <DialogContent className="max-w-5xl max-h-[90vh] overflow-y-auto">
@@ -972,37 +986,33 @@ export default function PhotosPage() {
                 <DialogDescription>{viewingPhoto.description}</DialogDescription>
               )}
             </div>
-            <Button 
-              variant="ghost" 
-              size="icon"
-              onClick={() => setIsViewDialogOpen(false)}
-            >
+            <Button variant="ghost" size="icon" onClick={() => setIsViewDialogOpen(false)}>
               <X className="h-5 w-5" />
             </Button>
           </DialogHeader>
-          
+
           {viewingPhoto && (
             <div className="space-y-4">
               <div className="border rounded-md overflow-hidden flex justify-center bg-black">
-                <img 
-                  src={viewingPhoto.imageData} 
-                  alt={viewingPhoto.type} 
+                <img
+                  src={viewingPhoto.imageData}
+                  alt={viewingPhoto.type}
                   className="max-h-[70vh] object-contain"
                 />
               </div>
-              
+
               {viewingPhoto.notes && (
                 <div>
                   <h3 className="text-sm font-medium mb-1">Notes:</h3>
                   <p className="text-sm text-muted-foreground">{viewingPhoto.notes}</p>
                 </div>
               )}
-              
+
               <div className="flex justify-between">
                 <span className="text-xs text-muted-foreground">
                   {viewingPhoto.dateCreated && formatDate(viewingPhoto.dateCreated)}
                 </span>
-                
+
                 <div className="flex gap-2">
                   <Button
                     variant="outline"

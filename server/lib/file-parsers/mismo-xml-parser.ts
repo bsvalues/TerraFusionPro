@@ -1,149 +1,157 @@
 /**
  * MISMO XML Parser
- * 
+ *
  * Parses MISMO XML format appraisal files and extracts relevant data.
  * MISMO (Mortgage Industry Standards Maintenance Organization) XML
  * is commonly used for standardized appraisal data exchange.
  */
 
 import { XMLParser } from "fast-xml-parser";
-import { DataEntity, FileParser, ParsingResult, PropertyData, ReportData, ComparableData, AdjustmentData } from "./types";
+import {
+  DataEntity,
+  FileParser,
+  ParsingResult,
+  PropertyData,
+  ReportData,
+  ComparableData,
+  AdjustmentData,
+} from "./types";
 
 /**
  * Parser for MISMO XML appraisal format
  */
 export class MISMOXMLParser implements FileParser {
   name = "MISMOXMLParser";
-  
+
   /**
    * Determines if this parser can handle the given content
    */
   canParse(content: string): boolean {
     // Check if it's an XML document with MISMO elements
-    return content.includes("<MISMO_") || 
-           content.includes("<MISMO:") || 
-           (content.includes("<") && 
-            content.includes("xmlns:MISMO") && 
-            content.includes("AppraisalReport"));
+    return (
+      content.includes("<MISMO_") ||
+      content.includes("<MISMO:") ||
+      (content.includes("<") &&
+        content.includes("xmlns:MISMO") &&
+        content.includes("AppraisalReport"))
+    );
   }
-  
+
   /**
    * Parse MISMO XML document and extract appraisal data
    */
   async parse(content: string): Promise<ParsingResult> {
     const entities: DataEntity[] = [];
     const warnings: string[] = [];
-    
+
     try {
       // Configure XML parser options
       const parser = new XMLParser({
         ignoreAttributes: false,
         attributeNamePrefix: "@_",
         allowBooleanAttributes: true,
-        parseAttributeValue: true
+        parseAttributeValue: true,
       });
-      
+
       // Parse the XML content
       const result = parser.parse(content);
-      
+
       // Extract the MISMO document
       const mismoDoc = this.findMISMOElement(result);
-      
+
       if (!mismoDoc) {
         warnings.push("Could not find MISMO document structure");
         return { entities, length: 0, warnings };
       }
-      
+
       // Extract subject property data
       const propertyData = this.extractSubjectProperty(mismoDoc);
       if (propertyData) {
         entities.push({
-          type: 'property',
-          data: propertyData
+          type: "property",
+          data: propertyData,
         });
       } else {
         warnings.push("No subject property data found");
       }
-      
+
       // Extract appraisal report information
       const reportData = this.extractReportInfo(mismoDoc);
       if (reportData) {
         entities.push({
-          type: 'report',
-          data: reportData
+          type: "report",
+          data: reportData,
         });
       } else {
         warnings.push("No appraisal report data found");
       }
-      
+
       // Extract comparable properties
       const comparables = this.extractComparables(mismoDoc);
       if (comparables.length > 0) {
-        comparables.forEach(comp => {
+        comparables.forEach((comp) => {
           entities.push({
-            type: 'comparable',
-            data: comp
+            type: "comparable",
+            data: comp,
           });
         });
       } else {
         warnings.push("No comparable properties found");
       }
-      
+
       // Extract adjustments
       const adjustments = this.extractAdjustments(mismoDoc);
       if (adjustments.length > 0) {
-        adjustments.forEach(adj => {
+        adjustments.forEach((adj) => {
           entities.push({
-            type: 'adjustment',
-            data: adj
+            type: "adjustment",
+            data: adj,
           });
         });
       }
-      
+
       return {
         entities,
         length: entities.length,
-        warnings: warnings.length > 0 ? warnings : undefined
+        warnings: warnings.length > 0 ? warnings : undefined,
       };
     } catch (error) {
-      warnings.push(`Error parsing MISMO XML: ${error instanceof Error ? error.message : String(error)}`);
+      warnings.push(
+        `Error parsing MISMO XML: ${error instanceof Error ? error.message : String(error)}`
+      );
       return { entities, length: 0, warnings };
     }
   }
-  
+
   /**
    * Locate the MISMO document structure
    */
   private findMISMOElement(obj: any): any {
     if (!obj) return null;
-    
+
     // Check if this object has MISMO data
-    if (obj.MISMO_AppraisalReport || 
-        obj["MISMO:AppraisalReport"] || 
-        obj.AppraisalReport) {
-      return obj.MISMO_AppraisalReport || 
-             obj["MISMO:AppraisalReport"] || 
-             obj.AppraisalReport;
+    if (obj.MISMO_AppraisalReport || obj["MISMO:AppraisalReport"] || obj.AppraisalReport) {
+      return obj.MISMO_AppraisalReport || obj["MISMO:AppraisalReport"] || obj.AppraisalReport;
     }
-    
+
     // Recursively check child objects
     for (const key in obj) {
-      if (typeof obj[key] === 'object') {
+      if (typeof obj[key] === "object") {
         const result = this.findMISMOElement(obj[key]);
         if (result) return result;
       }
     }
-    
+
     return null;
   }
-  
+
   /**
    * Extract subject property data
    */
   private extractSubjectProperty(mismoDoc: any): PropertyData | null {
     try {
       let property: any = null;
-      
+
       // Navigate the MISMO structure to find the subject property
       if (mismoDoc.SubjectProperty) {
         property = mismoDoc.SubjectProperty;
@@ -152,18 +160,18 @@ export class MISMOXMLParser implements FileParser {
       } else if (mismoDoc.Property) {
         property = mismoDoc.Property;
       }
-      
+
       if (!property) {
         return null;
       }
-      
+
       // Extract address data
       let address = "";
       let city = "";
       let state = "";
       let zipCode = "";
       let county = null;
-      
+
       if (property.PropertyAddress) {
         const addr = property.PropertyAddress;
         address = addr.StreetAddress || addr.AddressLine1 || "";
@@ -179,7 +187,7 @@ export class MISMOXMLParser implements FileParser {
         zipCode = addr.PostalCode || addr.ZipCode || "";
         county = addr.County || null;
       }
-      
+
       // Extract property characteristics
       const propertyType = this.extractPropertyType(property);
       const yearBuilt = property.YearBuilt || property.ConstructionYear || null;
@@ -187,7 +195,7 @@ export class MISMOXMLParser implements FileParser {
       const bedrooms = property.Bedrooms || property.RoomCount?.Bedrooms || null;
       const bathrooms = property.Bathrooms || property.RoomCount?.Bathrooms || null;
       const grossLivingArea = property.GrossLivingArea || property.GLA || null;
-      
+
       return {
         address,
         city,
@@ -199,14 +207,14 @@ export class MISMOXMLParser implements FileParser {
         lotSize,
         bedrooms: bedrooms ? Number(bedrooms) : null,
         bathrooms: bathrooms ? Number(bathrooms) : null,
-        grossLivingArea: grossLivingArea ? Number(grossLivingArea) : null
+        grossLivingArea: grossLivingArea ? Number(grossLivingArea) : null,
       };
     } catch (error) {
       console.error("Error extracting subject property:", error);
       return null;
     }
   }
-  
+
   /**
    * Extract appraisal report information
    */
@@ -214,11 +222,11 @@ export class MISMOXMLParser implements FileParser {
     try {
       // Find report elements
       const report = mismoDoc.Form || mismoDoc.AppraisalForm || mismoDoc.Report || mismoDoc;
-      
+
       if (!report) {
         return null;
       }
-      
+
       // Extract form type
       let formType = "Unknown";
       if (report.FormType) {
@@ -230,7 +238,7 @@ export class MISMOXMLParser implements FileParser {
       } else if (mismoDoc["@_FormType"]) {
         formType = mismoDoc["@_FormType"];
       }
-      
+
       // Extract effective date
       let effectiveDate = null;
       if (report.EffectiveDate) {
@@ -240,7 +248,7 @@ export class MISMOXMLParser implements FileParser {
       } else if (report.AppraisalInfo?.EffectiveDate) {
         effectiveDate = new Date(report.AppraisalInfo.EffectiveDate);
       }
-      
+
       // Extract report date
       let reportDate = null;
       if (report.ReportDate) {
@@ -250,10 +258,10 @@ export class MISMOXMLParser implements FileParser {
       } else if (report.AppraisalInfo?.ReportDate) {
         reportDate = new Date(report.AppraisalInfo.ReportDate);
       }
-      
+
       // Extract purpose
       const purpose = report.Purpose || report.AppraisalPurpose || null;
-      
+
       // Extract value
       let marketValue = null;
       if (report.Value) {
@@ -263,7 +271,7 @@ export class MISMOXMLParser implements FileParser {
       } else if (mismoDoc.Value) {
         marketValue = mismoDoc.Value;
       }
-      
+
       return {
         reportType: "MISMO XML",
         formType,
@@ -271,41 +279,41 @@ export class MISMOXMLParser implements FileParser {
         purpose,
         effectiveDate,
         reportDate,
-        marketValue
+        marketValue,
       };
     } catch (error) {
       console.error("Error extracting report info:", error);
       return null;
     }
   }
-  
+
   /**
    * Extract comparable properties
    */
   private extractComparables(mismoDoc: any): ComparableData[] {
     const comparables: ComparableData[] = [];
-    
+
     try {
       // Find where comparables might be stored
       let compArray = null;
       if (mismoDoc.Comparables) {
-        compArray = Array.isArray(mismoDoc.Comparables) 
-          ? mismoDoc.Comparables 
+        compArray = Array.isArray(mismoDoc.Comparables)
+          ? mismoDoc.Comparables
           : [mismoDoc.Comparables];
       } else if (mismoDoc.SalesComparables) {
-        compArray = Array.isArray(mismoDoc.SalesComparables.Comparable) 
-          ? mismoDoc.SalesComparables.Comparable 
+        compArray = Array.isArray(mismoDoc.SalesComparables.Comparable)
+          ? mismoDoc.SalesComparables.Comparable
           : [mismoDoc.SalesComparables.Comparable];
       } else if (mismoDoc.ComparableSales) {
-        compArray = Array.isArray(mismoDoc.ComparableSales) 
-          ? mismoDoc.ComparableSales 
+        compArray = Array.isArray(mismoDoc.ComparableSales)
+          ? mismoDoc.ComparableSales
           : [mismoDoc.ComparableSales];
       }
-      
+
       if (!compArray || compArray.length === 0) {
         return [];
       }
-      
+
       // Process each comparable
       compArray.forEach((comp: any) => {
         // Extract address info
@@ -313,7 +321,7 @@ export class MISMOXMLParser implements FileParser {
         let city = "";
         let state = "";
         let zipCode = "";
-        
+
         if (comp.PropertyAddress) {
           const addr = comp.PropertyAddress;
           address = addr.StreetAddress || addr.AddressLine1 || "";
@@ -327,9 +335,9 @@ export class MISMOXMLParser implements FileParser {
           state = addr.State || "";
           zipCode = addr.PostalCode || addr.ZipCode || "";
         }
-        
+
         if (!address) return; // Skip if no address found
-        
+
         // Extract property characteristics
         const propertyType = this.extractPropertyType(comp);
         const salePrice = comp.SalePrice || comp.Price || null;
@@ -338,7 +346,7 @@ export class MISMOXMLParser implements FileParser {
         const bedrooms = comp.Bedrooms || comp.RoomCount?.Bedrooms || null;
         const bathrooms = comp.Bathrooms || comp.RoomCount?.Bathrooms || null;
         const grossLivingArea = comp.GrossLivingArea || comp.GLA || null;
-        
+
         comparables.push({
           address,
           city,
@@ -351,23 +359,23 @@ export class MISMOXMLParser implements FileParser {
           yearBuilt,
           bedrooms,
           bathrooms,
-          grossLivingArea
+          grossLivingArea,
         });
       });
-      
+
       return comparables;
     } catch (error) {
       console.error("Error extracting comparables:", error);
       return [];
     }
   }
-  
+
   /**
    * Extract adjustments between subject and comparable properties
    */
   private extractAdjustments(mismoDoc: any): AdjustmentData[] {
     const adjustments: AdjustmentData[] = [];
-    
+
     try {
       // Find adjustment data
       let adjSection = null;
@@ -376,21 +384,21 @@ export class MISMOXMLParser implements FileParser {
       } else if (mismoDoc.SalesAdjustments) {
         adjSection = mismoDoc.SalesAdjustments;
       }
-      
+
       if (!adjSection) {
         return [];
       }
-      
+
       // Process adjustments - this varies widely between MISMO implementations
       // so we use a more generic approach
-      
+
       // For each key that looks like an adjustment
-      Object.keys(adjSection).forEach(key => {
+      Object.keys(adjSection).forEach((key) => {
         const value = adjSection[key];
-        
+
         // Skip non-adjustments
-        if (typeof value !== 'object' || !value) return;
-        
+        if (typeof value !== "object" || !value) return;
+
         // Try to find the comparable ID and adjustment amount
         let compId = null;
         if (value.ComparableID) {
@@ -398,45 +406,45 @@ export class MISMOXMLParser implements FileParser {
         } else if (value["@_comparableId"]) {
           compId = value["@_comparableId"];
         }
-        
+
         // Skip if we can't associate with a comparable
         if (!compId) return;
-        
+
         // Extract adjustment details
         const adjType = key;
         let amount = null;
-        
-        if (typeof value === 'object' && value.Amount) {
+
+        if (typeof value === "object" && value.Amount) {
           amount = value.Amount;
         } else if (value.AdjustmentAmount) {
           amount = value.AdjustmentAmount;
-        } else if (typeof value === 'string' || typeof value === 'number') {
+        } else if (typeof value === "string" || typeof value === "number") {
           amount = value.toString();
         }
-        
+
         if (amount !== null) {
           adjustments.push({
             comparableId: compId,
             adjustmentType: adjType,
             amount: amount.toString(),
-            description: `${adjType} adjustment`
+            description: `${adjType} adjustment`,
           });
         }
       });
-      
+
       return adjustments;
     } catch (error) {
       console.error("Error extracting adjustments:", error);
       return [];
     }
   }
-  
+
   /**
    * Extract property type from various MISMO formats
    */
   private extractPropertyType(property: any): string {
     if (!property) return "Unknown";
-    
+
     if (property.PropertyType) {
       return property.PropertyType;
     } else if (property.PropertyCharacteristics?.PropertyType) {
@@ -446,7 +454,7 @@ export class MISMOXMLParser implements FileParser {
     } else if (property["@_type"]) {
       return property["@_type"];
     }
-    
+
     return "Single Family";
   }
 }

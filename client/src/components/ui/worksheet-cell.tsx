@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback } from 'react';
-import { Input } from '@/components/ui/input';
+import { useState, useEffect, useRef, useCallback } from "react";
+import { Input } from "@/components/ui/input";
 
 interface WorksheetCellProps {
   value: string;
@@ -14,7 +14,7 @@ export function WorksheetCell({
   onChange,
   onBlur,
   editable = true,
-  className = '',
+  className = "",
 }: WorksheetCellProps) {
   const [isFocused, setIsFocused] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -28,39 +28,36 @@ export function WorksheetCell({
 
   // Handle keyboard navigation between cells
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Tab' || e.key === 'Enter') {
-      if (e.key === 'Enter') {
+    if (e.key === "Tab" || e.key === "Enter") {
+      if (e.key === "Enter") {
         e.preventDefault();
         // Navigate to the cell below (or handle as needed)
         const currentCell = e.currentTarget;
-        const cellsInColumn = document.querySelectorAll('input[data-worksheet-cell]');
+        const cellsInColumn = document.querySelectorAll("input[data-worksheet-cell]");
         const currentIndex = Array.from(cellsInColumn).indexOf(currentCell);
-        
+
         if (currentIndex >= 0 && currentIndex < cellsInColumn.length - 1) {
           (cellsInColumn[currentIndex + 1] as HTMLInputElement).focus();
         }
       }
-      
+
       // For Tab, let the default behavior handle it
-    } else if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+    } else if (e.key === "ArrowUp" || e.key === "ArrowDown") {
       e.preventDefault();
       const currentCell = e.currentTarget;
-      const cellsInColumn = document.querySelectorAll('input[data-worksheet-cell]');
+      const cellsInColumn = document.querySelectorAll("input[data-worksheet-cell]");
       const currentIndex = Array.from(cellsInColumn).indexOf(currentCell);
-      
-      if (e.key === 'ArrowUp' && currentIndex > 0) {
+
+      if (e.key === "ArrowUp" && currentIndex > 0) {
         (cellsInColumn[currentIndex - 1] as HTMLInputElement).focus();
-      } else if (e.key === 'ArrowDown' && currentIndex < cellsInColumn.length - 1) {
+      } else if (e.key === "ArrowDown" && currentIndex < cellsInColumn.length - 1) {
         (cellsInColumn[currentIndex + 1] as HTMLInputElement).focus();
       }
     }
   }, []);
 
   return (
-    <div 
-      className={`w-full h-full ${className}`}
-      onClick={handleClick}
-    >
+    <div className={`w-full h-full ${className}`} onClick={handleClick}>
       <Input
         ref={inputRef}
         type="text"
@@ -81,8 +78,8 @@ export function WorksheetCell({
           font-mono
           focus:ring-0
           focus:outline-none
-          ${editable ? 'cursor-text' : 'cursor-default'}
-          ${!editable ? 'text-neutral-dark' : ''}
+          ${editable ? "cursor-text" : "cursor-default"}
+          ${!editable ? "text-neutral-dark" : ""}
         `}
         data-worksheet-cell
       />

@@ -1,26 +1,33 @@
-import React, { useState } from 'react';
-import { useLocation } from 'wouter';
-import { Button } from '@/components/ui/button';
-import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { 
-  FileText, 
-  FileDown, 
-  FileUp, 
-  CheckCircle2, 
-  AlertTriangle, 
-  FileCheck, 
-  Download, 
-  Mail, 
+import React, { useState } from "react";
+import { useLocation } from "wouter";
+import { Button } from "@/components/ui/button";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import {
+  FileText,
+  FileDown,
+  FileUp,
+  CheckCircle2,
+  AlertTriangle,
+  FileCheck,
+  Download,
+  Mail,
   FileSpreadsheet,
   FileX,
   Settings,
   Printer,
-  Upload 
-} from 'lucide-react';
+  Upload,
+} from "lucide-react";
 
 interface ReportGenerationProps {
   reportId?: string;
@@ -34,26 +41,26 @@ interface ReportGenerationProps {
 }
 
 export function ReportGeneration({
-  reportId = 'apr-1001',
-  propertyAddress = '123 Main St, Cityville, CA 90210',
+  reportId = "apr-1001",
+  propertyAddress = "123 Main St, Cityville, CA 90210",
   isCompliant = true,
   onGeneratePdf,
   onGenerateXml,
   onExportCsv,
   onSendEmail,
-  onPrint
+  onPrint,
 }: ReportGenerationProps) {
   const [_, setLocation] = useLocation();
-  const [activeTab, setActiveTab] = useState('pdf');
+  const [activeTab, setActiveTab] = useState("pdf");
   const [generatingPdf, setGeneratingPdf] = useState(false);
   const [generatingXml, setGeneratingXml] = useState(false);
   const [pdfReady, setPdfReady] = useState(false);
   const [xmlReady, setXmlReady] = useState(false);
-  
+
   // Function to handle PDF generation
   const handleGeneratePdf = () => {
     setGeneratingPdf(true);
-    
+
     // Simulate PDF generation process
     setTimeout(() => {
       setGeneratingPdf(false);
@@ -61,11 +68,11 @@ export function ReportGeneration({
       if (onGeneratePdf) onGeneratePdf();
     }, 2000);
   };
-  
+
   // Function to handle XML generation
   const handleGenerateXml = () => {
     setGeneratingXml(true);
-    
+
     // Simulate XML generation process
     setTimeout(() => {
       setGeneratingXml(false);
@@ -73,22 +80,22 @@ export function ReportGeneration({
       if (onGenerateXml) onGenerateXml();
     }, 2000);
   };
-  
+
   // Function to handle email sending
   const handleSendEmail = () => {
     if (onSendEmail) onSendEmail();
   };
-  
+
   // Function to handle printing
   const handlePrint = () => {
     if (onPrint) onPrint();
   };
-  
+
   // Function to handle CSV export
   const handleExportCsv = () => {
     if (onExportCsv) onExportCsv();
   };
-  
+
   return (
     <div className="space-y-8">
       {/* Compliance Check Alert */}
@@ -97,10 +104,11 @@ export function ReportGeneration({
           <AlertTriangle className="h-4 w-4" />
           <AlertTitle>Compliance Issues Detected</AlertTitle>
           <AlertDescription>
-            This report has compliance issues that must be resolved before generating final deliverables.
-            <Button 
-              variant="outline" 
-              size="sm" 
+            This report has compliance issues that must be resolved before generating final
+            deliverables.
+            <Button
+              variant="outline"
+              size="sm"
               className="ml-4"
               onClick={() => setLocation(`/compliance/${reportId}`)}
             >
@@ -109,7 +117,7 @@ export function ReportGeneration({
           </AlertDescription>
         </Alert>
       )}
-      
+
       {/* Generation Options */}
       <Tabs defaultValue={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="grid w-full grid-cols-4">
@@ -118,7 +126,7 @@ export function ReportGeneration({
           <TabsTrigger value="export">Data Export</TabsTrigger>
           <TabsTrigger value="delivery">Delivery</TabsTrigger>
         </TabsList>
-        
+
         {/* PDF Report Generation */}
         <TabsContent value="pdf" className="space-y-4">
           <Card>
@@ -141,9 +149,9 @@ export function ReportGeneration({
                     Standard form for single-family residential properties (Form 1004)
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
+                    <Button
+                      variant="default"
+                      size="sm"
                       className="w-full"
                       onClick={handleGeneratePdf}
                       disabled={generatingPdf}
@@ -167,7 +175,7 @@ export function ReportGeneration({
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Desktop Appraisal Report</CardTitle>
@@ -176,17 +184,13 @@ export function ReportGeneration({
                     Report format for desktop appraisals without interior inspection
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                    >
+                    <Button variant="outline" size="sm" className="w-full">
                       <FileText className="mr-2 h-4 w-4" />
                       Select Format
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Custom Report Template</CardTitle>
@@ -195,18 +199,14 @@ export function ReportGeneration({
                     Generate using a custom or company-specific template
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                    >
+                    <Button variant="outline" size="sm" className="w-full">
                       <Settings className="mr-2 h-4 w-4" />
                       Choose Template
                     </Button>
                   </CardFooter>
                 </Card>
               </div>
-              
+
               {pdfReady && (
                 <Alert className="bg-green-50 text-green-800 border-green-200">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -229,7 +229,7 @@ export function ReportGeneration({
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* MISMO XML Generation */}
         <TabsContent value="xml" className="space-y-4">
           <Card>
@@ -252,9 +252,9 @@ export function ReportGeneration({
                     Standard format for GSE (Fannie Mae, Freddie Mac) submissions
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
+                    <Button
+                      variant="default"
+                      size="sm"
                       className="w-full"
                       onClick={handleGenerateXml}
                       disabled={generatingXml}
@@ -278,7 +278,7 @@ export function ReportGeneration({
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">UAD Compliance Check</CardTitle>
@@ -287,9 +287,9 @@ export function ReportGeneration({
                     Verify XML compliance with UAD standards before submission
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                       onClick={() => setLocation(`/compliance/${reportId}`)}
                     >
@@ -299,7 +299,7 @@ export function ReportGeneration({
                   </CardFooter>
                 </Card>
               </div>
-              
+
               {xmlReady && (
                 <Alert className="bg-green-50 text-green-800 border-green-200">
                   <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -316,7 +316,7 @@ export function ReportGeneration({
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Data Export Options */}
         <TabsContent value="export" className="space-y-4">
           <Card>
@@ -339,9 +339,9 @@ export function ReportGeneration({
                     Export property and comparable data as CSV
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       className="w-full"
                       onClick={handleExportCsv}
                     >
@@ -350,7 +350,7 @@ export function ReportGeneration({
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">JSON Data</CardTitle>
@@ -359,17 +359,13 @@ export function ReportGeneration({
                     Export complete dataset in JSON format
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                    >
+                    <Button variant="outline" size="sm" className="w-full">
                       <FileDown className="mr-2 h-4 w-4" />
                       Export JSON
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">AI Analysis Export</CardTitle>
@@ -378,11 +374,7 @@ export function ReportGeneration({
                     Export AI-generated analysis and charts
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                    >
+                    <Button variant="outline" size="sm" className="w-full">
                       <FileDown className="mr-2 h-4 w-4" />
                       Export Analysis
                     </Button>
@@ -392,7 +384,7 @@ export function ReportGeneration({
             </CardContent>
           </Card>
         </TabsContent>
-        
+
         {/* Delivery Options */}
         <TabsContent value="delivery" className="space-y-4">
           <Card>
@@ -415,9 +407,9 @@ export function ReportGeneration({
                     Send reports directly to client email
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="default" 
-                      size="sm" 
+                    <Button
+                      variant="default"
+                      size="sm"
                       className="w-full"
                       onClick={handleSendEmail}
                       disabled={!pdfReady}
@@ -427,7 +419,7 @@ export function ReportGeneration({
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">System Integration</CardTitle>
@@ -436,18 +428,13 @@ export function ReportGeneration({
                     Submit directly to lending or appraisal management systems
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      disabled={!xmlReady}
-                    >
+                    <Button variant="outline" size="sm" className="w-full" disabled={!xmlReady}>
                       <Upload className="mr-2 h-4 w-4" />
                       Submit to System
                     </Button>
                   </CardFooter>
                 </Card>
-                
+
                 <Card className="bg-muted/20">
                   <CardHeader className="pb-2">
                     <CardTitle className="text-sm">Client Portal</CardTitle>
@@ -456,28 +443,24 @@ export function ReportGeneration({
                     Generate secure access link for client portal
                   </CardContent>
                   <CardFooter>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      className="w-full"
-                      disabled={!pdfReady}
-                    >
+                    <Button variant="outline" size="sm" className="w-full" disabled={!pdfReady}>
                       <FileUp className="mr-2 h-4 w-4" />
                       Create Portal Link
                     </Button>
                   </CardFooter>
                 </Card>
               </div>
-              
+
               {pdfReady && (
                 <Alert>
                   <AlertTitle>Delivery Options</AlertTitle>
                   <AlertDescription>
-                    Your report is ready for delivery. Choose a delivery method from the options above or download the files for manual delivery.
+                    Your report is ready for delivery. Choose a delivery method from the options
+                    above or download the files for manual delivery.
                   </AlertDescription>
                 </Alert>
               )}
-              
+
               {!pdfReady && !xmlReady && (
                 <Alert variant="destructive">
                   <FileX className="h-4 w-4" />

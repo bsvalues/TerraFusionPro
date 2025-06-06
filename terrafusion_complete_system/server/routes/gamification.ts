@@ -1,7 +1,14 @@
 import { Router } from "express";
 import { storage } from "../database-storage";
 import * as z from "zod";
-import { insertAchievementDefinitionSchema, insertUserAchievementSchema, insertLevelSchema, insertUserProgressSchema, insertUserChallengeSchema, insertUserNotificationSchema } from "@shared/schema";
+import {
+  insertAchievementDefinitionSchema,
+  insertUserAchievementSchema,
+  insertLevelSchema,
+  insertUserProgressSchema,
+  insertUserChallengeSchema,
+  insertUserNotificationSchema,
+} from "@shared/schema";
 
 const gamificationRoutes = Router();
 
@@ -61,7 +68,7 @@ gamificationRoutes.post("/achievement-definitions", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const definition = await storage.createAchievementDefinition(validationResult.data);
     res.status(201).json(definition);
   } catch (error) {
@@ -80,7 +87,7 @@ gamificationRoutes.put("/achievement-definitions/:id", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const updatedDefinition = await storage.updateAchievementDefinition(id, validationResult.data);
     if (!updatedDefinition) {
       return res.status(404).json({ error: "Achievement definition not found" });
@@ -139,17 +146,17 @@ gamificationRoutes.post("/user-achievements", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const achievement = await storage.createUserAchievement(validationResult.data);
-    
+
     // Increment completed achievements count in user progress
     try {
-      await storage.incrementUserProgressStats(achievement.userId, 'completedAchievements');
+      await storage.incrementUserProgressStats(achievement.userId, "completedAchievements");
     } catch (progressError) {
       console.error("Error updating user progress:", progressError);
       // Continue with the response even if progress update fails
     }
-    
+
     res.status(201).json(achievement);
   } catch (error) {
     console.error("Error creating user achievement:", error);
@@ -167,22 +174,25 @@ gamificationRoutes.put("/user-achievements/:id", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const updatedAchievement = await storage.updateUserAchievement(id, validationResult.data);
     if (!updatedAchievement) {
       return res.status(404).json({ error: "User achievement not found" });
     }
-    
+
     // Check if achievement status changed to 'completed'
-    if (validationResult.data.status === 'completed') {
+    if (validationResult.data.status === "completed") {
       try {
-        await storage.incrementUserProgressStats(updatedAchievement.userId, 'completedAchievements');
+        await storage.incrementUserProgressStats(
+          updatedAchievement.userId,
+          "completedAchievements"
+        );
       } catch (progressError) {
         console.error("Error updating user progress:", progressError);
         // Continue with the response even if progress update fails
       }
     }
-    
+
     res.json(updatedAchievement);
   } catch (error) {
     console.error("Error updating user achievement:", error);
@@ -238,7 +248,7 @@ gamificationRoutes.post("/levels", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const level = await storage.createLevel(validationResult.data);
     res.status(201).json(level);
   } catch (error) {
@@ -257,7 +267,7 @@ gamificationRoutes.put("/levels/:id", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const updatedLevel = await storage.updateLevel(id, validationResult.data);
     if (!updatedLevel) {
       return res.status(404).json({ error: "Level not found" });
@@ -293,7 +303,7 @@ gamificationRoutes.post("/user-progress", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const progress = await storage.createUserProgress(validationResult.data);
     res.status(201).json(progress);
   } catch (error) {
@@ -312,7 +322,7 @@ gamificationRoutes.put("/user-progress/:id", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const updatedProgress = await storage.updateUserProgress(id, validationResult.data);
     if (!updatedProgress) {
       return res.status(404).json({ error: "User progress not found" });
@@ -328,11 +338,11 @@ gamificationRoutes.post("/user-progress/:userId/add-points", async (req, res) =>
   try {
     const userId = parseInt(req.params.userId);
     const { points } = req.body;
-    
-    if (typeof points !== 'number' || points <= 0) {
+
+    if (typeof points !== "number" || points <= 0) {
       return res.status(400).json({ error: "Points must be a positive number" });
     }
-    
+
     const updatedProgress = await storage.addPointsToUserProgress(userId, points);
     if (!updatedProgress) {
       return res.status(404).json({ error: "User progress not found" });
@@ -390,7 +400,7 @@ gamificationRoutes.post("/user-challenges", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const challenge = await storage.createUserChallenge(validationResult.data);
     res.status(201).json(challenge);
   } catch (error) {
@@ -409,7 +419,7 @@ gamificationRoutes.put("/user-challenges/:id", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const updatedChallenge = await storage.updateUserChallenge(id, validationResult.data);
     if (!updatedChallenge) {
       return res.status(404).json({ error: "User challenge not found" });
@@ -425,28 +435,28 @@ gamificationRoutes.post("/user-challenges/:id/progress", async (req, res) => {
   try {
     const id = parseInt(req.params.id);
     const { incrementBy } = req.body;
-    
-    if (typeof incrementBy !== 'number' || incrementBy <= 0) {
+
+    if (typeof incrementBy !== "number" || incrementBy <= 0) {
       return res.status(400).json({ error: "Increment value must be a positive number" });
     }
-    
+
     const updatedChallenge = await storage.incrementChallengeProgress(id, incrementBy);
     if (!updatedChallenge) {
       return res.status(404).json({ error: "User challenge not found" });
     }
-    
+
     // If challenge was completed, update user progress
-    if (updatedChallenge.status === 'completed') {
+    if (updatedChallenge.status === "completed") {
       try {
         // Award points for completing the challenge
         const pointsToAward = updatedChallenge.pointValue || 10; // Default to 10 points if not specified
         await storage.addPointsToUserProgress(updatedChallenge.userId, pointsToAward);
-        
+
         // Create a notification for challenge completion
         await storage.createUserNotification({
           userId: updatedChallenge.userId,
-          type: 'challenge_completed',
-          title: 'Challenge Completed!',
+          type: "challenge_completed",
+          title: "Challenge Completed!",
           message: `You've completed the challenge: ${updatedChallenge.title}`,
           read: false,
         });
@@ -455,7 +465,7 @@ gamificationRoutes.post("/user-challenges/:id/progress", async (req, res) => {
         // Continue with the response even if progress update fails
       }
     }
-    
+
     res.json(updatedChallenge);
   } catch (error) {
     console.error("Error incrementing challenge progress:", error);
@@ -495,7 +505,7 @@ gamificationRoutes.post("/user-notifications", async (req, res) => {
         details: validationResult.error.format(),
       });
     }
-    
+
     const notification = await storage.createUserNotification(validationResult.data);
     res.status(201).json(notification);
   } catch (error) {

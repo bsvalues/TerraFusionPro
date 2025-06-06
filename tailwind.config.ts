@@ -79,7 +79,7 @@ export default {
             height: "0",
           },
         },
-        "spin": {
+        spin: {
           to: {
             transform: "rotate(360deg)",
           },
@@ -108,7 +108,7 @@ export default {
             left: "100%",
           },
         },
-        "breathe": {
+        breathe: {
           "0%, 100%": {
             transform: "scale(0.85)",
             opacity: "0.8",
@@ -118,7 +118,7 @@ export default {
             opacity: "1",
           },
         },
-        "shimmer": {
+        shimmer: {
           "0%": {
             backgroundPosition: "-200% 0",
           },
@@ -130,7 +130,7 @@ export default {
       animation: {
         "accordion-down": "accordion-down 0.2s ease-out",
         "accordion-up": "accordion-up 0.2s ease-out",
-        "spin": "spin 1s linear infinite",
+        spin: "spin 1s linear infinite",
         "spin-slow": "spin 2s linear infinite",
         "spin-fast": "spin 0.5s linear infinite",
         "pulse-opacity": "pulse-opacity 2s cubic-bezier(0.4, 0, 0.6, 1) infinite",
@@ -145,7 +145,7 @@ export default {
         "breathe-fast": "breathe 1.5s ease-in-out infinite",
         "shimmer-slow": "shimmer 5s infinite linear",
         "shimmer-medium": "shimmer 3s infinite linear",
-        "shimmer-fast": "shimmer 2s infinite linear"
+        "shimmer-fast": "shimmer 2s infinite linear",
       },
     },
   },

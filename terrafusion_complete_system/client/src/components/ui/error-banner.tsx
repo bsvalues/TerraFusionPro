@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { AlertCircle, X, ChevronDown, ChevronUp } from 'lucide-react';
-import { useApp } from '@/contexts/AppContext';
-import { cn } from '@/lib/utils';
-import { Alert, AlertDescription, AlertTitle } from './alert';
-import { Button } from './button';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from './collapsible';
+import React, { useState } from "react";
+import { AlertCircle, X, ChevronDown, ChevronUp } from "lucide-react";
+import { useApp } from "@/contexts/AppContext";
+import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "./alert";
+import { Button } from "./button";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "./collapsible";
 
 export interface ErrorBannerProps {
   // Optional override to show a specific error message
@@ -28,11 +28,12 @@ export function ErrorBanner({
 }: ErrorBannerProps) {
   const { state, clearError } = useApp();
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
-  
+
   // Use passed props or global error state
   const isError = title !== undefined || state.error.isError;
-  const errorTitle = title || state.error.message || 'An error occurred';
-  const errorDescription = description || state.error.message || 'Something went wrong. Please try again.';
+  const errorTitle = title || state.error.message || "An error occurred";
+  const errorDescription =
+    description || state.error.message || "Something went wrong. Please try again.";
   const errorDetails = details || state.error.details;
 
   if (!isError) {
@@ -45,13 +46,9 @@ export function ErrorBanner({
       <AlertTitle>{errorTitle}</AlertTitle>
       <AlertDescription>
         {errorDescription}
-        
+
         {errorDetails && (
-          <Collapsible
-            open={isDetailsOpen}
-            onOpenChange={setIsDetailsOpen}
-            className="mt-2"
-          >
+          <Collapsible open={isDetailsOpen} onOpenChange={setIsDetailsOpen} className="mt-2">
             <div className="flex items-center">
               <CollapsibleTrigger asChild>
                 <Button variant="link" size="sm" className="p-0 h-auto text-xs">
@@ -60,7 +57,7 @@ export function ErrorBanner({
                   ) : (
                     <ChevronDown className="h-3 w-3 mr-1" />
                   )}
-                  {isDetailsOpen ? 'Hide details' : 'Show details'}
+                  {isDetailsOpen ? "Hide details" : "Show details"}
                 </Button>
               </CollapsibleTrigger>
             </div>
@@ -72,7 +69,7 @@ export function ErrorBanner({
           </Collapsible>
         )}
       </AlertDescription>
-      
+
       {dismissible && (
         <Button
           size="sm"

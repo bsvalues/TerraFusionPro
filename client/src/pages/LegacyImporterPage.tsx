@@ -1,13 +1,20 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Progress } from '@/components/ui/progress';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Alert, AlertDescription } from '@/components/ui/alert';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Upload, Database, FileText, MapPin, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { Upload, Database, FileText, MapPin, CheckCircle2, AlertCircle, Clock } from "lucide-react";
 
 interface LegacyFile {
   FileId: number;
@@ -33,56 +40,59 @@ interface ImportStats {
 interface ConvertedDatabase {
   database: string;
   convertedAt: string;
-  tables: Record<string, {
-    schema: any[];
-    rowCount: number;
-    data: any[];
-  }>;
+  tables: Record<
+    string,
+    {
+      schema: any[];
+      rowCount: number;
+      data: any[];
+    }
+  >;
 }
 
 export default function LegacyImporterPage() {
-  const [activeTab, setActiveTab] = useState('overview');
+  const [activeTab, setActiveTab] = useState("overview");
   const [importProgress, setImportProgress] = useState(0);
   const [isImporting, setIsImporting] = useState(false);
   const queryClient = useQueryClient();
 
   // Load converted database data
   const { data: legacyData, isLoading } = useQuery({
-    queryKey: ['/api/legacy/converted-data'],
+    queryKey: ["/api/legacy/converted-data"],
     queryFn: async () => {
-      const response = await fetch('/api/legacy/converted-data');
-      if (!response.ok) throw new Error('Failed to load legacy data');
+      const response = await fetch("/api/legacy/converted-data");
+      if (!response.ok) throw new Error("Failed to load legacy data");
       return response.json() as ConvertedDatabase;
-    }
+    },
   });
 
   // Import mutation
   const importMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch('/api/legacy/import', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+      const response = await fetch("/api/legacy/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
       });
-      if (!response.ok) throw new Error('Import failed');
+      if (!response.ok) throw new Error("Import failed");
       return response.json();
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['/api/properties'] });
+      queryClient.invalidateQueries({ queryKey: ["/api/properties"] });
       setIsImporting(false);
       setImportProgress(100);
     },
     onError: () => {
       setIsImporting(false);
-    }
+    },
   });
 
   const handleImport = () => {
     setIsImporting(true);
     setImportProgress(0);
-    
+
     // Simulate progress
     const interval = setInterval(() => {
-      setImportProgress(prev => {
+      setImportProgress((prev) => {
         if (prev >= 90) {
           clearInterval(interval);
           return prev;
@@ -101,13 +111,14 @@ export default function LegacyImporterPage() {
   const stats: ImportStats = {
     totalFiles: fileCount,
     processedFiles: fileDetails.length,
-    successfulImports: fileDetails.filter(f => f.Location && f.Location.trim()).length,
-    failedImports: fileDetails.filter(f => !f.Location || !f.Location.trim()).length,
-    uniqueAddresses: new Set(fileDetails.map(f => f.Location)
-      .filter(location => location && location.trim())).size
+    successfulImports: fileDetails.filter((f) => f.Location && f.Location.trim()).length,
+    failedImports: fileDetails.filter((f) => !f.Location || !f.Location.trim()).length,
+    uniqueAddresses: new Set(
+      fileDetails.map((f) => f.Location).filter((location) => location && location.trim())
+    ).size,
   };
 
-  // Sample property files for preview  
+  // Sample property files for preview
   const sampleFiles = fileDetails.slice(0, 10);
 
   if (isLoading) {
@@ -182,7 +193,7 @@ export default function LegacyImporterPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-2xl font-bold">
-                  {legacyData?.tables?.Version?.data?.[0]?.DatabaseVersion || 'Unknown'}
+                  {legacyData?.tables?.Version?.data?.[0]?.DatabaseVersion || "Unknown"}
                 </div>
                 <p className="text-xs text-muted-foreground">Schema version</p>
               </CardContent>
@@ -225,9 +236,7 @@ export default function LegacyImporterPage() {
           <Card>
             <CardHeader>
               <CardTitle>Property File Preview</CardTitle>
-              <CardDescription>
-                Sample property records from the legacy database
-              </CardDescription>
+              <CardDescription>Sample property records from the legacy database</CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
@@ -244,20 +253,24 @@ export default function LegacyImporterPage() {
                 </TableHeader>
                 <TableBody>
                   {sampleFiles.map((file) => {
-                    const location = file.Location || 'No location';
+                    const location = file.Location || "No location";
                     const isComplete = !!(file.Location && file.Location.trim());
-                    
+
                     return (
                       <TableRow key={file.FileId}>
                         <TableCell className="font-mono">{file.FileId}</TableCell>
                         <TableCell>{location}</TableCell>
-                        <TableCell>{file.AppraiserName || 'N/A'}</TableCell>
-                        <TableCell>${file.AppraisedValue ? file.AppraisedValue.toLocaleString() : 'N/A'}</TableCell>
-                        <TableCell>{file.MajorFormDescription || 'N/A'}</TableCell>
-                        <TableCell>{file.GrossLivingArea ? `${file.GrossLivingArea} sq ft` : 'N/A'}</TableCell>
+                        <TableCell>{file.AppraiserName || "N/A"}</TableCell>
                         <TableCell>
-                          <Badge variant={isComplete ? 'default' : 'secondary'}>
-                            {isComplete ? 'Complete' : 'Incomplete'}
+                          ${file.AppraisedValue ? file.AppraisedValue.toLocaleString() : "N/A"}
+                        </TableCell>
+                        <TableCell>{file.MajorFormDescription || "N/A"}</TableCell>
+                        <TableCell>
+                          {file.GrossLivingArea ? `${file.GrossLivingArea} sq ft` : "N/A"}
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={isComplete ? "default" : "secondary"}>
+                            {isComplete ? "Complete" : "Incomplete"}
                           </Badge>
                         </TableCell>
                       </TableRow>
@@ -291,21 +304,21 @@ export default function LegacyImporterPage() {
               <Alert>
                 <AlertCircle className="h-4 w-4" />
                 <AlertDescription>
-                  This will import {stats.successfulImports.toLocaleString()} property records
-                  with complete address information into the TerraFusion database.
+                  This will import {stats.successfulImports.toLocaleString()} property records with
+                  complete address information into the TerraFusion database.
                 </AlertDescription>
               </Alert>
 
               <div className="flex gap-4">
-                <Button 
-                  onClick={handleImport} 
+                <Button
+                  onClick={handleImport}
                   disabled={isImporting || importMutation.isPending}
                   className="flex items-center gap-2"
                 >
                   <Upload className="h-4 w-4" />
-                  {isImporting ? 'Importing...' : 'Start Import'}
+                  {isImporting ? "Importing..." : "Start Import"}
                 </Button>
-                
+
                 <Button variant="outline" disabled={isImporting}>
                   Preview Changes
                 </Button>

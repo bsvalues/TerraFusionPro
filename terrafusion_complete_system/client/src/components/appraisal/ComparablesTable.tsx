@@ -10,25 +10,30 @@ interface ComparablesTableProps {
   onAdjustmentChange: (comparableId: number, type: string, value: number) => void;
 }
 
-export default function ComparablesTable({ 
-  property, 
-  comparables, 
-  adjustments, 
-  onAdjustmentChange 
+export default function ComparablesTable({
+  property,
+  comparables,
+  adjustments,
+  onAdjustmentChange,
 }: ComparablesTableProps) {
   // Helper function to get adjustments for a specific comparable
-  const getAdjustmentAmount = useCallback((comparableId: number, adjustmentType: string) => {
-    const adjustment = adjustments.find(
-      adj => adj.comparableId === comparableId && adj.adjustmentType === adjustmentType
-    );
-    return adjustment ? Number(adjustment.amount) : 0;
-  }, [adjustments]);
+  const getAdjustmentAmount = useCallback(
+    (comparableId: number, adjustmentType: string) => {
+      const adjustment = adjustments.find(
+        (adj) => adj.comparableId === comparableId && adj.adjustmentType === adjustmentType
+      );
+      return adjustment ? Number(adjustment.amount) : 0;
+    },
+    [adjustments]
+  );
 
   // Helper function to format currency values
   const formatCurrency = useCallback((value: number | string | null | undefined) => {
     if (value === null || value === undefined) return "";
     const numValue = typeof value === "string" ? parseFloat(value) : value;
-    return isNaN(numValue) ? "" : `$${numValue.toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+    return isNaN(numValue)
+      ? ""
+      : `$${numValue.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
   }, []);
 
   // Helper function to format percentages
@@ -38,7 +43,7 @@ export default function ComparablesTable({
   }, []);
 
   // Get calculated results
-  const calculatedResults = comparables.map(comp => calculateAdjustments(comp, adjustments));
+  const calculatedResults = comparables.map((comp) => calculateAdjustments(comp, adjustments));
 
   return (
     <div className="overflow-x-auto">
@@ -48,7 +53,10 @@ export default function ComparablesTable({
             <th className="p-2 border-r border-neutral-medium text-left font-medium">Item</th>
             <th className="p-2 border-r border-neutral-medium text-center font-medium">Subject</th>
             {comparables.map((comp, index) => (
-              <th key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium text-center font-medium`}>
+              <th
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium text-center font-medium`}
+              >
                 Comp {index + 1}
               </th>
             ))}
@@ -59,7 +67,10 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium font-medium">Address</td>
             <td className="p-2 border-r border-neutral-medium">{property.address || ""}</td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+              >
                 {comp.address || ""}
               </td>
             ))}
@@ -68,7 +79,10 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium font-medium">Proximity to Subject</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+              >
                 {comp.proximityToSubject || ""}
               </td>
             ))}
@@ -77,8 +91,11 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium font-medium">Sale Price</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell`}>
-                <WorksheetCell 
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell`}
+              >
+                <WorksheetCell
                   value={formatCurrency(comp.salePrice)}
                   editable={false}
                   onChange={() => {}}
@@ -87,24 +104,39 @@ export default function ComparablesTable({
             ))}
           </tr>
           <tr className="border-b border-neutral-medium">
-            <td className="p-2 border-r border-neutral-medium font-medium">Price / GLA ($/sq ft)</td>
+            <td className="p-2 border-r border-neutral-medium font-medium">
+              Price / GLA ($/sq ft)
+            </td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell calculated`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell calculated`}
+              >
                 {formatCurrency(comp.pricePerSqFt)}
               </td>
             ))}
           </tr>
           <tr className="border-b border-neutral-medium bg-neutral-lightest">
-            <td className="p-2 border-r border-neutral-medium font-medium" colSpan={2 + comparables.length}>DESCRIPTION</td>
+            <td
+              className="p-2 border-r border-neutral-medium font-medium"
+              colSpan={2 + comparables.length}
+            >
+              DESCRIPTION
+            </td>
           </tr>
-          
+
           {/* Sale or Financing Adjustments */}
           <tr className="border-b border-neutral-medium">
-            <td className="p-2 border-r border-neutral-medium font-medium">Sale or Financing Adjustments</td>
+            <td className="p-2 border-r border-neutral-medium font-medium">
+              Sale or Financing Adjustments
+            </td>
             <td className="p-2 border-r border-neutral-medium">Conventional</td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+              >
                 {comp.saleOrFinancingConcessions || "Conventional"}
               </td>
             ))}
@@ -113,13 +145,16 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium pl-4">Adjustment</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell`}>
-                <WorksheetCell 
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell`}
+              >
+                <WorksheetCell
                   value={formatCurrency(getAdjustmentAmount(comp.id, "sale_concessions"))}
                   onChange={(value) => {
-                    const numValue = value.startsWith("$") ? 
-                      parseFloat(value.substring(1).replace(/,/g, "")) : 
-                      parseFloat(value.replace(/,/g, ""));
+                    const numValue = value.startsWith("$")
+                      ? parseFloat(value.substring(1).replace(/,/g, ""))
+                      : parseFloat(value.replace(/,/g, ""));
                     if (!isNaN(numValue)) {
                       onAdjustmentChange(comp.id, "sale_concessions", numValue);
                     }
@@ -128,17 +163,23 @@ export default function ComparablesTable({
               </td>
             ))}
           </tr>
-          
+
           {/* Date of Sale/Time */}
           <tr className="border-b border-neutral-medium">
             <td className="p-2 border-r border-neutral-medium font-medium">Date of Sale/Time</td>
             <td className="p-2 border-r border-neutral-medium">Current</td>
             {comparables.map((comp, index) => {
-              const months = comp.saleDate ? 
-                Math.round((new Date().getTime() - new Date(comp.saleDate).getTime()) / (1000 * 60 * 60 * 24 * 30)) : 
-                null;
+              const months = comp.saleDate
+                ? Math.round(
+                    (new Date().getTime() - new Date(comp.saleDate).getTime()) /
+                      (1000 * 60 * 60 * 24 * 30)
+                  )
+                : null;
               return (
-                <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+                <td
+                  key={comp.id}
+                  className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+                >
                   {months ? `${months} months` : ""}
                 </td>
               );
@@ -148,13 +189,16 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium pl-4">Adjustment</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell`}>
-                <WorksheetCell 
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell`}
+              >
+                <WorksheetCell
                   value={formatCurrency(getAdjustmentAmount(comp.id, "time"))}
                   onChange={(value) => {
-                    const numValue = value.startsWith("$") ? 
-                      parseFloat(value.substring(1).replace(/,/g, "")) : 
-                      parseFloat(value.replace(/,/g, ""));
+                    const numValue = value.startsWith("$")
+                      ? parseFloat(value.substring(1).replace(/,/g, ""))
+                      : parseFloat(value.replace(/,/g, ""));
                     if (!isNaN(numValue)) {
                       onAdjustmentChange(comp.id, "time", numValue);
                     }
@@ -163,13 +207,16 @@ export default function ComparablesTable({
               </td>
             ))}
           </tr>
-          
+
           {/* Location */}
           <tr className="border-b border-neutral-medium">
             <td className="p-2 border-r border-neutral-medium font-medium">Location</td>
             <td className="p-2 border-r border-neutral-medium">Good</td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+              >
                 {comp.locationRating || ""}
               </td>
             ))}
@@ -178,13 +225,16 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium pl-4">Adjustment</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell`}>
-                <WorksheetCell 
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell`}
+              >
+                <WorksheetCell
                   value={formatCurrency(getAdjustmentAmount(comp.id, "location"))}
                   onChange={(value) => {
-                    const numValue = value.startsWith("$") ? 
-                      parseFloat(value.substring(1).replace(/,/g, "")) : 
-                      parseFloat(value.replace(/,/g, ""));
+                    const numValue = value.startsWith("$")
+                      ? parseFloat(value.substring(1).replace(/,/g, ""))
+                      : parseFloat(value.replace(/,/g, ""));
                     if (!isNaN(numValue)) {
                       onAdjustmentChange(comp.id, "location", numValue);
                     }
@@ -193,13 +243,18 @@ export default function ComparablesTable({
               </td>
             ))}
           </tr>
-          
+
           {/* Site Size */}
           <tr className="border-b border-neutral-medium">
             <td className="p-2 border-r border-neutral-medium font-medium">Site Size</td>
-            <td className="p-2 border-r border-neutral-medium">{property.lotSize ? `${property.lotSize} sq ft` : ""}</td>
+            <td className="p-2 border-r border-neutral-medium">
+              {property.lotSize ? `${property.lotSize} sq ft` : ""}
+            </td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+              >
                 {comp.siteSize ? `${comp.siteSize} ${comp.siteUnit || "sq ft"}` : ""}
               </td>
             ))}
@@ -208,13 +263,16 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium pl-4">Adjustment</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell`}>
-                <WorksheetCell 
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell`}
+              >
+                <WorksheetCell
                   value={formatCurrency(getAdjustmentAmount(comp.id, "site"))}
                   onChange={(value) => {
-                    const numValue = value.startsWith("$") ? 
-                      parseFloat(value.substring(1).replace(/,/g, "")) : 
-                      parseFloat(value.replace(/,/g, ""));
+                    const numValue = value.startsWith("$")
+                      ? parseFloat(value.substring(1).replace(/,/g, ""))
+                      : parseFloat(value.replace(/,/g, ""));
                     if (!isNaN(numValue)) {
                       onAdjustmentChange(comp.id, "site", numValue);
                     }
@@ -223,13 +281,18 @@ export default function ComparablesTable({
               </td>
             ))}
           </tr>
-          
+
           {/* GLA */}
           <tr className="border-b border-neutral-medium">
             <td className="p-2 border-r border-neutral-medium font-medium">GLA</td>
-            <td className="p-2 border-r border-neutral-medium">{property.grossLivingArea ? `${property.grossLivingArea} sq ft` : ""}</td>
+            <td className="p-2 border-r border-neutral-medium">
+              {property.grossLivingArea ? `${property.grossLivingArea} sq ft` : ""}
+            </td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium`}>
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium`}
+              >
                 {comp.grossLivingArea ? `${comp.grossLivingArea} sq ft` : ""}
               </td>
             ))}
@@ -238,13 +301,16 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium pl-4">Adjustment</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {comparables.map((comp, index) => (
-              <td key={comp.id} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell`}>
-                <WorksheetCell 
+              <td
+                key={comp.id}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell`}
+              >
+                <WorksheetCell
                   value={formatCurrency(getAdjustmentAmount(comp.id, "gla"))}
                   onChange={(value) => {
-                    const numValue = value.startsWith("$") ? 
-                      parseFloat(value.substring(1).replace(/,/g, "")) : 
-                      parseFloat(value.replace(/,/g, ""));
+                    const numValue = value.startsWith("$")
+                      ? parseFloat(value.substring(1).replace(/,/g, ""))
+                      : parseFloat(value.replace(/,/g, ""));
                     if (!isNaN(numValue)) {
                       onAdjustmentChange(comp.id, "gla", numValue);
                     }
@@ -253,13 +319,16 @@ export default function ComparablesTable({
               </td>
             ))}
           </tr>
-          
+
           {/* Summary rows */}
           <tr className="border-b border-neutral-medium">
             <td className="p-2 border-r border-neutral-medium font-medium">Total Adjustments</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {calculatedResults.map((result, index) => (
-              <td key={index} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell calculated`}>
+              <td
+                key={index}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell calculated`}
+              >
                 {formatCurrency(result.netAdjustment)}
               </td>
             ))}
@@ -268,7 +337,10 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium font-medium">Adjusted Price</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {calculatedResults.map((result, index) => (
-              <td key={index} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell calculated font-medium`}>
+              <td
+                key={index}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell calculated font-medium`}
+              >
                 {formatCurrency(result.adjustedPrice)}
               </td>
             ))}
@@ -277,7 +349,10 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium font-medium">Net Adjustment (%)</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {calculatedResults.map((result, index) => (
-              <td key={index} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell calculated`}>
+              <td
+                key={index}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell calculated`}
+              >
                 {formatPercentage(result.netAdjustmentPercentage)}
               </td>
             ))}
@@ -286,7 +361,10 @@ export default function ComparablesTable({
             <td className="p-2 border-r border-neutral-medium font-medium">Gross Adjustment (%)</td>
             <td className="p-2 border-r border-neutral-medium"></td>
             {calculatedResults.map((result, index) => (
-              <td key={index} className={`p-2 ${index < comparables.length - 1 ? 'border-r' : ''} border-neutral-medium worksheet-cell calculated`}>
+              <td
+                key={index}
+                className={`p-2 ${index < comparables.length - 1 ? "border-r" : ""} border-neutral-medium worksheet-cell calculated`}
+              >
                 {formatPercentage(result.grossAdjustmentPercentage)}
               </td>
             ))}

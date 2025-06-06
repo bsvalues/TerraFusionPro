@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect } from "react";
 import {
   useQuery,
   useMutation,
@@ -6,16 +6,16 @@ import {
   UseMutationOptions,
   useQueryClient,
   QueryKey,
-} from '@tanstack/react-query';
-import { apiRequest } from '../lib/queryClient';
-import { useToast } from '@/hooks/use-toast';
+} from "@tanstack/react-query";
+import { apiRequest } from "../lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 /**
  * Hook for standardized data fetching
  */
 export function useApiQuery<TData = unknown, TError = Error>(
   endpoint: string | string[],
-  options?: Omit<UseQueryOptions<TData, TError, TData>, 'queryKey' | 'queryFn'> & {
+  options?: Omit<UseQueryOptions<TData, TError, TData>, "queryKey" | "queryFn"> & {
     /**
      * Whether to show error toast on failure
      */
@@ -41,14 +41,15 @@ export function useApiQuery<TData = unknown, TError = Error>(
 
   // Show error toast if there's an error
   const { error, status } = result;
-  
+
   // Show error toast only once when status becomes 'error'
   useEffect(() => {
-    if (status === 'error' && error && showErrorToast) {
+    if (status === "error" && error && showErrorToast) {
       toast({
-        title: 'Error',
-        description: errorMessage || (error instanceof Error ? error.message : 'Failed to fetch data'),
-        variant: 'destructive',
+        title: "Error",
+        description:
+          errorMessage || (error instanceof Error ? error.message : "Failed to fetch data"),
+        variant: "destructive",
       });
       console.error(`Error fetching from ${endpoint}:`, error);
     }
@@ -60,13 +61,18 @@ export function useApiQuery<TData = unknown, TError = Error>(
 /**
  * Hook for standardized data mutation (POST, PUT, DELETE)
  */
-export function useApiMutation<TData = unknown, TVariables = unknown, TError = Error, TContext = unknown>(
+export function useApiMutation<
+  TData = unknown,
+  TVariables = unknown,
+  TError = Error,
+  TContext = unknown,
+>(
   endpoint: string,
-  options?: Omit<UseMutationOptions<TData, TError, TVariables, TContext>, 'mutationFn'> & {
+  options?: Omit<UseMutationOptions<TData, TError, TVariables, TContext>, "mutationFn"> & {
     /**
      * HTTP method to use
      */
-    method?: 'POST' | 'PUT' | 'PATCH' | 'DELETE';
+    method?: "POST" | "PUT" | "PATCH" | "DELETE";
     /**
      * Whether to show success toast
      */
@@ -91,11 +97,11 @@ export function useApiMutation<TData = unknown, TVariables = unknown, TError = E
 ) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const {
-    method = 'POST',
+    method = "POST",
     showSuccessToast = true,
-    successMessage = 'Operation completed successfully',
+    successMessage = "Operation completed successfully",
     showErrorToast = true,
     errorMessage,
     invalidateQueryKeys = [],
@@ -107,7 +113,7 @@ export function useApiMutation<TData = unknown, TVariables = unknown, TError = E
       apiRequest(endpoint, {
         method,
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify(variables),
       }),
@@ -120,7 +126,7 @@ export function useApiMutation<TData = unknown, TVariables = unknown, TError = E
       // Show success toast
       if (showSuccessToast) {
         toast({
-          title: 'Success',
+          title: "Success",
           description: successMessage,
         });
       }
@@ -134,9 +140,10 @@ export function useApiMutation<TData = unknown, TVariables = unknown, TError = E
       // Show error toast
       if (showErrorToast) {
         toast({
-          title: 'Error',
-          description: errorMessage || (error instanceof Error ? error.message : 'Operation failed'),
-          variant: 'destructive',
+          title: "Error",
+          description:
+            errorMessage || (error instanceof Error ? error.message : "Operation failed"),
+          variant: "destructive",
         });
       }
 
@@ -156,11 +163,11 @@ export function useApiMutation<TData = unknown, TVariables = unknown, TError = E
  */
 export function useApiFormMutation<TData = unknown, TError = Error, TContext = unknown>(
   endpoint: string,
-  options?: Omit<UseMutationOptions<TData, TError, FormData, TContext>, 'mutationFn'> & {
+  options?: Omit<UseMutationOptions<TData, TError, FormData, TContext>, "mutationFn"> & {
     /**
      * HTTP method to use
      */
-    method?: 'POST' | 'PUT';
+    method?: "POST" | "PUT";
     /**
      * Whether to show success toast
      */
@@ -185,11 +192,11 @@ export function useApiFormMutation<TData = unknown, TError = Error, TContext = u
 ) {
   const queryClient = useQueryClient();
   const { toast } = useToast();
-  
+
   const {
-    method = 'POST',
+    method = "POST",
     showSuccessToast = true,
-    successMessage = 'File uploaded successfully',
+    successMessage = "File uploaded successfully",
     showErrorToast = true,
     errorMessage,
     invalidateQueryKeys = [],
@@ -211,7 +218,7 @@ export function useApiFormMutation<TData = unknown, TError = Error, TContext = u
       // Show success toast
       if (showSuccessToast) {
         toast({
-          title: 'Success',
+          title: "Success",
           description: successMessage,
         });
       }
@@ -225,9 +232,10 @@ export function useApiFormMutation<TData = unknown, TError = Error, TContext = u
       // Show error toast
       if (showErrorToast) {
         toast({
-          title: 'Error',
-          description: errorMessage || (error instanceof Error ? error.message : 'File upload failed'),
-          variant: 'destructive',
+          title: "Error",
+          description:
+            errorMessage || (error instanceof Error ? error.message : "File upload failed"),
+          variant: "destructive",
         });
       }
 

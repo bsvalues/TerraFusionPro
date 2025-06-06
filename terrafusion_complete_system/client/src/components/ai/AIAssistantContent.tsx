@@ -24,7 +24,7 @@ export default function AIAssistantContent({ currentReport }: AIAssistantContent
   const [input, setInput] = useState("");
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
-  
+
   const {
     chatQuery,
     isChatQuerying,
@@ -99,7 +99,7 @@ export default function AIAssistantContent({ currentReport }: AIAssistantContent
 
     try {
       const analysis = await analyzeProperty(currentReport.propertyId);
-      
+
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
@@ -141,7 +141,7 @@ ${analysis.recommendedAdjustments}
 
     try {
       const analysis = await analyzeComparables(currentReport.id);
-      
+
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
@@ -149,10 +149,12 @@ ${analysis.recommendedAdjustments}
 # Comparables Analysis
 
 ## Best Comparables
-${analysis.bestComparables.map((id: number) => `- Comparable #${id}`).join('\n')}
+${analysis.bestComparables.map((id: number) => `- Comparable #${id}`).join("\n")}
 
 ## Adjustment Suggestions
-${Object.entries(analysis.adjustmentSuggestions).map(([key, value]) => `- ${key}: ${value}`).join('\n')}
+${Object.entries(analysis.adjustmentSuggestions)
+  .map(([key, value]) => `- ${key}: ${value}`)
+  .join("\n")}
 
 ## Reconciliation Notes
 ${analysis.reconciliationNotes}
@@ -183,7 +185,7 @@ ${analysis.reconciliationNotes}
 
     try {
       const narrative = await generateNarrative(currentReport.id);
-      
+
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
@@ -228,7 +230,7 @@ ${narrative.valueReconciliation}
 
     try {
       const validation = await validateUAD(currentReport.id);
-      
+
       const assistantMessage: Message = {
         id: Date.now().toString(),
         role: "assistant",
@@ -236,12 +238,19 @@ ${narrative.valueReconciliation}
 # UAD Compliance Check
 
 ## Status
-${validation.compliant ? '✅ Report is UAD compliant' : '❌ Report has UAD compliance issues'}
+${validation.compliant ? "✅ Report is UAD compliant" : "❌ Report has UAD compliance issues"}
 
 ## Issues
-${validation.issues.length > 0 
-  ? validation.issues.map((issue: {field: string, issue: string, severity: string}) => `- ${issue.field}: ${issue.issue} (${issue.severity})`).join('\n')
-  : 'No issues found.'}
+${
+  validation.issues.length > 0
+    ? validation.issues
+        .map(
+          (issue: { field: string; issue: string; severity: string }) =>
+            `- ${issue.field}: ${issue.issue} (${issue.severity})`
+        )
+        .join("\n")
+    : "No issues found."
+}
 
 ## Suggestions
 ${validation.suggestions}
@@ -276,7 +285,7 @@ ${validation.suggestions}
           <TabsTrigger value="chat">Chat</TabsTrigger>
           <TabsTrigger value="tools">Analysis Tools</TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="chat" className="h-full flex flex-col">
           <div className="flex-1 overflow-y-auto mb-4 border rounded-md p-4 bg-gray-50">
             {messages.length === 0 ? (
@@ -303,15 +312,11 @@ ${validation.suggestions}
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${
-                      message.role === "user" ? "justify-end" : "justify-start"
-                    }`}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
                       className={`max-w-[80%] rounded-lg p-3 ${
-                        message.role === "user"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-muted"
+                        message.role === "user" ? "bg-primary text-primary-foreground" : "bg-muted"
                       }`}
                     >
                       <div className="whitespace-pre-line prose prose-sm max-w-none break-words">
@@ -345,58 +350,59 @@ ${validation.suggestions}
             </Button>
           </form>
         </TabsContent>
-        
+
         <TabsContent value="tools" className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="border rounded-md p-4 bg-gray-50">
               <h3 className="font-medium mb-2">Property Analysis</h3>
               <p className="text-sm text-gray-600 mb-4">
-                Analyze the subject property for market trends, value drivers, and potential adjustments.
+                Analyze the subject property for market trends, value drivers, and potential
+                adjustments.
               </p>
-              <Button 
-                onClick={handlePropertyAnalysis} 
+              <Button
+                onClick={handlePropertyAnalysis}
                 disabled={isAnalyzingProperty || !currentReport}
                 className="w-full"
               >
                 {isAnalyzingProperty ? <Spinner size="sm" /> : "Analyze Property"}
               </Button>
             </div>
-            
+
             <div className="border rounded-md p-4 bg-gray-50">
               <h3 className="font-medium mb-2">Comparables Analysis</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Analyze comparables to identify best matches and suggest appropriate adjustments.
               </p>
-              <Button 
-                onClick={handleComparablesAnalysis} 
+              <Button
+                onClick={handleComparablesAnalysis}
                 disabled={isAnalyzingComparables || !currentReport}
                 className="w-full"
               >
                 {isAnalyzingComparables ? <Spinner size="sm" /> : "Analyze Comparables"}
               </Button>
             </div>
-            
+
             <div className="border rounded-md p-4 bg-gray-50">
               <h3 className="font-medium mb-2">Narrative Generation</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Generate professional narrative sections for your appraisal report.
               </p>
-              <Button 
-                onClick={handleNarrativeGeneration} 
+              <Button
+                onClick={handleNarrativeGeneration}
                 disabled={isGeneratingNarrative || !currentReport}
                 className="w-full"
               >
                 {isGeneratingNarrative ? <Spinner size="sm" /> : "Generate Narratives"}
               </Button>
             </div>
-            
+
             <div className="border rounded-md p-4 bg-gray-50">
               <h3 className="font-medium mb-2">UAD Compliance Check</h3>
               <p className="text-sm text-gray-600 mb-4">
                 Check your report for Uniform Appraisal Dataset compliance issues.
               </p>
-              <Button 
-                onClick={handleUADValidation} 
+              <Button
+                onClick={handleUADValidation}
                 disabled={isValidatingUAD || !currentReport}
                 className="w-full"
               >
@@ -404,10 +410,10 @@ ${validation.suggestions}
               </Button>
             </div>
           </div>
-          
+
           <div className="border-t pt-4 mt-4">
             <p className="text-sm text-gray-600 mb-2">
-              {currentReport 
+              {currentReport
                 ? `Using AI tools with report: ${currentReport.reportType} (${currentReport.id})`
                 : "No report selected. Please open a report to use these tools."}
             </p>
