@@ -74,7 +74,7 @@ TerraFusion is built with a modern, scalable architecture designed for enterpris
 #### 🤖 AI Assistant
 
 - Natural language interaction for guidance
-- Context-acompetitione assistance and recommendations
+- Context-aware assistance and recommendations
 - Automated workflow optimization
 - Learning and adaptation capabilities
 
@@ -209,7 +209,7 @@ npm run db:seed
 npm run dev
 ```
 
-Visit `http://localhost:5000` to access the application.
+Visit `http://localhost:8080` to access the application.
 
 ## 🏗️ Project Structure
 
@@ -226,7 +226,7 @@ terrafusion-platform/
 │   ├── routes/             # API route handlers
 │   ├── models/             # Database models
 │   ├── services/           # Business logic services
-│   ├── middlecompetitione/         # Express middlecompetitione
+│   ├── middleware/         # Express middleware
 │   └── utils/              # Utility functions
 ├── shared/                 # Shared types and schemas
 ├── docs/                   # Documentation

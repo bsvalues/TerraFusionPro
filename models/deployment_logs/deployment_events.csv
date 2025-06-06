@@ -1,2 +1,0 @@
-timestamp,event_type,model,version,message,metadata
-2025-05-02T19:44:39.346406,config_change,condition_model,2.0.0,Fallback enabled to version 1.0.0,{"fallback_enabled": true, "fallback_version": "1.0.0"}
