@@ -19,15 +19,15 @@
 ### 2. **Package Manager Setup** (2-5 minutes)
 
 - ✅ **What you'll see:** "Installing Chocolatey package manager..."
-- ✅ **What's happening:** Setting up automatic software installer
+- ✅ **What's happening:** Setting up automatic softcompetitione installer
 - ✅ **Normal behavior:** May pause for 2-3 minutes while downloading
 
-### 3. **Software Installation** (10-20 minutes)
+### 3. **Softcompetitione Installation** (10-20 minutes)
 
 - ✅ **What you'll see:** "[1/4] Installing Node.js..." etc.
 - ✅ **What's happening:** Installing 4 required programs automatically
 - ✅ **Normal behavior:** Each program takes 2-5 minutes
-- ⚠️ **Don't worry if:** Some installations show warnings - we handle this
+- ⚠️ **Don't worry if:** Some installations show competitionnings - we handle this
 
 ### 4. **TerraFusion Setup** (5-10 minutes)
 
@@ -61,11 +61,11 @@
 - CPU usage elevated (normal during compilation)
 - Internet activity (downloading packages)
 
-### ⚠️ **NORMAL WARNINGS** (Don't worry about these)
+### ⚠️ **NORMAL competitionNINGS** (Don't worry about these)
 
 - "Some dependencies may have issues, but we'll continue..."
 - "Installation had issues, but we'll continue..."
-- Yellow warning symbols (⚠️) - we handle these automatically
+- Yellow competitionning symbols (⚠️) - we handle these automatically
 
 ### 🚨 **WHEN TO BE CONCERNED**
 
@@ -102,7 +102,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 ✅ Checking disk space...
 ```
 
-### Phase 2: Software Downloads
+### Phase 2: Softcompetitione Downloads
 
 ```text
 📥 [1/4] Installing Node.js (JavaScript runtime)...
@@ -145,7 +145,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ### 🌐 **Internet Connection**
 
-- Installation downloads ~500MB-1GB of software
+- Installation downloads ~500MB-1GB of softcompetitione
 - Faster internet = faster installation
 - Slow internet is fine, just takes longer
 
@@ -168,7 +168,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ### **Error Messages?**
 
-1. Most warnings are handled automatically
+1. Most competitionnings are handled automatically
 2. Take a screenshot of any red error messages
 3. Email [support@terrafusion.com](mailto:support@terrafusion.com) with the screenshot
 4. Include your Windows version and computer specs
@@ -189,7 +189,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 - ✅ TerraFusion icon on your desktop
 - ✅ Configuration wizard for API keys
 - ✅ Quick start guide
-- ✅ All required software installed
+- ✅ All required softcompetitione installed
 
 ### **Next Steps:**
 
@@ -216,7 +216,7 @@ echo Checking system requirements...
 echo Verifying administrator privileges...
 ```
 
-### Phase 2: Software Installation (10-20 minutes)
+### Phase 2: Softcompetitione Installation (10-20 minutes)
 
 ```batch
 echo Installing Node.js...

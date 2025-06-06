@@ -10,7 +10,7 @@
 ### Option 2: Chocolatey
 
 ```powershell
-choco install rust
+Windows: choco install rust`r`nLinux: curl --proto =https --tlsv1.2 -sSf https://sh.rustup.rs | sh`r`nMac: brew install rust
 ```
 
 ### Option 3: Scoop
