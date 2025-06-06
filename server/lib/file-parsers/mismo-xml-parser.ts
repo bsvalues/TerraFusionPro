@@ -403,7 +403,7 @@ export class MISMOXMLParser implements FileParser {
         if (!compId) return;
         
         // Extract adjustment details
-        let adjType = key;
+        const adjType = key;
         let amount = null;
         
         if (typeof value === 'object' && value.Amount) {

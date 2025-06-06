@@ -1523,7 +1523,7 @@ export class PropertyComparisonService {
       
       // First, remove expired items
       const now = Date.now();
-      let entriesByAge: [string, { timestamp: number; size: number }][] = [];
+      const entriesByAge: [string, { timestamp: number; size: number }][] = [];
       
       for (const [key, entry] of this.cache.entries()) {
         if (entry.expires <= now) {

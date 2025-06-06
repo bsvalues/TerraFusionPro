@@ -199,7 +199,7 @@ export class ImageCompressionService {
       );
       
       // Generate output path if not base64
-      let outputUri = result.uri;
+      const outputUri = result.uri;
       
       // Get compressed file info
       const compressedInfo = await FileSystem.getInfoAsync(outputUri, { size: true });

@@ -599,7 +599,7 @@ export class PropertyValueHistoryService {
       // Generate random data points
       const dataPoints: ValueHistoryDataPoint[] = [];
       let currentValue = baseValue;
-      let currentDate = new Date();
+      const currentDate = new Date();
       currentDate.setMonth(currentDate.getMonth() - numPoints + 1);
       
       for (let i = 0; i < numPoints; i++) {

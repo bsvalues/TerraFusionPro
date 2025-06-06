@@ -83,7 +83,7 @@ function predictValue(propertyData) {
   console.log(`Predicting value for property: ${propertyData.address?.street || 'Unknown'}`);
   
   // Base valuation using heuristics
-  let base = 100000;  // base heuristic
+  const base = 100000;  // base heuristic
   
   // Get property type factor
   const typeFactor = propertyTypeFactors[propertyData.propertyType] || 1.0;

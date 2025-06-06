@@ -13,7 +13,7 @@ const logger = {
 import * as valuationServiceImport from '../valuation-service.js';
 
 // Create a variable to hold our imported module
-let valuationService: any = valuationServiceImport;
+const valuationService: any = valuationServiceImport;
 
 // Schema for request validation
 const propertyAddressSchema = z.object({

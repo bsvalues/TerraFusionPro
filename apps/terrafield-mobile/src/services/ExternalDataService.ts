@@ -1316,7 +1316,7 @@ export class ExternalDataService {
       
       // First, remove expired items
       const now = Date.now();
-      let entriesByAge: [string, { timestamp: number; size: number }][] = [];
+      const entriesByAge: [string, { timestamp: number; size: number }][] = [];
       
       for (const [key, entry] of this.cache.entries()) {
         if (entry.expires <= now) {
@@ -1729,7 +1729,7 @@ export class ExternalDataService {
       const errors: string[] = [];
       let updated = 0;
       let created = 0;
-      let deleted = 0;
+      const deleted = 0;
       let conflicts = 0;
       
       // Create maps for faster lookup

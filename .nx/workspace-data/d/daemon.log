@@ -1,0 +1,12 @@
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.026Z - Started listening on: \\.\pipe\nx\C:\Users\bills\AppData\Local\Temp\54fc5b20722c2eb71a0e\d.sock
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.076Z - [WATCHER]: Subscribed to changes within: C:\Users\bills\Documents\TerraFusionPro-1 (native)
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.084Z - Established a connection. Number of open connections: 1
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.086Z - Established a connection. Number of open connections: 2
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.090Z - Closed a connection. Number of open connections: 1
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.095Z - [REQUEST]: Responding to the client. Shutdown initiated
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.099Z - Done responding to the client Shutdown initiated
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.100Z - Handled FORCE_SHUTDOWN. Handling time: 0. Response time: 5.
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.100Z - Closed a connection. Number of open connections: 0
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.101Z - [WATCHER]: Stopping the watcher for C:\Users\bills\Documents\TerraFusionPro-1 (sources)
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.102Z - [WATCHER]: Stopping the watcher for C:\Users\bills\Documents\TerraFusionPro-1 (outputs)
+[NX v20.8.1 Daemon Server] - 2025-06-06T01:55:58.103Z - Server stopped because: "Request to shutdown"
