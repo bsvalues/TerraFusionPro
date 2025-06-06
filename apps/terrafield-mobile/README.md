@@ -41,6 +41,7 @@ The app follows a clean architecture pattern:
 ## Development Setup
 
 1. Install dependencies:
+
 ```bash
 cd apps/terrafield-mobile
 npm install
@@ -48,14 +49,15 @@ npm install
 yarn install
 ```
 
-2. Start the development server:
+1. Start the development server:
+
 ```bash
 npm start
 # or
 yarn start
 ```
 
-3. Use Expo Go on your device or an emulator to run the app
+1. Use Expo Go on your device or an emulator to run the app
 
 ## Synchronization Workflow
 
@@ -71,8 +73,8 @@ yarn start
 
 The mobile app communicates with the following server endpoints:
 
-- `/api/sync/reports/:reportId/photos` - Photo synchronization
-- `/api/sync/parcels/:parcelId/notes` - Parcel notes synchronization
+- [Photo synchronization](<http://localhost:8080/api/sync/reports/:reportId/photos>)
+- [Parcel notes synchronization](<http://localhost:8080/api/sync/parcels/:parcelId/notes>)
 
 All synchronization requests include CRDT updates encoded as Base64 strings.
 
@@ -84,19 +86,32 @@ To execute the TerraFusion revolution, run the following command:
 .\EXECUTE_NOW.bat
 ```
 
-# 1. Install Rust (15 minutes)
-choco install rust
+## Installation Steps
 
-# 2. Configure Environment (10 minutes)
+1. Install Rust (15 minutes)
+
+```bash
+choco install rust
+```
+
+1. Configure Environment (10 minutes)
+
+```bash
 cd terrafusion_rust
 copy .env.example .env
 # Add your API keys: OPENAI_API_KEY, ANTHROPIC_API_KEY
+```
 
-# 3. Deploy Platform (30 minutes)
+1. Deploy Platform (30 minutes)
+
+```bash
 cargo build --release
 docker-compose up -d
 cargo run --release -- run
+```
 
-# 4. Verify All Systems (15 minutes)
+1. Verify All Systems (15 minutes)
+
+```bash
 curl http://localhost:8080/api/health
 curl http://localhost:8080/api/agents
