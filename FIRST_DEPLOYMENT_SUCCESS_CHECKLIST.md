@@ -280,9 +280,9 @@
 
 ## 🔥 DEPLOYMENT BATTLE CRY
 
-## "Today we launch TerraFusion and revolutionize the appraisal industry!"
+## Today we launch TerraFusion and revolutionize the appraisal industry
 
-## Team, this is our moment. Every line of code, every feature, every optimization has led to this deployment. Let's make it count!
+### Team, this is our moment. Every line of code, every feature, every optimization has led to this deployment. Let's make it count
 
 **🚀 READY TO SET THE INDUSTRY ON FIRE! 🔥**
 

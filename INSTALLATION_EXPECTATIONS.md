@@ -95,7 +95,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ### Phase 1: Quick Setup
 
-```
+```text
 📋 STEP 1: Checking your system...
 ✅ Administrator privileges confirmed
 ✅ Windows version: 10.0.22631
@@ -104,7 +104,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ### Phase 2: Software Downloads
 
-```
+```text
 📥 [1/4] Installing Node.js (JavaScript runtime)...
       This powers the web interface of TerraFusion...
 ✅ Node.js installed successfully
@@ -112,7 +112,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ### Phase 3: AI Compilation (LONGEST)
 
-```
+```text
 🔄 Building AI engine (this is the longest step)...
     Compiling high-performance AI components...
     This may take 10-20 minutes depending on your computer speed...
@@ -121,7 +121,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ### Phase 4: Completion
 
-```
+```text
 🎉 INSTALLATION COMPLETE! 🎉
 ✅ TerraFusion Platform (AI-powered appraisal system)
 ✅ Desktop shortcut for easy access

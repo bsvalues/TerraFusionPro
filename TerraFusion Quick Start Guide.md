@@ -268,6 +268,4 @@ docker-compose up -d
 
 Transform your appraisal business today. The future is here, and it's powered by TerraFusion.
 
-### Welcome to the Future of Real Estate Appraisal
-
 **🚀 WELCOME TO THE FUTURE OF REAL ESTATE APPRAISAL 🚀**

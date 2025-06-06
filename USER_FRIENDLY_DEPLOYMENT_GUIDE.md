@@ -286,7 +286,7 @@
 
 ## 🏆 Welcome to the Future
 
-### You're Now Equipped with the Most Advanced Appraisal Technology Available
+#### You're Now Equipped with the Most Advanced Appraisal Technology Available
 
 - **AI-powered precision** that surpasses human analysis
 - **Streamlined workflows** that save hours per appraisal
@@ -294,7 +294,7 @@
 - **Mobile capabilities** that work anywhere
 - **Legacy integration** that preserves your existing data
 
-### Ready to Revolutionize Your Appraisal Business
+#### Ready to Revolutionize Your Appraisal Business
 
 The future starts now!
 
