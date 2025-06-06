@@ -210,12 +210,14 @@ A second window called "Installation Progress Monitor" will open automatically.
 ## 🔧 What Each Phase Does
 
 ### Phase 1: System Check (1-2 minutes)
+
 ```batch
 echo Checking system requirements...
 echo Verifying administrator privileges...
 ```
 
 ### Phase 2: Software Installation (10-20 minutes)
+
 ```batch
 echo Installing Node.js...
 echo Installing Rust toolchain...
@@ -223,12 +225,14 @@ echo Installing Docker Desktop...
 ```
 
 ### Phase 3: TerraFusion Setup (5-10 minutes)
+
 ```batch
 echo Cloning TerraFusion repository...
 echo Installing dependencies...
 ```
 
 ### Phase 4: AI Compilation (15-25 minutes)
+
 ```batch
 echo Compiling Rust backend...
 echo This is the longest step - perfect time for coffee!
@@ -239,6 +243,40 @@ echo This is the longest step - perfect time for coffee!
 - **Email Support**: [support@terrafusion.ai](mailto:support@terrafusion.ai)
 - **Documentation**: Check the Quick Start Guide
 - **Emergency**: Call our 24/7 hotline
+
+### 🔧 Technical Implementation
+
+#### Automatic Monitor Launch
+
+The main installer automatically starts the progress monitor:
+
+```batch
+start "TerraFusion Progress Monitor" cmd /k "INSTALLATION_PROGRESS_MONITOR.bat"
+```
+
+#### Process Detection
+
+Monitor checks for active installation processes:
+
+```batch
+tasklist | findstr "node.exe" >nul
+tasklist | findstr "cargo.exe" >nul
+tasklist | findstr "docker.exe" >nul
+```
+
+#### Smart Timing
+
+Different messages based on installation phase:
+
+```batch
+if %time_elapsed% LSS 300 (
+    echo Early installation phase...
+) else if %time_elapsed% LSS 1200 (
+    echo Main installation in progress...
+) else (
+    echo Final compilation phase...
+)
+```
 
 - **Email**: [support@terrafusion.ai](mailto:support@terrafusion.ai)
 - **Phone**: 1-800-TERRA-AI
