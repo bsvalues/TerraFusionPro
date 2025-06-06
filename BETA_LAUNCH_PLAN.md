@@ -21,6 +21,7 @@
    - Existing pain points with current tools
 
 3. **Lenders** (2 users)
+
    - Regional banks or credit unions
    - 100+ appraisals/month volume
    - Technology integration capabilities
@@ -84,7 +85,7 @@
 
 #### Pre-Launch (Week -1)
 
-```
+```text
 Subject: You're Invited - Revolutionary AI Appraisal Platform Beta
 
 Dear [Name],
@@ -109,7 +110,7 @@ TerraFusion Team
 
 #### Week 1 Check-in
 
-```
+```text
 Subject: How's Your TerraFusion Experience?
 
 Hi [Name],
@@ -131,7 +132,7 @@ TerraFusion Team
 
 #### Week 3 Deep Dive
 
-```
+```text
 Subject: TerraFusion Beta - Let's Go Deeper
 
 [Name],
@@ -178,6 +179,7 @@ TerraFusion Team
    - Integration capabilities
 
 3. **Competitive Comparison**
+
    - vs TOTAL Software
    - vs ClickForms
    - vs current workflow
