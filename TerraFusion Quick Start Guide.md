@@ -15,7 +15,7 @@
 
 ### One-Click Installation
 
-1. Download: [http://localhost:3000](http://localhost:3000) (when platform is live)
+1. Download: [http://localhost:8080](http://localhost:8080) (when platform is live)
 2. Run: `TERRAFUSION_ONE_CLICK_INSTALLER.bat`
 3. Wait for magic to happen ✨
 4. Launch: `TerraFusion Launcher.bat`
@@ -67,7 +67,7 @@ cargo build --release
 
 ```bash
 # Copy environment template
-cp .env.example .env
+Windows: copy .env.example .env`nLinux/Mac: cp .env.example .env
 
 # Edit with your API keys
 notepad .env
@@ -264,7 +264,7 @@ docker-compose up -d
 
 ## 🏆 Join the Revolution
 
-### Ready to Dominate the Appraisal Industry with AI-Powered Precision
+**Ready to lead the Appraisal Industry with AI-Powered Precision**
 
 Transform your appraisal business today. The future is here, and it's powered by TerraFusion.
 

@@ -170,7 +170,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 1. Most warnings are handled automatically
 2. Take a screenshot of any red error messages
-3. Email support@terrafusion.com with the screenshot
+3. Email [support@terrafusion.com](mailto:support@terrafusion.com) with the screenshot
 4. Include your Windows version and computer specs
 
 ### **Need to Restart?**
@@ -201,7 +201,7 @@ A second window called "Installation Progress Monitor" will open automatically.
 
 ## 📞 Support
 
-**Email:** support@terrafusion.com
+**Email:** [support@terrafusion.com](mailto:support@terrafusion.com)
 **Include:** Screenshots of any errors, your Windows version
 **Response Time:** Within 24 hours
 
