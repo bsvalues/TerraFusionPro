@@ -1,0 +1,222 @@
+name: TerraFusionPro Test Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    - cron: '0 0 * * 0'  # Run weekly on Sunday at midnight
+  workflow_dispatch:  # Allow manual triggering
+
+env:
+  PYTHON_VERSION: '3.12'
+  VENV_DIR: .venv
+  TEST_DIR: tests
+  REPORT_DIR: test-results
+  COVERAGE_DIR: coverage
+
+jobs:
+  setup:
+    name: Setup Environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+          cache: 'pip'
+      
+      - name: Create virtual environment
+        run: |
+          python -m venv ${{ env.VENV_DIR }}
+          source ${{ env.VENV_DIR }}/bin/activate
+          pip install --upgrade pip
+          pip install -r ${{ env.TEST_DIR }}/requirements.txt
+      
+      - name: Create directories
+        run: |
+          mkdir -p ${{ env.REPORT_DIR }}
+          mkdir -p ${{ env.COVERAGE_DIR }}
+      
+      - name: Upload virtual environment
+        uses: actions/upload-artifact@v3
+        with:
+          name: venv
+          path: ${{ env.VENV_DIR }}
+          retention-days: 1
+
+  lint:
+    name: Lint Code
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download virtual environment
+        uses: actions/download-artifact@v3
+        with:
+          name: venv
+          path: ${{ env.VENV_DIR }}
+      
+      - name: Run linting
+        run: |
+          source ${{ env.VENV_DIR }}/bin/activate
+          black ${{ env.TEST_DIR }} --check
+          flake8 ${{ env.TEST_DIR }}
+          mypy ${{ env.TEST_DIR }}
+          pylint ${{ env.TEST_DIR }}
+
+  security:
+    name: Security Checks
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download virtual environment
+        uses: actions/download-artifact@v3
+        with:
+          name: venv
+          path: ${{ env.VENV_DIR }}
+      
+      - name: Run security checks
+        run: |
+          source ${{ env.VENV_DIR }}/bin/activate
+          bandit -r ${{ env.TEST_DIR }}
+          safety check
+
+  test:
+    name: Run Tests
+    needs: [lint, security]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        test-type: [unit, integration, performance, security]
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download virtual environment
+        uses: actions/download-artifact@v3
+        with:
+          name: venv
+          path: ${{ env.VENV_DIR }}
+      
+      - name: Run tests
+        run: |
+          source ${{ env.VENV_DIR }}/bin/activate
+          ./scripts/run_tests.sh --type ${{ matrix.test-type }}
+      
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results-${{ matrix.test-type }}
+          path: |
+            ${{ env.REPORT_DIR }}
+            ${{ env.COVERAGE_DIR }}
+          retention-days: 7
+
+  cleanup:
+    name: Cleanup
+    needs: test
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download virtual environment
+        uses: actions/download-artifact@v3
+        with:
+          name: venv
+          path: ${{ env.VENV_DIR }}
+      
+      - name: Run cleanup
+        run: |
+          source ${{ env.VENV_DIR }}/bin/activate
+          ./scripts/cleanup_tests.sh --all
+      
+      - name: Cleanup artifacts
+        if: always()
+        run: |
+          rm -rf ${{ env.VENV_DIR }}
+          rm -rf ${{ env.REPORT_DIR }}
+          rm -rf ${{ env.COVERAGE_DIR }}
+
+  report:
+    name: Generate Report
+    needs: [test, cleanup]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download test results
+        uses: actions/download-artifact@v3
+        with:
+          path: test-results
+          pattern: test-results-*
+          merge-multiple: true
+      
+      - name: Generate report
+        run: |
+          echo "Test Results Summary" > report.md
+          echo "===================" >> report.md
+          echo "" >> report.md
+          
+          for type in unit integration performance security; do
+            echo "## $type Tests" >> report.md
+            echo "" >> report.md
+            if [ -f "test-results/junit_$type.xml" ]; then
+              echo "Test results available in junit_$type.xml" >> report.md
+            else
+              echo "No test results found for $type tests" >> report.md
+            fi
+            echo "" >> report.md
+          done
+      
+      - name: Upload report
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: report.md
+          retention-days: 30
+
+  notify:
+    name: Send Notifications
+    needs: [report]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Download report
+        uses: actions/download-artifact@v3
+        with:
+          name: test-report
+          path: report
+      
+      - name: Send Slack notification
+        if: always()
+        uses: 8398a7/action-slack@v3
+        with:
+          status: ${{ job.status }}
+          fields: repo,message,commit,author,action,eventName,ref,workflow,job,took
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        continue-on-error: true
+      
+      - name: Send email notification
+        if: always()
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: ${{ secrets.SMTP_SERVER }}
+          server_port: ${{ secrets.SMTP_PORT }}
+          username: ${{ secrets.SMTP_USERNAME }}
+          password: ${{ secrets.SMTP_PASSWORD }}
+          subject: TerraFusionPro Test Results
+          body: file://report/report.md
+          to: ${{ secrets.NOTIFICATION_EMAIL }}
+          from: TerraFusionPro CI
+        continue-on-error: true 

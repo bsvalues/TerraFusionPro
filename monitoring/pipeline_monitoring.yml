@@ -1,0 +1,257 @@
+name: TerraFusionPro Pipeline Monitoring
+
+metrics:
+  pipeline:
+    - name: pipeline_execution_time
+      type: gauge
+      description: "Time taken to execute the entire pipeline"
+      labels:
+        - branch
+        - trigger_type
+        - status
+    
+    - name: pipeline_success_rate
+      type: counter
+      description: "Number of successful pipeline runs"
+      labels:
+        - branch
+        - trigger_type
+    
+    - name: pipeline_failure_rate
+      type: counter
+      description: "Number of failed pipeline runs"
+      labels:
+        - branch
+        - trigger_type
+        - failure_reason
+    
+    - name: test_execution_time
+      type: gauge
+      description: "Time taken to execute tests"
+      labels:
+        - test_type
+        - branch
+        - status
+    
+    - name: test_success_rate
+      type: counter
+      description: "Number of successful test runs"
+      labels:
+        - test_type
+        - branch
+    
+    - name: test_failure_rate
+      type: counter
+      description: "Number of failed test runs"
+      labels:
+        - test_type
+        - branch
+        - failure_reason
+    
+    - name: code_coverage
+      type: gauge
+      description: "Code coverage percentage"
+      labels:
+        - test_type
+        - branch
+    
+    - name: linting_issues
+      type: counter
+      description: "Number of linting issues found"
+      labels:
+        - tool
+        - severity
+        - branch
+    
+    - name: security_issues
+      type: counter
+      description: "Number of security issues found"
+      labels:
+        - tool
+        - severity
+        - branch
+    
+    - name: resource_usage
+      type: gauge
+      description: "Resource usage during pipeline execution"
+      labels:
+        - resource_type
+        - job
+        - branch
+
+alerts:
+  pipeline:
+    - name: pipeline_failure
+      condition: "pipeline_failure_rate > 0"
+      severity: critical
+      description: "Pipeline execution failed"
+      notification:
+        channels:
+          - slack
+          - email
+        message: "Pipeline execution failed. Check GitHub Actions for details."
+    
+    - name: pipeline_slow
+      condition: "pipeline_execution_time > 1800"
+      severity: warning
+      description: "Pipeline execution taking longer than expected"
+      notification:
+        channels:
+          - slack
+        message: "Pipeline execution is taking longer than 30 minutes."
+    
+    - name: test_failure
+      condition: "test_failure_rate > 0"
+      severity: critical
+      description: "Test execution failed"
+      notification:
+        channels:
+          - slack
+          - email
+        message: "Test execution failed. Check test reports for details."
+    
+    - name: low_coverage
+      condition: "code_coverage < 80"
+      severity: warning
+      description: "Code coverage below threshold"
+      notification:
+        channels:
+          - slack
+        message: "Code coverage is below 80%. Consider adding more tests."
+    
+    - name: high_linting_issues
+      condition: "linting_issues > 10"
+      severity: warning
+      description: "High number of linting issues"
+      notification:
+        channels:
+          - slack
+        message: "High number of linting issues found. Please review and fix."
+    
+    - name: security_vulnerability
+      condition: "security_issues > 0"
+      severity: critical
+      description: "Security vulnerabilities found"
+      notification:
+        channels:
+          - slack
+          - email
+        message: "Security vulnerabilities found. Immediate action required."
+    
+    - name: high_resource_usage
+      condition: "resource_usage > 80"
+      severity: warning
+      description: "High resource usage detected"
+      notification:
+        channels:
+          - slack
+        message: "High resource usage detected. Consider optimizing pipeline."
+
+dashboards:
+  pipeline_overview:
+    title: "Pipeline Overview"
+    description: "Overview of pipeline execution metrics"
+    panels:
+      - title: "Pipeline Success Rate"
+        type: graph
+        metrics:
+          - pipeline_success_rate
+          - pipeline_failure_rate
+        time_range: "24h"
+      
+      - title: "Test Execution Time"
+        type: graph
+        metrics:
+          - test_execution_time
+        time_range: "24h"
+      
+      - title: "Code Coverage"
+        type: gauge
+        metrics:
+          - code_coverage
+        time_range: "24h"
+      
+      - title: "Resource Usage"
+        type: graph
+        metrics:
+          - resource_usage
+        time_range: "24h"
+  
+  test_metrics:
+    title: "Test Metrics"
+    description: "Detailed test execution metrics"
+    panels:
+      - title: "Test Success Rate by Type"
+        type: graph
+        metrics:
+          - test_success_rate
+        time_range: "24h"
+      
+      - title: "Test Failure Reasons"
+        type: pie
+        metrics:
+          - test_failure_rate
+        time_range: "24h"
+      
+      - title: "Code Coverage by Test Type"
+        type: graph
+        metrics:
+          - code_coverage
+        time_range: "24h"
+  
+  quality_metrics:
+    title: "Quality Metrics"
+    description: "Code quality and security metrics"
+    panels:
+      - title: "Linting Issues"
+        type: graph
+        metrics:
+          - linting_issues
+        time_range: "24h"
+      
+      - title: "Security Issues"
+        type: graph
+        metrics:
+          - security_issues
+        time_range: "24h"
+      
+      - title: "Issue Severity Distribution"
+        type: pie
+        metrics:
+          - linting_issues
+          - security_issues
+        time_range: "24h"
+
+notifications:
+  slack:
+    channel: "#pipeline-monitoring"
+    webhook_url: ${SLACK_WEBHOOK_URL}
+    message_template: |
+      *Pipeline Alert*
+      Severity: {severity}
+      Description: {description}
+      Details: {details}
+      Link: {pipeline_url}
+  
+  email:
+    smtp_server: ${SMTP_SERVER}
+    smtp_port: ${SMTP_PORT}
+    smtp_username: ${SMTP_USERNAME}
+    smtp_password: ${SMTP_PASSWORD}
+    from_address: "pipeline-monitoring@terrafusionpro.com"
+    to_addresses:
+      - ${NOTIFICATION_EMAIL}
+    subject_template: "Pipeline Alert: {severity} - {description}"
+    body_template: |
+      Pipeline Alert
+      -------------
+      Severity: {severity}
+      Description: {description}
+      Details: {details}
+      Link: {pipeline_url}
+
+retention:
+  metrics: 30d
+  logs: 90d
+  reports: 30d
+  artifacts: 7d 
