@@ -1,0 +1,44 @@
+loki:
+  auth_enabled: false
+  persistence:
+    enabled: true
+    size: 50Gi
+  resources:
+    requests:
+      memory: 1Gi
+      cpu: 500m
+    limits:
+      memory: 2Gi
+      cpu: 1000m
+
+promtail:
+  enabled: true
+  config:
+    lokiAddress: http://loki:3100/loki/api/v1/push
+    snippets:
+      extraScrapeConfigs: |
+        - job_name: kubernetes-pods
+          kubernetes_sd_configs:
+            - role: pod
+          relabel_configs:
+            - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_mirror]
+              regex: .+
+              action: drop
+            - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_name]
+              target_label: app
+            - source_labels: [__meta_kubernetes_pod_label_app_kubernetes_io_instance]
+              target_label: instance
+            - source_labels: [__meta_kubernetes_pod_container_name]
+              target_label: container
+            - source_labels: [__meta_kubernetes_pod_name]
+              target_label: pod
+            - source_labels: [__meta_kubernetes_namespace]
+              target_label: namespace
+            - target_label: __path__
+              replacement: /var/log/pods/*$1/*.log
+            - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_mirror]
+              regex: .+
+              action: drop
+            - source_labels: [__meta_kubernetes_pod_annotation_kubernetes_io_config_mirror]
+              regex: .+
+              action: drop 
