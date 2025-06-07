@@ -1,207 +1,171 @@
 #!/bin/bash
 
-# TerraFusionPro Enterprise Deployment Script
-# Version: 1.0.0
-# Author: TerraFusionPro Team
+# TerraFusionPro Deployment Automation Script
 
 # Configuration
 DEPLOY_ROOT="/opt/terrafusionpro"
-ENV=$1
-VERSION=$2
+ENVIRONMENT=${1:-"production"}
+VERSION=${2:-"latest"}
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-LOG_FILE="/var/log/terrafusionpro/deploy.log"
-ERROR_LOG="/var/log/terrafusionpro/deploy_error.log"
+LOG_FILE="${DEPLOY_ROOT}/logs/deploy_${TIMESTAMP}.log"
+ERROR_LOG="${DEPLOY_ROOT}/logs/deploy_${TIMESTAMP}_error.log"
 
 # Environment-specific configurations
-case $ENV in
+case $ENVIRONMENT in
   "production")
-    KUBERNETES_NAMESPACE="terrafusionpro-prod"
+    KUBE_NAMESPACE="terrafusionpro-prod"
     REPLICAS=3
-    RESOURCES="high"
+    RESOURCES="requests.cpu=500m,requests.memory=1Gi,limits.cpu=1000m,limits.memory=2Gi"
     ;;
   "staging")
-    KUBERNETES_NAMESPACE="terrafusionpro-staging"
+    KUBE_NAMESPACE="terrafusionpro-staging"
     REPLICAS=2
-    RESOURCES="medium"
+    RESOURCES="requests.cpu=250m,requests.memory=512Mi,limits.cpu=500m,limits.memory=1Gi"
     ;;
   "development")
-    KUBERNETES_NAMESPACE="terrafusionpro-dev"
+    KUBE_NAMESPACE="terrafusionpro-dev"
     REPLICAS=1
-    RESOURCES="low"
+    RESOURCES="requests.cpu=100m,requests.memory=256Mi,limits.cpu=200m,limits.memory=512Mi"
     ;;
   *)
-    echo "Invalid environment: $ENV"
+    echo "Invalid environment: $ENVIRONMENT"
     exit 1
     ;;
 esac
 
 # Logging function
 log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - $1" >> "$LOG_FILE"
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] $1" | tee -a "$LOG_FILE"
 }
 
-error_log() {
-    echo "$(date '+%Y-%m-%d %H:%M:%S') - ERROR: $1" >> "$ERROR_LOG"
+# Error handling
+handle_error() {
+  log "ERROR: $1"
+  echo "[$(date +'%Y-%m-%d %H:%M:%S')] ERROR: $1" >> "$ERROR_LOG"
+  exit 1
 }
 
 # Pre-deployment checks
-pre_deployment_checks() {
-    log "Running pre-deployment checks..."
-    
-    # Check disk space
-    if ! df -h | grep -q "90%"; then
-        error_log "Insufficient disk space"
-        return 1
-    fi
-    
-    # Check memory
-    if ! free -m | grep "Mem:" | awk '{print $3/$2 * 100.0}' | awk '{if ($1 > 90) exit 1}'; then
-        error_log "Insufficient memory"
-        return 1
-    fi
-    
-    # Check database connectivity
-    if ! pg_isready -h localhost -p 5432; then
-        error_log "Database not ready"
-        return 1
-    fi
-    
-    log "Pre-deployment checks passed"
-    return 0
+pre_deploy_checks() {
+  log "Starting pre-deployment checks..."
+  
+  # Check disk space
+  DISK_SPACE=$(df -h / | awk 'NR==2 {print $5}' | sed 's/%//')
+  if [ "$DISK_SPACE" -gt 85 ]; then
+    handle_error "Insufficient disk space: ${DISK_SPACE}% used"
+  fi
+  
+  # Check memory
+  MEMORY_USAGE=$(free | awk '/Mem:/ {print $3/$2 * 100.0}' | cut -d. -f1)
+  if [ "$MEMORY_USAGE" -gt 85 ]; then
+    handle_error "High memory usage: ${MEMORY_USAGE}%"
+  fi
+  
+  # Check database connectivity
+  if ! kubectl exec -n $KUBE_NAMESPACE deploy/db-check -- pg_isready; then
+    handle_error "Database connectivity check failed"
+  fi
+  
+  log "Pre-deployment checks completed successfully"
 }
 
 # Backup current version
 backup_current_version() {
-    log "Backing up current version..."
-    local backup_dir="$DEPLOY_ROOT/backups/$TIMESTAMP"
-    
-    mkdir -p "$backup_dir"
-    cp -r "$DEPLOY_ROOT/current" "$backup_dir/"
-    
-    if [ $? -eq 0 ]; then
-        log "Backup completed successfully"
-        return 0
-    else
-        error_log "Backup failed"
-        return 1
-    fi
+  log "Backing up current version..."
+  
+  # Backup Kubernetes resources
+  kubectl get all -n $KUBE_NAMESPACE -o yaml > "${DEPLOY_ROOT}/backups/${TIMESTAMP}_k8s_backup.yaml"
+  
+  # Backup configurations
+  tar -czf "${DEPLOY_ROOT}/backups/${TIMESTAMP}_config_backup.tar.gz" "${DEPLOY_ROOT}/config"
+  
+  log "Backup completed successfully"
 }
 
 # Deploy new version
 deploy_new_version() {
-    log "Deploying version $VERSION..."
-    
-    # Update Kubernetes deployment
-    kubectl set image deployment/terrafusionpro \
-        terrafusionpro=terrafusionpro:$VERSION \
-        -n $KUBERNETES_NAMESPACE
-    
-    # Scale deployment
-    kubectl scale deployment terrafusionpro \
-        --replicas=$REPLICAS \
-        -n $KUBERNETES_NAMESPACE
-    
-    # Apply resource limits
-    kubectl patch deployment terrafusionpro \
-        -n $KUBERNETES_NAMESPACE \
-        -p "{\"spec\":{\"template\":{\"spec\":{\"containers\":[{\"name\":\"terrafusionpro\",\"resources\":{\"limits\":{\"cpu\":\"$RESOURCES\",\"memory\":\"$RESOURCES\"}}}}}}}"
-    
-    if [ $? -eq 0 ]; then
-        log "Deployment completed successfully"
-        return 0
-    else
-        error_log "Deployment failed"
-        return 1
-    fi
+  log "Deploying new version: $VERSION"
+  
+  # Update Kubernetes deployment
+  kubectl set image deployment/terrafusionpro -n $KUBE_NAMESPACE \
+    terrafusionpro=terrafusionpro:$VERSION
+  
+  # Update resources
+  kubectl set resources deployment/terrafusionpro -n $KUBE_NAMESPACE \
+    --requests=$RESOURCES --limits=$RESOURCES
+  
+  # Scale deployment
+  kubectl scale deployment terrafusionpro -n $KUBE_NAMESPACE --replicas=$REPLICAS
+  
+  log "Deployment completed successfully"
 }
 
 # Run database migrations
 run_migrations() {
-    log "Running database migrations..."
-    
-    # Run migrations
-    cd "$DEPLOY_ROOT/current" && \
-    npm run migrate:up
-    
-    if [ $? -eq 0 ]; then
-        log "Migrations completed successfully"
-        return 0
-    else
-        error_log "Migrations failed"
-        return 1
-    fi
+  log "Running database migrations..."
+  
+  # Run migration job
+  kubectl create job --from=cronjob/db-migration -n $KUBE_NAMESPACE "migration-${TIMESTAMP}"
+  
+  # Wait for migration completion
+  kubectl wait --for=condition=complete -n $KUBE_NAMESPACE job/migration-${TIMESTAMP} --timeout=300s
+  
+  log "Database migrations completed successfully"
 }
 
 # Verify deployment
 verify_deployment() {
-    log "Verifying deployment..."
-    
-    # Check pod status
-    kubectl get pods -n $KUBERNETES_NAMESPACE | grep -q "Running"
-    if [ $? -ne 0 ]; then
-        error_log "Pods not running"
-        return 1
-    fi
-    
-    # Check application health
-    curl -f http://localhost:3000/health
-    if [ $? -ne 0 ]; then
-        error_log "Health check failed"
-        return 1
-    fi
-    
-    # Check database connectivity
-    curl -f http://localhost:3000/db/health
-    if [ $? -ne 0 ]; then
-        error_log "Database health check failed"
-        return 1
-    fi
-    
-    log "Deployment verification successful"
-    return 0
+  log "Verifying deployment..."
+  
+  # Check pod status
+  kubectl rollout status deployment/terrafusionpro -n $KUBE_NAMESPACE --timeout=300s
+  
+  # Check service health
+  if ! curl -f http://localhost:8080/health; then
+    handle_error "Service health check failed"
+  fi
+  
+  # Check metrics
+  if ! curl -f http://localhost:8080/metrics; then
+    handle_error "Metrics endpoint check failed"
+  fi
+  
+  log "Deployment verification completed successfully"
 }
 
-# Rollback if needed
+# Rollback procedure
 rollback() {
-    log "Initiating rollback..."
-    
-    # Revert Kubernetes deployment
-    kubectl rollout undo deployment/terrafusionpro -n $KUBERNETES_NAMESPACE
-    
-    # Restore from backup
-    local latest_backup=$(ls -t "$DEPLOY_ROOT/backups" | head -n1)
-    cp -r "$DEPLOY_ROOT/backups/$latest_backup"/* "$DEPLOY_ROOT/current/"
-    
-    if [ $? -eq 0 ]; then
-        log "Rollback completed successfully"
-        return 0
-    else
-        error_log "Rollback failed"
-        return 1
-    fi
+  log "Initiating rollback..."
+  
+  # Restore Kubernetes resources
+  kubectl apply -f "${DEPLOY_ROOT}/backups/${TIMESTAMP}_k8s_backup.yaml"
+  
+  # Restore configurations
+  tar -xzf "${DEPLOY_ROOT}/backups/${TIMESTAMP}_config_backup.tar.gz" -C "${DEPLOY_ROOT}"
+  
+  log "Rollback completed successfully"
 }
 
 # Main deployment process
 main() {
-    log "Starting TerraFusionPro deployment process..."
-    
-    # Create log directories if they don't exist
-    mkdir -p "$(dirname "$LOG_FILE")"
-    mkdir -p "$(dirname "$ERROR_LOG")"
-    
-    # Run deployment steps
-    pre_deployment_checks || exit 1
-    backup_current_version || exit 1
-    deploy_new_version || { rollback; exit 1; }
-    run_migrations || { rollback; exit 1; }
-    verify_deployment || { rollback; exit 1; }
-    
-    log "Deployment process completed successfully"
+  log "Starting deployment process for environment: $ENVIRONMENT, version: $VERSION"
+  
+  # Create necessary directories
+  mkdir -p "${DEPLOY_ROOT}/logs" "${DEPLOY_ROOT}/backups"
+  
+  # Execute deployment steps
+  pre_deploy_checks || handle_error "Pre-deployment checks failed"
+  backup_current_version || handle_error "Backup failed"
+  deploy_new_version || handle_error "Deployment failed"
+  run_migrations || handle_error "Database migrations failed"
+  verify_deployment || {
+    log "Deployment verification failed, initiating rollback"
+    rollback
+    handle_error "Deployment failed and rolled back"
+  }
+  
+  log "Deployment completed successfully"
 }
 
-# Error handling
-set -e
-trap 'error_log "Deployment process failed at line $LINENO"' ERR
-
-# Run main process
+# Execute main process
 main 
