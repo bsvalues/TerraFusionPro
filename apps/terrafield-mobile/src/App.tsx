@@ -1,85 +1,26 @@
-import React, { useEffect, useState } from "react";
-import { SafeAreaProvider } from "react-native-safe-area-context";
-import { StatusBar } from "react-native";
-import NetInfo from "@react-native-community/netinfo";
-import * as Font from "expo-font";
-import * as SplashScreen from "expo-splash-screen";
-import { Ionicons } from "@expo/vector-icons";
+import React from 'react';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { Provider } from 'react-redux';
+import { store } from './store';
+import { HomeScreen } from './screens/HomeScreen';
+import { FieldScreen } from './screens/FieldScreen';
+import { AnalyticsScreen } from './screens/AnalyticsScreen';
+import { SettingsScreen } from './screens/SettingsScreen';
 
-// Navigation
-import AppNavigator from "./navigation/AppNavigator";
+const Stack = createNativeStackNavigator();
 
-// Context Providers
-import { AuthProvider } from "./hooks/useAuth";
-
-// Services
-import { ApiService } from "./services/ApiService";
-import { NotificationService } from "./services/NotificationService";
-import { DataSyncService } from "./services/DataSyncService";
-
-// Constants
-import * as Colors from "./constants/Colors";
-
-// Prevent native splash screen from autohiding
-SplashScreen.preventAutoHideAsync();
-
-const App = () => {
-  const [isReady, setIsReady] = useState(false);
-
-  // Initialize App
-  useEffect(() => {
-    const prepare = async () => {
-      try {
-        // Initialize services
-        ApiService.getInstance();
-        NotificationService.getInstance();
-        DataSyncService.getInstance();
-
-        // Setup network connectivity listener
-        const unsubscribe = NetInfo.addEventListener((state) => {
-          ApiService.getInstance().setConnectivity(state.isConnected || false);
-        });
-
-        // Load fonts
-        await Font.loadAsync({
-          ...Ionicons.font,
-          "Roboto-Regular": require("./assets/fonts/Roboto-Regular.ttf"),
-          "Roboto-Medium": require("./assets/fonts/Roboto-Medium.ttf"),
-          "Roboto-Bold": require("./assets/fonts/Roboto-Bold.ttf"),
-        });
-
-        // Wait for a second to simulate loading
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      } catch (error) {
-        console.warn("Error initializing app:", error);
-      } finally {
-        setIsReady(true);
-
-        // Hide splash screen
-        SplashScreen.hideAsync();
-      }
-    };
-
-    prepare();
-
-    // Return cleanup function
-    return () => {
-      // Clean up any resources
-    };
-  }, []);
-
-  if (!isReady) {
-    return null;
-  }
-
+export default function App() {
   return (
-    <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" backgroundColor={Colors.white} translucent={false} />
-      <AuthProvider>
-        <AppNavigator />
-      </AuthProvider>
-    </SafeAreaProvider>
+    <Provider store={store}>
+      <NavigationContainer>
+        <Stack.Navigator initialRouteName="Home">
+          <Stack.Screen name="Home" component={HomeScreen} />
+          <Stack.Screen name="Field" component={FieldScreen} />
+          <Stack.Screen name="Analytics" component={AnalyticsScreen} />
+          <Stack.Screen name="Settings" component={SettingsScreen} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    </Provider>
   );
-};
-
-export default App;
+}

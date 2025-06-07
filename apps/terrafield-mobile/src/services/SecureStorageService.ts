@@ -15,13 +15,25 @@ export enum SecurityLevel {
   NORMAL = "normal",
 
   /**
+   * Moderately sensitive data that should be encrypted.
+   * Stored using SecureStore.
+   */
+  MEDIUM = "medium",
+
+  /**
    * Sensitive data that should be encrypted.
    * Stored using SecureStore.
    */
   SENSITIVE = "sensitive",
 
   /**
-   * Highly sensitive data that should be encrypted and
+   * Highly sensitive data that should be encrypted.
+   * Stored using SecureStore with additional encryption.
+   */
+  HIGH = "high",
+
+  /**
+   * Very sensitive data that should be encrypted and
    * requires biometric authentication to access.
    * Stored using SecureStore with an additional encryption layer.
    */
@@ -179,6 +191,17 @@ export class SecureStorageService {
       console.error("Error storing secure data:", error);
       return false;
     }
+  }
+
+  /**
+   * Alias for storeData for backward compatibility
+   */
+  public async saveData<T>(
+    key: string,
+    data: T,
+    options: Partial<SecureStorageOptions> = {}
+  ): Promise<boolean> {
+    return this.storeData(key, data, options);
   }
 
   /**

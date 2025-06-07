@@ -2,9 +2,24 @@
  * Navigation types for the TerraField Mobile app
  */
 
+import { NavigatorScreenParams } from '@react-navigation/native';
+import { Field } from '../types/field';
+
 export type RootStackParamList = {
-  Login: undefined;
-  Main: undefined;
+  Home: undefined;
+  Field: { fieldId: string };
+  Analytics: undefined;
+  Settings: undefined;
+};
+
+export type ScreenProps<T extends keyof RootStackParamList> = {
+  navigation: {
+    navigate: (screen: T, params?: RootStackParamList[T]) => void;
+    goBack: () => void;
+  };
+  route: {
+    params: RootStackParamList[T];
+  };
 };
 
 export type MainTabParamList = {

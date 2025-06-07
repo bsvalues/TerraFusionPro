@@ -18,6 +18,15 @@ import { useNavigation } from "@react-navigation/native";
 import { useAuth } from "../hooks/useAuth";
 import { ApiService } from "../services/ApiService";
 import * as Colors from "../constants/Colors";
+import { useDispatch, useSelector } from 'react-redux';
+import { RootState } from '../store';
+import { setFields, selectField } from '../store/slices/fieldSlice';
+import { Field } from '../types/field';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
+import { RootStackParamList } from '../navigation/types';
+import { FieldList } from '../components/FieldList';
+import { theme } from '../theme';
+import { calculateTotalArea } from '../utils/helpers';
 
 // Property interface
 interface Property {
@@ -53,14 +62,18 @@ interface Notification {
   type: "system" | "task" | "sync";
 }
 
+type HomeScreenNavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+
 const HomeScreen = () => {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const { user, signOut } = useAuth();
   const apiService = ApiService.getInstance();
+  const dispatch = useDispatch();
+  const { fields, loading, error } = useSelector((state: RootState) => state.field);
+  const totalArea = calculateTotalArea(fields);
 
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
-  const [error, setError] = useState<string | null>(null);
   const [recentProperties, setRecentProperties] = useState<Property[]>([]);
   const [pendingTasks, setPendingTasks] = useState<AppraisalTask[]>([]);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -75,7 +88,19 @@ const HomeScreen = () => {
   // Load data on mount
   useEffect(() => {
     loadData();
-  }, []);
+    // TODO: Fetch fields from API
+    const mockFields: Field[] = [
+      {
+        id: '1',
+        name: 'North Field',
+        location: { latitude: 47.6062, longitude: -122.3321 },
+        area: 100,
+        soilType: 'Loam',
+        lastUpdated: new Date().toISOString(),
+      },
+    ];
+    dispatch(setFields(mockFields));
+  }, [dispatch]);
 
   // Load all data
   const loadData = async () => {
@@ -455,6 +480,31 @@ const HomeScreen = () => {
     }
   };
 
+  const handleFieldPress = (field: Field) => {
+    dispatch(selectField(field));
+    navigation.navigate('Field', { fieldId: field.id });
+  };
+
+  const handleAddField = () => {
+    navigation.navigate('Field', { fieldId: undefined });
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.container}>
+        <Text>Loading...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.container}>
+        <Text>Error: {error}</Text>
+      </View>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={Colors.white} />
@@ -692,8 +742,36 @@ const HomeScreen = () => {
               </TouchableOpacity>
             </View>
           </View>
+
+          <View style={styles.section}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Your Fields</Text>
+              <TouchableOpacity
+                style={styles.addButton}
+                onPress={handleAddField}
+              >
+                <Text style={styles.addButtonText}>Add Field</Text>
+              </TouchableOpacity>
+            </View>
+            <FieldList onFieldPress={handleFieldPress} />
+          </View>
         </ScrollView>
       )}
+
+      <View style={styles.footer}>
+        <TouchableOpacity
+          style={styles.footerButton}
+          onPress={() => navigation.navigate('Analytics')}
+        >
+          <Text style={styles.footerButtonText}>Analytics</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.footerButton}
+          onPress={() => navigation.navigate('Settings')}
+        >
+          <Text style={styles.footerButtonText}>Settings</Text>
+        </TouchableOpacity>
+      </View>
     </SafeAreaView>
   );
 };
@@ -1092,6 +1170,23 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: Colors.text,
     textAlign: "center",
+  },
+  footer: {
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: theme.colors.border,
+    padding: 16,
+    backgroundColor: theme.colors.card,
+  },
+  footerButton: {
+    flex: 1,
+    alignItems: 'center',
+    padding: 12,
+  },
+  footerButtonText: {
+    color: theme.colors.primary,
+    fontSize: 16,
+    fontWeight: '500',
   },
 });
 

@@ -4,6 +4,13 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { NavigationContainer } from "@react-navigation/native";
 import { Ionicons } from "@expo/vector-icons";
 import { Platform, Text, View, TouchableOpacity } from "react-native";
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { RootStackParamList } from './types';
+import { HomeScreen } from '../screens/HomeScreen';
+import { FieldScreen } from '../screens/FieldScreen';
+import { AnalyticsScreen } from '../screens/AnalyticsScreen';
+import { SettingsScreen } from '../screens/SettingsScreen';
+import { theme } from '../theme';
 
 // Screens
 import HomeScreen from "../screens/HomeScreen";
@@ -14,7 +21,6 @@ import PhotoEnhancementScreen from "../screens/PhotoEnhancementScreen";
 import ARMeasurementScreen from "../screens/ARMeasurementScreen";
 import ReportGenerationScreen from "../screens/ReportGenerationScreen";
 import PropertyShareScreen from "../screens/PropertyShareScreen";
-import SettingsScreen from "../screens/SettingsScreen";
 import ProfileScreen from "../screens/ProfileScreen";
 import LoginScreen from "../screens/LoginScreen";
 import SignupScreen from "../screens/SignupScreen";
@@ -26,7 +32,7 @@ import { useAuth } from "../hooks/useAuth";
 import * as Colors from "../constants/Colors";
 
 // Create navigators
-const Stack = createStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 const Tab = createBottomTabNavigator();
 
 // Custom tab bar button
@@ -276,16 +282,45 @@ const AppNavigator = () => {
   return (
     <NavigationContainer>
       <Stack.Navigator
+        initialRouteName="Home"
         screenOptions={{
-          headerShown: false,
-          cardStyle: { backgroundColor: Colors.background },
+          headerStyle: {
+            backgroundColor: theme.colors.primary,
+          },
+          headerTintColor: '#fff',
+          headerTitleStyle: {
+            fontWeight: '600',
+          },
         }}
       >
-        {user ? (
-          <Stack.Screen name="Main" component={MainTabNavigator} />
-        ) : (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
-        )}
+        <Stack.Screen
+          name="Home"
+          component={HomeScreen}
+          options={{
+            title: 'TerraField',
+          }}
+        />
+        <Stack.Screen
+          name="Field"
+          component={FieldScreen}
+          options={{
+            title: 'Field Details',
+          }}
+        />
+        <Stack.Screen
+          name="Analytics"
+          component={AnalyticsScreen}
+          options={{
+            title: 'Analytics',
+          }}
+        />
+        <Stack.Screen
+          name="Settings"
+          component={SettingsScreen}
+          options={{
+            title: 'Settings',
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

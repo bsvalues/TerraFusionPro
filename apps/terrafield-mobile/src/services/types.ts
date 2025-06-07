@@ -160,3 +160,127 @@ export interface ComparableData {
   lastModified: Date;
   createdAt: Date;
 }
+
+/**
+ * Base service interface
+ */
+export interface Service {
+  name: string;
+  initialize(): Promise<void>;
+  shutdown(): Promise<void>;
+}
+
+/**
+ * Service metadata
+ */
+export interface ServiceMetadata {
+  name: string;
+  version: string;
+  dependencies: string[];
+  status: 'initialized' | 'error' | 'unknown';
+  error?: string;
+}
+
+/**
+ * Service information
+ */
+export interface ServiceInfo {
+  metadata: ServiceMetadata;
+  instance: Service;
+}
+
+/**
+ * Service registry interface
+ */
+export interface ServiceRegistry {
+  initialize(): Promise<void>;
+  registerService(name: string, service: Service): void;
+  getService<T extends Service>(name: string): T | undefined;
+  getServices(): Map<string, Service>;
+  unregisterService(name: string): void;
+  getServiceMetadata(key: string): ServiceMetadata;
+  getAllServices(): Map<string, ServiceInfo>;
+  getServiceStatus(key: string): ServiceMetadata['status'];
+  addServiceListener(listener: (serviceName: string, status: ServiceMetadata['status']) => void): void;
+  removeServiceListener(listener: (serviceName: string, status: ServiceMetadata['status']) => void): void;
+  reset(): Promise<void>;
+  isInitialized(): boolean;
+  getInitializedServices(): string[];
+  getServiceDependencies(key: string): string[];
+  getDependentServices(key: string): string[];
+}
+
+/**
+ * Security levels for storage
+ */
+export enum SecurityLevel {
+  NORMAL = "normal",
+  MEDIUM = "medium",
+  SENSITIVE = "sensitive",
+  HIGH = "high",
+  VERY_SENSITIVE = "very_sensitive"
+}
+
+/**
+ * Secure storage options
+ */
+export interface SecureStorageOptions {
+  securityLevel: SecurityLevel;
+  requireBiometrics?: boolean;
+  biometricReason?: string;
+}
+
+/**
+ * Auth service interface
+ */
+export interface AuthService extends Service {
+  getUserId(): Promise<string | null>;
+  getUserDisplayName(): Promise<string | null>;
+  hasDigitalSignatureSupport(): Promise<boolean>;
+  createDigitalSignature(documentId: string): Promise<string | null>;
+  getToken(): Promise<string | null>;
+  getAccessToken(): Promise<string | null>;
+  isAuthenticated(): boolean;
+  getCurrentUser(): User | null;
+  login(usernameOrEmail: string, password: string): Promise<AuthResult>;
+  logout(): Promise<void>;
+  authenticateWithBiometrics(reason?: string): Promise<boolean>;
+  hasPermission(permission: string): boolean;
+  hasAnyPermission(permissions: string[]): boolean;
+  hasAllPermissions(permissions: string[]): boolean;
+}
+
+/**
+ * User model
+ */
+export interface User {
+  id: number;
+  username: string;
+  email: string;
+  fullName: string;
+  role: string;
+  permissions: string[];
+}
+
+/**
+ * Authentication result
+ */
+export interface AuthResult {
+  success: boolean;
+  user?: User;
+  error?: string;
+}
+
+/**
+ * Operation types for offline queue
+ */
+export enum OperationType {
+  CREATE_REPORT = "create_report",
+  UPDATE_REPORT = "update_report",
+  DELETE_REPORT = "delete_report",
+  UPLOAD_PHOTO = "upload_photo",
+  DELETE_PHOTO = "delete_photo",
+  UPLOAD_TEMPLATE = "upload_template",
+  DELETE_TEMPLATE = "delete_template",
+  PROCESS_TRANSCRIPTION = "process_transcription"
+}

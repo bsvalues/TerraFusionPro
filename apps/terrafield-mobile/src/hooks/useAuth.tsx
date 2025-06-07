@@ -1,5 +1,5 @@
-import React, { createContext, useState, useContext, useEffect } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Alert } from "react-native";
 import { ApiService } from "../services/ApiService";
 import { NotificationService } from "../services/NotificationService";
@@ -29,241 +29,131 @@ interface RegisterData {
   email?: string;
 }
 
-// Auth context type
 interface AuthContextType {
+  isAuthenticated: boolean;
   user: User | null;
-  token: string | null;
-  isLoading: boolean;
-  error: string | null;
-  login: (username: string, password: string) => Promise<void>;
-  register: (data: RegisterData) => Promise<void>;
+  login: (credentials: { email: string; password: string }) => Promise<void>;
   logout: () => Promise<void>;
-  updateUser: (userData: Partial<User>) => Promise<void>;
+  loading: boolean;
 }
 
-// Create context
-const AuthContext = createContext<AuthContextType | null>(null);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Storage keys
-const USER_STORAGE_KEY = "terrafield_user";
-const TOKEN_STORAGE_KEY = "terrafield_token";
+export const useAuth = () => {
+  const context = useContext(AuthContext);
+  if (!context) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+};
 
-// Auth provider component
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  // State
+interface AuthProviderProps {
+  children: React.ReactNode;
+}
+
+export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
 
   // Services
   const apiService = ApiService.getInstance();
   const notificationService = NotificationService.getInstance();
 
-  // Initialize auth state
   useEffect(() => {
-    const loadAuthState = async () => {
-      try {
-        // Load user from storage
-        const userJson = await AsyncStorage.getItem(USER_STORAGE_KEY);
-        const storedToken = await AsyncStorage.getItem(TOKEN_STORAGE_KEY);
-
-        if (userJson && storedToken) {
-          const userData = JSON.parse(userJson);
-          setUser(userData);
-          setToken(storedToken);
-
-          // Set token in API service
-          apiService.setToken(storedToken);
-        }
-      } catch (error) {
-        console.error("Error loading auth state:", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    loadAuthState();
+    checkAuthStatus();
   }, []);
 
-  // Login function
-  const login = async (username: string, password: string) => {
-    setIsLoading(true);
-    setError(null);
-
+  const checkAuthStatus = async () => {
     try {
-      // Call login API
-      const response = await apiService.post<{ user: User; token: string }>("/api/auth/login", {
-        username,
-        password,
+      const token = await AsyncStorage.getItem('auth_token');
+      const userData = await AsyncStorage.getItem('user_data');
+      
+      if (token && userData) {
+        setIsAuthenticated(true);
+        setUser(JSON.parse(userData));
+
+        // Set token in API service
+        apiService.setToken(token);
+      }
+    } catch (error) {
+      console.error('Error checking auth status:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const login = async (credentials: { email: string; password: string }) => {
+    try {
+      setLoading(true);
+      // Implement your login logic here
+      const response = await fetch('YOUR_API_URL/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(credentials),
       });
 
-      if (response.user && response.token) {
-        // Save user and token
-        setUser(response.user);
-        setToken(response.token);
-
-        // Store in AsyncStorage
-        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
-        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, response.token);
-
-        // Set token in API service
-        apiService.setToken(response.token);
-
-        // Show success notification
-        notificationService.sendSystemNotification(
-          "Login Successful",
-          `Welcome back, ${response.user.fullName || response.user.username}!`
-        );
-      } else {
-        throw new Error("Invalid response from server");
+      if (!response.ok) {
+        throw new Error('Login failed');
       }
-    } catch (error) {
-      console.error("Login error:", error);
-      setError("Invalid username or password. Please try again.");
-      throw error;
-    } finally {
-      setIsLoading(false);
-    }
-  };
 
-  // Register function
-  const register = async (data: RegisterData) => {
-    setIsLoading(true);
-    setError(null);
+      const data = await response.json();
+      await AsyncStorage.setItem('auth_token', data.token);
+      await AsyncStorage.setItem('user_data', JSON.stringify(data.user));
+      
+      setIsAuthenticated(true);
+      setUser(data.user);
 
-    try {
-      // Call register API
-      const response = await apiService.post<{ user: User; token: string }>(
-        "/api/auth/register",
-        data
+      // Set token in API service
+      apiService.setToken(data.token);
+
+      // Show success notification
+      notificationService.sendSystemNotification(
+        "Login Successful",
+        `Welcome back, ${data.user.fullName || data.user.username}!`
       );
-
-      if (response.user && response.token) {
-        // Save user and token
-        setUser(response.user);
-        setToken(response.token);
-
-        // Store in AsyncStorage
-        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(response.user));
-        await AsyncStorage.setItem(TOKEN_STORAGE_KEY, response.token);
-
-        // Set token in API service
-        apiService.setToken(response.token);
-
-        // Show success notification
-        notificationService.sendSystemNotification(
-          "Registration Successful",
-          `Welcome to TerraField, ${response.user.fullName || response.user.username}!`
-        );
-      } else {
-        throw new Error("Invalid response from server");
-      }
     } catch (error) {
-      console.error("Registration error:", error);
-      setError("Registration failed. Please try again.");
+      console.error('Login error:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Logout function
   const logout = async () => {
     try {
-      // Call logout API if online
-      if (apiService.isConnected()) {
-        await apiService.post("/api/auth/logout");
-      }
+      setLoading(true);
+      await AsyncStorage.removeItem('auth_token');
+      await AsyncStorage.removeItem('user_data');
+      setIsAuthenticated(false);
+      setUser(null);
 
       // Clear token in API service
       apiService.clearToken();
 
-      // Clear storage
-      await AsyncStorage.removeItem(USER_STORAGE_KEY);
-      await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
-
-      // Clear state
-      setUser(null);
-      setToken(null);
-
       // Show success notification
       notificationService.sendSystemNotification("Logout Successful", "You have been logged out.");
     } catch (error) {
-      console.error("Logout error:", error);
-
-      // Force logout even if API call fails
-      apiService.clearToken();
-      await AsyncStorage.removeItem(USER_STORAGE_KEY);
-      await AsyncStorage.removeItem(TOKEN_STORAGE_KEY);
-      setUser(null);
-      setToken(null);
-    }
-  };
-
-  // Update user function
-  const updateUser = async (userData: Partial<User>) => {
-    if (!user) {
-      throw new Error("Not authenticated");
-    }
-
-    setIsLoading(true);
-
-    try {
-      // Call update user API
-      const response = await apiService.put<{ user: User }>(`/api/users/${user.id}`, userData);
-
-      if (response.user) {
-        // Update local user data
-        const updatedUser = { ...user, ...response.user };
-        setUser(updatedUser);
-
-        // Update in AsyncStorage
-        await AsyncStorage.setItem(USER_STORAGE_KEY, JSON.stringify(updatedUser));
-
-        // Show success notification
-        notificationService.sendSystemNotification(
-          "Profile Updated",
-          "Your profile information has been updated."
-        );
-
-        return;
-      }
-
-      throw new Error("Invalid response from server");
-    } catch (error) {
-      console.error("Update user error:", error);
-      Alert.alert("Error", "Failed to update profile. Please try again.");
+      console.error('Logout error:', error);
       throw error;
     } finally {
-      setIsLoading(false);
+      setLoading(false);
     }
   };
 
-  // Context value
-  const contextValue: AuthContextType = {
+  const authContextValue: AuthContextType = {
+    isAuthenticated,
     user,
-    token,
-    isLoading,
-    error,
     login,
-    register,
     logout,
-    updateUser,
+    loading,
   };
 
-  return <AuthContext.Provider value={contextValue}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={authContextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
 };
-
-// Hook to use auth context
-export const useAuth = () => {
-  const context = useContext(AuthContext);
-
-  if (!context) {
-    throw new Error("useAuth must be used within an AuthProvider");
-  }
-
-  return context;
-};
-
-export default useAuth;

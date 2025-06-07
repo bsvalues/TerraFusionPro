@@ -226,7 +226,7 @@ export class PropertyValueHistoryService {
       const series = await this.secureStorageService.getData<ValueHistorySeries[]>(
         "terrafield:value_history:series",
         [],
-        SecurityLevel.MEDIUM
+        { securityLevel: SecurityLevel.SENSITIVE }
       );
 
       for (const s of series) {
@@ -248,10 +248,10 @@ export class PropertyValueHistoryService {
   private async saveState(): Promise<void> {
     try {
       // Save value history series
-      await this.secureStorageService.saveData(
+      await this.secureStorageService.storeData<ValueHistorySeries[]>(
         "terrafield:value_history:series",
         Array.from(this.valueHistorySeries.values()),
-        SecurityLevel.MEDIUM
+        { securityLevel: SecurityLevel.SENSITIVE }
       );
     } catch (error) {
       console.error("Error saving property value history state:", error);

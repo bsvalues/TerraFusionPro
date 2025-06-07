@@ -469,4 +469,39 @@ export class AuthService {
       !!this.currentUser && permissions.every((p) => this.currentUser!.permissions.includes(p))
     );
   }
+
+  /**
+   * Get the current user's ID
+   */
+  public async getUserId(): Promise<string | null> {
+    return this.currentUser?.id.toString() || null;
+  }
+
+  /**
+   * Get the current user's display name
+   */
+  public async getUserDisplayName(): Promise<string | null> {
+    return this.currentUser?.fullName || null;
+  }
+
+  /**
+   * Check if the device supports digital signatures
+   */
+  public async hasDigitalSignatureSupport(): Promise<boolean> {
+    return false; // Implement actual digital signature support
+  }
+
+  /**
+   * Create a digital signature for a document
+   */
+  public async createDigitalSignature(documentId: string): Promise<string | null> {
+    return null; // Implement actual digital signature creation
+  }
+
+  /**
+   * Get the current authentication token
+   */
+  public async getToken(): Promise<string | null> {
+    return this.getAccessToken();
+  }
 }
