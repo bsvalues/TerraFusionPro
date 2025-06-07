@@ -1,0 +1,155 @@
+# TerraFusionPro Security Monitoring Configuration
+
+# Wazuh Configuration
+wazuh:
+  manager:
+    host: wazuh-manager
+    port: 1514
+  agent:
+    name: terrafusionpro-agent
+    group: production
+
+# Suricata Configuration
+suricata:
+  interface: eth0
+  rules:
+    - /etc/suricata/rules/emerging-all.rules
+    - /etc/suricata/rules/custom.rules
+  output:
+    - eve-log:
+        enabled: yes
+        filetype: json
+        filename: eve.json
+
+# OSSEC Configuration
+ossec:
+  global:
+    email_notification: yes
+    smtp_server: smtp.terrafusionpro.com
+    email_from: security@terrafusionpro.com
+    email_to: security-team@terrafusionpro.com
+  rules:
+    - level: 7
+      description: "Multiple failed login attempts"
+    - level: 10
+      description: "Successful root login"
+    - level: 12
+      description: "File modification detected"
+
+# Audit Configuration
+audit:
+  rules:
+    - -w /etc/passwd -p wa -k passwd_changes
+    - -w /etc/group -p wa -k group_changes
+    - -w /etc/sudoers -p wa -k sudoers_changes
+    - -w /var/log/auth.log -p wa -k auth_log_changes
+    - -w /var/log/audit.log -p wa -k audit_log_changes
+
+# File Integrity Monitoring
+fim:
+  paths:
+    - /etc/
+    - /var/www/terrafusionpro/
+    - /var/log/
+  exclude:
+    - /etc/ssl/certs/
+    - /var/log/audit/
+  frequency: 300
+
+# Network Monitoring
+network:
+  interfaces:
+    - eth0
+    - eth1
+  protocols:
+    - tcp
+    - udp
+    - icmp
+  ports:
+    - 22
+    - 80
+    - 443
+    - 5432
+
+# Log Analysis
+log_analysis:
+  sources:
+    - /var/log/auth.log
+    - /var/log/syslog
+    - /var/log/nginx/access.log
+    - /var/log/nginx/error.log
+    - /var/log/postgresql/postgresql.log
+  patterns:
+    - "Failed password"
+    - "Invalid user"
+    - "Connection refused"
+    - "SQL injection attempt"
+    - "XSS attempt"
+
+# Alert Configuration
+alerts:
+  email:
+    smtp_server: smtp.terrafusionpro.com
+    from: security@terrafusionpro.com
+    to:
+      - security-team@terrafusionpro.com
+      - oncall@terrafusionpro.com
+  slack:
+    webhook_url: https://hooks.slack.com/services/xxx/yyy/zzz
+    channel: "#security-alerts"
+  pagerduty:
+    service_key: xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+# Compliance Monitoring
+compliance:
+  standards:
+    - name: "PCI DSS"
+      rules:
+        - "Requirement 1: Install and maintain a firewall"
+        - "Requirement 2: Do not use vendor defaults"
+        - "Requirement 3: Protect stored data"
+    - name: "GDPR"
+      rules:
+        - "Article 5: Data processing principles"
+        - "Article 25: Data protection by design"
+        - "Article 32: Security of processing"
+
+# Vulnerability Scanning
+vulnerability_scanning:
+  schedule: "0 0 * * *"  # Daily at midnight
+  targets:
+    - 10.0.0.0/24
+  exclusions:
+    - 10.0.0.1
+  severity_threshold: medium
+
+# Incident Response
+incident_response:
+  playbooks:
+    - name: "Data Breach"
+      steps:
+        - "Isolate affected systems"
+        - "Preserve evidence"
+        - "Notify stakeholders"
+        - "Begin recovery process"
+    - name: "DDoS Attack"
+      steps:
+        - "Enable DDoS protection"
+        - "Monitor traffic patterns"
+        - "Update firewall rules"
+        - "Notify network team"
+
+# Reporting
+reporting:
+  daily:
+    - "Security events summary"
+    - "Failed login attempts"
+    - "New vulnerabilities"
+  weekly:
+    - "Compliance status"
+    - "Vulnerability scan results"
+    - "Incident summary"
+  monthly:
+    - "Security posture assessment"
+    - "Trend analysis"
+    - "Recommendations" 

@@ -1,0 +1,46 @@
+# Build artifacts
+*.zip
+*.tar.gz
+*.tgz
+
+# Dependencies
+node_modules/
+vendor/
+
+# Environment files
+.env
+.env.*
+!.env.example
+
+# IDE files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Logs
+*.log
+logs/
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temporary files
+*.tmp
+*.temp
+.DS_Store
+
+# Security
+*.pem
+*.key
+*.cert
+*.crt
+
+# Documentation builds
+docs/_build/
+site/
+
+# Cache
+.cache/
+.temp/ 

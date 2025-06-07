@@ -1,0 +1,152 @@
+# TerraFusionPro SLA Monitoring Configuration
+
+# Service Level Objectives (SLOs)
+slos:
+  availability:
+    target: 99.99
+    window: 30d
+    measurement: "uptime"
+  latency:
+    target: 200
+    window: 30d
+    measurement: "p95_response_time"
+  error_rate:
+    target: 0.1
+    window: 30d
+    measurement: "error_percentage"
+  throughput:
+    target: 1000
+    window: 30d
+    measurement: "requests_per_second"
+
+# Service Level Indicators (SLIs)
+slis:
+  availability:
+    - name: "http_availability"
+      type: "ratio"
+      numerator: "successful_requests"
+      denominator: "total_requests"
+    - name: "api_availability"
+      type: "ratio"
+      numerator: "successful_api_calls"
+      denominator: "total_api_calls"
+  
+  latency:
+    - name: "http_latency"
+      type: "histogram"
+      buckets: [50, 100, 200, 500, 1000]
+    - name: "api_latency"
+      type: "histogram"
+      buckets: [50, 100, 200, 500, 1000]
+  
+  error_rate:
+    - name: "http_errors"
+      type: "ratio"
+      numerator: "error_requests"
+      denominator: "total_requests"
+    - name: "api_errors"
+      type: "ratio"
+      numerator: "error_api_calls"
+      denominator: "total_api_calls"
+  
+  throughput:
+    - name: "http_throughput"
+      type: "rate"
+      unit: "requests_per_second"
+    - name: "api_throughput"
+      type: "rate"
+      unit: "requests_per_second"
+
+# Critical Paths
+critical_paths:
+  - name: "user_authentication"
+    endpoints:
+      - "/api/v1/auth/login"
+      - "/api/v1/auth/refresh"
+    slo:
+      availability: 99.99
+      latency: 100
+      error_rate: 0.1
+  
+  - name: "data_processing"
+    endpoints:
+      - "/api/v1/process"
+      - "/api/v1/analyze"
+    slo:
+      availability: 99.9
+      latency: 500
+      error_rate: 0.5
+
+# Alerting Rules
+alerts:
+  - name: "slo_violation_availability"
+    condition: "availability < 99.99"
+    duration: "5m"
+    severity: "critical"
+  
+  - name: "slo_violation_latency"
+    condition: "p95_latency > 200"
+    duration: "5m"
+    severity: "warning"
+  
+  - name: "slo_violation_error_rate"
+    condition: "error_rate > 0.1"
+    duration: "5m"
+    severity: "critical"
+
+# Burn Rate Alerts
+burn_rate_alerts:
+  - name: "error_budget_burn"
+    condition: "error_budget_consumed > 0.1"
+    duration: "1h"
+    severity: "critical"
+  
+  - name: "latency_budget_burn"
+    condition: "latency_budget_consumed > 0.1"
+    duration: "1h"
+    severity: "warning"
+
+# Reporting
+reporting:
+  daily:
+    - "SLO compliance status"
+    - "Error budget consumption"
+    - "Critical path performance"
+  
+  weekly:
+    - "SLO trend analysis"
+    - "Error budget forecast"
+    - "Performance improvement recommendations"
+  
+  monthly:
+    - "SLO compliance report"
+    - "Error budget analysis"
+    - "Service improvement plan"
+
+# Notification Channels
+notifications:
+  email:
+    - "sre-team@terrafusionpro.com"
+    - "ops-team@terrafusionpro.com"
+  
+  slack:
+    - "#slo-alerts"
+    - "#sre-notifications"
+  
+  pagerduty:
+    - "sre-oncall"
+    - "ops-oncall"
+
+# Escalation Policy
+escalation:
+  - level: 1
+    duration: "15m"
+    notify: ["sre-team@terrafusionpro.com"]
+  
+  - level: 2
+    duration: "30m"
+    notify: ["ops-team@terrafusionpro.com"]
+  
+  - level: 3
+    duration: "1h"
+    notify: ["management@terrafusionpro.com"] 

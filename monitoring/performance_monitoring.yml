@@ -1,0 +1,171 @@
+# TerraFusionPro Performance Monitoring Configuration
+
+# Application Performance Monitoring (APM)
+apm:
+  service_name: "terrafusionpro"
+  environment: "production"
+  sampling_rate: 1.0
+  transaction_max_spans: 1000
+  metrics:
+    - name: "request.duration"
+      type: "histogram"
+      labels: ["endpoint", "method", "status"]
+    - name: "db.query.duration"
+      type: "histogram"
+      labels: ["query_type", "table"]
+    - name: "cache.hit_ratio"
+      type: "gauge"
+      labels: ["cache_name"]
+
+# Resource Monitoring
+resources:
+  cpu:
+    threshold: 80
+    interval: 60
+    alert_threshold: 90
+  memory:
+    threshold: 85
+    interval: 60
+    alert_threshold: 95
+  disk:
+    threshold: 80
+    interval: 300
+    alert_threshold: 90
+  network:
+    threshold: 70
+    interval: 60
+    alert_threshold: 85
+
+# Database Performance
+database:
+  metrics:
+    - name: "db.connections"
+      type: "gauge"
+      labels: ["database", "state"]
+    - name: "db.query.time"
+      type: "histogram"
+      labels: ["query_type"]
+    - name: "db.transactions"
+      type: "counter"
+      labels: ["type"]
+  slow_query_threshold: 1000  # milliseconds
+  connection_pool:
+    max_size: 100
+    min_idle: 10
+    max_lifetime: 3600
+
+# Cache Performance
+cache:
+  metrics:
+    - name: "cache.size"
+      type: "gauge"
+      labels: ["cache_name"]
+    - name: "cache.hits"
+      type: "counter"
+      labels: ["cache_name"]
+    - name: "cache.misses"
+      type: "counter"
+      labels: ["cache_name"]
+  redis:
+    max_memory: "2gb"
+    max_memory_policy: "allkeys-lru"
+
+# API Performance
+api:
+  endpoints:
+    - path: "/api/v1/*"
+      timeout: 5000
+      rate_limit: 1000
+    - path: "/api/v2/*"
+      timeout: 3000
+      rate_limit: 500
+  metrics:
+    - name: "api.request.duration"
+      type: "histogram"
+      labels: ["endpoint", "method"]
+    - name: "api.request.size"
+      type: "histogram"
+      labels: ["endpoint", "method"]
+    - name: "api.response.size"
+      type: "histogram"
+      labels: ["endpoint", "method"]
+
+# Frontend Performance
+frontend:
+  metrics:
+    - name: "page.load.time"
+      type: "histogram"
+      labels: ["page"]
+    - name: "resource.load.time"
+      type: "histogram"
+      labels: ["resource_type"]
+    - name: "js.error.count"
+      type: "counter"
+      labels: ["error_type"]
+  thresholds:
+    page_load: 3000  # milliseconds
+    resource_load: 1000  # milliseconds
+
+# Background Jobs
+jobs:
+  metrics:
+    - name: "job.duration"
+      type: "histogram"
+      labels: ["job_type"]
+    - name: "job.queue.size"
+      type: "gauge"
+      labels: ["queue"]
+    - name: "job.failure.count"
+      type: "counter"
+      labels: ["job_type", "error_type"]
+  thresholds:
+    max_duration: 3600  # seconds
+    max_retries: 3
+    queue_size: 1000
+
+# External Services
+external_services:
+  metrics:
+    - name: "external.request.duration"
+      type: "histogram"
+      labels: ["service", "endpoint"]
+    - name: "external.request.error"
+      type: "counter"
+      labels: ["service", "error_type"]
+  timeouts:
+    default: 5000  # milliseconds
+    critical: 10000  # milliseconds
+
+# Alerting Rules
+alerts:
+  - name: "high_cpu_usage"
+    condition: "cpu_usage > 90"
+    duration: "5m"
+    severity: "critical"
+  - name: "high_memory_usage"
+    condition: "memory_usage > 90"
+    duration: "5m"
+    severity: "critical"
+  - name: "high_latency"
+    condition: "request_duration > 1000"
+    duration: "5m"
+    severity: "warning"
+  - name: "high_error_rate"
+    condition: "error_rate > 5"
+    duration: "5m"
+    severity: "critical"
+
+# Reporting
+reporting:
+  daily:
+    - "Performance summary"
+    - "Error rates"
+    - "Resource usage"
+  weekly:
+    - "Trend analysis"
+    - "Capacity planning"
+    - "Optimization opportunities"
+  monthly:
+    - "Performance review"
+    - "SLA compliance"
+    - "Improvement recommendations" 

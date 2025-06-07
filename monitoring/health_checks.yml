@@ -1,0 +1,191 @@
+# TerraFusionPro Service Health Checks Configuration
+
+# Application Health Checks
+application:
+  - name: "api_health"
+    type: "http"
+    endpoint: "/health"
+    method: "GET"
+    interval: 30
+    timeout: 5
+    success_codes: [200]
+    failure_threshold: 3
+    success_threshold: 2
+  
+  - name: "auth_service"
+    type: "http"
+    endpoint: "/api/v1/auth/health"
+    method: "GET"
+    interval: 30
+    timeout: 5
+    success_codes: [200]
+    failure_threshold: 3
+    success_threshold: 2
+  
+  - name: "data_service"
+    type: "http"
+    endpoint: "/api/v1/data/health"
+    method: "GET"
+    interval: 30
+    timeout: 5
+    success_codes: [200]
+    failure_threshold: 3
+    success_threshold: 2
+
+# Database Health Checks
+database:
+  - name: "primary_db"
+    type: "sql"
+    query: "SELECT 1"
+    interval: 30
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 2
+  
+  - name: "replica_db"
+    type: "sql"
+    query: "SELECT 1"
+    interval: 30
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 2
+
+# Cache Health Checks
+cache:
+  - name: "redis_primary"
+    type: "redis"
+    command: "PING"
+    interval: 30
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 2
+  
+  - name: "redis_replica"
+    type: "redis"
+    command: "PING"
+    interval: 30
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 2
+
+# External Service Health Checks
+external_services:
+  - name: "payment_gateway"
+    type: "http"
+    endpoint: "/health"
+    method: "GET"
+    interval: 60
+    timeout: 10
+    success_codes: [200]
+    failure_threshold: 3
+    success_threshold: 2
+  
+  - name: "email_service"
+    type: "http"
+    endpoint: "/health"
+    method: "GET"
+    interval: 60
+    timeout: 10
+    success_codes: [200]
+    failure_threshold: 3
+    success_threshold: 2
+
+# System Health Checks
+system:
+  - name: "disk_space"
+    type: "disk"
+    path: "/"
+    threshold: 85
+    interval: 300
+    failure_threshold: 1
+    success_threshold: 1
+  
+  - name: "memory_usage"
+    type: "memory"
+    threshold: 85
+    interval: 60
+    failure_threshold: 1
+    success_threshold: 1
+  
+  - name: "cpu_usage"
+    type: "cpu"
+    threshold: 85
+    interval: 60
+    failure_threshold: 1
+    success_threshold: 1
+
+# Network Health Checks
+network:
+  - name: "internal_network"
+    type: "icmp"
+    target: "10.0.0.1"
+    interval: 30
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 2
+  
+  - name: "external_network"
+    type: "icmp"
+    target: "8.8.8.8"
+    interval: 30
+    timeout: 5
+    failure_threshold: 3
+    success_threshold: 2
+
+# Alerting Configuration
+alerts:
+  - name: "service_down"
+    condition: "health_check_failed"
+    duration: "5m"
+    severity: "critical"
+  
+  - name: "service_degraded"
+    condition: "health_check_warning"
+    duration: "5m"
+    severity: "warning"
+
+# Notification Channels
+notifications:
+  email:
+    - "sre-team@terrafusionpro.com"
+    - "ops-team@terrafusionpro.com"
+  
+  slack:
+    - "#health-alerts"
+    - "#sre-notifications"
+  
+  pagerduty:
+    - "sre-oncall"
+    - "ops-oncall"
+
+# Escalation Policy
+escalation:
+  - level: 1
+    duration: "15m"
+    notify: ["sre-team@terrafusionpro.com"]
+  
+  - level: 2
+    duration: "30m"
+    notify: ["ops-team@terrafusionpro.com"]
+  
+  - level: 3
+    duration: "1h"
+    notify: ["management@terrafusionpro.com"]
+
+# Health Check Dependencies
+dependencies:
+  - name: "api_health"
+    depends_on:
+      - "primary_db"
+      - "redis_primary"
+  
+  - name: "auth_service"
+    depends_on:
+      - "primary_db"
+      - "redis_primary"
+  
+  - name: "data_service"
+    depends_on:
+      - "primary_db"
+      - "redis_primary"
+      - "payment_gateway" 
