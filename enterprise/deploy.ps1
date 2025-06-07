@@ -51,34 +51,17 @@ python enterprise/llm/init_llm.py
 Write-Host "Deploying AI agents..."
 python enterprise/agents/deploy_agents.py
 
-# Start services
-Write-Host "Starting services..."
-
-# Start Redis
+# Start Redis (required for agent communication)
+Write-Host "Starting Redis..."
 Start-Process redis-server
 
-# Start Dashboard
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd $PWD; .\venv\Scripts\Activate.ps1; cd enterprise/dashboard; python main.py"
-
-# Start LLM Service
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd $PWD; .\venv\Scripts\Activate.ps1; cd enterprise/llm; python main.py"
-
-# Start Agent Manager
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd $PWD; .\venv\Scripts\Activate.ps1; cd enterprise/agents; python manager.py"
-
-# Start Monitoring
-Start-Process powershell -ArgumentList "-NoExit", "-Command", "cd $PWD; .\venv\Scripts\Activate.ps1; cd enterprise/monitoring; python main.py"
-
-# Run health checks
-Write-Host "Running health checks..."
-python enterprise/health_check.py
+# Launch GUI
+Write-Host "Launching TerraFusion Enterprise GUI..."
+python enterprise/gui/main.py
 
 # Display status
 Write-Host "`nTerraFusion Enterprise Deployment Complete!"
-Write-Host "Dashboard: http://localhost:8080"
-Write-Host "API: http://localhost:8000"
-Write-Host "LLM Service: http://localhost:8001"
-Write-Host "Agent Manager: http://localhost:8002"
+Write-Host "The GUI application should now be running."
 Write-Host "`nDefault credentials:"
 Write-Host "Username: admin"
 Write-Host "Password: changeme"
