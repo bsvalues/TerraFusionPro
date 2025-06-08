@@ -1,6 +1,6 @@
 # TerraFusion Master Setup Script
 
-Write-Host "🚀 Starting TerraFusion Master Setup..." -ForegroundColor Green
+Write-Host "Starting TerraFusion Master Setup..." -ForegroundColor Green
 
 # Function to check if running as administrator
 function Test-Administrator {
@@ -10,7 +10,7 @@ function Test-Administrator {
 
 # Check if running as administrator
 if (-not (Test-Administrator)) {
-    Write-Host "❌ This script requires administrator privileges. Please run as administrator." -ForegroundColor Red
+    Write-Host "This script requires administrator privileges. Please run as administrator." -ForegroundColor Red
     exit 1
 }
 
@@ -21,14 +21,14 @@ function Invoke-SetupScript {
         [string]$ScriptName
     )
     
-    Write-Host "📜 Executing $ScriptName..." -ForegroundColor Yellow
+    Write-Host ("Executing " + $ScriptName + "...") -ForegroundColor Yellow
     try {
-        & "$ScriptPath"
+        & $ScriptPath
         if ($LASTEXITCODE -ne 0) {
             throw "Script failed with exit code $LASTEXITCODE"
         }
     } catch {
-        Write-Host "❌ Error executing $ScriptName: $_" -ForegroundColor Red
+        Write-Host ("Error executing " + $ScriptName + ": " + $_) -ForegroundColor Red
         exit 1
     }
 }
@@ -41,9 +41,9 @@ try {
     # Execute infrastructure setup
     Invoke-SetupScript -ScriptPath ".\scripts\setup-infrastructure.ps1" -ScriptName "Infrastructure Setup"
     
-    Write-Host "✅ TerraFusion setup completed successfully!" -ForegroundColor Green
-    Write-Host "🎉 You can now start developing TerraFusion!" -ForegroundColor Green
+    Write-Host "TerraFusion setup completed successfully!" -ForegroundColor Green
+    Write-Host "You can now start developing TerraFusion!" -ForegroundColor Green
 } catch {
-    Write-Host "❌ Error during setup: $_" -ForegroundColor Red
+    Write-Host ("Error during setup: " + $_) -ForegroundColor Red
     exit 1
 } 
